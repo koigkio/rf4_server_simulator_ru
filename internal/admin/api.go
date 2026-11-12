@@ -671,6 +671,10 @@ func (s *Server) handleGrantItem(w http.ResponseWriter, r *http.Request) {
 	if req.Qty <= 0 {
 		req.Qty = 1
 	}
+	if err := gameserver.ValidateCouponGrantQty(r.Context(), s.db, req.ItemID, req.Qty); err != nil {
+		httpError(w, 400, err.Error())
+		return
+	}
 	_ = s.db.QueuePush(r.Context(), mustJSON(map[string]any{
 		"op": "grant_item", "uid": req.UID, "item_id": req.ItemID, "qty": req.Qty,
 	}))
