@@ -8,7 +8,7 @@ CREATE TABLE IF NOT EXISTS rf4records_catch(
     fish_key   TEXT NOT NULL DEFAULT '',  -- 映射后的本地 fish_key，未映射为空
     bait_name  TEXT NOT NULL,             -- 源站 bait_display（原始事实）
     bait_id    TEXT NOT NULL DEFAULT '',  -- 映射到 item_def.item_id，未匹配为空
-    weight_g   INTEGER,
+    weight_g   INTEGER NOT NULL DEFAULT 0,
     waterbody  TEXT NOT NULL DEFAULT '',
     region     TEXT NOT NULL DEFAULT '',
     categories TEXT NOT NULL DEFAULT '',  -- 钓法分类，分号连接
@@ -16,3 +16,5 @@ CREATE TABLE IF NOT EXISTS rf4records_catch(
     catch_date TEXT NOT NULL DEFAULT '',  -- 源站 dd.mm.yy 原样
     fetched_at REAL NOT NULL,
     PRIMARY KEY(fish_name_en, bait_name, weight_g, catch_date, waterbody));
+-- 食性分级按 (fish_key,bait_id) 聚合 47.9 万行；没有索引会全表扫描。
+CREATE INDEX IF NOT EXISTS idx_rf4records_catch_fish_bait ON rf4records_catch(fish_key, bait_id);
