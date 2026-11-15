@@ -1,6 +1,6 @@
 # 修复低精力抛竿后不排鱼
 
-Status: in-progress
+Status: done
 
 ## Problem Statement
 
@@ -18,17 +18,23 @@ Status: in-progress
 ## Implementation Decisions
 
 - 删除 `internal/gameserver` 的 14/2 低精力拒绝分支和仅供该分支使用的判定、门槛配置及结果码常量。
-- 沿用 `castPlayerStateFactor` 的距离衰减和 `spendEnergy` 的零下限，不修改恢复、消耗数值或派鱼概率。
+- 沿用 `castEnergyStateFactor` 的距离衰减（0.70 下限）和 `spendEnergy` 的零下限，不修改恢复、消耗数值或派鱼概率。
 - 继续返回既有 800 钓组快照，其物品段为 args(61) 的 157 对象；不新增或修改协议字段，客户端兼容基线为 4.0.25034。
 - 不改表结构。旧库 `condition_low_energy_threshold` 不再读取，无需删除数据；回滚代码即可恢复旧规则。
-- 现有 `specs/capabilities/player-condition.md` 要求抛投前检查精力门槛，与本次需求存在差异，提交供维护者评审，不在本改动中自行修改能力约束。
+- 能力约束同步（维护者裁定，本 PR 内完成）：`specs/capabilities/player-condition.md`
+  第 3 节从"精力门槛与扣减走事务"改为"精力只影响抛距与扣减，不硬拒绝抛投"，
+  并补上"14/2 硬拒绝会导致抛竿后无鱼口"的陷阱条目；`condition_low_energy_threshold`
+  旋钮随之退役（历史库值保留、不再读取）。
 
 ## Testing Decisions
 
 - handler 层替换原门槛单测：精力为 0、0.01、0.05、0.85 时均返回钓组快照、启动咬钩计时，扣减后不低于零；冻结自然恢复，保证确实覆盖低精力。
-- 恢复原拒绝分支后，前三个精力样例应失败。抛距算法及其既有测试保持不变。
-- `go build ./...`：通过。
-- 按用户要求未运行本地测试或 vet；新增用例尚未执行，修复后的实机验证待完成。尚未部署或推送。
+- 恢复原拒绝分支后，前三个精力样例应失败（已复核：临时加回 14/2 拦截后
+  `TestCastStartsBiteAtAnyEnergy/energy_0` 精确失败）。抛距算法及其既有测试保持不变。
+- 门禁（合入当前 main 后实际执行）：
+  - `go build ./...`、`go vet ./...`：通过；
+  - `go run ./tools/doccheck`：`docs=49 specs=118 links=80 refs=136 issues=0 notes=0`；
+  - `go test -p 1 ./internal/... ./cmd/...`：全绿（gameserver 103.7s）。
 
 ## Out of Scope
 
@@ -38,3 +44,8 @@ Status: in-progress
 
 - [事实] 原 14/1 抛投准备未检查精力；14/2 低精力分支在 `scheduleBite` 之前返回。
 - [事实] 原规则由提交 `a5c956f` 接入；仓库分析文档只确认了结果码 84 的精力不足文案，未确认官服在哪条请求使用它。本次不宣称还原官服规则。
+- [已知口径] 精力 0 时抛距系数落在 0.70 下限（`castEnergyStateFactor` 的既有钳位），
+  即"精力耗尽仍能抛约七成距离"。这是上游既有标定，不在本改动调整范围内；若后续要
+  加强惩罚，按 `cast-distance-calibration` 的锚点方法单独重标。
+- [未验证] 客户端在精力耗尽时的实际手感（抛距明显缩短、无拒绝提示）仍需实机确认；
+  服务端只保证受理并排咬钩。
