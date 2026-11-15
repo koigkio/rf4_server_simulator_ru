@@ -1315,15 +1315,14 @@ func (s *Server) gradeRatioModel(l cachedGradeLines, modeMult, scale, capG float
 	if l.blue != nil {
 		supf = float64(*l.blue)
 	}
-	// 「未达标」档下界取该鱼种的自然最小体重。旧实现写死 1 g，而档内是对数
-	// 均匀采样，达标线 500 g 的鱼种会有约 37% 的未达标个体落到 10 g 以下。
+	// 未达标档下界：有鱼种自然最小体重且低于达标线时直接采用；否则与
+	// sampleWeightDB 的兜底共用同一口径——达标线的 15%、钳到 [1, 50] g。
 	lo := 1.0
-	if l.minG != nil && *l.minG > 0 {
-		lo = float64(*l.minG)
+	if vf > 0 {
+		lo = float64(belowGradeFloorFromVal(int64(math.Round(vf))))
 	}
-	// 数据异常（最小体重 ≥ 达标线）时退回达标线的 5%，保证未达标档不消失。
-	if vf > 0 && lo >= vf {
-		lo = math.Max(1, vf*0.05)
+	if l.minG != nil && *l.minG > 0 && float64(*l.minG) < vf {
+		lo = float64(*l.minG)
 	}
 	bands := make([]gradeRatioBand, 0, 4)
 	if vf > lo {

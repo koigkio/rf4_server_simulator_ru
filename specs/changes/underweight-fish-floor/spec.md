@@ -1,38 +1,49 @@
-# 未达标鱼个体最小体重下界
+# 未达标档下界取鱼种自然最小体重
 
-## 问题
+Status: ready
 
-旧实现的「未达标」档下界写死 1 g，且档内按对数均匀采样：达标线 500 g 的
-鱼种约有 37%（ln(10/1)/ln(500/1)）的未达标个体落在 10 g 以下，实机出现
-1 g 鲤鱼、5 g 狗鱼这类个位数克数个体。
+## Problem Statement
 
-## 修复内容
+档位比例采样开启时，「未达标」档的下界写死 1 g，且档内是对数均匀采样。
+达标线 500 g 的鱼种会有约 37% 的未达标个体落在 10 g 以下，产生不合常理的
+极小个体。
 
-1. `gradeRatioModel` 未达标档下界取 `species_weight.min_g`（鱼种自然
-   最小体重，静态库已有数据）。
-2. `species_weight.min_g` 缺失的鱼种（静态库 1043 行中 207 行 min_g /
-   max_g / trophy_g 全 NULL，但 trophy_line_g 全有）：用达标线
-   （`settleStatics[0]`，已经过 Wiki 表/内置表/奖杯线估算三级回退）按
-   15% 推兜底下界，钳到 [1, 50] g。
-3. 数据异常（min_g ≥ 达标线）时退回达标线 × 5%，保证未达标档不消失。
+## Solution
 
-## 参数依据
+- 有鱼种自然最小体重（`species_weight.min_g`）且低于达标线时，未达标档
+  下界直接采用 `min_g`。
+- `min_g` 缺失（静态库 252 行中 207 行为 NULL）或 `min_g` 越界（≥ 达标线）
+  时，下界退回达标线的 15%，钳到 [1, 50] g，与 `sampleWeightDB` 的
+  `belowGradeFloorFromVal` 兜底共用同一口径。
+- 下界在任何情况下都不超过达标线，未达标档不会消失。
 
-- 15% / 钳 50 g：无逐鱼种公开最小体重数据源（GameKee 图鉴只有奖杯线 /
-  蓝冠线），选比例兜底而非编造静态数据。达标线 ≤ 333 g 的鱼种兜底 ≤ 50 g
-  上限，正常小规格鱼种（如 freshwater_mussel 达标线 80 g → 兜底 12 g）
-  仍可出 10 g 以下个体，不改变小规格鱼玩法。
-- 5% 异常分支：仅处理静态数据自相矛盾的个别行，维持旧有行为不变。
+## User Stories
 
-## 实机验证
+- 钓到未达标个体时，重量不低于该鱼种的自然最小体重或 15% 兜底下界，
+  不再出现个位数克数的成年鱼。
 
-- 修复前（11-13 版服务端）4384 条发鱼日志中 58 条 < 10 g（1.3%）。
-- 6% 兜底版本（2026-11-15 01:18 起）：61 条发鱼日志中仅 1 条 < 10 g
-  （a_smelt 5 g；该鱼种三字段全 NULL，达标线 40 g → 兜底 2 g，合规）。
-- 15% / 50 g 版本为本 PR 最终参数：a_smelt 兜底升到 6 g，同类残留消失。
+## Implementation Decisions
 
-## 影响范围
+- `gradeRatioModel`（`internal/gameserver/fishing.go`）计算未达标档下界时
+  优先取 `min_g`，否则用 `belowGradeFloorFromVal(达标线)`。
+- 兜底口径集中在 `belowGradeFloorFromVal`（15%、钳 [1,50] g），两个调用点
+  共用，避免口径漂移。
 
-- 只影响「未达标」档的采样下界；达标/奖杯/蓝冠档不受影响。
-- 不动协议、不动表结构、无迁移。
-- 静态库若未来补齐 min_g，兜底自动让位于真实数据。
+## Testing Decisions
+
+- `TestGradeRatioBelowBandHonorsSpeciesMinWeight`：有 `min_g` 时未达标个体
+  全部 ≥ `min_g`（变异验证：删采纳行后 FAIL）。
+- `TestGradeRatioBelowBandFallsBackToOneGram` 与
+  `TestGradeRatioBelowBandGuardsMinAboveLine`：`min_g` 缺失/越界时下界 =
+  15% 兜底钳 50 g，未达标档存在。
+- `TestGradeRatioBelowBandUsesMinGBelowFloor`：`min_g` 低于兜底时仍取
+  `min_g`。
+- `TestSampleWeightDBFloorsBelowBandWhenMinGMissing`：端到端抽样验证
+  `min_g` 缺失鱼种的未达标个体 ≥ 兜底下界（期望值为独立常量，不复用被测
+  函数）。
+- `TestBelowGradeFloorFromVal`：兜底函数边界值表。
+
+## Out of Scope
+
+- 不调整档位占比参数（合格/奖杯/蓝冠比例沿用现有 tunables）。
+- 不修改 `species_weight` 静态数据本身。

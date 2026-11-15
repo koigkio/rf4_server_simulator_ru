@@ -7,7 +7,7 @@ import (
 )
 
 // 「未达标」档的下界必须用该鱼种的自然最小体重（species_weight.min_g），
-// 而不是旧实现写死的 1 g：1 g 鲤鱼、5 g 狗鱼这类个体就是那样抽出来的。
+// 而不是固定的 1 g 下界，避免未达标档出现不合常理的极小个体。
 func TestGradeRatioBelowBandHonorsSpeciesMinWeight(t *testing.T) {
 	srv, db := newDetachTestServer(t)
 	enableGradeRatio(t, srv, db)
@@ -37,7 +37,7 @@ func TestGradeRatioBelowBandHonorsSpeciesMinWeight(t *testing.T) {
 	}
 }
 
-// 缺 min_g 数据时保持旧行为（下界 1 g），避免未登记鱼种抽不出鱼。
+// 缺 min_g 数据时下界退回达标线的 15%（钳到 50 g），未达标档仍存在。
 func TestGradeRatioBelowBandFallsBackToOneGram(t *testing.T) {
 	srv, db := newDetachTestServer(t)
 	enableGradeRatio(t, srv, db)
@@ -45,22 +45,26 @@ func TestGradeRatioBelowBandFallsBackToOneGram(t *testing.T) {
 	const val, tro, sup = int64(1000), int64(5000), int64(8000)
 	lines := cachedGradeLines{val: ptrI64(val), trophy: ptrI64(tro), blue: ptrI64(sup)}
 
-	minSeen := int64(math.MaxInt64)
-	for i := 0; i < 4000; i++ {
-		w, ok := srv.sampleWeightByGradeRatio(lines, 1, 1, 0)
-		if !ok {
-			t.Fatalf("第 %d 次抽样没有结果", i)
-		}
-		if g := gradeRatioGradeOf(w, val, tro, sup); g == 1 && w < minSeen {
-			minSeen = w
+	const wantLo = 50.0 // belowGradeFloorFromVal(1000) = 15% = 150，钳到 50
+	model, handled := srv.gradeRatioModel(lines, 1, 1, 0)
+	if !handled {
+		t.Fatal("档位模型不可用")
+	}
+	found := false
+	for _, b := range model.bands {
+		if b.grade == 1 {
+			found = true
+			if math.Abs(b.lo-wantLo) > 1e-9 {
+				t.Fatalf("min_g 缺失时未达标档下界应 = 兜底 15%%钳 50 g，实得 %.2f", b.lo)
+			}
 		}
 	}
-	if minSeen != math.MaxInt64 && minSeen >= 120 {
-		t.Fatalf("缺少 min_g 时应仍从 1 g 起采样，实测最小未达标个体 %d g", minSeen)
+	if !found {
+		t.Fatal("min_g 缺失时未达标档不应消失")
 	}
 }
 
-// 数据异常（min_g ≥ 达标线）时退回达标线 5%，未达标档不能因此消失。
+// 数据异常（min_g ≥ 达标线）时下界不得越过达标线，取 min(min_g 封顶, 兜底)。
 func TestGradeRatioBelowBandGuardsMinAboveLine(t *testing.T) {
 	srv, db := newDetachTestServer(t)
 	enableGradeRatio(t, srv, db)
@@ -80,7 +84,7 @@ func TestGradeRatioBelowBandGuardsMinAboveLine(t *testing.T) {
 		}
 		found = true
 		if math.Abs(b.lo-50) > 1e-9 {
-			t.Fatalf("未达标档下界应为达标线的 5%%（50 g），实得 %.2f", b.lo)
+			t.Fatalf("min_g 越界时未达标档下界应 = 兜底 15%%钳 50 g，实得 %.2f", b.lo)
 		}
 	}
 	if !found {
@@ -88,8 +92,34 @@ func TestGradeRatioBelowBandGuardsMinAboveLine(t *testing.T) {
 	}
 }
 
-// min_g 缺失的鱼种（静态库 207 个）由 sampleWeightDB 层兜底：下界 = 达标线×6%，
-// 不再退回 1 g——否则 1 g 小鱼会从这批鱼种继续漏出来。
+// min_g 越界但低于 15% 兜底时，下界仍取 min_g（不因越界判断整体失效）。
+func TestGradeRatioBelowBandUsesMinGBelowFloor(t *testing.T) {
+	srv, db := newDetachTestServer(t)
+	enableGradeRatio(t, srv, db)
+
+	lines := cachedGradeLines{
+		val: ptrI64(1000), trophy: ptrI64(5000), blue: ptrI64(8000), minG: ptrI64(30),
+	}
+	model, handled := srv.gradeRatioModel(lines, 1, 1, 0)
+	if !handled {
+		t.Fatal("档位模型不可用")
+	}
+	found := false
+	for _, b := range model.bands {
+		if b.grade == 1 {
+			found = true
+			if math.Abs(b.lo-30) > 1e-9 {
+				t.Fatalf("下界应取 min_g=30（低于兜底 50），实得 %.2f", b.lo)
+			}
+		}
+	}
+	if !found {
+		t.Fatal("未达标档不应消失")
+	}
+}
+
+// min_g 缺失的鱼种（静态库 207 个）由 gradeRatioModel 兜底：下界 = 达标线×15%
+// 钳到 [1,50] g，不再退回 1 g。
 func TestSampleWeightDBFloorsBelowBandWhenMinGMissing(t *testing.T) {
 	srv, db := newDetachTestServer(t)
 	enableGradeRatio(t, srv, db)
@@ -121,7 +151,7 @@ func TestSampleWeightDBFloorsBelowBandWhenMinGMissing(t *testing.T) {
 	if below == 0 {
 		t.Fatal("样本里没有未达标个体，用例无效")
 	}
-	floor := belowGradeFloorFromVal(valLine) // 150 钳到 50
+	const floor = int64(50) // 1000 × 15% = 150，钳到上限 50 g（独立常量，不用被测函数自算）
 	if minSeen < floor {
 		t.Fatalf("min_g 缺失时未达标个体最小应 ≥ 兜底下界 %d g，实测 %d g", floor, minSeen)
 	}
@@ -132,11 +162,11 @@ func TestBelowGradeFloorFromVal(t *testing.T) {
 		val, want int64
 	}{
 		{0, 0}, {-5, 0}, // 无达标线：不兜底
-		{1000, 50},  // 15% = 150，但钳到上限 50 g
+		{1000, 50}, // 15% = 150，但钳到上限 50 g
 		{100, 15},
-		{10, 2},     // 10 × 15% = 1.5，四舍五入为 2
-		{7, 1},      // 1.05 → 1
-		{5000, 50},  // 上限 50 g
+		{10, 2},    // 10 × 15% = 1.5，四舍五入为 2
+		{7, 1},     // 1.05 → 1
+		{5000, 50}, // 上限 50 g
 		{100000, 50},
 	}
 	for _, c := range cases {
