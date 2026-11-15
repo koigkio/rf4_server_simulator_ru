@@ -34,3 +34,15 @@ docker compose down
 ```
 
 `docker compose down` 停止并删除容器。玩家存档和 HTTPS 证书分别保存在 `player-data` 与 `gateway-certs` 命名卷中，重新执行启动命令即可继续使用。只有需要清空这两项数据时才执行 `docker compose down -v`。更新代码后重新执行 `docker compose up -d --build --wait`。从仓库根目录操作时，使用 `docker compose -f docker/compose.yaml` 加对应子命令。
+
+## 镜像构建标识
+
+镜像默认用构建时间生成 `Version` / `BuildTs`，并用 `SourceDir=docker` 标记来源。需要把镜像与具体提交对应时，可在启动前传入：
+
+```sh
+RF4_GIT_COMMIT="$(git rev-parse --short HEAD)" \
+RF4_SOURCE_DIR="$PWD" \
+docker compose up -d --build --wait
+```
+
+CI 或发布环境还应显式设置 `RF4_BUILD_VERSION` 与 UTC 格式的 `RF4_BUILD_TS`（`yyyyMMddHHmmss`）。部署后可访问容器内的 `/metrics` 查看 `rf4_build_info`。

@@ -6,8 +6,15 @@ COPY readme.go README.md ./
 ARG TARGETOS TARGETARCH
 COPY cmd/ ./cmd/
 COPY internal/ ./internal/
-RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -trimpath -ldflags="-s -w" -o /out/ \
-    ./cmd/seed ./cmd/gameserver ./cmd/gateway ./cmd/admin
+ARG VERSION=
+ARG BUILD_TS=
+ARG GIT_COMMIT=unknown
+ARG SOURCE_DIR=docker
+RUN build_ts="${BUILD_TS:-$(date -u +%Y%m%d%H%M%S)}" && \
+    version="${VERSION:-$build_ts}" && \
+    CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -trimpath \
+    -ldflags="-s -w -X 'rf4server/internal/buildinfo.Version=${version}' -X 'rf4server/internal/buildinfo.BuildTs=${build_ts}' -X 'rf4server/internal/buildinfo.GitCommit=${GIT_COMMIT}' -X 'rf4server/internal/buildinfo.SourceDir=${SOURCE_DIR}'" \
+    -o /out/ ./cmd/seed ./cmd/gameserver ./cmd/gateway ./cmd/admin
 
 FROM alpine:3.24
 WORKDIR /app

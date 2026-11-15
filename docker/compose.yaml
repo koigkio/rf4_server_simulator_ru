@@ -23,6 +23,11 @@ services:
     build:
       context: ..
       dockerfile: docker/Dockerfile
+      args:
+        VERSION: "${RF4_BUILD_VERSION:-}"
+        BUILD_TS: "${RF4_BUILD_TS:-}"
+        GIT_COMMIT: "${RF4_GIT_COMMIT:-unknown}"
+        SOURCE_DIR: "${RF4_SOURCE_DIR:-docker}"
     command: ["seed"]
 
   gameserver:
