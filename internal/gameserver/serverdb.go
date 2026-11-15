@@ -279,6 +279,23 @@ func (s *Server) mountedHookSubTree(ctx context.Context, gearGUID, hookGUID stri
 	return nil
 }
 
+// buildHookTreeByGUID 返回指定钩实例的物品树（裸钩形状）。
+// 多钩钓组按钩位逐枚挂鱼时用，与 buildMountedHookTree 取“线末端钩”不同。
+func (s *Server) buildHookTreeByGUID(ctx context.Context, hookGUID string) *proto.Value {
+	if s == nil || s.DB == nil || hookGUID == "" {
+		return nil
+	}
+	row, err := s.DB.GetItemByGUID(ctx, hookGUID)
+	if err != nil || row == nil {
+		return nil
+	}
+	tree, terr := s.ItemToTree(ctx, row)
+	if terr != nil {
+		return nil
+	}
+	return tree
+}
+
 // lureContainsHook 判断钩 GUID 是否为拟饵 gpoaffnjbdo 数组中的内置钩
 // （出厂钩与实装钩同判）。
 func (s *Server) lureContainsHook(ctx context.Context, lureGUID, hookGUID string) bool {
