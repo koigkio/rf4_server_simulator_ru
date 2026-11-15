@@ -841,6 +841,35 @@
     }
   },
   {
+    "fish_key": "bs_salmon",
+    "layer_min": 0.3,
+    "layer_pref": 0.54,
+    "layer_max": 0.62,
+    "temp_min_c": 2.7093,
+    "temp_pref_c": 12.2153,
+    "temp_max_c": 20.4612,
+    "diel_mask": 12,
+    "season_mask": 13,
+    "diet_json": "{\"crustacean\":0.9,\"fish\":1.2,\"lure\":1.9928741095913436,\"worm\":1.2}",
+    "weather_json": "{\"clear\":1.0995,\"cloudy\":1.0612,\"few_clouds\":1.0753,\"fog\":0.8827,\"heavy_rain\":0.9384,\"rain\":1.1327,\"thunderstorm\":0.7986,\"wind\":1.095}",
+    "action_json": "{\"bottom_contact\":0.7818,\"bottom_layer_move\":0.6684,\"bottom_motionless\":0.685,\"bottom_move\":0.774,\"drift\":0.6675,\"hard_twitch\":0.7585,\"jerk\":0.7529,\"jig\":0.6796,\"motion_15\":1,\"motion_18\":1,\"motion_20\":1,\"speed_up\":1.1795,\"splash\":0.719,\"steady\":1.3364,\"stir\":0.7799,\"stop_go\":0.68,\"surface_motionless\":0.7611,\"trolling\":1.1904,\"twitch\":1.0854,\"vertical_ascend\":0.7573,\"vertical_dive\":1.0511,\"walk_dog\":0.7444,\"water_column_motionless\":0.6623}",
+    "substrate_json": "{\"gravel\":1.2378,\"mud\":0.6089,\"rock\":1.2089,\"sand\":0.9551,\"weed\":0.6483}",
+    "color_json": "{\"blue\":0.7425,\"bright\":1.232,\"dark\":0.8227,\"glow\":0.8899,\"gold\":1.0484,\"green\":0.7281,\"natural\":1.0781,\"orange\":0.7673,\"silver\":1.3249}",
+    "current_pref": 0.7055,
+    "activity": 1.0884,
+    "light_pref": 0.5558,
+    "clarity_pref": 0.7699,
+    "aggression": 1.2255,
+    "rarity_tier": 1,
+    "enabled": true,
+    "profile_version": 4,
+    "source": {
+      "name": "隆头鳟（黑海鲑）",
+      "profile": "manual baseline cloned from l_salmon (same salmonid, same 14k/20k lines), 2026-11-15",
+      "taxonomy": "species_weight+fish_key"
+    }
+  },
+  {
     "fish_key": "buffalo",
     "layer_min": 0.52,
     "layer_pref": 0.78,
