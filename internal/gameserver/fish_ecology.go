@@ -260,13 +260,11 @@ func (s *Server) rigWaterLayer(c fishRollContext) float64 {
 		return effectiveLureLayer(c)
 	}
 	if c.depthCM > 0 {
-		// 浮钓水层按落点实际水深归一；没有落点水深时维持旧的 5m 满刻度
-		// （旧口径在 >5m 水域会把中层调漂读成底层）。
-		span := 500.0
-		if c.spotEnv.Known && c.spotEnv.DepthM > 0 {
-			span = c.spotEnv.DepthM * 100
-		}
-		return normalizeWaterLayer(float64(c.depthCM) / span)
+		// 浮钓保持旧的 5m 满刻度：区域查询的批量/逐点天气权重必须有
+		// 与点位无关的水层口径；按 spotEnv 实际水深归一会让同一张图的
+		// 不同落点算出不同水温/光照，批量捕获无法与逐点生产权重对上
+		// （TestFishQueryRegionCaptureMatchesPointCalculation）。评审 P2-2 回退。
+		return normalizeWaterLayer(float64(c.depthCM) / 500)
 	}
 	return .45
 }

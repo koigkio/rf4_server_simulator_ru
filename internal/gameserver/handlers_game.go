@@ -817,20 +817,19 @@ func hCastPrepare(ctx *Ctx) ([]byte, bool) {
 	st.GearGuid = gear
 	st.ReelSetting = reelSpeed
 	st.RigType = newRigType
-	// 新一杆无条件清上一杆拟饵泳层：换竿/换饵后旧 LureDive 不得钳制新饵，
-	// 旧 LureLayer 不得压过 runtime DiveDepth 兜底（评审 P1）。
+	// 新一杆无条件清上一杆拟饵状态：换竿/换饵/同竿换钓组后旧 LureDive 不得
+	// 钳制新饵，旧 LureLayer 不得压过 runtime DiveDepth 兜底，旧 LureAction/
+	// LureMotionMask 也不得漏进非路亚判鱼（评审 P1/P2-1）。
+	st.LureMotionMask = 0
+	st.LureAction = ""
+	st.LureLayer = 0 // 0=未知：无运动证据时判鱼走 runtime DiveDepth 兜底，不再恒走 .5
 	st.LureDive = 0
-	if rigTypeLureFamily[newRigType] {
-		st.LureMotionMask = 0
-		st.LureAction = ""
-		st.LureLayer = 0 // 0=未知：无运动证据时判鱼走 runtime DiveDepth 兜底，不再恒走 .5
-		st.LurePulseCount = 0
-		st.LurePulseAt = time.Time{}
-		st.LureToggleCount = 0
-		st.LureToggleAt = time.Time{}
-		st.LureStateAt = time.Time{}
-		st.LureLayerAt = time.Time{}
-	}
+	st.LurePulseCount = 0
+	st.LurePulseAt = time.Time{}
+	st.LureToggleCount = 0
+	st.LureToggleAt = time.Time{}
+	st.LureStateAt = time.Time{}
+	st.LureLayerAt = time.Time{}
 	depthCM := st.DepthCM
 	rigType := newRigType
 	st.mu.Unlock()

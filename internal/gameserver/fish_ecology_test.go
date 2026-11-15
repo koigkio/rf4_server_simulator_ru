@@ -159,13 +159,10 @@ func TestLureLayerDiveClampAndRigWaterLayer(t *testing.T) {
 	if got := srv.rigWaterLayer(fishRollContext{rigType: 5}); got != .5 {
 		t.Fatalf("无饵证据时保持 .5 兜底，实得 %f", got)
 	}
-	// 浮钓水层按落点实际水深归一；无落点水深时保持 5m 满刻度旧口径。
+	// 浮钓水层保持 5m 满刻度（评审 P2-2：实际水深归一会让区域批量捕获
+	// 与逐点生产权重对不上，故统一回退到与 fishWaterConditionsFor 相同的旧口径）。
 	if got := srv.rigWaterLayer(fishRollContext{rigType: 1, depthCM: 300}); got != .6 {
-		t.Fatalf("无落点水深时浮钓保持 5m 满刻度，实得 %f", got)
-	}
-	if got := srv.rigWaterLayer(fishRollContext{rigType: 1, depthCM: 300,
-		spotEnv: fishSpotEnvironment{Known: true, DepthM: 10}}); got != .3 {
-		t.Fatalf("10m 水域调漂 3m 应判 0.3 中层，实得 %f", got)
+		t.Fatalf("浮钓应保持 5m 满刻度 .6，实得 %f", got)
 	}
 }
 
@@ -435,5 +432,59 @@ func TestCastPrepareLureSwapAndStepLink(t *testing.T) {
 	st.mu.Unlock()
 	if layer != .06 {
 		t.Fatalf("犬步应映射水面层 .06: %f", layer)
+	}
+}
+
+// 评审 P2-1：同一根竿从路亚换回非路亚钓组时，旧 LureAction/LureMotionMask
+// 不得残留。旧实现只按 newRigType 判断，非路亚分支不再重置；这里用一根
+// tele 竿 + 手工写入旧路亚状态复现该路径。
+func TestCastPrepareClearsStaleLureStateOnNonLureRod(t *testing.T) {
+	s, _ := newRigTestServer(t)
+	ctx := context.Background()
+	sess := newProbeSess(s)
+	uid := sess.Userid
+	rod, err := s.CreateItem(ctx, uid, "tele_10012_tl16", "backpack", 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	st := s.fishingStateForRod(uid, rod.GUID)
+	st.mu.Lock()
+	st.RigType = 5 // 模拟这根竿此前是路亚钓组
+	st.LureAction = "steady"
+	st.LureMotionMask = 0x400
+	st.LureLayer = .72
+	st.LureDive = .72
+	st.mu.Unlock()
+	if _, handled := hCastPrepare(&Ctx{Sess: sess, Main: 14, Sub: 1, Tree: rigRequestTree(t, proto.Guid(rod.GUID)),
+		DecodeOK: true, ExpectResponse: true, Log: logging.Discard()}); !handled {
+		t.Fatal("hCastPrepare 未处理")
+	}
+	st.mu.Lock()
+	action, mask, layer, dive := st.LureAction, st.LureMotionMask, st.LureLayer, st.LureDive
+	st.mu.Unlock()
+	if action != "" || mask != 0 || layer != 0 || dive != 0 {
+		t.Fatalf("非路亚竿抛竿后旧拟饵状态必须清零: action=%q mask=%#x layer=%f dive=%f",
+			action, mask, layer, dive)
+	}
+}
+
+// 评审 P2-2：浮钓水层口径必须与 fishWaterConditionsFor 一致，且不能按
+// spotEnv 实际水深归一——区域批量捕获没有点位 spotEnv，实际水深归一会让
+// 批量与逐点生产权重对不上（TestFishQueryRegionCaptureMatchesPointCalculation）。
+func TestFloatWaterLayerStaysFiveMeterScale(t *testing.T) {
+	at := time.Unix(worldDayEpochUnix+180*24*realSecPerGameHour+12*realSecPerGameHour, 0)
+	shallow := fishRollContext{rigType: 1, depthCM: 300,
+		spotEnv: fishSpotEnvironment{Known: true, DepthM: 10}, now: at}
+	legacy := shallow
+	legacy.spotEnv = fishSpotEnvironment{}
+	if got := (&Server{}).rigWaterLayer(shallow); got != .6 {
+		t.Fatalf("浮钓应保持 5m 满刻度 .6，实得 %f", got)
+	}
+	profile := fishEcologyProfile{Activity: 1, TempMinC: 5, TempPrefC: 17, TempMaxC: 27,
+		ClarityPref: .5, LightPref: .5}
+	wShallow := fishWaterConditionsFor(profile, shallow)
+	wLegacy := fishWaterConditionsFor(profile, legacy)
+	if wShallow.WaterTempC != wLegacy.WaterTempC || wShallow.Light != wLegacy.Light {
+		t.Fatalf("水温/光照不应因 spotEnv 实际水深变化: shallow=%+v legacy=%+v", wShallow, wLegacy)
 	}
 }

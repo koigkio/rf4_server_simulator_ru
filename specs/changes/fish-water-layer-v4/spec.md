@@ -80,14 +80,15 @@ Status: in-progress
    水面是真实操作）；dive=0 保持旧语义；
 3. 抛竿（14/2）补饵后取当前装配拟饵的名义泳层：`FishState.LureDive`（仅进程内，
    不进持久化快照）缓存 + `st.LureLayer` 种子为该值——落水瞬间饵在设计泳层，
-   14/7 高频路径用缓存值钳制，不再回查 DB。**新一杆无条件清零**（评审 P1）：
-   `LureDive=0`、路亚族 `LureLayer=0`（0=未知，判鱼走 runtime DiveDepth 兜底），
-   非路亚竿同样清 `LureDive`；多拟饵钓组取最深拟饵（评审 P2-3）；
-4. `rigWaterLayer` 浮钓归一化：有 `spotEnv.DepthM` 时按落点实际水深，否则保持
-   旧 5m 满刻度（旧口径在 >5m 水域把中层调漂读成底层）。
+   14/7 高频路径用缓存值钳制，不再回查 DB。**新一杆无条件清零**（评审 P1/P2-1）：
+   `LureDive=0`、`LureLayer=0`、`LureAction=""`、`LureMotionMask=0`（同竿换钓组
+   路亚→非路亚也不得残留），非路亚竿同样清；多拟饵钓组取最深拟饵（评审 P2-3）；
+4. （回退）浮钓实际水深归一不纳入本 PR：`rigWaterLayer` 与 `fishWaterConditionsFor`
+   统一保持 5m 满刻度。按 `spotEnv.DepthM` 实际水深会让区域批量捕获与逐点生产权重
+   对不上（`TestFishQueryRegionCaptureMatchesPointCalculation`）；评审 P2-2 以回退解决。
 
 涉及客户端状态链（FishState + 14/2/14/7），需实机回归：水面系抛竿→收线→鱼口
-分布、深潜铁板跳底、浮钓深水调漂。
+分布、深潜铁板跳底。
 
 ### 依赖与可复现（评审 P2-2）
 
@@ -107,12 +108,20 @@ Status: in-progress
   区间外剩余鱼种做实机鱼口核对；③ 换饵/换竿场景实机（`TestCastPrepareResetsLureDiveAndLayer`
   已覆盖单测层，实机需复验 14/2→14/7 的 LureDive/LureLayer 链路）。
 
-### 生效与回滚
+### 生效与回滚（评审 P1：明确接受默认行为变化）
 
-- 总开关 `fish_ecology_enabled`（当前库值 0）：全部合入并实测后置 1；置 0 秒回原行为
-  （`fishBiteEnvironmentWeight` 早退，PR-2/3 的函数不进权重链）。
-- v4 覆盖是单向的（version 条件只升不降）：数据回滚 = revert JSON + 版本 bump v5 重发，
-  或管理端逐鱼改 enabled；写在此处备查。
+- 总开关 `fish_ecology_enabled`（当前库值 0）**只**控制 `fishBiteEnvironmentWeight`：
+  置 1 启用生态环境权重；置 0 时环境权重早退，但**不是完整回滚**。
+- 本 PR 的 v4 水层数据与 PR-2/PR-3 的函数仍会被以下默认消费者直接使用，
+  因此 `fish_ecology_enabled=0` 时也会改变行为（已明确接受，不再声称“行为完全一致”）：
+  - 鱼猎：`fishLureWeight` / `fishWaterConditionsFor`（`fish_hunt_enabled` 缺省 1）；
+  - 成就：`f.DepthCM` 的 `qDepthAtLeast` 判定（拟饵种子/钳制）；
+  - 窝料：`fishLayerWeightProfile` / `fishWaterConditionsFor`（`groundbait_enabled=1` 时）；
+  - 水温/光照：路亚 `effectiveLureLayer` 的 fallback。
+- 完整回滚 = revert 本 PR（代码 + JSON + profile_version）；数据侧还可 revert JSON + 版本 bump v5 重发，
+  或管理端逐鱼改 enabled。若后续要求“开关 0 = 旧行为”，需另加默认 0 的 `lure_layer_v4` 开关并把上述
+  消费者全部纳入；本 PR 不采用，因为 v4 数据本身已被窝料/鱼猎直接读取。
+- v4 覆盖是单向的（version 条件只升不降），写在此处备查。
 
 ## Evidence（证据来源分层，诚实记录 provenance）
 
@@ -135,15 +144,15 @@ v4 是"外部统计先验 + 本地规则交叉校验"的近似基线，最终分
 1. 作为路亚玩家，水面系饵（波扒/老鼠/犬步）主要上层掠食鱼（狗鱼/黑鲈/鲑科），不再成批打上鲤鱼/鲶/江鳕。
 2. 作为底钓玩家，跳底饵主要打底层鱼，上层滤食鱼（鲱/西鲱）不再被跳底饵成批命中。
 3. 作为浮钓玩家，天然饵对拟饵向鱼种的放行收敛（PR-2/3 之上仍需食性旁路收紧配合，见 follow-up）。
-4. 边界：`fish_ecology_enabled=0` 时行为与现状完全一致（早退路径不动）；季节/时段/水温因子不受影响
-   （只重写水层三元组）；海图声呐/鱼猎/两档制的派鱼权重不受影响。
+4. 边界：`fish_ecology_enabled=0` 只关闭 `fishBiteEnvironmentWeight`；v4 数据/PR-2/PR-3 仍会被
+   鱼猎/成就/窝料/水温光照消费，默认行为会变化（见「生效与回滚」），不再声称“完全一致”。
 5. 边界：不改食性规则文本、不改钩型发鱼匹配、不动咬钩定时链。
 
 ## 门禁记录
 
 - `go build ./...` / `go vet ./...` / `go run ./tools/doccheck` 通过；`fish_ecology`/`BaitDepth`/
   `LureMotion`/`Marine`/`Sonar`/`Hunt`/`Float`/`Bite` 全家测试绿。
-- JSON diff 1008/1008 行（252×4 字段），无格式噪音；除水层三元组与版本号外零字段漂移。
+- JSON diff 911/911 行（252 条鱼的 layer 三元组 + version；部分值未变），无格式噪音；除水层三元组与版本号外零字段漂移。
 - 全量 `internal/gameserver` 回归见 PR 描述（含已知上游 flaky：`TestCafeNativeFlowPaysAndPushesRemoval`，
   纯上游 c502055 两遍复现，与本改动无关）。
 

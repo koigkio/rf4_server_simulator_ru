@@ -534,6 +534,8 @@ func fishWaterConditionsFor(profile fishEcologyProfile, c fishRollContext) fishW
 	case rigTypeLureFamily[c.rigType]:
 		layer = effectiveLureLayer(c)
 	case c.depthCM > 0:
+		// 与 rigWaterLayer 同口径保持 5m 满刻度；实际水深归一会让区域
+		// 批量捕获与逐点生产权重对不上（评审 P2-2 回退）。
 		layer = normalizeWaterLayer(float64(c.depthCM) / 500)
 	}
 	thermalResponse := .36 + .16*clampFloat(profile.Activity, .5, 1.5)
