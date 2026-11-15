@@ -38,16 +38,16 @@ var speciesLengthKOverride = map[string]float64{
 	"atl_herring":         0.043089,
 	"b_bream":             0.082548,
 	"b_carp":              0.042601,
-	"b_gill":              0.023526,
+	"b_gill":              0.028200,
 	"b_herring":           0.045050,
-	"b_omul":              0.027516,
+	"b_omul":              0.033000,
 	"b_scabbardfish":      0.043955,
 	"barb_toni":           0.046965,
 	"barsch":              0.044703,
 	"beluga":              0.003876,
 	"bh_carp":             0.042554,
 	"bl_buffalo":          0.040548,
-	"black_crappie":       0.029925,
+	"black_crappie":       0.034000,
 	"bp_bass":             0.044097,
 	"bream":               0.048821,
 	"buffalo":             0.036493,
@@ -91,12 +91,12 @@ var speciesLengthKOverride = map[string]float64{
 	"eel":                 0.094494,
 	"fe_lamprey":          0.047333,
 	"fhcatfish":           0.064366,
-	"fwdrum":              0.025198,
+	"fwdrum":              0.033600,
 	"g_carp":              0.042601,
 	"g_carp_albino":       0.042601,
 	"g_shad":              0.058124,
 	"g_tench":             0.044097,
-	"gc_smelt":            0.011604,
+	"gc_smelt":            0.030400,
 	"golets_lev":          0.012925,
 	"golyan":              0.046641,
 	"gorbusha":            0.048535,
@@ -121,7 +121,7 @@ var speciesLengthKOverride = map[string]float64{
 	"l_carp":              0.042678,
 	"l_carp_albino":       0.042678,
 	"l_carp_ghost":        0.042678,
-	"l_minnow":            0.025853,
+	"l_minnow":            0.038800,
 	"l_salmon":            0.053939,
 	"l_sturgeon":          0.006161,
 	"lamna_n":             0.005660,
@@ -139,7 +139,7 @@ var speciesLengthKOverride = map[string]float64{
 	"m_carp_red":          0.042678,
 	"m_goshiki":           0.030780,
 	"m_molva":             0.061958,
-	"m_scorpius":          0.020801,
+	"m_scorpius":          0.034700,
 	"m_zubatka":           0.053436,
 	"macrourus_b":         0.069336,
 	"makrel":              0.047622,
@@ -148,7 +148,7 @@ var speciesLengthKOverride = map[string]float64{
 	"menek":               0.042904,
 	"merlang":             0.048535,
 	"merluza":             0.072112,
-	"midori_g":            0.017100,
+	"midori_g":            0.036500,
 	"mikija":              0.041885,
 	"molva":               0.056831,
 	"muksun":              0.038522,
@@ -169,7 +169,7 @@ var speciesLengthKOverride = map[string]float64{
 	"palia_kr":            0.014075,
 	"palia_lud":           0.015791,
 	"piksha":              0.053957,
-	"pinagor":             0.027516,
+	"pinagor":             0.033000,
 	"pollachius":          0.044964,
 	"polyprion":           0.051060,
 	"poutassou":           0.051787,
@@ -183,9 +183,10 @@ var speciesLengthKOverride = map[string]float64{
 	"rk_crab":             0.068525,
 	"rudd":                0.043679,
 	"s.orfe":              0.050397,
-	"s_bass":              0.028965,
+	"s.bream":             0.066818,
+	"s_bass":              0.032000,
 	"s_carp":              0.042678,
-	"s_freaks":            0.025746,
+	"s_freaks":            0.032200,
 	"salvel_l":            0.004837,
 	"sebastes_m":          0.040735,
 	"sebastes_n":          0.043228,
@@ -198,7 +199,7 @@ var speciesLengthKOverride = map[string]float64{
 	"stickleback_threesp": 0.046909,
 	"syb_elets":           0.047622,
 	"syb_sterlet":         0.048000,
-	"syb_vendace":         0.026930,
+	"syb_vendace":         0.037700,
 	"taimen":              0.005594,
 	"taran":               0.044756,
 	"tench":               0.044097,
@@ -252,6 +253,13 @@ var speciesLengthPOverride = map[string]float64{
 	// 廓里湖红点鲑：官服 22.7~35.1kg = 1.13~1.50m，幂律拟合 p=0.6525。
 	// 立方律下 22.2kg 只有 0.60m（旧 k=0.021413），肉眼可见地小一半。
 	"chartus_kuoriius": 0.652510,
+	// 廓里湖湖鳟鱼（gc_smelt）：静态库 max_g 只有 1.648kg，官方站点
+	// 实际最大 17.995kg、平均 6.8kg。旧 k=0.011604 是拿 1.648kg 和
+	// 小鱼体长锚出来的，4.5kg 只有 19cm。按常见湖鳟 1kg≈0.40m、
+	// 10kg≈0.95m、18kg≈1.2m 反推 p≈0.374、k≈0.0304。
+	"gc_smelt": 0.374000,
+	// midori_g：25kg 奖杯线在 0.5m 明显过短；按 25kg≈1.2m 取 p=0.34。
+	"midori_g": 0.340000,
 	// 三种红点鲑：官服实测点的幂律拟合（线性表优先，这里只作回退）
 	"a_char":  0.489400,
 	"dr_char": 0.546200,
@@ -378,6 +386,10 @@ var speciesLengthLinear = map[string]lengthCurve{
 	// 说明它和上面这批一样按「个体大小」线性映射。旧 k=0.029240 立方律在 45kg 只给 1.04m，
 	// 比官服短 45cm，玩家实测反馈「这条鱼明显比模型长」。
 	"chavycha": {1.181990, 0.0068030, 40.875, 65.862},
+
+	// 白鲷（s.bream）：旧静态曲线 p=0.2087 在 1.2kg 只给 0.293m；
+	// 按常见白鲷 0.7kg≈0.325m、1.2kg≈0.45m 补线性段。
+	"s.bream": {0.150000, 0.2500000, 0.05, 1.2},
 }
 
 // speciesLengthM 返回体长（米）。

@@ -411,3 +411,51 @@ func TestCachedSpeciesLengthKPAppliesCalibration(t *testing.T) {
 		}
 	}
 }
+
+// TestFishLengthCommonSenseOutliers 锁定按常见体型补的异常鱼种。
+// 这些不是官服成对实测点，而是按同体重常见体长给出的保守区间；
+// 主要用于防止 k 被静态库的低样本 max_g 带到明显偏小的数值。
+func TestFishLengthCommonSenseOutliers(t *testing.T) {
+	cases := []struct {
+		key    string
+		weight float64
+		lo, hi float64
+	}{
+		{"gc_smelt", 4558, 0.55, 0.80},
+		{"gc_smelt", 10000, 0.85, 1.10},
+		{"gc_smelt", 18000, 1.05, 1.30},
+		{"midori_g", 25000, 1.00, 1.40},
+		{"m_scorpius", 3000, 0.40, 0.60},
+		{"b_gill", 1200, 0.25, 0.35},
+		{"fwdrum", 13500, 0.70, 0.90},
+		{"s_freaks", 30000, 0.90, 1.20},
+		{"l_minnow", 100, 0.15, 0.22},
+		{"syb_vendace", 800, 0.30, 0.42},
+		{"b_omul", 6000, 0.50, 0.70},
+		{"pinagor", 6000, 0.50, 0.70},
+		{"s_bass", 45000, 1.00, 1.30},
+		{"black_crappie", 2200, 0.40, 0.50},
+	}
+	for _, c := range cases {
+		k, p := calibratedLengthKP(c.key, defaultSpeciesLengthK, defaultSpeciesLengthP)
+		got := speciesLengthM(c.key, k, p, c.weight)
+		if got < c.lo || got > c.hi {
+			t.Fatalf("%s 在 %.0fg 时体长 %.3fm 不在常见区间 [%.2f,%.2f]",
+				c.key, c.weight, got, c.lo, c.hi)
+		}
+	}
+
+	// s.bream 的静态库是非默认曲线，线性表直接接管。
+	for _, c := range []struct {
+		weight float64
+		lo, hi float64
+	}{
+		{700, 0.31, 0.34},
+		{1200, 0.43, 0.47},
+	} {
+		if got := speciesLengthM("s.bream", 0.066818, 0.20866, c.weight); got < c.lo || got > c.hi {
+			t.Fatalf("s.bream 在 %.0fg 时体长 %.3fm 不在常见区间 [%.2f,%.2f]",
+				c.weight, got, c.lo, c.hi)
+		}
+	}
+}
