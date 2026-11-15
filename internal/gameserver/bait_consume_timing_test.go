@@ -183,4 +183,3 @@ func TestKeepConsumesBaitOnce(t *testing.T) {
 		t.Fatalf("14/4 auto-rebait should mount 1 bait, got %d", got)
 	}
 }
-
