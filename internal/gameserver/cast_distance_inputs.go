@@ -463,13 +463,33 @@ func (s *Server) castReelSpoolStats(ctx context.Context, reel *store.Item, lineI
 	return reelType, spoolSize, capacityM
 }
 
-// reelSpoolCapacityM 按线径估算线杯容量（米）。
-// 数据来源：游戏内“线轴容量”读数（2000/4000 杯各三个线径）。
+// reelSpoolCapacityM 复刻客户端 lkgakdhinig.jnidmcfnkgp 的线杯容量公式：
+//
+//	d <= 0.25      C = coef * 0.10153155 / d^1.65
+//	0.25 < d < 0.8 C = coef * 0.10153155 / d^(1.65+2.2*t)
+//	d >= 0.8       C = coef * 0.16588345 / d^1.65
+//	t = clamp((d-0.25)/0.55, 0, 1)
+//
+// 客户端最终向下取整并至少 5m。0.7mm/系数100 = 34m，
+// 0.42mm/系数120 = 91m，和游戏内线轴容量读数一致。
 func reelSpoolCapacityM(coef, diameterMM float64) float64 {
 	if coef <= 0 || diameterMM <= 0 {
 		return 0
 	}
-	return math.Max(0.093*coef/math.Pow(diameterMM, 1.65), 5)
+	factor := 0.10153155
+	exponent := 1.65
+	switch {
+	case diameterMM >= 0.8:
+		factor = 0.16588345
+	case diameterMM > 0.25:
+		t := clampFloat((diameterMM-0.25)/0.55, 0, 1)
+		exponent = 1.65 + 2.2*t
+	}
+	capacity := coef * factor / math.Pow(diameterMM, exponent)
+	if capacity < 5 {
+		return 5
+	}
+	return math.Floor(capacity)
 }
 
 // spoolFillRatio 计算线杯上杯率。线长是整盘标称长度，超过杯容量时按容量
