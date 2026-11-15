@@ -111,6 +111,15 @@ func slotConsumableForRecipe(recipeID string) (string, int64) {
 	return "", 0
 }
 
+// isBoilItemID 判断物品是否沸粒族（碎沸粒配方的唯一合法材料）。
+// 静态库 item_def 的 cat27 共 945 条：沸粒族 584 条全部以 boil_ / boils_ 开头
+// （六色香煮 boil_* + 制造沸粒 boils_*），其余 361 条饵料/面团/虫饵/颗粒无此前缀；
+// 不能用 attrs 判——gkfbafmbpam / fopbhlmkcpe 在普通饵料里共用（2026-11-15
+// 静态库枚举核对，见 spec 证据节）。
+func isBoilItemID(itemID string) bool {
+	return strings.HasPrefix(itemID, "boil_") || strings.HasPrefix(itemID, "boils_")
+}
+
 // cutFishPiecesForWeightG 官服切鱼产量按鱼重阶梯：约整公斤每公斤 1 块，
 // 不足 1 公斤也出 1 块。社区实测锚点（2026-11-13 检索）：512g→1 块、
 // 2kg 以上→2 块、3.4kg→3 块、3.8~3.9kg→3 块（见 spec 证据节）。精确门槛
@@ -1020,6 +1029,14 @@ func hCraft(ctx *Ctx) ([]byte, bool) {
 			}
 			if row == nil || row.Qty <= 0 {
 				return fail("选中的材料不存在", "guid", shortGUID(mat.GUID))
+			}
+			// 材料类型必须是沸粒：槽 guid 由客户端给，不校验就能用任意 ≥25 的
+			// 堆叠物品（苹果/虫饵等）冒充沸粒（2026-11-15 评审实测 30 苹果→
+			// 1 份碎沸粒）。槽第三字段对类别需求承载具体 item id（同
+			// resolveVendCharges 口径），故两边都要落在沸粒族内。
+			if !isBoilItemID(row.ItemID) || (mat.Species != "" && !isBoilItemID(mat.Species)) {
+				return fail("材料槽选中的不是沸粒",
+					"item", row.ItemID, "slot", mat.Species, "guid", shortGUID(mat.GUID))
 			}
 			got, cerr := consumeItemQtyTx(cctx, tx, row, need)
 			if cerr != nil {

@@ -273,3 +273,56 @@ func TestCraftCrushedBoilsWithoutBoilieFails(t *testing.T) {
 		t.Fatalf("失败时不应产出碎沸粒，实得 %d", got)
 	}
 }
+
+// TestCraftCrushedBoilsRejectsNonBoilMaterial 槽 guid 指向非沸粒物品时必须拒绝：
+// 只按 guid 扣料就能用任意 ≥25 的堆叠物品冒充沸粒（2026-11-15 评审实测：
+// 30 个苹果 → 1 份碎沸粒、苹果扣到 5）。要求物品与槽声明都落在沸粒族内。
+func TestCraftCrushedBoilsRejectsNonBoilMaterial(t *testing.T) {
+	db := openRecipeTestDB(t)
+	srv := newSkillsCraftServer(t, db)
+	ctx0 := context.Background()
+	const uid = int64(4119)
+	if _, err := db.EnsureProfile(ctx0, uid); err != nil {
+		t.Fatal(err)
+	}
+	apples := economyTestItem(t, srv, uid, "apples", "backpack", 10) // 单位量 3 → 30 个
+	before := countOfItem(t, srv, ctx0, uid, "apples")
+	if before != 30 {
+		t.Fatalf("夹具应为 30 个苹果，实得 %d", before)
+	}
+
+	slots := []craftSlot{{ItemID: "craft_mat_boil", GUID: apples.GUID, Species: "apples"}}
+	if craftOKSlots(t, srv, uid, "craft_crushed_boils", slots, 1) {
+		t.Fatal("非沸粒材料时碎沸粒必须失败")
+	}
+	if got := countOfItem(t, srv, ctx0, uid, "apples"); got != before {
+		t.Fatalf("失败时苹果不该被扣，实得 %d（原 %d）", got, before)
+	}
+	if got := countOfItem(t, srv, ctx0, uid, "crushed_boils"); got != 0 {
+		t.Fatalf("失败时不应产出碎沸粒，实得 %d", got)
+	}
+}
+
+// TestCraftCrushedBoilsAcceptsNaturalBoilFamily 沸粒族不止 captured 的 boils_hvz_*：
+// 六色香煮 boil_*（静态库同类同单位量）也属于沸粒，必须照常消耗，避免类型校验
+// 收得过窄把官服合法材料拒掉。
+func TestCraftCrushedBoilsAcceptsNaturalBoilFamily(t *testing.T) {
+	db := openRecipeTestDB(t)
+	srv := newSkillsCraftServer(t, db)
+	ctx0 := context.Background()
+	const uid = int64(4120)
+	if _, err := db.EnsureProfile(ctx0, uid); err != nil {
+		t.Fatal(err)
+	}
+	boil := economyTestItem(t, srv, uid, "boil_red", "backpack", 1) // 单位量 30 → 30 粒
+	slots := []craftSlot{{ItemID: "craft_mat_boil", GUID: boil.GUID, Species: "boil_red"}}
+	if !craftOKSlots(t, srv, uid, "craft_crushed_boils", slots, 1) {
+		t.Fatal("天然沸粒（boil_*）应可磨碎")
+	}
+	if got := countOfItem(t, srv, ctx0, uid, "boil_red"); got != 5 {
+		t.Fatalf("应扣 25 粒剩 5，实得 %d", got)
+	}
+	if got := countOfItem(t, srv, ctx0, uid, "crushed_boils"); got != 1 {
+		t.Fatalf("应产出 1 份碎沸粒，实得 %d", got)
+	}
+}
