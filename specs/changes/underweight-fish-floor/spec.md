@@ -1,6 +1,6 @@
 # 未达标档下界取鱼种自然最小体重
 
-Status: ready
+Status: done
 
 ## Problem Statement
 
