@@ -31,8 +31,8 @@ func TestFishEcologySeedsSpeciesAndMatchesWaterLayers(t *testing.T) {
 	if err := db.SQL.QueryRow(`SELECT COUNT(*) FROM fish_ecology`).Scan(&count); err != nil {
 		t.Fatal(err)
 	}
-	if count != 252 {
-		t.Fatalf("鱼种生态档案初始化 %d 条，期望 252", count)
+	if count != 253 {
+		t.Fatalf("鱼种生态档案初始化 %d 条，期望 253", count)
 	}
 	if _, err := db.SQL.Exec(`UPDATE fish_ecology SET profile_version=1, layer_pref=.01 WHERE fish_key='n.pike'`); err != nil {
 		t.Fatal(err)

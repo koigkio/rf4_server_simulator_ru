@@ -15,8 +15,8 @@ func TestFishEcologyAssetCoversAllSpeciesAndActions(t *testing.T) {
 	if err := json.Unmarshal(fishEcologyDefsJSON, &profiles); err != nil {
 		t.Fatal(err)
 	}
-	if len(profiles) != 252 {
-		t.Fatalf("生态资产=%d，期望 252", len(profiles))
+	if len(profiles) != 253 {
+		t.Fatalf("生态资产=%d，期望 253", len(profiles))
 	}
 	seen := map[string]bool{}
 	for _, profile := range profiles {
