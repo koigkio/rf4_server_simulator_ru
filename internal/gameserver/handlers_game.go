@@ -974,11 +974,21 @@ func hCast(ctx *Ctx) ([]byte, bool) {
 		"power_ratio", math.Round(powerRatio*1000)/1000)
 	// 主线版本会无条件记录当前饵，供路亚咬钩规则和持久化状态使用。
 	bait := srv.currentBait(ctx.Sess.pushCtx(), gear)
-	st.mu.Lock()
-	st.Bait = bait
 	// 实际落点距离供后续咬钩快照给资格判定；不能用 castProf.DistanceM
 	//（钓具理论最大距离），否则 5m 短抛也会满足「抛投 ≥30m」。
-	st.CastM = requestedM
+	// 客户端功率条满格红区可把 requested 推到上限的 ~1.25 倍（2026-11-13
+	// 实测 51m / 上限 40.85m），官服拉满就是上限本身；带轮装配按满竿
+	// 收口，红区白赚距离消失。无轮手竿走旧协议基线（不是真实上限），
+	// 继续采信 requested（手竿距离对齐见 PR #457）。
+	castM := requestedM
+	if profile.ReelGUID != "" && actionMaxM > 0 && requestedM > actionMaxM {
+		ctx.Log.Info("抛投请求超满竿上限，按上限收口",
+			"requested_m", math.Round(requestedM*100)/100, "capped_m", math.Round(actionMaxM*100)/100)
+		castM = actionMaxM
+	}
+	st.mu.Lock()
+	st.Bait = bait
+	st.CastM = castM
 	st.mu.Unlock()
 	// 水体距离闸门：玩家离水体太远（抛投够不到）时不派鱼。
 	// 只有该地点有水体矩形数据时才判定；没有数据一律放行，避免误伤。
@@ -1017,7 +1027,9 @@ func hCast(ctx *Ctx) ([]byte, bool) {
 		return nil, false
 	}
 	// 抛投事件交给成就规则判断一次；2/8 弹窗排在 800 应答之后。
-	srv.evaluateAchievements(ctx, achievementEvent{Kind: evCast, DistanceM: requestedM})
+	// 距离用收口后的 castM：红区超出满竿上限的部分不算，否则成就阶梯还能被
+	// 1.25 倍虚增刷掉，同一杆的资格判定（用 st.CastM）与成就会两套口径。
+	srv.evaluateAchievements(ctx, achievementEvent{Kind: evCast, DistanceM: castM})
 	return body, true
 }
 
@@ -1310,6 +1322,10 @@ func hFishingPull(ctx *Ctx) ([]byte, bool) {
 	if announce {
 		srv.notifyFishHooked(ctx.Sess, hookedFish, gear)
 	}
+	if needsConfirmation {
+		// 海钓 14/9 是刺鱼入口：确认后补派额外鱼实体，它们才能挂到各自钩上。
+		srv.pushExtrasAfterStrike(ctx.Sess, st, gear, rigType)
+	}
 	return nil, true
 }
 
@@ -1323,6 +1339,23 @@ func hFishingHooked(ctx *Ctx) ([]byte, bool) {
 	rigType := st.RigType
 	castActive := st.CastActive
 	resolved := st.Resolved
+	// 多钩：这条 14/11 也可能属于队列里的额外鱼。按鱼 GUID 认领，不碰主鱼。
+	if pending != nil {
+		if i := extraIndexByAnyGUID(st, deepGUIDs(ctx.Tree)); i >= 0 {
+			extra := st.Extra[i]
+			extra.HookConfirmed = true
+			st.mu.Unlock()
+			if err := srv.consumeHookedBait(ctx.Sess, extra, gear); err != nil {
+				ctx.Log.Warn("额外鱼中钩后扣饵失败", "fish", extra.FishGUID, "err", err)
+			}
+			// 挂竿位要推这尾鱼自己的钩，不能推线末端那枚（Push4_22Hook 只取槽位 12）。
+			ctx.Sess.Push4_22HookGUID(extra.HookGUID, true)
+			ctx.Log.Info("14/11 额外鱼中钩确认", "rod", shortGUID(gear),
+				"fish", shortGUID(extra.FishGUID), "hook", shortGUID(extra.HookGUID),
+				"species", extra.Species, "重量_g", extra.WeightG)
+			return nil, true
+		}
+	}
 	if pending != nil && pending.HookConfirmed {
 		if !wasHooked {
 			st.Hooked = true
@@ -1383,8 +1416,24 @@ func hFishingHooked(ctx *Ctx) ([]byte, bool) {
 		// 挂竿位四钓法通用（官方抓包沉底/浮钓/海钓/路亚中鱼钩 flags 均含 1024）。
 		ctx.Sess.Push4_22Hook(true, gear)
 	}
+	// 中鱼即进搏鱼态：客户端搏鱼 ctor 一次性读取全部挂载态并锁定整场，
+	// 竿/线/轮/前导的运行位必须当刻可达——只等结算再推对秒脱来说已经晚了
+	// （官方搏鱼期每 2s 全树帧同口径）。紧随钩帧发一次全树运行位同步；
+	// extras 取受力链组件（轮/前导/丝锁/铅芯），竿线由全量分支覆盖。
+	fightExtras := make([]string, 0, 4)
+	ids := srv.rigGearIDs(srv.dbCtx(), ctx.Sess.Userid, gear)
+	for _, g := range []string{ids.ReelGUID, ids.LeaderGUID, ids.LeadcoreGUID, ids.ConnectorGUID} {
+		if g != "" {
+			fightExtras = append(fightExtras, g)
+		}
+	}
+	ctx.Sess.Push4_22FightSync(gear, fightExtras)
 	if announce {
 		srv.notifyFishHooked(ctx.Sess, hookedFish, gear)
+	}
+	if !wasHooked {
+		// 刺鱼确认后客户端才把鱼转进搏鱼态：此时补派额外鱼实体才会挂到钩上。
+		srv.pushExtrasAfterStrike(ctx.Sess, st, gear, rigType)
 	}
 	return nil, true
 }
@@ -1444,6 +1493,41 @@ func hFishingLeft(ctx *Ctx) ([]byte, bool) {
 	reported := ""
 	if guids := deepGUIDs(ctx.Tree); len(guids) >= 2 {
 		reported = guids[1]
+	}
+	// 多钩队列里的鱼各自有状态帧，必须按 GUID 认领，不能当"不一致"丢掉。
+	if reported != "" {
+		if i := extraIndexByGUID(st, reported); i >= 0 {
+			extra := st.Extra[i]
+			switch f0 {
+			case 6:
+				extra.HookConfirmed = true
+				st.mu.Unlock()
+				ctx.Log.Info("14/12 额外鱼实体已就位", "fish", shortGUID(extra.FishGUID),
+					"hook", shortGUID(extra.HookGUID))
+				return nil, true
+			case 3, 5:
+				// 刺鱼后补派被拒收：客户端确实画不出这条鱼，但它已经咬了钩。
+				// 标记 NoEntity 保留渔获（14/4 照常结算），只是不再重派实体；
+				// 旧路径（咬口即派）仍按"放弃该尾"处理，避免从未演过咬口的鱼凭空入护。
+				if srv.extraPushDeferredOnStrike() {
+					st.Extra[i].NoEntity = true
+					st.mu.Unlock()
+					ctx.Log.Info("14/12 客户端拒收额外鱼实体，改为只结算不显示",
+						"fish", shortGUID(extra.FishGUID), "hook", shortGUID(extra.HookGUID))
+					return nil, true
+				}
+				removeExtraAt(st, i)
+				st.mu.Unlock()
+				ctx.Log.Info("14/12 客户端拒收额外鱼实体，放弃该尾", "fish", shortGUID(extra.FishGUID))
+				return nil, true
+			case 1, 2, 8:
+				removeExtraAt(st, i)
+				st.mu.Unlock()
+				ctx.Log.Info("14/12 额外鱼离场", "fish", shortGUID(extra.FishGUID),
+					"hooked", extra.HookConfirmed)
+				return nil, true
+			}
+		}
 	}
 	if st.Pending != nil && reported != "" && !strings.EqualFold(reported, st.Pending.FishGUID) {
 		ctx.Log.Info("14/12 忽略不一致的鱼 GUID", "f0", f0,
@@ -1519,6 +1603,7 @@ func hFishingLeft(ctx *Ctx) ([]byte, bool) {
 		castActive := st.CastActive
 		inWater := st.InWater
 		loc, spot := st.Loc, st.Spot
+		rodGUID := st.GearGuid
 		st.mu.Unlock()
 		if hooked && !alreadyResolved {
 			srv.bumpFishingCounter(ctx.Sess.Userid, "escapes")
@@ -1530,6 +1615,14 @@ func hFishingLeft(ctx *Ctx) ([]byte, bool) {
 		}
 		// 这一尾鱼的渔轮账到此为止，先落库再排下一尾。
 		srv.settleFightReelWearState(srv.dbCtx(), st, ctx.Sess.Userid, "14/12")
+		// 多钩：当前这条走了，队列里还有就立刻接管，不重新排咬钩。
+		if next := srv.promoteAfterActiveGone(st); next != nil {
+			ctx.Log.Info("14/12 多钩接管下一条", "rod", shortGUID(rodGUID),
+				"fish", shortGUID(next.FishGUID), "hook", shortGUID(next.HookGUID),
+				"剩余", srv.pendingExtraCount(st))
+			srv.repushPromotedAfterTakeover(ctx.Sess, st)
+			return nil, true
+		}
 		if castActive && inWater {
 			srv.scheduleBiteState(ctx.Sess, st, false, false)
 		}
