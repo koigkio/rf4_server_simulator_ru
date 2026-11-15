@@ -509,22 +509,10 @@ func (s *Server) castDistanceForRig(ctx context.Context, uid int64, rodGUID stri
 	}
 
 	ids := s.rigGearIDs(ctx, uid, rodGUID)
-	if ids.ReelGUID == "" {
-		return p
-	}
-	reel, err := s.DB.GetItemByGUID(ctx, ids.ReelGUID)
-	if err != nil || reel == nil {
-		return p
-	}
-	perf, err := s.syncReelPerformance(ctx, reel)
-	if err != nil || perf == nil {
-		return p
-	}
-
 	rodType := int64(0)
 	if rod, rerr := s.DB.GetItemByGUID(ctx, rodGUID); rerr == nil && rod != nil {
 		if def, derr := s.itemDefForRow(ctx, rod); derr == nil {
-			// 竿型（fopbhlmkcpe）是投距技能的竿侧 gate 输入。
+			// 竿型（fopbhlmkcpe）是投距技能的竿侧 gate 输入；无轮手竿也要用。
 			if v, ok := defAttrF64(def, "fopbhlmkcpe"); ok {
 				rodType = int64(v)
 			}
@@ -534,6 +522,24 @@ func (s *Server) castDistanceForRig(ctx context.Context, uid int64, rodGUID stri
 			p.RodSensitivity = rodSensitivity(def)
 			p.RodTestMinG, p.RodTestMaxG = rodTestG(def)
 		}
+	}
+	if ids.ReelGUID == "" {
+		// 无轮手竿没有 reel 性能/线杯/主线修正，但仍吃竿侧投距技能
+		// （501 手竿、503 博洛尼亚、507 比赛竿等 gate 按竿型匹配）。
+		// 旧协议距离是该分支的基数，技能只做乘数，不改变无技能时的行为。
+		p.SkillCategory, p.SkillMastery, p.SkillCastPct =
+			s.castSkillStats(ctx, uid, rigType, rodType, 0, rodGUID)
+		p.SpecialSkillFactor = castSpecialSkillFactor(p.SkillCastPct)
+		p.DistanceM = p.BaseM * p.SpecialSkillFactor
+		return p
+	}
+	reel, err := s.DB.GetItemByGUID(ctx, ids.ReelGUID)
+	if err != nil || reel == nil {
+		return p
+	}
+	perf, err := s.syncReelPerformance(ctx, reel)
+	if err != nil || perf == nil {
+		return p
 	}
 
 	line := s.castLineStats(ctx, rodGUID, ids.Line)

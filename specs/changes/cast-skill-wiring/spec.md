@@ -43,6 +43,9 @@ Status: done
   `SkillNodeEffect` 更名 `SkillCastPct`，日志键 `skill_node_effect`→`skill_cast_pct`。
 - `castDistanceForRig` 调整顺序：`castReelSpoolStats`（产出 reelType）先于
   `castSkillStats`。
+- 无轮手竿不再在 `castSkillStats` 之前 return：先读竿型，再按竿侧 gate 计算
+  `castPct`，用 `castSpecialSkillFactor` 乘旧协议基数；501（手竿）等无轮竿
+  技能由此生效，无技能时距离不变。
 
 ### 共享等级跨 gate 的语义（实现中发现，官方数据模型自证）
 
@@ -64,8 +67,9 @@ func castPlayerStateFactor(primary float64) float64 {
 ### 鱼侧行清理
 
 `ensureCastSkillEffects` 在 attachDB 中紧随 `ensureFishSkillEffects` 调用（顺序约束：
-先种后删，DELETE 才能站稳），删除上表 25 节点在 `skill_fish_effect_def` 的自造鱼侧行。
-官方文案含鱼侧语义的节点（301/502/504/506/508/510 等）不动。
+先种后删，DELETE 才能站稳），删除上表 25 节点在 `skill_fish_effect_def` 的
+`source LIKE 'local-sim%'` 自造鱼侧行（含 shared-group 派生行）；官方/手工行不动。
+官方文案含鱼侧语义的节点（301/502/504/506/508/510 等）不在上表，也不受影响。
 
 ## Testing
 
@@ -74,8 +78,12 @@ func castPlayerStateFactor(primary float64) float64 {
 - `TestCastSkillPctMatchesEquippedGearGate`：gate 命中/不命中、708/702 与 709/717 共享
   等级跨 gate、514 跨大类一次生效、兄弟传统轮行槽位取最高、超 max_level 封顶。
 - `TestCastSkillComboRodAndReelMultiplies`：708L7+709L5 → castPct=60 → special_skill=1.60。
+- `TestNoReelRodCastSkillPctApplies`：无轮手竿学 501L7 → castPct=35、
+  special_skill=1.35，距离 = 无技能基数 ×1.35。
+- `TestEnsureCastSkillEffectsUpdatesSeedsAndPreservesOfficialFishRows`：旧种子
+  gate/百分比被纠正；`source LIKE 'local-sim%'` 行被删，非 local-sim 鱼侧行保留。
 - `TestEnsureCastSkillEffectsIdempotentAndPurgesFishRows`：幂等、种子行数、鱼侧行
-  回插后再删干净。
+  回插后再删干净（只按 local-sim 前缀统计）。
 - `TestSkillFishEffectsAreTableDrivenAndSharedGroupsCountOnce`：重写为生产顺序
   （鱼口 ensure → 抛投 ensure → 鱼口回插 → 抛投再删），共享组夹具改用 515/516
   （官方鱼侧语义节点）。

@@ -96,6 +96,92 @@ func TestCastSkillComboRodAndReelMultiplies(t *testing.T) {
 	}
 }
 
+// 无轮手竿也要走竿侧投距技能；旧实现无轮分支在 castSkillStats 之前 return，
+// 导致 501（手竿，rod gate 3）表里有、实际永远不生效。
+func TestNoReelRodCastSkillPctApplies(t *testing.T) {
+	t.Parallel()
+	srv := castSkillWiringServer(t)
+	ctx := context.Background()
+	const uid = int64(1000001)
+	rod, err := srv.CreateItem(ctx, uid, "tele_10012_tl13", "backpack", 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	learnCastNodes(t, srv, uid, map[int64]int64{501: 7})
+
+	p := srv.castDistanceForRig(ctx, uid, rod.GUID, 1)
+	if math.Abs(p.SkillCastPct-35) > 1e-9 {
+		t.Fatalf("手竿 501L7 castPct=%v want=35", p.SkillCastPct)
+	}
+	if math.Abs(p.SpecialSkillFactor-1.35) > 1e-9 {
+		t.Fatalf("手竿 501L7 special_skill=%v want=1.35", p.SpecialSkillFactor)
+	}
+	if want := p.BaseM * 1.35; math.Abs(p.DistanceM-want) > 1e-9 {
+		t.Fatalf("手竿 501L7 distance=%v want base %v ×1.35=%v", p.DistanceM, p.BaseM, want)
+	}
+}
+
+// 种子修正必须能覆盖旧行（DO NOTHING 会让错误的 gate 永远留在库里）；
+// 鱼侧清理只能删 source LIKE 'local-sim%'（含 shared-group 派生行），
+// 不能误删官方/手工行。
+func TestEnsureCastSkillEffectsUpdatesSeedsAndPreservesOfficialFishRows(t *testing.T) {
+	t.Parallel()
+	srv := castSkillWiringServer(t)
+	ctx := context.Background()
+
+	if _, err := srv.DB.SQL.ExecContext(ctx, `
+		UPDATE skill_cast_effect_def SET per_level_pct=9, gate_type=99
+		WHERE cat_id=1 AND node_id=501`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := srv.ensureCastSkillEffects(ctx); err != nil {
+		t.Fatal(err)
+	}
+	var pct float64
+	var gate int64
+	if err := srv.DB.SQL.QueryRowContext(ctx, `
+		SELECT per_level_pct, gate_type FROM skill_cast_effect_def
+		WHERE cat_id=1 AND node_id=501`).Scan(&pct, &gate); err != nil {
+		t.Fatal(err)
+	}
+	if math.Abs(pct-5) > 1e-9 || gate != 3 {
+		t.Fatalf("501 种子未纠正: pct=%v gate=%v want 5/3", pct, gate)
+	}
+
+	if _, err := srv.ensureFishSkillEffects(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := srv.DB.SQL.ExecContext(ctx, `
+		INSERT INTO skill_fish_effect_def(cat_id,node_id,effect_key,per_level,cap,source,confidence)
+		VALUES(1,501,'official_fish_side',1,1,'client-loc-test',0.9)
+		ON CONFLICT(cat_id,node_id) DO UPDATE SET
+			effect_key=excluded.effect_key, per_level=excluded.per_level, cap=excluded.cap,
+			source=excluded.source, confidence=excluded.confidence`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := srv.ensureCastSkillEffects(ctx); err != nil {
+		t.Fatal(err)
+	}
+	var source string
+	if err := srv.DB.SQL.QueryRowContext(ctx, `
+		SELECT source FROM skill_fish_effect_def WHERE cat_id=1 AND node_id=501`).Scan(&source); err != nil {
+		t.Fatal(err)
+	}
+	if source != "client-loc-test" {
+		t.Fatalf("非 local-sim 鱼侧行被删除/覆盖: source=%q", source)
+	}
+	var localRows int
+	if err := srv.DB.SQL.QueryRowContext(ctx, `
+		SELECT COUNT(*) FROM skill_fish_effect_def
+		WHERE source LIKE 'local-sim%'
+		  AND (cat_id,node_id) IN (SELECT cat_id,node_id FROM skill_cast_effect_def)`).Scan(&localRows); err != nil {
+		t.Fatal(err)
+	}
+	if localRows != 0 {
+		t.Fatalf("仍残留 %d 条 local-sim 鱼侧行", localRows)
+	}
+}
+
 // ensure 幂等：重复执行不重复计数；被删的鱼侧行在鱼口 ensure 回插后，
 // 再跑抛投 ensure 必须再次删干净。
 func TestEnsureCastSkillEffectsIdempotentAndPurgesFishRows(t *testing.T) {
@@ -124,7 +210,8 @@ func TestEnsureCastSkillEffectsIdempotentAndPurgesFishRows(t *testing.T) {
 	}
 	var rows int
 	if err := srv.DB.SQL.QueryRow(`SELECT COUNT(*) FROM skill_fish_effect_def
-		WHERE (cat_id,node_id) IN (SELECT cat_id,node_id FROM skill_cast_effect_def)`).Scan(&rows); err != nil {
+		WHERE source LIKE 'local-sim%'
+		  AND (cat_id,node_id) IN (SELECT cat_id,node_id FROM skill_cast_effect_def)`).Scan(&rows); err != nil {
 		t.Fatal(err)
 	}
 	if rows != 0 {
