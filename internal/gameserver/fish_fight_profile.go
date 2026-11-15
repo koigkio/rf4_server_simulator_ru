@@ -53,7 +53,7 @@ func fishFightArchetypeFor(species string) fishFightArchetype {
 		"muksun", "peled", "ripus", "vendace", "smelt", "keta", "nerka", "golets", "grayling"):
 		return fishFightArchetypes["salmonid"]
 	case has("pike", "zander", "walleye", "perch", "barsch", "orfe", "asp",
-		"ruffe", "piksha", "sander"):
+		"ruffe", "sander"):
 		return fishFightArchetypes["ambush"]
 	case has("eel", "lamprey", "conger"):
 		return fishFightArchetypes["eel"]
@@ -64,7 +64,14 @@ func fishFightArchetypeFor(species string) fishFightArchetype {
 		return fishFightArchetypes["small"]
 	case has("cod", "herring", "mackerel", "makrel", "tuna", "thynnus",
 		"halibut", "kambala", "coalfish", "pollachius", "merluza", "molva",
-		"hake", "saithe", "turbot", "flounder", "scorpius", "zoarces"):
+		"hake", "saithe", "turbot", "flounder", "scorpius", "zoarces",
+		// 词表修正（搏鱼脱钩方案 §五C）：piksha 实测为海水鲽科，此前被显式
+		// 列在 ambush 关键词表里（淡水伏击组；不是子串匹配——has 是
+		// strings.Contains，"piksha" 并不含 "pike"）；menek/agar/warm/merlang
+		// 同为实测海水，原先落 default（crucian 池）。piksha 的组归属移动
+		// 对行为中性（ambush 与 marine 的 CurvePool 同为 perch，f5/f6 已有
+		// 显式表），它的实际修复来自官方 statics 落表。
+		"merlang", "menek", "piksha", "agar", "warm"):
 		return fishFightArchetypes["marine"]
 	default:
 		return fishFightArchetypes["default"]
