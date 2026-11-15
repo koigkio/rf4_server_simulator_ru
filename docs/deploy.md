@@ -2,9 +2,9 @@
 
 本指南介绍 `rf4server` 的本地部署方式。协议格式面向 RF4 客户端 **4.0.25034**。
 
-## Docker Compose
+## 容器部署
 
-Windows、macOS 和 Linux 的容器启动、存档和证书操作见 [Docker 部署指南](../docker/README.md)。
+Windows、macOS 和 Linux 可使用 [Docker Compose](../docker/README.md) 多服务方式部署，也可使用根目录 Dockerfile 的 [Docker 单容器部署](../DOCKER.md)。两种方式二选一，不要同时占用相同宿主机端口。
 
 ## 组件与端口
 

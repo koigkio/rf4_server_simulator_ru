@@ -29,3 +29,14 @@ func TestAdminPasswordEnvOverride(t *testing.T) {
 		t.Fatal("RF4_ADMIN_PASSWORD did not override the configured password")
 	}
 }
+
+func TestLoginCompatEnvOverride(t *testing.T) {
+	t.Setenv("RF4_GATEWAY_LOGIN_COMPAT_ADDR", ":7515")
+	cfg, err := Load("")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.Gateway.LoginCompatAddr != ":7515" {
+		t.Fatalf("RF4_GATEWAY_LOGIN_COMPAT_ADDR=%q", cfg.Gateway.LoginCompatAddr)
+	}
+}

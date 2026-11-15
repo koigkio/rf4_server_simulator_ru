@@ -193,6 +193,7 @@ func (c *Config) applyEnvOverrides() {
 	envStr("RF4_SQLITE_PATH", &c.SQLite.Path)
 	envStr("RF4_SQLITE_STATIC_PATH", &c.SQLite.StaticPath)
 	envStr("RF4_GATEWAY_LOGIN_ADDR", &c.Gateway.LoginAddr)
+	envStr("RF4_GATEWAY_LOGIN_COMPAT_ADDR", &c.Gateway.LoginCompatAddr)
 	envStr("RF4_GATEWAY_REALTIME_ADDR", &c.Gateway.RealtimeAddr)
 	envStr("RF4_GATEWAY_ADVERTISE_HOST", &c.Gateway.AdvertiseHost)
 	envStr("RF4_GATEWAY_CERT", &c.Gateway.CertFile)

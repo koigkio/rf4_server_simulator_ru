@@ -16,6 +16,7 @@ var buildEntrypoints = []string{
 	"../../.github/scripts/build-preview.sh",
 	"../../.github/scripts/build-release.sh",
 	"../../docker/Dockerfile",
+	"../../Dockerfile",
 }
 
 // identityFields 是 rf4_build_info 对外承诺的四个身份标签，缺一不可。
