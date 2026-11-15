@@ -123,6 +123,55 @@ func TestHostsRestoreFailurePreservesBackups(t *testing.T) {
 	}
 }
 
+func TestHostsSetLocalStateSaveFailureRemovesBackup(t *testing.T) {
+	original := "127.0.0.1 localhost\n"
+	path := writeHosts(t, original)
+	if err := os.Mkdir(hostsStatePath(path), 0700); err != nil {
+		t.Fatal(err)
+	}
+	if err := hostsSetLocal(path, testDomains); err == nil {
+		t.Fatal("expected state save failure")
+	}
+	if got := readHosts(t, path); got != original {
+		t.Fatalf("hosts changed after state save failure: %q", got)
+	}
+	backups, err := filepath.Glob(path + ".rf4s-backup-launcher-*")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(backups) != 0 {
+		t.Fatalf("unregistered backups remain: %v", backups)
+	}
+}
+
+func TestHostsRestoreStateSaveFailureRemovesBackup(t *testing.T) {
+	path := writeHosts(t, "127.0.0.1 localhost\n")
+	if err := hostsSetLocal(path, testDomains); err != nil {
+		t.Fatal(err)
+	}
+	before := readHostsState(path)
+	unlock := lockHostsAgainstDeletion(t, hostsStatePath(path))
+	err := hostsRestore(path)
+	unlock()
+	if err == nil {
+		t.Fatal("expected state save failure")
+	}
+	after := readHostsState(path)
+	if len(after.Backups) != len(before.Backups) {
+		t.Fatalf("backup state changed: before=%+v after=%+v", before, after)
+	}
+	backups, globErr := filepath.Glob(path + ".rf4s-backup-launcher-*")
+	if globErr != nil {
+		t.Fatal(globErr)
+	}
+	if len(backups) != len(before.Backups) {
+		t.Fatalf("unregistered backup remains: %v", backups)
+	}
+	if hostsMode(path) != "local" {
+		t.Fatal("hosts changed before state save succeeded")
+	}
+}
+
 func TestHostsCleanupFailureWarnsAndRetries(t *testing.T) {
 	path := writeHosts(t, "127.0.0.1 localhost\n")
 	if err := hostsSetLocal(path, testDomains); err != nil {

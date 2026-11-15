@@ -105,7 +105,13 @@ func backupHosts(path string) (hostsBackup, error) {
 	if err != nil {
 		return hostsBackup{}, err
 	}
-	defer f.Close()
+	complete := false
+	defer func() {
+		_ = f.Close()
+		if !complete {
+			_ = os.Remove(f.Name())
+		}
+	}()
 	if err := f.Chmod(mode); err != nil {
 		return hostsBackup{}, err
 	}
@@ -118,7 +124,19 @@ func backupHosts(path string) (hostsBackup, error) {
 	if err := f.Close(); err != nil {
 		return hostsBackup{}, err
 	}
+	complete = true
 	return hostsBackup{Name: filepath.Base(f.Name()), SHA256: fmt.Sprintf("%x", sha256.Sum256(data))}, nil
+}
+
+// saveHostsStateAfterBackup 保存状态；失败时删除尚未登记的备份，避免永久残留。
+func saveHostsStateAfterBackup(path string, st hostsState, backup hostsBackup) error {
+	if err := saveHostsState(path, st); err != nil {
+		if cleanupErr := removeHostsBackup(path, backup); cleanupErr != nil {
+			return fmt.Errorf("保存 hosts 状态失败: %w；删除未登记备份失败: %v", err, cleanupErr)
+		}
+		return err
+	}
+	return nil
 }
 
 // writeFileAtomic 先写同目录临时文件，再通过 Windows MoveFileEx 替换目标。
@@ -279,7 +297,7 @@ func hostsSetLocal(path string, domains []string) error {
 	}
 	state.Backups = append(state.Backups, backup)
 	// 先保存归属，再改 hosts；即使随后写 hosts 失败，下次启动也不会误认用户行。
-	if err := saveHostsState(path, state); err != nil {
+	if err := saveHostsStateAfterBackup(path, state, backup); err != nil {
 		return err
 	}
 	return writeFileAtomic(path, []byte(strings.Join(out, "\r\n")), 0o644)
@@ -336,7 +354,7 @@ func hostsRestoreWithWarning(path string, warn func(string)) error {
 		}
 		st.Backups = append(st.Backups, backup)
 		// 恢复前登记备份，进程中断后仍可继续恢复和清理。
-		if err := saveHostsState(path, st); err != nil {
+		if err := saveHostsStateAfterBackup(path, st, backup); err != nil {
 			return err
 		}
 		if err := writeFileAtomic(path, []byte(strings.Join(lines, "\r\n")), 0o644); err != nil {
