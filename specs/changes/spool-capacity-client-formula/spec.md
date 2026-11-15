@@ -24,8 +24,9 @@ t = clamp((d - 0.25) / 0.55, 0, 1)
 
 ## Testing Decisions
 
-- 实机 UI 锚点：Overlord 20S `0.7mm / 34m`、Adriatica 3000S `0.42mm / 91m`。
-- 细线段与粗线段边界保留纯函数断言。
+- 实机 UI 锚点：Overlord 3RS 20S（`spin_5425`）`0.70mm / 34m`、Adriatica 3000S（`spin_5026`）`0.42mm / 91m`。
+- 静态物品端到端断言：从轮子默认线杯读取 `djcepbpigpe`，从线材读取实际线径，避免同系列不同 20S 型号混用。
+- 细线/粗线公式回归与边界用例：`0.25`、`0.80`、`>0.80` 以及 5m 下限。
 - 回滚后上述两个实机锚点会变红。
 
 ## Out of Scope

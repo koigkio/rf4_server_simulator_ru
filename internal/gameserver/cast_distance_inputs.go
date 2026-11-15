@@ -456,9 +456,7 @@ func (s *Server) castReelSpoolStats(ctx context.Context, reel *store.Item, lineI
 	if diameter <= 0 {
 		return reelType, spoolSize, 0
 	}
-	// 客户端容量表标定：2000 杯（系数 100）0.14mm≈234m、0.18mm≈154m、
-	// 0.22mm≈111m；4000 杯（系数 180）0.20mm≈245m。
-	// 拟合式 C ≈ 0.093 × 系数 / 线径^1.65，误差 ≤8%。
+	// 容量公式见 reelSpoolCapacityM；旧的 0.093 拟合式仅适用于部分细线。
 	capacityM = reelSpoolCapacityM(coef, diameter)
 	return reelType, spoolSize, capacityM
 }
