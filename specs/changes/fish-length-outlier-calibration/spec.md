@@ -21,7 +21,7 @@ Status: done
 - `midori_g`、`m_scorpius`、`b_gill`、`fwdrum`、`s_freaks`、
   `l_minnow`、`syb_vendace`；
 - `b_omul`、`pinagor`、`s_bass`、`black_crappie` 按常见区间补齐；
-- `s.bream` 补 0.05~1.2kg 线性段。
+- `s.bream` 补 0.05~1.2kg 线性段：0.7kg≈0.325m、1.2kg≈0.45m。
 
 这些是经验/常见体型值，不是官服成对实测点；后续拿到官服体重-体长记录后
 应替换为实测曲线。
@@ -29,7 +29,8 @@ Status: done
 ## Testing Decisions
 
 - 新增 `TestFishLengthCommonSenseOutliers`，对每个补丁鱼种在代表性重量上
-  断言常见体长区间；回滚后 `gc_smelt` 等会重新落到明显偏小的值并变红。
+  断言常见体长区间；`s.bream` 同时验证 0.7kg / 1.2kg 两个线性锚点。回滚后
+  `gc_smelt` 等会重新落到明显偏小的值并变红。
 - 全量扫描结果保存在 `ref/fish_length_scan.csv`（本地参考，不提交）。
 
 ## Out of Scope

@@ -446,7 +446,16 @@ func TestFishLengthCommonSenseOutliers(t *testing.T) {
 	}
 
 	// s.bream 的静态库是非默认曲线，线性表直接接管。
-	if got := speciesLengthM("s.bream", 0.066818, 0.20866, 1200); got < 0.40 || got > 0.55 {
-		t.Fatalf("s.bream 在 1.2kg 时体长 %.3fm 不在常见区间", got)
+	for _, c := range []struct {
+		weight float64
+		lo, hi float64
+	}{
+		{700, 0.31, 0.34},
+		{1200, 0.43, 0.47},
+	} {
+		if got := speciesLengthM("s.bream", 0.066818, 0.20866, c.weight); got < c.lo || got > c.hi {
+			t.Fatalf("s.bream 在 %.0fg 时体长 %.3fm 不在常见区间 [%.2f,%.2f]",
+				c.weight, got, c.lo, c.hi)
+		}
 	}
 }
