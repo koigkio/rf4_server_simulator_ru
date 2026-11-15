@@ -36,13 +36,18 @@ f0=1 秒脱簇消失。
 ## Implementation Decisions
 
 - `internal/gameserver/profilebuild.go`：
-  - 新增 `appendFightHookLureTrees`：`ListRigComponents` 枚举钓组组件 →
-    `ItemDefCategories` 批量查品类 → catLure（17）行全部追加 `ItemToTree`
-    （路亚/海钓通用，替换原"仅 17 号槽首件"特例）；catHook（12）行仅
-    `marineRigType` 钓组追加（`GetRigType` 读 rig 表，未建档视为非海钓）。
-  - `Push4_22FightSync` 调用点替换原单拟饵块；品类批量查询失败时放弃追加
-    （与运行位注入同口径，绝不发猜错形状的树）。组件个位数、逐个读物品行
-    可接受（每 2s 热路径）。
+  - 新增 `appendFightHookLureTrees`（返回 `([]*proto.Value, error)`）：
+    - 组件读取走 **f5 真源**（`storedRigComponents`），仅 f5 为空时回退
+      `rig_component` 投影（与 `rigSetTarget` 同口径）——投影是单向派生，
+      "f5 完整、投影为空"的历史档案按投影读会漏发全部钩/拟饵树（评审 P1）；
+    - 海钓判定优先 `rigTypeForWrite`（f5/竿型推导），rig 表 `GetRigType` 兜底；
+    - 遍历按 slot/ordinal 确定性排序；`ErrNoRows`（组件悬空引用）跳过该组件，
+      其余数据库错误向上返回（评审 P2）——`Push4_22FightSync` 收到错误即
+      **整帧放弃**（客户端保留上一帧，下一拍重推），绝不发缺钩/拟饵树的帧；
+    - catLure（17）行全部追加 `ItemToTree`（路亚/海钓通用，替换原"仅 17 号槽
+      首件"特例）；catHook（12）行仅 `marineRigType` 钓组追加。
+  - `Push4_22FightSync` 调用点替换原单拟饵块；组件个位数、逐个读物品行可接受
+    （每 2s 热路径），品类走批量 IN 查询。
 - 14/11 中鱼钩帧（`buildMountedHookTree`）不动：独立钩行裸钩形状与官方
   148B 帧同构（官方鱼2 裸钩帧同样正常搏鱼上岸），拟饵内置钩已有容器分支。
 - 数据与迁移：无表结构改动；回滚 = 还原 `Push4_22FightSync` 单拟饵块。
@@ -53,6 +58,10 @@ f0=1 秒脱簇消失。
   - 新增 `TestPush422FightSyncMarineIncludesHookAndLureTrees`（boatr 竿 +
     rig 50 + 2 拟饵 + 2 钩行）：帧内 2 ioombppcnlh + 2 agedjipcnpe 顶层 +
     竿/线/轮，全部挂载位（容器本体与内嵌钩 1024，竿/线/轮 1024|2048）。
+  - 新增 `TestPush422FightSyncMarineF5SourceWithoutProjection`（评审 P1 回归）：
+    f5 完整 + `rig_component` 投影清空的历史档案，搏鱼帧仍发完整钩/拟饵树。
+  - 新增 `TestAppendFightHookLureTreesQueryFailureReturnsError`（评审 P2 回归）：
+    数据库不可用时 helper 返回错误（整帧放弃），不静默发缺树帧。
   - 既有 `TestPush422FightSyncLureIncludesLureTree`（路亚）与
     `TestPush422FightSyncBottomRigNoLureTree`（底钓无拟饵树）原样保持——
     泛化是子集扩展、门控是海钓限定，回滚即红。
