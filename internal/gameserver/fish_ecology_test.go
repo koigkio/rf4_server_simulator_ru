@@ -382,9 +382,8 @@ func TestCastPrepareLureSwapAndStepLink(t *testing.T) {
 		t.Fatalf("mount lure: %+v", mounted)
 	}
 	st := s.fishingStateForRod(uid, rod.GUID)
-	st.mu.Lock()
-	st.RigType = 5
-	st.mu.Unlock()
+	// 不预设 RigType（新竿 state 默认 0）：复审 P2 修复前，第一杆会因
+	// 旧 st.RigType=0 不做路亚种子——修复后按竿行 rigType 判定，必须种子。
 	if _, handled := hCastPrepare(&Ctx{Sess: sess, Main: 14, Sub: 1, Tree: rigRequestTree(t, proto.Guid(rod.GUID)),
 		DecodeOK: true, ExpectResponse: true, Log: logging.New("debug", "console")}); !handled {
 		t.Fatal("hCastPrepare 未处理")
@@ -393,7 +392,22 @@ func TestCastPrepareLureSwapAndStepLink(t *testing.T) {
 	dive, layer := st.LureDive, st.LureLayer
 	st.mu.Unlock()
 	if dive != .10 || layer != .10 {
-		t.Fatalf("换装 Popper 后种子应为 dive=layer=0.10: dive=%f layer=%f", dive, layer)
+		t.Fatalf("新竿第一杆（RigType=0）种子应为 dive=layer=0.10: dive=%f layer=%f", dive, layer)
+	}
+	// 场景 B：float 残留（RigType=1）→ 换路亚钓组第一杆同样要种子
+	st.mu.Lock()
+	st.RigType = 1
+	st.LureDive, st.LureLayer = 0, 0
+	st.mu.Unlock()
+	if _, handled := hCastPrepare(&Ctx{Sess: sess, Main: 14, Sub: 1, Tree: rigRequestTree(t, proto.Guid(rod.GUID)),
+		DecodeOK: true, ExpectResponse: true, Log: logging.New("debug", "console")}); !handled {
+		t.Fatal("float 残留后 hCastPrepare 未处理")
+	}
+	st.mu.Lock()
+	dive, layer = st.LureDive, st.LureLayer
+	st.mu.Unlock()
+	if dive != .10 || layer != .10 {
+		t.Fatalf("float 残留第一杆种子应为 dive=layer=0.10: dive=%f layer=%f", dive, layer)
 	}
 	sendStep := func(anim uint64) {
 		t.Helper()

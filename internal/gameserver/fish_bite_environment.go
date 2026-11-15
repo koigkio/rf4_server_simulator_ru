@@ -92,10 +92,13 @@ func (s *Server) prepareFishRollRuntime(ctx context.Context, c *fishRollContext,
 		c.runtime.spotPref, c.runtime.spotData = s.loadFishSpotPreference(ctx, statLoc, c)
 	}
 	if !c.runtime.lureKnown && c.rigType != 0 {
+		// 多拟饵取最深（与 lureDiveForGear 种子同源，评审 P3-1），
+		// 避免"种子用最深、fallback 用第一枚"的两套口径。
 		for _, id := range c.baits {
 			if lure, ok := s.loadLureAttributes(ctx, id); ok {
-				c.runtime.lure, c.runtime.lureKnown = lure, true
-				break
+				if !c.runtime.lureKnown || lure.DiveDepth > c.runtime.lure.DiveDepth {
+					c.runtime.lure, c.runtime.lureKnown = lure, true
+				}
 			}
 		}
 	}
@@ -529,7 +532,7 @@ func fishWaterConditionsFor(profile fishEcologyProfile, c fishRollContext) fishW
 	case bottomRigTypes[c.rigType]:
 		layer = .93
 	case rigTypeLureFamily[c.rigType]:
-		layer = normalizeWaterLayer(c.lureLayer)
+		layer = effectiveLureLayer(c)
 	case c.depthCM > 0:
 		layer = normalizeWaterLayer(float64(c.depthCM) / 500)
 	}
@@ -684,7 +687,7 @@ func (s *Server) fishLureWeight(profile fishEcologyProfile, c fishRollContext, w
 	if lure.DiveDepthM > 0 && c.spotEnv.DepthM > 0 {
 		diveDepth = clampFloat(lure.DiveDepthM/c.spotEnv.DepthM, 0, 1)
 	}
-	depthDistance := math.Abs(normalizeWaterLayer(c.lureLayer) - diveDepth)
+	depthDistance := math.Abs(effectiveLureLayer(c) - diveDepth)
 	depthMatch := .72 + .28*math.Exp(-depthDistance*depthDistance*6)
 	colorWeight := 1.0
 	if lure.ColorKnown {

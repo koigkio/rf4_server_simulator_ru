@@ -114,7 +114,15 @@ func (st *FishState) effectiveBaitDepthCMLocked(now time.Time) int64 {
 		return 0
 	}
 	if rigTypeLureFamily[st.RigType] {
-		return int64(math.Round(normalizeWaterLayer(st.LureLayer) * 500))
+		// LureLayer=0 为"未知"态（复审 P3）：按种子 LureDive 兜底，再退旧中层 250cm，
+		// 避免无证据饵落库 0cm 污染 qualification 深度判定。
+		if st.LureLayer > 0 {
+			return int64(math.Round(normalizeWaterLayer(st.LureLayer) * 500))
+		}
+		if st.LureDive > 0 {
+			return int64(math.Round(normalizeWaterLayer(st.LureDive) * 500))
+		}
+		return 250
 	}
 	target := st.DepthCM
 	if target <= 0 {

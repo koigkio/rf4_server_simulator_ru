@@ -16,7 +16,7 @@ Status: in-progress
 
 - **总开关默认关**：`fishBiteEnvironmentWeight` 在 `fish_ecology_enabled != 1` 时短路返回 1（fish_ecology.go），
   252 种鱼的水层/温度/动作权重全部不参与判鱼，任何饵×钓法共享同一份"地点名册×捕获数"权重。
-- **v3 生态表本身无分辨力**：252 条鱼没有一条表层鱼（layer_pref 全部 ≥0.46），区间普遍宽 0.66~0.9
+- **v3 生态表本身无分辨力**：252 条鱼没有一条表层鱼（layer_pref≤0.25 为 0；0.46 以下有 42 条，最小 0.33），区间普遍宽 0.66~0.9
   （狗鱼 0.07~0.97 全水柱），即使打开开关，水面饵对全柱鱼因子同为 ~0.84~1.0，分不开层。
 - **惩罚不对称**：`fishLayerWeightProfile` 只罚"底钓打表层鱼 ×0.05"和"路亚比鱼深 ×0.2"，
   水面饵打底层鱼只走高斯尾巴。
@@ -38,7 +38,7 @@ Status: in-progress
 - 拟饵水层带复用 `loadLureAttributes` 的 TypeID→DiveDepth 表；override 两处（stickbait 0.56→0.30、
   Flying worm 0.56→0.18）；popper/mouse 等名词特判表层。
 - `fish_ecology_defs.json` v3→v4：只改水层三元组与 profile_version，其余字段零漂移（已验证）；
-  区间最大宽度 0.90→0.45；表层鱼 0→6 条，中上层 116 条。
+  区间最大宽度 0.90→0.45（v4 数；v4.1 下探后实际 0.65，8 条 >0.45）；表层鱼 0→6 条，中上层 116 条。
 - Go 侧 `fishEcologyProfileVersion` 3→4，`ensureFishEcology` 的 `WHERE profile_version < excluded`
   在下次启动自动覆盖落库。
 
@@ -92,7 +92,7 @@ Status: in-progress
 ### 依赖与可复现（评审 P2-2）
 
 - 二源证据来自独立 PR #481 所引
-  `tools/fetch_rf4records.py` + `rf4records_catch` 表（迁移 00060）——本 PR 的
+  `tools/fetch_rf4records.py` + `rf4records_catch` 表（迁移 00061）——本 PR 的
   `regen_fish_layers.py` 依赖该表，合入顺序：#481 先、本 PR 后（或同批合）；
 - 可复现命令：`python -I tools/fetch_rf4records.py`（抓取入库）→
   `python -I tools/regen_fish_layers.py --static server_data/static.sqlite3 --db data/rf4server.db

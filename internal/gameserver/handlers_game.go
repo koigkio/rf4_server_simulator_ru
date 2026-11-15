@@ -803,13 +803,24 @@ func hCastPrepare(ctx *Ctx) ([]byte, bool) {
 	if saved, ok := srv.rodReelSpeedSetting(ctx.Sess.pushCtx(), gear); ok {
 		reelSpeed = saved
 	}
+	// 新竿/换钓组后的第一杆：先按实际竿行算 rigType 再做路亚族的重置与种子，
+	// 否则旧 st.RigType（0 或换钓组前的残留）会让第一杆丢种子（复审 P2）。
+	newRigType := st.RigType
+	var rodRow *store.Item
+	if row, err := srv.DB.GetItemByGUID(ctx.Sess.pushCtx(), gear); err == nil && row != nil {
+		rodRow = row
+		if row.Durability > 0 {
+			newRigType = srv.rigTypeOfItem(ctx.Sess.pushCtx(), row)
+		}
+	}
 	st.mu.Lock()
 	st.GearGuid = gear
 	st.ReelSetting = reelSpeed
+	st.RigType = newRigType
 	// 新一杆无条件清上一杆拟饵泳层：换竿/换饵后旧 LureDive 不得钳制新饵，
 	// 旧 LureLayer 不得压过 runtime DiveDepth 兜底（评审 P1）。
 	st.LureDive = 0
-	if rigTypeLureFamily[st.RigType] {
+	if rigTypeLureFamily[newRigType] {
 		st.LureMotionMask = 0
 		st.LureAction = ""
 		st.LureLayer = 0 // 0=未知：无运动证据时判鱼走 runtime DiveDepth 兜底，不再恒走 .5
@@ -821,7 +832,7 @@ func hCastPrepare(ctx *Ctx) ([]byte, bool) {
 		st.LureLayerAt = time.Time{}
 	}
 	depthCM := st.DepthCM
-	rigType := st.RigType
+	rigType := newRigType
 	st.mu.Unlock()
 	if err := ctx.Sess.prepareBaitForCast(st, gear); err != nil {
 		ctx.Log.Warn("抛竿前补饵失败", "err", err)
@@ -829,7 +840,7 @@ func hCastPrepare(ctx *Ctx) ([]byte, bool) {
 	}
 	// 路亚抛竿：按补饵后的实际装配取拟饵名义泳层，种子进实时水层——
 	// 落水瞬间饵在设计泳层，之后由 14/7 运动位动态修正并受该值钳制。
-	if rigTypeLureFamily[st.RigType] {
+	if rigTypeLureFamily[rigType] {
 		if dive := srv.lureDiveForGear(ctx.Sess.pushCtx(), gear); dive > 0 {
 			st.mu.Lock()
 			st.LureDive = dive
@@ -842,8 +853,8 @@ func hCastPrepare(ctx *Ctx) ([]byte, bool) {
 	if srv.ensureRig(ctx.Sess.pushCtx(), ctx.Sess.Userid, gear) {
 		ctx.Sess.Push4_22Full()
 	}
-	if row, err := srv.DB.GetItemByGUID(ctx.Sess.pushCtx(), gear); err == nil && row != nil {
-		if row.Durability <= 0 {
+	if rodRow != nil {
+		if rodRow.Durability <= 0 {
 			// 断竿/耐久归零的竿不可抛投（客户端可能不理会 17/7 的拒取
 			// 响应继续持竿，14/1 必须再拦一道）。
 			st.mu.Lock()
@@ -855,13 +866,9 @@ func hCastPrepare(ctx *Ctx) ([]byte, bool) {
 			}
 			return nil, false
 		}
-		rigType = srv.rigTypeOfItem(ctx.Sess.pushCtx(), row)
-		st.mu.Lock()
-		st.RigType = rigType
-		st.mu.Unlock()
 	}
 	// 水域装备限制：当前地图禁用的竿不可抛投准备（与 17/7 同一套拦截，
-	// 客户端直发 14/1 时兜底）。
+	// 客户端直发 14/1 时兜底）。rigType 已按竿行提前判定（复审 P2）。
 	if reason := srv.placeRodViolation(ctx.Sess.pushCtx(), ctx.Sess.Userid, gear); reason != "" {
 		st.mu.Lock()
 		st.GearGuid = ""

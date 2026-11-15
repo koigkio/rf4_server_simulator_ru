@@ -236,20 +236,28 @@ func normalizeWaterLayer(v float64) float64 {
 	return math.Max(0, math.Min(1, v))
 }
 
+// effectiveLureLayer 返回判鱼用的路亚实时水层（评审 P3 统一口径）：
+// 14/7 运动证据优先；无证据按 runtime 拟饵名义泳层兜底；再兜底中层 .5。
+// 三处消费者（rigWaterLayer / effectiveBaitDepthCMLocked / fishLureWeight）
+// 必须同口径，避免 LureLayer=0 的"未知"态被各处解释成不同泳层。
+func effectiveLureLayer(c fishRollContext) float64 {
+	if c.lureLayer > 0 {
+		return normalizeWaterLayer(c.lureLayer)
+	}
+	if c.runtime != nil && c.runtime.lureKnown && c.runtime.lure.DiveDepth > 0 {
+		return normalizeWaterLayer(c.runtime.lure.DiveDepth)
+	}
+	return .5
+}
+
 func (s *Server) rigWaterLayer(c fishRollContext) float64 {
 	if bottomRigTypes[c.rigType] {
 		return .93
 	}
 	if rigTypeLureFamily[c.rigType] {
-		if c.lureLayer > 0 {
-			return normalizeWaterLayer(c.lureLayer)
-		}
 		// 无运动证据时按饵的名义泳层兜底，而不是一律中层 .5——水面系饵
 		// 刚入水还没上报动作时按 .5 判鱼会错过表层掠食鱼。
-		if c.runtime != nil && c.runtime.lureKnown && c.runtime.lure.DiveDepth > 0 {
-			return normalizeWaterLayer(c.runtime.lure.DiveDepth)
-		}
-		return .5
+		return effectiveLureLayer(c)
 	}
 	if c.depthCM > 0 {
 		// 浮钓水层按落点实际水深归一；没有落点水深时维持旧的 5m 满刻度
