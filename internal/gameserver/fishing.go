@@ -1228,8 +1228,7 @@ func (s *Server) sampleWeightDB(ctx context.Context, key string, modeMult, scale
 		if minG, ok := s.cachedSpeciesMinG(ctx, c, key); ok {
 			ratioLines.minG = &minG
 		} else if floor := belowGradeFloorFromVal(settle[0]); floor > 0 {
-			// min_g 没登记的鱼种不能退回 1 g，否则未达标档仍会出现个位数
-			// 克数。用达标线按比例推下界，钳到 [1, 50] g。
+			// min_g 未登记时用达标线按比例推下界，钳到 [1, 50] g。
 			ratioLines.minG = &floor
 		}
 		if w, ok := s.sampleWeightByGradeRatio(ratioLines, modeMult, scale, capG); ok {
@@ -1282,7 +1281,7 @@ type fishGradeRatioModel struct {
 }
 
 // belowGradeFloorFromVal 由达标线推「未达标」档兜底下界：达标线的 15%，
-// 钳到 [1, 50] g。达标线未知（≤0）时返回 0 表示无兜底，沿用旧行为。
+// 钳到 [1, 50] g。达标线未知（≤0）时返回 0 表示无兜底。
 func belowGradeFloorFromVal(valG int64) int64 {
 	if valG <= 0 {
 		return 0

@@ -33,11 +33,13 @@ Status: done
 
 - `TestGradeRatioBelowBandHonorsSpeciesMinWeight`：有 `min_g` 时未达标个体
   全部 ≥ `min_g`（变异验证：删采纳行后 FAIL）。
-- `TestGradeRatioBelowBandFallsBackToOneGram` 与
+- `TestGradeRatioBelowBandFallsBackToProportionalFloor` 与
   `TestGradeRatioBelowBandGuardsMinAboveLine`：`min_g` 缺失/越界时下界 =
   15% 兜底钳 50 g，未达标档存在。
 - `TestGradeRatioBelowBandUsesMinGBelowFloor`：`min_g` 低于兜底时仍取
   `min_g`。
+- `TestSampleWeightDBLoadsSpeciesMinG`：从 `species_weight` 插入真实
+  `min_g`，验证 `sampleWeightDB` 经缓存/SQL 读取后，未达标个体 ≥ `min_g`。
 - `TestSampleWeightDBFloorsBelowBandWhenMinGMissing`：端到端抽样验证
   `min_g` 缺失鱼种的未达标个体 ≥ 兜底下界（期望值为独立常量，不复用被测
   函数）。

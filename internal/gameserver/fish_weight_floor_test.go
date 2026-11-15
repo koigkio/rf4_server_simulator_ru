@@ -6,8 +6,7 @@ import (
 	"testing"
 )
 
-// 「未达标」档的下界必须用该鱼种的自然最小体重（species_weight.min_g），
-// 而不是固定的 1 g 下界，避免未达标档出现不合常理的极小个体。
+// 未达标档的下界取鱼种自然最小体重（species_weight.min_g）。
 func TestGradeRatioBelowBandHonorsSpeciesMinWeight(t *testing.T) {
 	srv, db := newDetachTestServer(t)
 	enableGradeRatio(t, srv, db)
@@ -38,7 +37,7 @@ func TestGradeRatioBelowBandHonorsSpeciesMinWeight(t *testing.T) {
 }
 
 // 缺 min_g 数据时下界退回达标线的 15%（钳到 50 g），未达标档仍存在。
-func TestGradeRatioBelowBandFallsBackToOneGram(t *testing.T) {
+func TestGradeRatioBelowBandFallsBackToProportionalFloor(t *testing.T) {
 	srv, db := newDetachTestServer(t)
 	enableGradeRatio(t, srv, db)
 
@@ -64,7 +63,7 @@ func TestGradeRatioBelowBandFallsBackToOneGram(t *testing.T) {
 	}
 }
 
-// 数据异常（min_g ≥ 达标线）时下界不得越过达标线，取 min(min_g 封顶, 兜底)。
+// 数据异常（min_g ≥ 达标线）时使用比例兜底，保证未达标档存在。
 func TestGradeRatioBelowBandGuardsMinAboveLine(t *testing.T) {
 	srv, db := newDetachTestServer(t)
 	enableGradeRatio(t, srv, db)
@@ -92,7 +91,7 @@ func TestGradeRatioBelowBandGuardsMinAboveLine(t *testing.T) {
 	}
 }
 
-// min_g 越界但低于 15% 兜底时，下界仍取 min_g（不因越界判断整体失效）。
+// min_g 低于比例兜底时，下界仍取 min_g。
 func TestGradeRatioBelowBandUsesMinGBelowFloor(t *testing.T) {
 	srv, db := newDetachTestServer(t)
 	enableGradeRatio(t, srv, db)
@@ -118,14 +117,42 @@ func TestGradeRatioBelowBandUsesMinGBelowFloor(t *testing.T) {
 	}
 }
 
-// min_g 缺失的鱼种（静态库 207 个）由 gradeRatioModel 兜底：下界 = 达标线×15%
-// 钳到 [1,50] g，不再退回 1 g。
+// sampleWeightDB 必须通过 species_weight 读取到 min_g，而不只是接受注入的缓存值。
+func TestSampleWeightDBLoadsSpeciesMinG(t *testing.T) {
+	srv, db := newDetachTestServer(t)
+	enableGradeRatio(t, srv, db)
+	const key = "floor_db_probe"
+	const minG = int64(120)
+	if _, err := db.SQL.Exec(`INSERT INTO species_weight(fish_key,min_g,max_g,trophy_g,trophy_line_g,super_trophy_line_g) VALUES(?,?,?,?,?,?)`,
+		key, minG, 10000, 1000, 5000, 8000); err != nil {
+		t.Fatal(err)
+	}
+
+	c := rollContext(nil)
+	below := 0
+	for i := 0; i < 4000; i++ {
+		w := srv.sampleWeightDB(context.Background(), key, 1, 1, 0, c)
+		if w <= 0 {
+			t.Fatalf("第 %d 次抽样没有结果", i)
+		}
+		if w >= 1000 {
+			continue
+		}
+		below++
+		if w < minG {
+			t.Fatalf("未达标个体 %d g 低于数据库 min_g=%d g", w, minG)
+		}
+	}
+	if below == 0 {
+		t.Fatal("样本里没有未达标个体，用例无效")
+	}
+}
+
+// min_g 缺失的鱼种由 gradeRatioModel 兜底：下界 = 达标线×15%，钳到 [1,50] g。
 func TestSampleWeightDBFloorsBelowBandWhenMinGMissing(t *testing.T) {
 	srv, db := newDetachTestServer(t)
 	enableGradeRatio(t, srv, db)
-	// 直接给 cachedSpeciesMinG 喂"无数据"：不给 species_weight 插行。
-	// settle[0]（达标线）来自 settleStatics，对未登记鱼种按奖杯线估算；
-	// 为了测试可控，直接注入 roll cache 的 settleStatics。
+	// 不插入 species_weight 行，模拟 min_g 缺失；直接注入达标线以控制样本。
 	c := rollContext(nil) // rollContext 会补上 roll cache
 	cache := c.cache
 	const valLine = int64(1000)

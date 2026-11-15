@@ -9,8 +9,8 @@ import (
 
 type cachedGradeLines struct {
 	val, trophy, blue *int64
-	// minG 是该鱼种的自然最小体重（species_weight.min_g），仅用于给「未达标」
-	// 档定下界。nil = 未知 → 沿用旧的 1 g 下界。
+	// minG 是该鱼种的自然最小体重（species_weight.min_g），用于给「未达标」
+	// 档定下界。nil 表示没有可用的 min_g。
 	minG *int64
 }
 
@@ -79,10 +79,8 @@ func newFishingRollCache() *fishingRollCache {
 
 func rollCache(c fishRollContext) *fishingRollCache { return c.cache }
 
-// cachedSpeciesMinG 取该鱼种的自然最小体重（species_weight.min_g）。
-// 只用于给「未达标」档定下界：旧实现下界写死 1 g，区间内又是对数均匀采样，
-// 达标线 500 g 的鱼种有约 37% 的未达标个体会掉到 10 g 以下（1 g 鲤鱼、5 g 狗鱼）。
-// 找不到数据时返回 ok=false，调用方沿用旧行为。
+// cachedSpeciesMinG 取该鱼种的自然最小体重（species_weight.min_g），
+// 供「未达标」档计算下界。找不到数据或值非正时返回 ok=false。
 func (s *Server) cachedSpeciesMinG(ctx context.Context, c fishRollContext, key string) (int64, bool) {
 	if s == nil || s.DB == nil || key == "" {
 		return 0, false
