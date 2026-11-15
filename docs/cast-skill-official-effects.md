@@ -77,8 +77,9 @@
 
 ## 对自造鱼侧行的清理
 
-`skill_fish_effect_def`（00038，全 `source='local-sim'`/confidence 0.45）给上表节点
-配的自造鱼口效果与官方文案矛盾（例：701 被映射成 ecology_interest +3.5%/级）。
+`skill_fish_effect_def`（00038，`source='local-sim'`/confidence 0.45，共享组
+normalize 后为 `local-sim:shared-group`）给上表节点配的自造鱼口效果与官方文案矛盾
+（例：701 被映射成 ecology_interest +3.5%/级）。
 `ensureCastSkillEffects` 在启动路径按生产顺序（鱼口 ensure 之后）删除上表全部节点的
-鱼侧行；官方文案本身含鱼侧语义的节点（如 301/502/504/506/508/510 稀有鱼/渔获量类）
-不受影响。
+`source LIKE 'local-sim%'` 鱼侧行；官方/手工行，以及官方文案本身含鱼侧语义的节点
+（如 301/502/504/506/508/510 稀有鱼/渔获量类）不受影响。

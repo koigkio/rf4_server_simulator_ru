@@ -73,7 +73,19 @@ func (s *Server) ensureCastSkillEffects(ctx context.Context) (int, error) {
 			INSERT INTO skill_cast_effect_def(
 				cat_id,node_id,effect_key,per_level_pct,gate_kind,gate_type,source,confidence
 			) VALUES(?,?,?,?,?,?, 'client-loc-4.0.25034', 0.9)
-			ON CONFLICT(cat_id,node_id) DO NOTHING`,
+			ON CONFLICT(cat_id,node_id) DO UPDATE SET
+				effect_key=excluded.effect_key,
+				per_level_pct=excluded.per_level_pct,
+				gate_kind=excluded.gate_kind,
+				gate_type=excluded.gate_type,
+				source=excluded.source,
+				confidence=excluded.confidence
+			WHERE skill_cast_effect_def.effect_key IS NOT excluded.effect_key
+			   OR skill_cast_effect_def.per_level_pct IS NOT excluded.per_level_pct
+			   OR skill_cast_effect_def.gate_kind IS NOT excluded.gate_kind
+			   OR skill_cast_effect_def.gate_type IS NOT excluded.gate_type
+			   OR skill_cast_effect_def.source IS NOT excluded.source
+			   OR skill_cast_effect_def.confidence IS NOT excluded.confidence`,
 			seed.CatID, seed.NodeID, seed.EffectKey, seed.PerLevelPct, seed.GateKind, seed.GateType)
 		if err != nil {
 			return inserted, err
@@ -84,7 +96,8 @@ func (s *Server) ensureCastSkillEffects(ctx context.Context) (int, error) {
 	}
 	res, err := s.DB.SQL.ExecContext(ctx, `
 		DELETE FROM skill_fish_effect_def
-		WHERE (cat_id, node_id) IN (
+		WHERE source LIKE 'local-sim%'
+		  AND (cat_id, node_id) IN (
 			SELECT cat_id, node_id FROM skill_cast_effect_def
 		)`)
 	if err != nil {
