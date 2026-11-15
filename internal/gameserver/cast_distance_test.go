@@ -202,8 +202,8 @@ func TestCastFreshwaterLureOfficialAnchorBand(t *testing.T) {
 		ReelEfficiency: 0.857, ReelType: 2, SpoolSize: 8, SpoolFill: 1,
 		LineDiameterMM: 0.28, LineStretch: 0.01, LineMaterial: 3,
 		LineRunningWeightG: 0.078,
-		PlayerPrimary: defaultPlayerConditionPrimary,
-		SkillMastery: 95, SkillCastPct: 60,
+		PlayerPrimary:      defaultPlayerConditionPrimary,
+		SkillMastery:       95, SkillCastPct: 60,
 	})
 	if math.IsNaN(d) || d < 24.5 || d > 25.4 {
 		t.Fatalf("UL 配置官方手感锚点应落在 ~24.96m（20~30m 中值），实得 %.2f factors=%+v",
