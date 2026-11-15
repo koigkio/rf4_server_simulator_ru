@@ -6,6 +6,9 @@ import (
 	"path/filepath"
 	"testing"
 	"time"
+
+	"rf4server/internal/logging"
+	"rf4server/internal/proto"
 )
 
 func TestFishEcologySeedsSpeciesAndMatchesWaterLayers(t *testing.T) {
@@ -239,6 +242,18 @@ func TestFishLayerWeightProfileSymmetricDecay(t *testing.T) {
 	if math.Abs(shallowFish-deepFish) > .02 {
 		t.Errorf("对称衰减应方向无关: 浅鱼×底钓=%f 深鱼×水面饵=%f", shallowFish, deepFish)
 	}
+	// runtime/spotEnv 组合（评审 P3）：路亚无运动证据时按 runtime.lure 兜底，
+	// 组合下对称性同样成立。
+	runtimeDeep := srv.fishLayerWeightProfile(mk(.52, .78, .96),
+		fishRollContext{rigType: 5, runtime: &fishRollRuntime{lureKnown: true, lure: lureAttributes{DiveDepth: .06}}})
+	if math.Abs(runtimeDeep-deepFish) > .02 {
+		t.Errorf("runtime 兜底路径应与 lureLayer 路径同因子: %f vs %f", runtimeDeep, deepFish)
+	}
+	runtimeSurface := srv.fishLayerWeightProfile(mk(.08, .20, .30),
+		fishRollContext{rigType: 5, runtime: &fishRollRuntime{lureKnown: true, lure: lureAttributes{DiveDepth: .93}}})
+	if runtimeSurface > .1 {
+		t.Errorf("深潜饵底钓打表层鱼应出界强衰减: %f", runtimeSurface)
+	}
 }
 
 func TestFishEcologyActionWeightFallsBackToLegacyRows(t *testing.T) {
@@ -280,5 +295,59 @@ func TestLurePulseOverridesSteadyReelState(t *testing.T) {
 	st.recordLurePulseLocked(now.Add(200 * time.Millisecond))
 	if st.LureAction != "hard_twitch" {
 		t.Fatalf("连续三次右键脉冲应为 hard_twitch，得到 %q", st.LureAction)
+	}
+}
+
+// hCastPrepare 桥接（评审 P1/P2-4）：真实抛竿路径上验证 LureDive/LureLayer
+// 无条件重置——上一杆深潜铁板的残留不得污染下一杆。
+func TestCastPrepareResetsLureDiveAndLayer(t *testing.T) {
+	s, _ := newRigTestServer(t)
+	ctx := context.Background()
+	const uid = int64(1000001)
+	// 路亚竿：同一竿连续两杆（评审 P1 场景：换饵后旧 LureDive 残留）
+	rod, err := s.CreateItem(ctx, uid, "cast_10006_C60MH", "backpack", 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	sess := newProbeSess(s)
+	ctxCast := &Ctx{Sess: sess, Main: 14, Sub: 1, Tree: rigRequestTree(t, proto.Guid(rod.GUID)),
+		DecodeOK: true, ExpectResponse: true, Log: logging.Discard()}
+	if _, handled := hCastPrepare(ctxCast); !handled {
+		t.Fatal("hCastPrepare 未处理")
+	}
+	// 模拟上一杆深潜铁板的残留（写进该竿的 rod-state）
+	st := s.fishingStateForRod(uid, rod.GUID)
+	st.mu.Lock()
+	st.LureDive, st.LureLayer = .72, .72
+	rig := st.RigType
+	st.mu.Unlock()
+	// 第二杆：无拟饵装配（currentBaits 空，lureDiveForGear=0）
+	if _, handled := hCastPrepare(ctxCast); !handled {
+		t.Fatal("第二杆 hCastPrepare 未处理")
+	}
+	st.mu.Lock()
+	dive, layer := st.LureDive, st.LureLayer
+	st.mu.Unlock()
+	if dive != 0 {
+		t.Fatalf("第二杆 LureDive 应清零（上一杆 .72 残留）: %f", dive)
+	}
+	if rigTypeLureFamily[rig] && layer != 0 {
+		t.Fatalf("路亚第二杆 LureLayer 应清零走 runtime 兜底: %f", layer)
+	}
+	// 换非路亚竿：旧竿的 LureDive 残留不得带过去（各竿独立 state，天然为 0；
+	// 断言新竿 state 从零开始）
+	tele, err := s.CreateItem(ctx, uid, "tele_10012_tl16", "backpack", 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, handled := hCastPrepare(&Ctx{Sess: sess, Main: 14, Sub: 1, Tree: rigRequestTree(t, proto.Guid(tele.GUID)),
+		DecodeOK: true, ExpectResponse: true, Log: logging.Discard()}); !handled {
+		t.Fatal("hCastPrepare 未处理")
+	}
+	st.mu.Lock()
+	dive, layer = st.LureDive, st.LureLayer
+	st.mu.Unlock()
+	if dive != 0 || layer != 0 {
+		t.Fatalf("换竿后旧竿残留不得迁移: dive=%f layer=%f", dive, layer)
 	}
 }

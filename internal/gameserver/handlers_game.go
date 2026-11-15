@@ -806,10 +806,13 @@ func hCastPrepare(ctx *Ctx) ([]byte, bool) {
 	st.mu.Lock()
 	st.GearGuid = gear
 	st.ReelSetting = reelSpeed
+	// 新一杆无条件清上一杆拟饵泳层：换竿/换饵后旧 LureDive 不得钳制新饵，
+	// 旧 LureLayer 不得压过 runtime DiveDepth 兜底（评审 P1）。
+	st.LureDive = 0
 	if rigTypeLureFamily[st.RigType] {
 		st.LureMotionMask = 0
 		st.LureAction = ""
-		st.LureLayer = .5
+		st.LureLayer = 0 // 0=未知：无运动证据时判鱼走 runtime DiveDepth 兜底，不再恒走 .5
 		st.LurePulseCount = 0
 		st.LurePulseAt = time.Time{}
 		st.LureToggleCount = 0

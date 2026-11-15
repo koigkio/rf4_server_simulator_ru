@@ -266,19 +266,21 @@ func (s *Server) loadLureAttributes(ctx context.Context, id string) (lureAttribu
 	return lure, true
 }
 
-// lureDiveForGear 取竿上当前装配的第一枚拟饵的名义泳层（DiveDepth）；
-// 无拟饵装配或无证据返回 0。抛竿时种子进 FishState.LureDive，供 14/7
-// 运动推导钳制与判鱼 fallback 使用，高频路径不再回查 DB。
+// lureDiveForGear 取竿上当前装配拟饵的最大名义泳层（DiveDepth）。
+// 多拟饵/多钩钓组取最深：钓组运行水层由最深拟饵决定（评审 P2-3）；
+// 单拟饵不变；无拟饵装配或无证据返回 0。抛竿时种子进 FishState.LureDive，
+// 供 14/7 运动推导钳制与判鱼 fallback 使用，高频路径不再回查 DB。
 func (s *Server) lureDiveForGear(ctx context.Context, gearGUID string) float64 {
 	if s == nil || s.DB == nil || gearGUID == "" {
 		return 0
 	}
+	deepest := 0.0
 	for _, bait := range s.currentBaits(ctx, gearGUID) {
-		if lure, ok := s.loadLureAttributes(ctx, bait); ok {
-			return lure.DiveDepth
+		if lure, ok := s.loadLureAttributes(ctx, bait); ok && lure.DiveDepth > deepest {
+			deepest = lure.DiveDepth
 		}
 	}
-	return 0
+	return deepest
 }
 
 func lureIntAttr(attrs map[string]any, key string) int64 {

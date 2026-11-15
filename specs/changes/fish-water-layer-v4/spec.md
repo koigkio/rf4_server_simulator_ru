@@ -80,12 +80,32 @@ Status: in-progress
    水面是真实操作）；dive=0 保持旧语义；
 3. 抛竿（14/2）补饵后取当前装配拟饵的名义泳层：`FishState.LureDive`（仅进程内，
    不进持久化快照）缓存 + `st.LureLayer` 种子为该值——落水瞬间饵在设计泳层，
-   14/7 高频路径用缓存值钳制，不再回查 DB；
+   14/7 高频路径用缓存值钳制，不再回查 DB。**新一杆无条件清零**（评审 P1）：
+   `LureDive=0`、路亚族 `LureLayer=0`（0=未知，判鱼走 runtime DiveDepth 兜底），
+   非路亚竿同样清 `LureDive`；多拟饵钓组取最深拟饵（评审 P2-3）；
 4. `rigWaterLayer` 浮钓归一化：有 `spotEnv.DepthM` 时按落点实际水深，否则保持
    旧 5m 满刻度（旧口径在 >5m 水域把中层调漂读成底层）。
 
 涉及客户端状态链（FishState + 14/2/14/7），需实机回归：水面系抛竿→收线→鱼口
 分布、深潜铁板跳底、浮钓深水调漂。
+
+### 依赖与可复现（评审 P2-2）
+
+- 二源证据来自独立 PR #481 所引
+  `tools/fetch_rf4records.py` + `rf4records_catch` 表（迁移 00060）——本 PR 的
+  `regen_fish_layers.py` 依赖该表，合入顺序：#481 先、本 PR 后（或同批合）；
+- 可复现命令：`python -I tools/fetch_rf4records.py`（抓取入库）→
+  `python -I tools/regen_fish_layers.py --static server_data/static.sqlite3 --db data/rf4server.db
+  --in internal/gameserver/assets/fish_ecology_defs.json --out /tmp/v41.json --report /tmp/report.md`；
+- companion 数据 provenance 已在 Evidence 段声明为"高置信推断"，抓取口径随
+  #481 管道每周滚动补齐。
+
+### 合并后验收（评审 P2-1）
+
+- `fish_ecology_enabled` 置 1 前必须完成：① 用 `verify2` 脚本重跑"rf4records 拟饵证据
+  中心 vs v4.1 区间"确认区间外清单（当前 12 条已由 v4.1 下探收敛，需重测确认）；② 对
+  区间外剩余鱼种做实机鱼口核对；③ 换饵/换竿场景实机（`TestCastPrepareResetsLureDiveAndLayer`
+  已覆盖单测层，实机需复验 14/2→14/7 的 LureDive/LureLayer 链路）。
 
 ### 生效与回滚
 
