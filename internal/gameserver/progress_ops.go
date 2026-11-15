@@ -424,8 +424,11 @@ func (s *Server) fishingEndSettle(ctx *Ctx) ([]byte, bool) {
 	// 多钩：客户端把 14/4 当成"本杆结束"（收竿后立刻重新抛投），所以本杆
 	// 其余的鱼不能在收竿之后再接管，必须在这里一并结算；入护/放生跟着玩家
 	// 对主鱼的同一个 14/5/14/6 选择走（见 FishState.Batch）。
+	// 额外鱼的结算结果要并进 801 的奖励列表与结算后的推送，否则升级礼物、
+	// 交易卡、稀有鱼奖座只入库不告知玩家。
+	var extraResults []*settleXpResult
 	if hasFish {
-		s.settleExtraOnReelIn(cctx, uid, st, rigType)
+		_, extraResults = s.settleExtraOnReelIn(ctx.Sess, cctx, uid, st, rigType)
 	} else if dropped := dropExtraFish(st); dropped > 0 {
 		// 主鱼咬钩未刺中就收竿：本杆没有有效渔获，额外鱼同样按脱落处理，
 		// 不能留到 14/5 被当成"入护"结掉。
@@ -448,6 +451,9 @@ func (s *Server) fishingEndSettle(ctx *Ctx) ([]byte, bool) {
 	// 801 继承的 f8 是本次获得的物品。仅发送 4/22 不会把物品加入钓获结果的
 	// 奖励列表；重放已入册的卡片也不能把它移回散卡库存。
 	// 升级礼物与钓获卡片同列：礼物行来自结算直发（非重放才有）。
+	// 多钩额外鱼的奖励（升级礼物 / 交易卡 / 稀有鱼奖座）由 14/4 一并结算，
+	// 但它们的 801 行与 4/22 推送同样要补，否则物品只入库、玩家看不到。
+	extraGifts := extraSettleGifts(extraResults)
 	grants := proto.Args(proto.S("61"))
 	if hasFish && res != nil {
 		for _, row := range res.allGiftItems() {
@@ -459,13 +465,29 @@ func (s *Server) fishingEndSettle(ctx *Ctx) ([]byte, bool) {
 			}
 		}
 	}
+	for _, row := range extraGifts {
+		if row == nil {
+			continue
+		}
+		if tree, terr := s.ItemToTree(cctx, row); terr == nil {
+			grants.Items = append(grants.Items, tree)
+		}
+	}
 	for _, row := range qualCups {
 		if tree, terr := s.awardItemTree(cctx, row); terr == nil {
 			grants.Items = append(grants.Items, tree)
 		}
 	}
-	if hasFish && res.droppedCardGUID != "" {
-		card, err := s.DB.GetItemByGUID(cctx, res.droppedCardGUID)
+	cardGUIDs := []string{}
+	if hasFish && res != nil {
+		cardGUIDs = append(cardGUIDs, res.droppedCardGUID)
+	}
+	cardGUIDs = append(cardGUIDs, extraDroppedCards(extraResults)...)
+	for _, cardGUID := range cardGUIDs {
+		if cardGUID == "" {
+			continue
+		}
+		card, err := s.DB.GetItemByGUID(cctx, cardGUID)
 		if err != nil {
 			ctx.ReplyFailure("System.IO.IOException", "钓获卡片未能读取，请重试")
 			return nil, true
@@ -512,6 +534,9 @@ func (s *Server) fishingEndSettle(ctx *Ctx) ([]byte, bool) {
 			lines = append(lines, dbg...)
 			ctx.Log.Info("801.f4 附带调试礼物行", "uid", uid, "rows", len(dbg))
 		}
+		// 多钩额外鱼在同一杆里升级/跨奖座档时，卡也得弹出来：同源合并成一行，
+		// 参数取最大值，避免一杆弹出多张同源卡。
+		lines = append(lines, extraGift811Lines(extraResults)...)
 		if len(lines) > 0 {
 			if rows, rerr := s.giftRows811(cctx, lines); rerr != nil {
 				ctx.Log.Warn("礼物行构造失败（801.f4 置空）", "err", rerr)
@@ -558,24 +583,37 @@ func (s *Server) fishingEndSettle(ctx *Ctx) ([]byte, bool) {
 	if hasFish && !res.replayed {
 		ctx.Sess.Push2_1()
 	}
+	// 额外鱼把玩家顶上新的等级时同样推升级包：它们的结算发生在主鱼之后，
+	// 只走主鱼的 801 卡会让这次升级没有弹窗与聊天播报。
+	if hasFish && res != nil && !res.replayed {
+		if lvl := extraSettleMaxLevel(extraResults); lvl > res.newLevel {
+			ctx.Sess.Push2_6(max64(1, lvl-1))
+			ctx.Sess.pushLevelUpChat(lvl)
+		}
+	}
 	// 上鱼事件交给成就规则判断一次；2/8 弹窗排在 801 应答之后。
 	if hasFish {
 		s.evaluateAchievements(ctx, achievementEvent{
 			Kind: evFishLanded, WeightG: pending.WeightG, RigType: rigType, Bait: bait,
 		})
 	}
-	if hasFish && res.droppedCardGUID != "" {
-		if card, err := s.DB.GetItemByGUID(cctx, res.droppedCardGUID); err == nil && card.UID == uid && card.Container == tradingCardContainer {
+	for _, cardGUID := range cardGUIDs {
+		if cardGUID == "" {
+			continue
+		}
+		if card, err := s.DB.GetItemByGUID(cctx, cardGUID); err == nil && card.UID == uid && card.Container == tradingCardContainer {
 			// 单条 4/22 增量不足以刷新开着的卡牌列表（upsert 不替换本地已有
 			// 物品、视图重建滞后一代，2026-11-08 实机）：改走收藏册全量先删
-			// 后推两代重同步（见 trading_card_sync.go）。
+			// 后推两代重同步（见 trading_card_sync.go）。主鱼与额外鱼同一杆
+			// 都掉卡时只需要重同步一次。
 			sess := ctx.Sess
 			ctx.AfterResponse(func() { s.resyncTradingCardsTwice(sess, uid) })
+			break
 		}
 	}
 	// 礼物 4/22 与卡片同步：801 响应发送后再更新背包缓存，避免与结算快照竞态。
 	if hasFish && res != nil {
-		gifts := res.allGiftItems()
+		gifts := append(res.allGiftItems(), extraGifts...)
 		if len(gifts) > 0 {
 			ctx.AfterResponse(func() {
 				for _, row := range gifts {

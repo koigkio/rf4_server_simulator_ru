@@ -1343,7 +1343,8 @@ func hFishingHooked(ctx *Ctx) ([]byte, bool) {
 			if err := srv.consumeHookedBait(ctx.Sess, extra, gear); err != nil {
 				ctx.Log.Warn("额外鱼中钩后扣饵失败", "fish", extra.FishGUID, "err", err)
 			}
-			ctx.Sess.Push4_22Hook(true, gear)
+			// 挂竿位要推这尾鱼自己的钩，不能推线末端那枚（Push4_22Hook 只取槽位 12）。
+			ctx.Sess.Push4_22HookGUID(extra.HookGUID, true)
 			ctx.Log.Info("14/11 额外鱼中钩确认", "rod", shortGUID(gear),
 				"fish", shortGUID(extra.FishGUID), "hook", shortGUID(extra.HookGUID),
 				"species", extra.Species, "重量_g", extra.WeightG)
@@ -1597,6 +1598,7 @@ func hFishingLeft(ctx *Ctx) ([]byte, bool) {
 		castActive := st.CastActive
 		inWater := st.InWater
 		loc, spot := st.Loc, st.Spot
+		rodGUID := st.GearGuid
 		st.mu.Unlock()
 		if hooked && !alreadyResolved {
 			srv.bumpFishingCounter(ctx.Sess.Userid, "escapes")
@@ -1610,7 +1612,7 @@ func hFishingLeft(ctx *Ctx) ([]byte, bool) {
 		srv.settleFightReelWearState(srv.dbCtx(), st, ctx.Sess.Userid, "14/12")
 		// 多钩：当前这条走了，队列里还有就立刻接管，不重新排咬钩。
 		if next := srv.promoteAfterActiveGone(st); next != nil {
-			ctx.Log.Info("14/12 多钩接管下一条", "rod", shortGUID(st.GearGuid),
+			ctx.Log.Info("14/12 多钩接管下一条", "rod", shortGUID(rodGUID),
 				"fish", shortGUID(next.FishGUID), "hook", shortGUID(next.HookGUID),
 				"剩余", srv.pendingExtraCount(st))
 			srv.repushPromotedAfterTakeover(ctx.Sess, st)

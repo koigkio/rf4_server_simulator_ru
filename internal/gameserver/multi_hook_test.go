@@ -433,3 +433,150 @@ func TestMultiHookKeepChatText(t *testing.T) {
 		t.Fatalf("空列表也要给出确定文案，得到 %q", got)
 	}
 }
+
+// 单条上限 = α^idx × 0.35 × 预算，并被"剩余预算"压低；
+// 剩余预算不足以再出一条 0.2kg 以上的鱼时必须停手（不掷骰、不断线）。
+func TestExtraFishCapKgAppliesDecayAndRemainingBudget(t *testing.T) {
+	t.Parallel()
+	cfg := multiHookConfig{SizeDecay: 0.6}
+	budget := 5.0 // kg
+	// 第一条：0.6^1 × 0.35 × 5 = 1.05
+	if got, ok := extraFishCapKg(cfg, budget, 1.0, 0, 1); !ok || math.Abs(got-1.05) > 1e-9 {
+		t.Fatalf("第一条上限 = %v ok=%v，期望 1.05", got, ok)
+	}
+	// 第二条：0.6^2 × 0.35 × 5 = 0.63
+	if got, ok := extraFishCapKg(cfg, budget, 1.0, 1.0, 2); !ok || math.Abs(got-0.63) > 1e-9 {
+		t.Fatalf("第二条上限 = %v ok=%v，期望 0.63", got, ok)
+	}
+	// 剩余预算比计算值小：上限被剩余预算压低。
+	if got, ok := extraFishCapKg(cfg, budget, 4.5, 0, 1); !ok || math.Abs(got-0.5) > 1e-9 {
+		t.Fatalf("剩余预算 0.5kg 时上限 = %v ok=%v，期望 0.5", got, ok)
+	}
+	// 剩余预算不足 0.2kg：不再出下一条。
+	if _, ok := extraFishCapKg(cfg, budget, 4.9, 0, 1); ok {
+		t.Fatal("剩余 0.1kg 时不应再出鱼")
+	}
+	// α=1 且预算充足：每条上限相同（退化为"每条都可上"，靠总量收敛）。
+	flat := multiHookConfig{SizeDecay: 1}
+	first, _ := extraFishCapKg(flat, 100, 0, 0, 1)
+	second, _ := extraFishCapKg(flat, 100, 0, 0, 2)
+	if math.Abs(first-second) > 1e-9 {
+		t.Fatalf("α=1 时上限应一致，得到 %v / %v", first, second)
+	}
+}
+
+// 拿不到钓组承力（budget<=0）时上限为 0=不限，交给各鱼种自身上限兜底。
+func TestExtraFishCapKgUnlimitedWithoutBudget(t *testing.T) {
+	t.Parallel()
+	if got, ok := extraFishCapKg(multiHookConfig{SizeDecay: 0.6}, 0, 0, 0, 1); !ok || got != 0 {
+		t.Fatalf("无预算信息应返回 (0,true)，得到 (%v,%v)", got, ok)
+	}
+}
+
+// multi_hook_max=1 表示"这杆只要主鱼"，不能被悄悄抬到 2。
+func TestMultiHookMaxOneKeepsSingleFish(t *testing.T) {
+	t.Parallel()
+	s := &Server{}
+	setMultiHookTunableForTest(t, s, "multi_hook_bite", 1)
+	setMultiHookTunableForTest(t, s, "multi_hook_max", 1)
+	cfg := s.multiHookConfig()
+	if !cfg.Enabled {
+		t.Fatal("multi_hook_bite=1 时应启用")
+	}
+	if cfg.MaxTotal != 1 {
+		t.Fatalf("multi_hook_max=1 时最多鱼数应为 1，得到 %d", cfg.MaxTotal)
+	}
+}
+
+// 关闭开关时 rollExtraFishForRig 必须在碰数据库之前就返回：等价旧行为。
+func TestRollExtraFishForRigOffByDefault(t *testing.T) {
+	t.Parallel()
+	s, _ := newRigTestServer(t)
+	setMultiHookTunableForTest(t, s, "multi_hook_bite", 0)
+	rod := newArmMultiHookRod(t, s)
+	got := s.rollExtraFishForRig(t.Context(), 1000001, rod, "loc12_15", "worm_01",
+		fishingSkillBonus{}, fishRollContext{}, &RolledFish{WeightG: 1000}, s.multiHookConfig())
+	if len(got) != 0 {
+		t.Fatalf("关闭时不应出额外鱼，得到 %d 条", len(got))
+	}
+}
+
+// 同一杆里多尾鱼触发的同源礼物合并成一行，参数取最大值：
+// 客户端礼物卡按来源码渲染，一杆多张同源卡只会互相覆盖。
+func TestExtraGift811LinesMergesSameSource(t *testing.T) {
+	t.Parallel()
+	results := []*settleXpResult{
+		{newLevel: 12, giftItems: []*store.Item{{ItemID: "a"}}},
+		{newLevel: 15, giftItems: []*store.Item{{ItemID: "b"}}},
+		{raritySpeciesCount: 3, rarityGifts: []*store.Item{{ItemID: "c"}}},
+	}
+	lines := extraGift811Lines(results)
+	if len(lines) != 2 {
+		t.Fatalf("应合并成 2 行（升级 + 稀有鱼），得到 %d 行", len(lines))
+	}
+	if lines[0].source != giftSourceNewLevel || lines[0].param != 15 || len(lines[0].items) != 2 {
+		t.Fatalf("升级行 = %+v，期望 param=15 且 2 件", lines[0])
+	}
+	if lines[1].source != giftSourceTrophyCountReached || lines[1].param != 3 {
+		t.Fatalf("稀有鱼行 = %+v，期望 param=3", lines[1])
+	}
+	if got := extraGift811Lines(nil); len(got) != 0 {
+		t.Fatalf("没有额外鱼时不应有礼物行，得到 %d", len(got))
+	}
+}
+
+// 额外鱼的饵必须在 14/4 结算时扣掉。
+//
+// 额外鱼默认连实体都不派，客户端绝不会为它们发 14/11；扣饵只挂在 14/11 上时，
+// 同一份饵会被反复用于多钩判定（每份饵最多出两尾）。这里锁住"结算即扣饵"。
+func TestSettleExtraOnReelInConsumesBait(t *testing.T) {
+	t.Parallel()
+	s, db := newRigTestServer(t)
+	rod := baitTestRod(t, s)
+	mountHookForBaitTest(t, s, rod, 0)
+	_, child := baitTestMount(t, s, rod, "worm_01", 5, 350)
+	// 扣饵是删掉挂在钓组上的那一份（source 栈在挂饵时就已经减过 1），
+	// 所以断言"钓组上不再挂着这枚饵"。
+	mountedBait := func() bool {
+		t.Helper()
+		row, err := db.GetItemByGUID(t.Context(), child)
+		if err != nil || row == nil {
+			return false
+		}
+		return row.Container == "rig" && row.Qty > 0
+	}
+	if !mountedBait() {
+		t.Fatal("前置条件：饵应挂在钓组上")
+	}
+
+	sess := newProbeSess(s)
+	uid := sess.Userid
+	if _, err := db.EnsureProfile(t.Context(), uid); err != nil {
+		t.Fatal(err)
+	}
+	st := s.stateFor(uid)
+	st.mu.Lock()
+	st.GearGuid = rod
+	st.Pending = &RolledFish{FishGUID: strings.Repeat("a", 32), Species: "perch", Grade: 2, WeightG: 640}
+	st.Hooked = true
+	st.Extra = []*RolledFish{{
+		FishGUID: strings.Repeat("b", 32), Species: "perch", Grade: 1, WeightG: 320,
+		HookGUID:  mountHookForBaitTest(t, s, rod, 1),
+		BaitGUIDs: child, BaitsKnown: true,
+	}}
+	st.mu.Unlock()
+
+	if _, ok := s.fishingEndSettle(&Ctx{Sess: sess, CallID: 1, Main: 14, Sub: 4,
+		ExpectResponse: true, Log: logging.Discard()}); !ok {
+		t.Fatal("14/4 未处理")
+	}
+	if mountedBait() {
+		t.Fatal("额外鱼的饵应在 14/4 从钓组扣掉")
+	}
+	st.mu.Lock()
+	settled := len(st.Batch)
+	st.mu.Unlock()
+	if settled != 1 {
+		t.Fatalf("额外鱼应进 Batch，得到 %d", settled)
+	}
+}

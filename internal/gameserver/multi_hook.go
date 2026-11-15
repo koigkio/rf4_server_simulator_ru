@@ -38,8 +38,10 @@ func (s *Server) multiHookConfig() multiHookConfig {
 		SizeDecay: clampFloat(s.tunableF("multi_hook_size_decay", 0.6), 0, 1),
 		PullK:     clampFloat(s.tunableF("multi_hook_pull_budget", 0.8), 0.1, 1),
 	}
-	if cfg.MaxTotal < 2 {
-		cfg.MaxTotal = 2
+	// 1 表示"这杆只要主鱼"，不再强行抬到 2：参数页把 multi_hook_max 设成 1
+	// 就是关闭额外鱼，与 multi_hook_bite=0 的区别只是保留其它多钩参数。
+	if cfg.MaxTotal < 1 {
+		cfg.MaxTotal = 1
 	}
 	if cfg.MaxTotal > 6 {
 		cfg.MaxTotal = 6
@@ -65,7 +67,7 @@ func (s *Server) hookMountedForExtraHooks() bool {
 // extraEntityPushEnabled 返回是否给额外鱼派 `14/14` 实体（tunables 键
 // multi_hook_extra_entity，**默认 0 = 不派**）。
 //
-// 2026-11-13 17:26 实测（tools/fish_probe.py 给 Fish 类 82 个方法下钩）：
+// 2026-11-13 17:26 实测（本地探针给客户端 Fish 类的 82 个方法下钩，探针未入库）：
 // 服务端连发两条 `14/14`（主鱼 513g + 额外 3618g，逐条都拿到 `14/12 f0=6`），
 // 客户端整杆只走了一次 `Fish..ctor`，`Update`/`FixedUpdate` 也只命中同一个
 // 实例——它的 FishingScene 就是单鱼模型，多派没有模型可挂。
@@ -166,12 +168,34 @@ func (s *Server) multiHookStrengthKg(ctx context.Context, uid int64, gearGUID st
 	return gearStrengthCapKg(spec)
 }
 
+// extraFishCapKg 计算第 idx 条额外鱼（从 1 起）的单条重量上限。
+//
+// 上限 = α^idx × 0.35 × 总重预算，再被"剩余预算"（总预算 − 主鱼 − 已出的额外鱼）
+// 压低；剩余预算不足以再出一条 0.2kg 以上的鱼时返回 ok=false，调用方直接结束
+// 本杆的额外鱼判定（不再掷骰，也不会出现"咬住后超预算断线"）。
+//
+// budget<=0（拿不到钓组承力）表示不限，返回上限 0，由各鱼种自身上限兜底。
+func extraFishCapKg(cfg multiHookConfig, budget, usedKg, outKg float64, idx int) (float64, bool) {
+	if budget <= 0 {
+		return 0, true
+	}
+	capKg := math.Pow(cfg.SizeDecay, float64(idx)) * 0.35 * budget
+	if remain := budget - usedKg - outKg; remain < capKg {
+		capKg = remain
+	}
+	if capKg <= 0.2 {
+		return 0, false
+	}
+	return capKg, true
+}
+
 // rollExtraFishForRig 在主鱼之后，为其余已挂饵的钩位各掷一次骰。
 //
 // 三道闸门依次生效：
 //  1. 钩位互斥：主鱼占掉的钩、已出鱼的钩不再参与；
-//  2. 逐条降档：第 i 条额外鱼的单条上限 = α^(i-1) × 0.35 × 预算；
-//  3. 总重预算：ΣW 不得越过 K × 最弱环，越界从最重的开始丢（直接不咬）。
+//  2. 逐条降档：第 i 条额外鱼的单条上限 = α^i × 0.35 × 预算（见 extraFishCapKg）；
+//  3. 总重预算：ΣW 不得超过 K × 最弱环，剩余预算不足 0.2kg 时不再出下一条
+//     （单条上限被剩余预算压低，见 extraFishCapKg），不会出现"咬住再把钓组拉断"。
 //
 // 返回的鱼已绑定各自钩位与饵快照，除重量/种类外沿用主鱼的咬口条件。
 func (s *Server) rollExtraFishForRig(ctx context.Context, uid int64, gearGUID, loc, bait string, bonus fishingSkillBonus, c fishRollContext, primary *RolledFish, cfg multiHookConfig) []*RolledFish {
@@ -228,15 +252,9 @@ func (s *Server) rollExtraFishForRig(ctx context.Context, uid int64, gearGUID, l
 		if !s.applyBaitedHookSpec(ctx, group, &selected) {
 			continue
 		}
-		capKg := 0.0
-		if budget > 0 {
-			capKg = math.Pow(cfg.SizeDecay, float64(len(out)+1)) * 0.35 * budget
-			if remain := budget - usedKg - outKg; remain < capKg {
-				capKg = remain
-			}
-			if capKg <= 0.2 {
-				break
-			}
+		capKg, ok := extraFishCapKg(cfg, budget, usedKg, outKg, len(out)+1)
+		if !ok {
+			break
 		}
 		if own := s.fishWeightCapKg(selected); own > 0 && (capKg <= 0 || own < capKg) {
 			capKg = own
@@ -286,11 +304,17 @@ func (s *Server) applyMultiHookPullBudget(fish []*RolledFish, strengthKg, pullK 
 		return
 	}
 	ratio := budgetN / total
+	// fishFightPullFor 会把 fight_power_scale 乘进来；这里先除回去再写回 Force，
+	// 否则下一次读取会把这个 tunable 叠两次（总拉力预算随之失真）。
+	scale := s.tunableF("fight_power_scale", 1.0)
+	if scale <= 0 {
+		scale = 1
+	}
 	for _, f := range fish {
 		if f == nil {
 			continue
 		}
-		base := s.fishFightPullFor(f)
+		base := s.fishFightPullFor(f) / scale
 		f.Force = math.Max(0.5, math.Round(base*ratio*10000)/10000)
 	}
 }
@@ -431,9 +455,12 @@ func (s *Server) repushPromotedAfterTakeover(sess *Session, st *FishState) {
 //
 // 所以本杆的其余鱼必须在这一次 14/4 里结算完；它们挂在 Batch 上，等玩家对
 // 主鱼做出 14/5 入护或 14/6 放生的选择时一起处理。
-func (s *Server) settleExtraOnReelIn(ctx context.Context, uid int64, st *FishState, rigType int64) []*RolledFish {
+//
+// 返回已结算的鱼（进 Batch）和每尾的结算结果，后者由 14/4 处理器并进 801
+// 的奖励列表，避免交易卡/升级礼物/稀有鱼奖座只入库不告知玩家。
+func (s *Server) settleExtraOnReelIn(sess *Session, ctx context.Context, uid int64, st *FishState, rigType int64) ([]*RolledFish, []*settleXpResult) {
 	if s == nil || st == nil {
-		return nil
+		return nil, nil
 	}
 	st.mu.Lock()
 	extras := st.Extra
@@ -442,22 +469,31 @@ func (s *Server) settleExtraOnReelIn(ctx context.Context, uid int64, st *FishSta
 	st.HoldMulti = false
 	st.mu.Unlock()
 	if len(extras) == 0 {
-		return nil
+		return nil, nil
 	}
 	settled := make([]*RolledFish, 0, len(extras))
+	results := make([]*settleXpResult, 0, len(extras))
 	for _, f := range extras {
 		if f == nil || f.FishGUID == "" {
 			continue
 		}
-		if res, _ := s.settleCatchXPWithQualifications(ctx, uid, f, rigType, nil); res == nil {
+		res, _ := s.settleCatchXPWithQualifications(ctx, uid, f, rigType, nil)
+		if res == nil {
 			s.log.Warn("14/4 多钩额外鱼结算失败，按脱落处理",
 				"fish", shortGUID(f.FishGUID), "鱼种", f.Species, "重量_g", f.WeightG)
 			continue
 		}
+		// 额外鱼默认连实体都不派，客户端不会为它们发 14/11，扣饵只能在这里做：
+		// 否则同一份饵会被反复用于多钩判定。consumeHookedBait 以鱼 GUID 为幂等键，
+		// 将来若客户端真的对额外鱼发了 14/11 也不会重复扣。
+		if err := s.consumeHookedBait(sess, f, gear); err != nil {
+			s.log.Warn("14/4 多钩额外鱼扣饵失败", "fish", shortGUID(f.FishGUID), "err", err)
+		}
 		settled = append(settled, f)
+		results = append(results, res)
 	}
 	if len(settled) == 0 {
-		return nil
+		return nil, nil
 	}
 	st.mu.Lock()
 	st.Batch = settled
@@ -470,7 +506,7 @@ func (s *Server) settleExtraOnReelIn(ctx context.Context, uid int64, st *FishSta
 	}
 	s.log.Info("14/4 多钩一并结算", "rod", shortGUID(gear), "条数", len(settled),
 		"合计_g", totalG, "明细", strings.Join(parts, ","))
-	return settled
+	return settled, results
 }
 
 // dropExtraFish 清空本杆未结算的额外鱼（主鱼咬钩未刺中就收竿时使用）。
@@ -587,4 +623,80 @@ func multiHookKeepChat(kept []*store.KeepnetEntry) string {
 		totalG += e.WeightG
 	}
 	return fmt.Sprintf("多钩：另入护 %d 尾，合计 %.2f kg", len(kept), float64(totalG)/1000)
+}
+
+// extraSettleGifts 汇总额外鱼结算里新发的全部礼物（升级礼物 / 两族奖座 / 水域奖杯），
+// 供 801.f8 奖励列表与响应后的 4/22 增量共用。
+func extraSettleGifts(results []*settleXpResult) []*store.Item {
+	var out []*store.Item
+	for _, r := range results {
+		out = append(out, r.allGiftItems()...)
+	}
+	return out
+}
+
+// extraDroppedCards 返回额外鱼掉落的交易卡 GUID（同一杆可能多尾都掉卡）。
+func extraDroppedCards(results []*settleXpResult) []string {
+	var out []string
+	for _, r := range results {
+		if r != nil && r.droppedCardGUID != "" {
+			out = append(out, r.droppedCardGUID)
+		}
+	}
+	return out
+}
+
+// extraSettleMaxLevel 返回额外鱼结算后的最高等级；没有额外鱼时返回 0。
+func extraSettleMaxLevel(results []*settleXpResult) int64 {
+	var lvl int64
+	for _, r := range results {
+		if r != nil && r.newLevel > lvl {
+			lvl = r.newLevel
+		}
+	}
+	return lvl
+}
+
+// extraGift811Lines 把额外鱼的升级/奖座礼物拼成 801.f4 的礼物行。
+//
+// 同一杆里多尾鱼触发的同源礼物合并成一行（参数取最大值）：客户端的礼物卡按
+// 来源码渲染，一杆弹出多张同源卡只会互相覆盖，看不出是几次升级。
+func extraGift811Lines(results []*settleXpResult) []gift811Line {
+	if len(results) == 0 {
+		return nil
+	}
+	var levelItems, rareItems, superItems, waterwayItems []*store.Item
+	var level, rareCount, superCount int64
+	for _, r := range results {
+		if r == nil {
+			continue
+		}
+		levelItems = append(levelItems, r.giftItems...)
+		if r.newLevel > level {
+			level = r.newLevel
+		}
+		rareItems = append(rareItems, r.rarityGifts...)
+		if r.raritySpeciesCount > rareCount {
+			rareCount = r.raritySpeciesCount
+		}
+		superItems = append(superItems, r.superRarityGifts...)
+		if r.superRaritySpeciesCount > superCount {
+			superCount = r.superRaritySpeciesCount
+		}
+		waterwayItems = append(waterwayItems, r.waterwayGifts...)
+	}
+	var out []gift811Line
+	if len(levelItems) > 0 {
+		out = append(out, gift811Line{source: giftSourceNewLevel, param: level, items: levelItems})
+	}
+	if len(rareItems) > 0 {
+		out = append(out, gift811Line{source: giftSourceTrophyCountReached, param: rareCount, items: rareItems})
+	}
+	if len(superItems) > 0 {
+		out = append(out, gift811Line{source: giftSourceTrophyCountReached, param: superCount, items: superItems})
+	}
+	if len(waterwayItems) > 0 {
+		out = append(out, gift811Line{source: giftSourceTrophyTableCollected, param: 1, items: waterwayItems})
+	}
+	return out
 }

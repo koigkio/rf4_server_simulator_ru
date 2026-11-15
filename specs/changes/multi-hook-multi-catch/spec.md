@@ -1,6 +1,6 @@
-# 多钩钓组一次上多条鱼
+﻿# 多钩钓组一次上多条鱼
 
-Status: in-progress
+Status: done
 
 ## Problem Statement
 
@@ -59,14 +59,20 @@ Status: in-progress
 
 ## Testing Decisions
 
-- 单元（纯逻辑）：总重预算与逐条降档的边界——预算不足时丢弃最重的、单条上限随序号衰减、
-  α=1 且预算充足时退化为"每条都可上"。
+- 单元（纯逻辑）：总重预算与逐条降档的边界——上限 = α^idx × 0.35 × 预算，并被
+  "剩余预算"压低，剩余不足 0.2kg 时不再出下一条；α=1 且预算充足时退化为"每条都
+  可上"（`TestExtraFishCapKgAppliesDecayAndRemainingBudget`、
+  `TestExtraFishCapKgUnlimitedWithoutBudget`）。
 - 单元（纯逻辑）：总拉力预算——Σf8 超预算时按体重占比压缩，压缩后 Σf8 落回预算内；
   未超预算时不动原始值。
+- 单元（配置）：默认值等价单鱼；`multi_hook_max=1` 保持单鱼；关闭开关时
+  `rollExtraFishForRig` 在碰库之前就返回（`TestRollExtraFishForRigOffByDefault`）。
 - 单元（状态机）：`14/4` 后 `Extra` 清空、`Batch` 装载其余鱼、主鱼与额外鱼各一条
   catch_log；`14/5` 后护网条数等于本杆鱼数（`TestReelInSettlesWholeMultiHookCatch`）。
 - 单元（状态机）：主鱼未刺中收竿时 `Extra`/`Batch` 都清空且不产生 catch_log
   （`TestReelInWithoutHookDropsExtras`）。
+- 单元（奖励）：同一杆多尾触发的同源礼物合并成一行、参数取最大值
+  （`TestExtraGift811LinesMergesSameSource`）。
 - 行为（实机一次）：倒钓臂两钩，看客户端是否连续两次接受 14/14（回 14/12 f0=6），
   以及入护后第二条是否继续搏斗。期望值来自日志中两条不同的 `fish=`/`hook=`。
 
@@ -236,3 +242,35 @@ upsert 语义，不影响其它钩）。`pushExtraFish` 在派 `14/14` 之前先
 鱼名取该水域的 `loc_wiki_fish.fish_zh` / `loc_fish.name_zh`，查不到就退回鱼种键。
 开关仍保留：`multi_hook_push_on_strike` 置 0 退回"咬口即派"，`multi_hook_hook_mount`
 置 0 退回"不补挂竿位"，便于客户端将来支持多模型时再验证。
+
+## 结算口径：额外鱼与主鱼同一套记账
+
+额外鱼在 `14/4` 走同一个 `settleCatchXPWithQualifications`，因此它们同样有
+catch_log、catch_seen（图鉴/稀有鱼种数）、经验、银币、熟练度、装备磨损与交易卡
+掉落。差额在于 801 只有一尾的位置，以下三项由 `14/4` 处理器补齐：
+
+- **扣饵**：额外鱼默认连实体都不派，客户端不会为它们发 `14/11`，饵不能等刺鱼确认。
+  改为在 `settleExtraOnReelIn` 结算成功后逐尾 `consumeHookedBait`（以鱼 GUID 为
+  幂等键，将来客户端真的对额外鱼发 `14/11` 也不会重复扣）。不这么做时同一份饵
+  会被反复用于多钩判定，等于每份饵最多出两尾。
+- **奖励可见**：额外鱼触发的升级礼物、交易卡、稀有鱼/超级稀有鱼奖座会入库，但
+  不走主鱼的 801 分支。现在把它们的 `allGiftItems()` 并进 801.f8 奖励列表，同源
+  礼物合并成一行（参数取最大等级/鱼种数）挂 801.f4，响应后补 4/22 与卡片重同步；
+  额外鱼把玩家顶上更高等级时也补 `2/6` 与升级播报。不这么做时物品入库但玩家
+  看不到，要等重登。
+- **放生**：`14/6` 放生主鱼时，`Batch` 里的鱼逐尾走 `releaseCatchOnce`（同一
+  `release_xp_ratio`、同一幂等键 `catch-release:*`），补放生经验、升级礼物与
+  catch-release 记录；放生经验与 `2/9` 汇总推送一次，等级取最高。
+
+验证：`TestReelInSettlesWholeMultiHookCatch`（三尾各一条 catch_log、入护三尾）、
+`TestExtraGift811LinesMergesSameSource`（同源礼物合并）、
+`TestMultiHookKeepChatText`（入护汇总文案）。
+
+## 风险与回归面
+
+- `baitHookAssignments` 的重写（子槽归组、中间态纠正、启动回填、取消单钩兜底）
+  **不受 `multi_hook_bite` 开关保护**，对所有玩家生效。回归清单：旧存档稀疏链、
+  倒钓臂 4 钩、单钩拟饵自带钩、重启后首杆、主线拟饵没有 `bait_hook` 记录时不分配
+  钩位（旧逻辑会给它挂上拟饵自带的钩，属于本次修掉的错误归组）。
+- 经济放大：开关打开后每杆最多 `multi_hook_max` 尾，各自经验/银币/卡/磨损，默认
+  关闭；调参前按目标产量核算。

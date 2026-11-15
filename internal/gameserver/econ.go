@@ -309,22 +309,12 @@ func (s *Server) fishingKeep(ctx *Ctx) ([]byte, bool) {
 		}
 		// 多钩：本杆其余的鱼已在 14/4 一并结算，这里跟着玩家对主鱼的这次
 		// 选择一起入护。它们不会再单独弹结算卡，所以护网增量走 4/22。
+		// 14/4 已清空 Extra，这里不需要再接管下一条（接管只发生在 14/12）。
 		batch := st.Batch
 		st.Batch = nil
+		rodGUID := st.GearGuid
 		keepLoc, keepSpot, keepBait := st.Loc, int64(st.Spot), st.Bait
-		// 队列里若还有尚未结算的鱼（正常流程不会：14/4 已清空），仍按旧逻辑接管。
-		next := promoteExtraLocked(st)
-		if next != nil {
-			st.CastActive = true
-			st.InWater = true
-		}
 		st.mu.Unlock()
-		if next != nil {
-			ctx.Log.Info("14/5 多钩接管下一条", "rod", shortGUID(st.GearGuid),
-				"fish", shortGUID(next.FishGUID), "hook", shortGUID(next.HookGUID),
-				"剩余", s.pendingExtraCount(st))
-			s.repushPromotedAfterTakeover(ctx.Sess, st)
-		}
 		if extraKept := s.keepBatchCatches(cctx, uid, batch, keepLoc, keepSpot,
 			keepBait, capacity, keepLevel, tackleCat); len(extraKept) > 0 {
 			sess := ctx.Sess
@@ -333,7 +323,7 @@ func (s *Server) fishingKeep(ctx *Ctx) ([]byte, bool) {
 					sess.Push(4, 22, proto.Args(proto.S("61"), s.keepnetItemTree(sess.pushCtx(), e, e.KeepLevel)))
 				}
 			})
-			ctx.Log.Info("14/5 多钩一并入护", "rod", shortGUID(st.GearGuid),
+			ctx.Log.Info("14/5 多钩一并入护", "rod", shortGUID(rodGUID),
 				"条数", len(extraKept), "明细", keepnetEntryDetail(extraKept))
 			// 结算卡（801）只画得下一尾，杆上又只有一个鱼模型，另几尾进护这件事
 			// 玩家在其他地方看不到，这里用一行汇总播报交代清楚：几尾、合计多重。
@@ -538,24 +528,53 @@ func (s *Server) fishingRelease(ctx *Ctx) ([]byte, bool) {
 		st.Hooked = false
 		st.Resolved = true
 		st.persist.recoverCompleted, st.persist.recoverPending = false, false
-		// 多钩：本杆其余的鱼已在 14/4 一并结算，放生主鱼就把它们一起放掉。
-		releasedBatch := len(st.Batch)
+		// 多钩：本杆其余的鱼已在 14/4 一并结算，放生主鱼就把它们按同一口径
+		// 一起放掉——逐尾写 catch-release 回执（重放不重复给经验），并补放生
+		// 经验与升级包，否则"放生 3 尾只播报 1 尾"。
+		released := st.Batch
 		st.Batch = nil
-		// 多钩：放生这尾之后，本杆剩下的鱼继续。
-		next := promoteExtraLocked(st)
-		if next != nil {
-			st.CastActive = true
-			st.InWater = true
-		}
+		rodGUID := st.GearGuid
 		st.mu.Unlock()
-		if releasedBatch > 0 {
-			ctx.Log.Info("14/6 多钩一并放生", "rod", shortGUID(st.GearGuid), "条数", releasedBatch)
+		var extraBonus int64
+		var extraLevel int64
+		for _, f := range released {
+			if f == nil || f.FishGUID == "" {
+				continue
+			}
+			base := f.XP
+			if base == 0 {
+				b, _ := catchValue(f.Species, f.Grade, f.WeightG)
+				base = b
+			}
+			extraReleaseBonus := int64(math.Round(float64(base) * ratio))
+			res, extraGifts, replayedExtra, err := s.releaseCatchOnce(cctx, uid, f.FishGUID, extraReleaseBonus, rigType)
+			if err != nil {
+				ctx.Log.Warn("14/6 多钩额外鱼放生失败", "fish", shortGUID(f.FishGUID), "err", err)
+				continue
+			}
+			if replayedExtra {
+				continue
+			}
+			if res.Bonus > 0 {
+				extraBonus += res.Bonus
+			}
+			if res.Level > extraLevel {
+				extraLevel = res.Level
+			}
+			for _, row := range extraGifts {
+				if row != nil {
+					s.pushItemUpdate(uid, row)
+				}
+			}
 		}
-		if next != nil {
-			ctx.Log.Info("14/6 多钩接管下一条", "rod", shortGUID(st.GearGuid),
-				"fish", shortGUID(next.FishGUID), "hook", shortGUID(next.HookGUID),
-				"剩余", s.pendingExtraCount(st))
-			s.repushPromotedAfterTakeover(ctx.Sess, st)
+		if len(released) > 0 {
+			ctx.Log.Info("14/6 多钩一并放生", "rod", shortGUID(rodGUID), "条数", len(released))
+		}
+		if extraBonus > 0 {
+			ctx.Sess.Push2_9(100, uint64(extraBonus))
+		}
+		if extraLevel > result.Level {
+			ctx.Sess.Push2_6(max64(1, extraLevel-1))
 		}
 		if !replayed && pending.NamedID != "" {
 			s.DB.NamedFishNoteRecatch(cctx, pending.NamedID)
