@@ -254,6 +254,215 @@ func TestPush422FightSyncBottomRigNoLureTree(t *testing.T) {
 	}
 }
 
+// 海钓搏鱼推送：全部拟饵容器树（ioombppcnlh）与独立钩行裸钩树（agedjipcnpe）
+// 都在帧内、运行位齐全。形状锚点 = 2026-11-15 官方海钓 marine_422 抓包
+// （铁板竿周期帧含容器+钩、裸钩竿含单钩）；此前只按 17 号槽取单拟饵，北海
+// 多拟饵+多钩行钓组漏发 → 客户端挂载态判定翻车 → 保持力×0.05 → f0=1 秒脱。
+func TestPush422FightSyncMarineIncludesHookAndLureTrees(t *testing.T) {
+	srv, _ := newDetachTestServer(t)
+	ctx := context.Background()
+	const uid = int64(1000001)
+	rod, err := srv.CreateItem(ctx, uid, "boatr_10213_012", "backpack", 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// boatr 竿型（rod_type 16）允许 50~59；50 = rig_MarinePilker。
+	if !srv.rigSetType(ctx, uid, rod.GUID, 50) {
+		t.Fatal("rigSetType 50 失败")
+	}
+	line, err := srv.CreateItem(ctx, uid, "mono_15097", "backpack", 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	lure1, err := srv.CreateItem(ctx, uid, "pilkerlures_21176", "backpack", 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	lure2, err := srv.CreateItem(ctx, uid, "crankbaits_2171", "backpack", 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	hook1, err := srv.CreateItem(ctx, uid, "c_hook_20712", "backpack", 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	hook2, err := srv.CreateItem(ctx, uid, "c_hook_20712", "backpack", 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	reel, err := srv.CreateItem(ctx, uid, "bclp_5004", "backpack", 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	sess := newProbeSess(srv)
+	runRodSet(t, srv, sess, rod.GUID, line.GUID, 0)
+	// extra 取今晚真实装配 log（rig_type=50）出现过的钩位/拟饵规范索引。
+	runRodSet(t, srv, sess, rod.GUID, lure1.GUID, 325)
+	runRodSet(t, srv, sess, rod.GUID, lure2.GUID, 326)
+	runRodSet(t, srv, sess, rod.GUID, hook1.GUID, 250)
+	runRodSet(t, srv, sess, rod.GUID, hook2.GUID, 1001)
+	st := srv.stateFor(uid)
+	st.mu.Lock()
+	st.GearGuid = rod.GUID
+	st.mu.Unlock()
+
+	conn, peer := cleanupTestTunnel(t, "fight-sync-marine")
+	live := registerBiteTestSession(t, srv, 403, conn)
+	received := receiveTestPush(peer, 4, 22)
+	live.Push4_22FightSync(rod.GUID, []string{reel.GUID})
+
+	var env *proto.Envelope
+	select {
+	case env = <-received:
+	case <-time.After(2 * time.Second):
+		t.Fatal("搏鱼推送超时")
+	}
+	dec, _, err := proto.DecodeValue(env.Body, 0, srv.Table())
+	if err != nil || dec.ArgCodeStr() != "61" {
+		t.Fatalf("4/22 应为 args(61): %v", err)
+	}
+	counts := map[string]int{}
+	for _, it := range dec.Items {
+		if it != nil {
+			counts[it.Class]++
+		}
+	}
+	// 2 棵拟饵容器树 + 2 行独立裸钩 + 竿/线/轮，全部顶层在帧内。
+	if counts["ioombppcnlh"] != 2 {
+		t.Fatalf("海钓搏鱼帧应含 2 棵拟饵容器树，实得 %v（classList=%v）",
+			counts["ioombppcnlh"], classList(dec.Items))
+	}
+	if counts["agedjipcnpe"] != 2 {
+		t.Fatalf("海钓搏鱼帧应含 2 棵独立裸钩树，实得 %v（classList=%v）",
+			counts["agedjipcnpe"], classList(dec.Items))
+	}
+	if counts["cnolibojkao"] != 1 || counts["ohciikgjghe"] != 1 || counts["dgjinoebdop"] != 1 {
+		t.Fatalf("竿/线/轮树缺失: %v", counts)
+	}
+	byClass := map[string][]*proto.Value{}
+	for _, it := range dec.Items {
+		if it != nil {
+			byClass[it.Class] = append(byClass[it.Class], it)
+		}
+	}
+	for name, trees := range map[string][]*proto.Value{"拟饵": byClass["ioombppcnlh"], "裸钩": byClass["agedjipcnpe"]} {
+		for i, tree := range trees {
+			if got := objFlagsOf(t, tree); got&1024 == 0 {
+				t.Fatalf("%s树[%d] flags=%d 缺挂载位 1024", name, i, got)
+			}
+		}
+	}
+	for i, hook := range byClass["ioombppcnlh"][0].Fields[0].Val.Items {
+		if hook == nil || hook.Class != "agedjipcnpe" {
+			t.Fatalf("拟饵容器[0]内嵌钩[%d] 形状错误", i)
+		}
+		if got := objFlagsOf(t, hook); got&1024 == 0 {
+			t.Fatalf("拟饵容器[0]内嵌钩[%d] flags=%d 缺 1024", i, got)
+		}
+	}
+	for name, tree := range map[string]*proto.Value{"竿": byClass["cnolibojkao"][0], "线": byClass["ohciikgjghe"][0], "轮": byClass["dgjinoebdop"][0]} {
+		if got := objFlagsOf(t, tree); got&(1024|2048) != 1024|2048 {
+			t.Fatalf("%s flags=%d 缺运行位 1024|2048", name, got)
+		}
+	}
+}
+
+// 海钓搏鱼帧读取 f5 真源：rig_component 投影被清空的"历史档案"仍发完整
+// 钩/拟饵树（评审 P1 回归——投影是单向派生，f5 才是装配真源）。
+func TestPush422FightSyncMarineF5SourceWithoutProjection(t *testing.T) {
+	srv, db := newDetachTestServer(t)
+	ctx := context.Background()
+	const uid = int64(1000001)
+	rod, err := srv.CreateItem(ctx, uid, "boatr_10213_012", "backpack", 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !srv.rigSetType(ctx, uid, rod.GUID, 50) {
+		t.Fatal("rigSetType 50 失败")
+	}
+	line, err := srv.CreateItem(ctx, uid, "mono_15097", "backpack", 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	lure, err := srv.CreateItem(ctx, uid, "pilkerlures_21176", "backpack", 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	hook, err := srv.CreateItem(ctx, uid, "c_hook_20712", "backpack", 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	reel, err := srv.CreateItem(ctx, uid, "bclp_5004", "backpack", 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	sess := newProbeSess(srv)
+	runRodSet(t, srv, sess, rod.GUID, line.GUID, 0)
+	runRodSet(t, srv, sess, rod.GUID, lure.GUID, 325)
+	runRodSet(t, srv, sess, rod.GUID, hook.GUID, 250)
+	// 模拟"f5 完整、rig_component 投影为空"的历史档案。
+	if _, err := db.SQL.Exec(`DELETE FROM rig_component WHERE rig_guid=?`, rod.GUID); err != nil {
+		t.Fatal(err)
+	}
+	st := srv.stateFor(uid)
+	st.mu.Lock()
+	st.GearGuid = rod.GUID
+	st.mu.Unlock()
+
+	conn, peer := cleanupTestTunnel(t, "fight-sync-f5-source")
+	live := registerBiteTestSession(t, srv, 404, conn)
+	received := receiveTestPush(peer, 4, 22)
+	live.Push4_22FightSync(rod.GUID, []string{reel.GUID})
+
+	var env *proto.Envelope
+	select {
+	case env = <-received:
+	case <-time.After(2 * time.Second):
+		t.Fatal("搏鱼推送超时")
+	}
+	dec, _, err := proto.DecodeValue(env.Body, 0, srv.Table())
+	if err != nil || dec.ArgCodeStr() != "61" {
+		t.Fatalf("4/22 应为 args(61): %v", err)
+	}
+	counts := map[string]int{}
+	for _, it := range dec.Items {
+		if it != nil {
+			counts[it.Class]++
+		}
+	}
+	if counts["ioombppcnlh"] != 1 || counts["agedjipcnpe"] != 1 {
+		t.Fatalf("投影清空后仍应从 f5 发完整钩/拟饵树: %v（classList=%v）",
+			counts, classList(dec.Items))
+	}
+}
+
+// 组件/品类查询失败时 appendFightHookLureTrees 必须向上返回错误，
+// 由 Push4_22FightSync 整帧放弃（评审 P2——绝不发缺钩/拟饵树的帧）。
+func TestAppendFightHookLureTreesQueryFailureReturnsError(t *testing.T) {
+	srv, db := newDetachTestServer(t)
+	ctx := context.Background()
+	const uid = int64(1000001)
+	rod, err := srv.CreateItem(ctx, uid, "boatr_10213_012", "backpack", 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !srv.rigSetType(ctx, uid, rod.GUID, 50) {
+		t.Fatal("rigSetType 50 失败")
+	}
+	lure, err := srv.CreateItem(ctx, uid, "pilkerlures_21176", "backpack", 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	sess := newProbeSess(srv)
+	runRodSet(t, srv, sess, rod.GUID, lure.GUID, 325)
+	if err := db.Close(); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := sess.appendFightHookLureTrees(ctx, nil, rod.GUID); err == nil {
+		t.Fatal("数据库不可用时应返回错误（整帧放弃），实得 nil")
+	}
+}
+
 // buildMountedHookTree 路亚分支：内置钩（含出厂钩）返回拟饵整树；
 // 非拟饵内置的 GUID 不命中。
 func TestLureContainsHookAndWholeTree(t *testing.T) {
