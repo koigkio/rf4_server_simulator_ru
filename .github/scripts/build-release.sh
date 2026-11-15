@@ -90,11 +90,11 @@ python3 tools/stage_preview.py "${STAGE}"
 # 制品内自带的 version.json：结构与仓库根完全一致（schema/stable/preview），
 # 只把本次构建写进 stable 通道，根文件里另一个通道原样带过去。
 python3 - "${VERSION}" "${BUILD_NUM_TS}" "${ASSET_NAME}" "${ROOT}/version.json" "${STAGE}/version.json" <<'PY'
-import json, sys
+import json, os, sys
 from datetime import datetime, timezone
 
 version, build_ts, asset_name, src, dst = sys.argv[1:6]
-base = "https://github.com/glance522/rf4_server_simulator"
+base = "https://github.com/" + os.environ.get("GITHUB_REPOSITORY", "OpenFisherCommunity/rf4_server_simulator")
 with open(src, encoding="utf-8") as f:
     data = json.load(f)
 if data.get("schema") != 1:
@@ -167,7 +167,7 @@ cat > "${RELEASE_NOTES}" <<EOF
 ## 问题反馈
 
 - 交流群：1134665746
-- GitHub Issues：https://github.com/glance522/rf4_server_simulator/issues
+- GitHub Issues：https://github.com/${GITHUB_REPOSITORY:-OpenFisherCommunity/rf4_server_simulator}/issues
 
 ## 最近提交
 
