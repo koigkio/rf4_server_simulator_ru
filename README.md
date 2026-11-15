@@ -22,13 +22,15 @@
 
 ## Docker 部署
 
-Windows、macOS 和 Linux 可使用同一条命令部署服务端。在仓库根目录运行：
+Windows、macOS 和 Linux 可使用 Compose 多服务方式部署；在仓库根目录运行：
 
 ```sh
 docker compose -f docker/compose.yaml up -d --build --wait
 ```
 
 启动后访问 [管理后台](http://127.0.0.1:8080/)。平台要求、存档和客户端接入说明见 [Docker 部署指南](docker/README.md)。
+
+也可以使用根目录 `Dockerfile` 的单容器方式运行 gateway、gameserver 和 Web 管理后台，步骤见 [Docker 单容器部署](DOCKER.md)。两种方式二选一，不要同时占用相同宿主机端口。
 
 ## 项目定位与使用边界
 
