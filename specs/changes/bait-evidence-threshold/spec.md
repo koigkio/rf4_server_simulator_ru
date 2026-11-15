@@ -83,12 +83,12 @@ companion_bait_fish 31231 行（来源见 fish-water-layer-v4 spec（PR #478）�
 
 ### 交叉验证源：rf4records.com 官方周纪录管道（2026-11-14 已建成）
 
-`tools/fetch_rf4records.py` + `rf4records_catch` 表（迁移 00060）：rf4records.com 为免费
+`tools/fetch_rf4records.py` + `rf4records_catch` 表（迁移 00061）：rf4records.com 为免费
 公开站（robots 通用 UA `Allow: /`、Content-Signal `use=reference` 允许参考使用），API
 `/api/records/filtered?fish=<名>` 返回官方周纪录**全量捕获纪录**（每条含饵名/重量/水域/
 钓法/日期，`bait_display` 字段）。已抓 479,789 条覆盖 252 鱼全部、日期窗口 9 天
 （源站滚动保留，管道重跑按主键幂等增量，本地历史随每次抓取积累）。鱼名→fish_key
-映射 244/252（tools/rf4records_fish_map.py，未映射 14 个纪录占 5.3%）；饵英文名→
+映射 250/252（tools/rf4records_fish_map.py，251 个非空键；未映射纪录约 5.3%）；饵英文名→
 item_id 自动命中 36%（拟饵类高、天然饵与组合饵待手工补表，未命中 bait_id 留空、
 按英文名聚合统计不受阻）。
 

@@ -312,6 +312,12 @@ func (s *Server) filterFishBaitSet(loc string, ids []string, keys []string, weig
 	outKeys := make([]string, 0, len(keys))
 	outWeights := make([]float64, 0, len(keys))
 	period := (now.Unix() - worldDayEpochUnix) / (4 * realSecPerGameHour)
+	// 阈值与总开关按一次判鱼读取，循环内不再重复取 tunable。
+	// bait_share_strong/medium/tail 任一 <=0 时回到旧行为（>0 即满分）。
+	strong := s.tunableF("bait_share_strong", 5)
+	medium := s.tunableF("bait_share_medium", 1)
+	tail := s.tunableF("bait_share_tail", 0.2)
+	grading := strong > 0 && medium > 0 && tail > 0
 	for i, key := range keys {
 		if weights[i] <= 0 {
 			continue
@@ -355,13 +361,11 @@ func (s *Server) filterFishBaitSet(loc string, ids []string, keys []string, weig
 				allowed = true
 			}
 			// 食性证据分级（specs/changes/bait-evidence-threshold）：rf4records 实测占比
-			// 优先，companion tier/evidence 兜底；四档放行。阈值 tunables 可调，
-			// bait_share_strong/medium/tail 任一 <=0 时回到旧行为（>0 即满分）。
-			strong := s.tunableF("bait_share_strong", 5)
-			medium := s.tunableF("bait_share_medium", 1)
-			tail := s.tunableF("bait_share_tail", 0.2)
-			grading := strong > 0 && medium > 0 && tail > 0
-			share := s.rf4BaitShare(ctx, key, b.id)
+			// 优先，companion tier/evidence 兜底；四档放行。
+			share := -1.0
+			if grading {
+				share = s.rf4BaitShare(ctx, key, b.id)
+			}
 			score := 0.0
 			variation := fishVariation(fmt.Sprintf("%s/%s/%s/%d", loc, key, b.id, period))
 			// evidence[j] 实为 companion tier map（1=在榜 2=热门 3=top 档），非计数。
@@ -571,13 +575,16 @@ func (s *Server) rf4BaitShare(ctx context.Context, fishKey, baitID string) float
 	ready := s.rf4ShareLoaded && now.Sub(s.rf4ShareAt) <= 30*time.Minute
 	m := s.rf4ShareCache[fishKey]
 	s.rf4ShareMu.RUnlock()
-	if !ready || m == nil {
+	// 只在未就绪时触发加载；ready 但 m==nil 表示该鱼确实没有 rf4 纪录，
+	// 不能每次判鱼都重新聚合 47.9 万行（评审 P1）。
+	if !ready {
 		if s.rf4ShareLoading.CompareAndSwap(false, true) {
 			go s.loadRf4Share()
 		}
-		if !ready {
-			return -1
-		}
+		return -1
+	}
+	if m == nil {
+		return -1
 	}
 	if v, ok := m[baitID]; ok {
 		return v
@@ -593,6 +600,12 @@ func (s *Server) loadRf4Share() {
 			FROM rf4records_catch WHERE fish_key<>'' AND bait_id<>'' GROUP BY fish_key, bait_id)`)
 	if err != nil {
 		s.rf4ShareMu.Lock()
+		// 首次查询失败也置 loaded，避免每次判鱼都重试全表聚合；
+		// TTL 到期后会再试（表未迁移/暂时读不到时退回 companion 兜底）。
+		if !s.rf4ShareLoaded {
+			s.rf4ShareCache = map[string]map[string]float64{}
+			s.rf4ShareLoaded = true
+		}
 		s.rf4ShareAt = time.Now()
 		s.rf4ShareMu.Unlock()
 		return

@@ -17,6 +17,7 @@ PRIMARY KEY 去重，只增量入库新纪录。
 """
 
 import argparse
+import glob
 import json
 import sqlite3
 import sys
@@ -139,13 +140,17 @@ def bait_id_for(bait_display, bait_map, zh_idx=None):
 
 
 def ensure_table(db):
-    """复用迁移文件里的 CREATE TABLE（去注释），脚本与迁移保持同一 schema。"""
-    import re
-    sql = open("internal/store/migrations/00060_rf4records_catch.sql", encoding="utf-8").read()
-    ddl = re.search(r"CREATE TABLE IF NOT EXISTS.*?\);", sql, re.S)
-    if not ddl:
-        raise SystemExit("00060 迁移里找不到 CREATE TABLE")
-    db.execute(ddl.group(0))
+    """执行 rf4records_catch 迁移，脚本与迁移保持同一 schema（表 + 索引）。
+
+    迁移文件名带版本号，不能硬编码（曾因 00060→00061 重编号导致脚本必挂）；
+    按 *rf4records_catch.sql 查找，兼容后续顺延。整文件 executescript 可同时
+    建表和索引；迁移里均为 IF NOT EXISTS，重复执行安全。
+    """
+    paths = sorted(glob.glob("internal/store/migrations/*rf4records_catch.sql"))
+    if not paths:
+        raise SystemExit("找不到 rf4records_catch 迁移文件")
+    sql = open(paths[0], encoding="utf-8").read()
+    db.executescript(sql)
     db.commit()
 
 
@@ -220,7 +225,7 @@ def main():
                 "INSERT OR IGNORE INTO rf4records_catch(fish_name_en, fish_key, bait_name,"
                 " bait_id, weight_g, waterbody, region, categories, trophy_class,"
                 " catch_date, fetched_at) VALUES(?,?,?,?,?,?,?,?,?,?,?)",
-                (fish, fish_map.get(fish, ""), bait, bid, r.get("weight"),
+                (fish, fish_map.get(fish, ""), bait, bid, int(r.get("weight") or 0),
                  r.get("waterbody") or "", r.get("region") or "",
                  ";".join(r.get("categories") or []), r.get("trophy_class") or "",
                  r.get("date") or "", now))
