@@ -1224,6 +1224,14 @@ func (s *Server) sampleWeightDB(ctx context.Context, key string, modeMult, scale
 	if s.tunableF("grade_ratio_enabled", 1) == 1 {
 		settle := s.cachedSettleStatics(ctx, c, key)
 		ratioLines := cachedGradeLines{val: &settle[0], trophy: &settle[1], blue: &settle[2]}
+		// 「未达标」档的下界取该鱼种自然最小体重（species_weight.min_g）。
+		if minG, ok := s.cachedSpeciesMinG(ctx, c, key); ok {
+			ratioLines.minG = &minG
+		} else if floor := belowGradeFloorFromVal(settle[0]); floor > 0 {
+			// min_g 没登记的鱼种不能退回 1 g，否则未达标档仍会出现个位数
+			// 克数。用达标线按比例推下界，钳到 [1, 50] g。
+			ratioLines.minG = &floor
+		}
 		if w, ok := s.sampleWeightByGradeRatio(ratioLines, modeMult, scale, capG); ok {
 			return w
 		}
@@ -1273,6 +1281,22 @@ type fishGradeRatioModel struct {
 	total, scale, capG float64
 }
 
+// belowGradeFloorFromVal 由达标线推「未达标」档兜底下界：达标线的 15%，
+// 钳到 [1, 50] g。达标线未知（≤0）时返回 0 表示无兜底，沿用旧行为。
+func belowGradeFloorFromVal(valG int64) int64 {
+	if valG <= 0 {
+		return 0
+	}
+	f := int64(math.Round(float64(valG) * 0.15))
+	if f < 1 {
+		f = 1
+	}
+	if f > 50 {
+		f = 50
+	}
+	return f
+}
+
 func (s *Server) gradeRatioModel(l cachedGradeLines, modeMult, scale, capG float64) (fishGradeRatioModel, bool) {
 	if s.tunableF("grade_ratio_enabled", 1) != 1 {
 		return fishGradeRatioModel{}, false
@@ -1291,7 +1315,16 @@ func (s *Server) gradeRatioModel(l cachedGradeLines, modeMult, scale, capG float
 	if l.blue != nil {
 		supf = float64(*l.blue)
 	}
+	// 「未达标」档下界取该鱼种的自然最小体重。旧实现写死 1 g，而档内是对数
+	// 均匀采样，达标线 500 g 的鱼种会有约 37% 的未达标个体落到 10 g 以下。
 	lo := 1.0
+	if l.minG != nil && *l.minG > 0 {
+		lo = float64(*l.minG)
+	}
+	// 数据异常（最小体重 ≥ 达标线）时退回达标线的 5%，保证未达标档不消失。
+	if vf > 0 && lo >= vf {
+		lo = math.Max(1, vf*0.05)
+	}
 	bands := make([]gradeRatioBand, 0, 4)
 	if vf > lo {
 		bands = append(bands, gradeRatioBand{1, lo, vf}) // 未达标

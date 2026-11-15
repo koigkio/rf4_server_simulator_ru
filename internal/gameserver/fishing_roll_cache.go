@@ -9,6 +9,9 @@ import (
 
 type cachedGradeLines struct {
 	val, trophy, blue *int64
+	// minG 是该鱼种的自然最小体重（species_weight.min_g），仅用于给「未达标」
+	// 档定下界。nil = 未知 → 沿用旧的 1 g 下界。
+	minG *int64
 }
 
 type cachedBaitDef struct {
@@ -50,6 +53,8 @@ type fishingRollCache struct {
 	fishEcologyLoaded    map[string]bool
 	gbAff                map[groundbaitAffKey]cachedGroundbaitAff
 	gbFishDiet           map[string]map[string]float64
+	speciesMinG          map[string]int64
+	speciesMinGLoaded    map[string]bool
 }
 
 func newFishingRollCache() *fishingRollCache {
@@ -67,10 +72,44 @@ func newFishingRollCache() *fishingRollCache {
 		fishEcologyLoaded: map[string]bool{},
 		gbAff:             map[groundbaitAffKey]cachedGroundbaitAff{},
 		gbFishDiet:        map[string]map[string]float64{},
+		speciesMinG:       map[string]int64{},
+		speciesMinGLoaded: map[string]bool{},
 	}
 }
 
 func rollCache(c fishRollContext) *fishingRollCache { return c.cache }
+
+// cachedSpeciesMinG 取该鱼种的自然最小体重（species_weight.min_g）。
+// 只用于给「未达标」档定下界：旧实现下界写死 1 g，区间内又是对数均匀采样，
+// 达标线 500 g 的鱼种有约 37% 的未达标个体会掉到 10 g 以下（1 g 鲤鱼、5 g 狗鱼）。
+// 找不到数据时返回 ok=false，调用方沿用旧行为。
+func (s *Server) cachedSpeciesMinG(ctx context.Context, c fishRollContext, key string) (int64, bool) {
+	if s == nil || s.DB == nil || key == "" {
+		return 0, false
+	}
+	cache := rollCache(c)
+	if cache != nil {
+		cache.mu.Lock()
+		if cache.speciesMinGLoaded[key] {
+			v := cache.speciesMinG[key]
+			cache.mu.Unlock()
+			return v, v > 0
+		}
+		cache.mu.Unlock()
+	}
+	var v int64
+	if err := s.DB.SQL.QueryRowContext(ctx,
+		`SELECT COALESCE(min_g,0) FROM species_weight WHERE fish_key=?`, key).Scan(&v); err != nil {
+		v = 0
+	}
+	if cache != nil {
+		cache.mu.Lock()
+		cache.speciesMinG[key] = v
+		cache.speciesMinGLoaded[key] = true
+		cache.mu.Unlock()
+	}
+	return v, v > 0
+}
 
 func (s *Server) cachedResolveStatLoc(ctx context.Context, c fishRollContext, loc string) string {
 	if s.DB == nil {
