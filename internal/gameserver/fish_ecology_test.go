@@ -351,3 +351,75 @@ func TestCastPrepareResetsLureDiveAndLayer(t *testing.T) {
 		t.Fatalf("换竿后旧竿残留不得迁移: dive=%f layer=%f", dive, layer)
 	}
 }
+
+// 换饵 + 14/7 联动（评审 P2-4 后半）：同竿装上拟饵组件后，
+// lureDiveForGear 取到新饵、抛竿种子写入，14/7 运动推导受新钳制。
+func TestCastPrepareLureSwapAndStepLink(t *testing.T) {
+	s, _ := newRigTestServer(t)
+	ctx := context.Background()
+	sess := newProbeSess(s)
+	uid := sess.Userid
+	rod, err := s.CreateItem(ctx, uid, "cast_10006_C60MH", "backpack", 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	lure, err := s.CreateItem(ctx, uid, "hm_popper_65f_001_lq", "backpack", 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	hook, err := s.CreateItem(ctx, uid, "c_hook_20712", "backpack", 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	hookRes := s.rigSetComponent(ctx, uid, rod.GUID, catHook, hook.GUID, 250,
+		rigSetOpts{ParentType: familyRod, EnforceCategory: true})
+	if hookRes.Rejected || hookRes.MountedGUID == "" {
+		t.Fatalf("mount hook: %+v", hookRes)
+	}
+	mounted := s.rigSetComponent(ctx, uid, rod.GUID, catLure, lure.GUID, 1002,
+		rigSetOpts{ParentType: familyRod, EnforceCategory: true})
+	if mounted.Rejected || mounted.MountedGUID == "" {
+		t.Fatalf("mount lure: %+v", mounted)
+	}
+	st := s.fishingStateForRod(uid, rod.GUID)
+	st.mu.Lock()
+	st.RigType = 5
+	st.mu.Unlock()
+	if _, handled := hCastPrepare(&Ctx{Sess: sess, Main: 14, Sub: 1, Tree: rigRequestTree(t, proto.Guid(rod.GUID)),
+		DecodeOK: true, ExpectResponse: true, Log: logging.New("debug", "console")}); !handled {
+		t.Fatal("hCastPrepare 未处理")
+	}
+	st.mu.Lock()
+	dive, layer := st.LureDive, st.LureLayer
+	st.mu.Unlock()
+	if dive != .10 || layer != .10 {
+		t.Fatalf("换装 Popper 后种子应为 dive=layer=0.10: dive=%f layer=%f", dive, layer)
+	}
+	sendStep := func(anim uint64) {
+		t.Helper()
+		fields := make([]proto.Field, 7)
+		for i := range fields {
+			fields[i] = proto.Field{Op: "U32", Num: ptrU64(0)}
+		}
+		fields[5] = proto.Field{Op: "U32", Num: ptrU64(anim)}
+		fields[6] = proto.Field{Op: "STR", Str: strPtr("loc1_02")}
+		if _, ok := hFishingStep(&Ctx{Sess: sess, Main: 14, Sub: 7,
+			Tree: proto.Args524(proto.Obj("lobemkloehp", 0, fields...)), DecodeOK: true, Log: logging.New("debug", "console")}); !ok {
+			t.Fatal("14/7 未处理")
+		}
+	}
+	sendStep(0x400)
+	st.mu.Lock()
+	layer = st.LureLayer
+	st.mu.Unlock()
+	if layer != .13 {
+		t.Fatalf("steady 收线应 +0.03: %f", layer)
+	}
+	sendStep(0x100)
+	st.mu.Lock()
+	layer = st.LureLayer
+	st.mu.Unlock()
+	if layer != .06 {
+		t.Fatalf("犬步应映射水面层 .06: %f", layer)
+	}
+}
