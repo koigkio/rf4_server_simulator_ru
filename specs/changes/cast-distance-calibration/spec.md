@@ -57,6 +57,9 @@ Status: done
 - 收口只带轮装配生效：`profile.ReelGUID != ""` 是「走了综合物理模型」的
   精确判据（castDistanceForRig 无轮即返回 legacy 剖面）。手竿距离模型
   对齐（竿长×2）是 PR #457 的事，两支互不重叠。
+- 成就口径同步：14/2 结尾的 `evCast` 事件改用收口后的 `castM`（原来用
+  `requestedM`）。否则同一杆会出现「资格判定按上限、成就按红区请求」的
+  两套口径，红区仍可白刷 1000-1004 阶梯（30/45/60/80/100m）。
 
 ## Testing Decisions
 
@@ -68,9 +71,13 @@ Status: done
   - 高阶装备上限测试改名重定标（45m 精准抛区间不再可达，新上限 ~29.7m）。
 - handler 层（hCast，复用 TestCastSnapshotsRequestedDistance 接缝）：
   - 带轮装配 requested = 1.3×上限 → CastM == actionMaxM（收口生效）；
-  - 无轮手竿 requested 50 > legacy 7.5 → CastM 仍 50（直通不变）。
+  - 无轮手竿 requested 50 > legacy 7.5 → CastM 仍 50（直通不变）；
+  - 红区抛投不得解锁超过上限的成就档：25.3m 上限 + requested 32.89m 后
+    1000-1004 仍全锁；正对照直接把 32.89m 喂给成就规则则 1000 解锁
+    （TestCastOverMaxRequestedDoesNotUnlockAchievements）。
 - 回滚变红：标称回滚后锚点测试回到 ~40.85 变红；收口回滚后超抛用例
-  CastM=65 变红。
+  CastM=65 变红；成就口径回滚成 requestedM 后
+  TestCastOverMaxRequestedDoesNotUnlockAchievements 变红。
 
 ## Out of Scope
 
@@ -82,7 +89,8 @@ Status: done
   上限显示，避免客户端 UI 与服务端模型出现两套基准。
 - 资格 5402（≥30m）与成就 1000-1004（30/45/60/80/100m）门槛是否随新
   动态范围重排：门槛数字是自标定，1004（>100m）在新标称下更不可达，
-  属于「距离阶梯整体重设计」，另立 spec。
+  属于「距离阶梯整体重设计」，另立 spec。本 spec 只统一口径（成就事件
+  改用收口后的距离），不动任何门槛数值。
 - 风力/姿势等新修正变量：模型扩展另有通道（RegisterCastDistanceModifier）。
 
 ## Further Notes

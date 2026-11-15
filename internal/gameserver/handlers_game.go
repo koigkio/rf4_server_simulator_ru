@@ -1034,7 +1034,9 @@ func hCast(ctx *Ctx) ([]byte, bool) {
 		return nil, false
 	}
 	// 抛投事件交给成就规则判断一次；2/8 弹窗排在 800 应答之后。
-	srv.evaluateAchievements(ctx, achievementEvent{Kind: evCast, DistanceM: requestedM})
+	// 距离用收口后的 castM：红区超出满竿上限的部分不算，否则成就阶梯还能被
+	// 1.25 倍虚增刷掉，同一杆的资格判定（用 st.CastM）与成就会两套口径。
+	srv.evaluateAchievements(ctx, achievementEvent{Kind: evCast, DistanceM: castM})
 	return body, true
 }
 

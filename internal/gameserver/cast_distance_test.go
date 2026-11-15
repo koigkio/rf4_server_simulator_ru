@@ -391,17 +391,17 @@ func TestSpoolFillCapsAtCapacity(t *testing.T) {
 	}
 }
 
-// 红区收口：带轮装配 14/2 requested 超过满竿上限（158.f1×动作系数）时按
-// 上限收口——客户端功率条满格红区可把请求推到上限的 ~1.25 倍（2026-11-13
-// 实抓 51m/40.85m），官服拉满就是上限本身。
-func TestCastOverMaxRequestedClampsToRigMax(t *testing.T) {
-	srv, _ := newRigTestServer(t)
+// newOverMaxCastRig 造一根"红区可超上限"的带轮装配：返回竿 GUID、满竿上限
+// 与探针会话。选 4.5 m 鲤鱼竿 + 5000 轮，满竿上限约 25.3 m——红区 ×1.3 会越过
+// 30 m 成就阶梯，正好用来验证收口是否作用到成就口径。
+func newOverMaxCastRig(t *testing.T, srv *Server) (string, float64, *Session) {
+	t.Helper()
 	const uid = int64(1000001)
-	rod, err := srv.CreateItem(t.Context(), uid, "feeder_10125_FD360", "backpack", 1)
+	rod, err := srv.CreateItem(t.Context(), uid, "carp_10139_13_4_50", "backpack", 1)
 	if err != nil {
 		t.Fatal(err)
 	}
-	reel, err := srv.CreateItem(t.Context(), uid, "spin_5820", "backpack", 1)
+	reel, err := srv.CreateItem(t.Context(), uid, "spin_5002", "backpack", 1)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -419,6 +419,13 @@ func TestCastOverMaxRequestedClampsToRigMax(t *testing.T) {
 	if rigMax <= 0 {
 		t.Fatalf("装配满竿上限未生效: %v", rigMax)
 	}
+	return rod.GUID, rigMax, sess
+}
+
+// castOverMaxRequest 提交一次红区抛投（requested = 上限 ×1.3）并返回本次
+// 收口后的实测距离。
+func castOverMaxRequest(t *testing.T, srv *Server, sess *Session, rodGUID string, rigMax float64) float64 {
+	t.Helper()
 	fields := make([]proto.Field, 8)
 	for i := range fields {
 		fields[i] = proto.Field{Op: "U32", Num: ptrU64(0)}
@@ -426,18 +433,72 @@ func TestCastOverMaxRequestedClampsToRigMax(t *testing.T) {
 	// f0 = requested（上限 ×1.3，模拟红区）；f8 常规全挥杆（BYTE，系数 1.0）。
 	fields[0] = proto.Field{Op: "U32", Num: ptrU64(uint64(proto.F32Bits(float32(rigMax * 1.3))))}
 	fields = append(fields, proto.Field{Op: "BYTE", Num: ptrU64(1)})
-	tree := proto.Args524(proto.Guid(rod.GUID), proto.Obj("olieodeoaof", 0, fields...))
+	tree := proto.Args524(proto.Guid(rodGUID), proto.Obj("olieodeoaof", 0, fields...))
 	c := &Ctx{Sess: sess, Main: 14, Sub: 2, Tree: tree,
 		DecodeOK: true, ExpectResponse: true, Log: logging.Discard()}
 	if body, handled := hCast(c); !handled || len(body) == 0 {
 		t.Fatalf("14/2 未处理: handled=%v len=%d", handled, len(body))
 	}
-	st := srv.stateFor(uid)
+	st := srv.stateFor(sess.Userid)
 	st.mu.Lock()
-	castM := st.CastM
-	st.mu.Unlock()
+	defer st.mu.Unlock()
+	return st.CastM
+}
+
+// 红区收口：带轮装配 14/2 requested 超过满竿上限（158.f1×动作系数）时按
+// 上限收口——客户端功率条满格红区可把请求推到上限的 ~1.25 倍（2026-11-13
+// 实抓 51m/40.85m），官服拉满就是上限本身。
+func TestCastOverMaxRequestedClampsToRigMax(t *testing.T) {
+	srv, _ := newRigTestServer(t)
+	rodGUID, rigMax, sess := newOverMaxCastRig(t, srv)
+	castM := castOverMaxRequest(t, srv, sess, rodGUID, rigMax)
 	if math.Abs(castM-rigMax) > 1e-6 {
 		t.Fatalf("红区请求应按满竿上限收口: CastM=%g 上限=%g", castM, rigMax)
+	}
+}
+
+// 红区请求同样不能计入成就：成就阶梯用的是与资格判定同一个收口后距离。
+// 不修时 DistanceM 取 requested（上限 ×1.3），比上限高一级的阶梯会被白刷。
+func TestCastOverMaxRequestedDoesNotUnlockAchievements(t *testing.T) {
+	srv, _ := newRigTestServer(t)
+	rodGUID, rigMax, sess := newOverMaxCastRig(t, srv)
+	castM := castOverMaxRequest(t, srv, sess, rodGUID, rigMax)
+	if math.Abs(castM-rigMax) > 1e-6 {
+		t.Fatalf("前置条件：本次距离应已收口到上限，CastM=%g 上限=%g", castM, rigMax)
+	}
+	// 1000-1004 是 30/45/60/80/100 m 阶梯（achievements_rules.go）。
+	tiers := []struct {
+		id int64
+		m  float64
+	}{{1000, 30}, {1001, 45}, {1002, 60}, {1003, 80}, {1004, 100}}
+	states, err := srv.DB.PlayerAchievementStates(t.Context(), sess.Userid)
+	if err != nil {
+		t.Fatal(err)
+	}
+	above := 0
+	for _, tr := range tiers {
+		if rigMax > tr.m {
+			continue // 上限本身就过了这一档，收不收口都该解锁
+		}
+		above++
+		if states[tr.id].Unlocked {
+			t.Fatalf("红区请求（%.2f）不应解锁 %.0f m 成就 %d，实际上限只有 %.2f",
+				rigMax*1.3, tr.m, tr.id, rigMax)
+		}
+	}
+	if above == 0 {
+		t.Fatalf("用例前提不成立：上限 %.2f 已覆盖全部成就阶梯", rigMax)
+	}
+	// 正对照：把同一个 1.3 倍距离直接喂给成就规则，30 m 阶梯必须能解锁——
+	// 证明上面"没解锁"是收口的结果，而不是成就系统没跑起来。
+	srv.evaluateAchievements(&Ctx{Sess: sess, Main: 14, Sub: 2, Log: logging.Discard()},
+		achievementEvent{Kind: evCast, DistanceM: rigMax * 1.3})
+	states2, err := srv.DB.PlayerAchievementStates(t.Context(), sess.Userid)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !states2[1000].Unlocked {
+		t.Fatalf("正对照失败：直接喂 %.2f m 应解锁 30 m 成就", rigMax*1.3)
 	}
 }
 
