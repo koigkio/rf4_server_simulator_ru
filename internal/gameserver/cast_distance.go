@@ -406,9 +406,13 @@ func castNominalDistanceM(rigType int64) float64 {
 // 衰减只在 payload > testMax 时生效，Test 区间内的标定保持原曲线，
 // 因此既有距离区间不受影响。该系数只影响抛投，不参与断线或炸杆；
 // 炸杆仍由搏鱼张力决定（见 gear_damage.go）。
+//
+// 静态竿库中约两成竿未登记 Test 区间（testMax 缺失）。未登记不等于无限
+// 承重：缺数据时按偏保守的固定折减 0.85 处理，避免这类竿抛得比登记了
+// 合适 Test 区间的竿更远。
 func rodTestWeightFactor(payloadG, testMinG, testMaxG float64) float64 {
 	if testMaxG <= 0 {
-		return 1
+		return 0.85
 	}
 	if testMinG < 0 {
 		testMinG = 0

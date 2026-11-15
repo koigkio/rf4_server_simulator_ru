@@ -2,6 +2,24 @@
 
 本指南介绍 `rf4server` 的本地部署方式。协议格式面向 RF4 客户端 **4.0.25034**。
 
+## 使用 Windows 发布包
+
+只想本地游玩时，无需安装 Go 或自行编译：
+
+1. 下载[正式版](https://github.com/OpenFisherCommunity/rf4_server_simulator/releases/latest)中的 Windows x64 ZIP 并完整解压，不要选择 `Source code`。若需体验最新合入的功能，可在[全部发布](https://github.com/OpenFisherCommunity/rf4_server_simulator/releases)中选择 Preview；预览版的功能和风险以该版发布说明为准。
+2. 阅读包内 `快速开始.txt`。发布包提供本地开发证书 `certs/server.crt`，将公钥证书安装到本机「受信任的根证书颁发机构」。它只用于本地测试，不要分享私钥。
+3. 以管理员权限编辑 Windows 的 `%SystemRoot%\System32\drivers\etc\hosts`，将 `api.rf4game.ru` 和 `api.rf4game.com` 指向 `127.0.0.1`；也可在 launcher 控制中心切换 hosts 指向，写入时同样需要管理员权限。客户端在其他电脑运行时，应改为网关的可信局域网地址，详见[客户端接入](#客户端接入)。
+4. 双击 `启动服务器.cmd` 或运行 `bin\launcher.exe`，等待自动初始化与健康检查完成。打开 `http://127.0.0.1:9500/`，在「运行控制」中保存 `rf4_x64.exe` 的绝对路径，再点击「启动游戏」。
+5. 在同一控制中心进入管理后台。Windows 发布包默认管理员为 `admin` / `admin123`，应在配置中修改；自行从模板部署时以 `admin.username` 和 `admin.password` 为准。
+
+结束本地游玩、需要返回官方服务器时，将 hosts 中上述域名恢复为原先解析。launcher 面板支持切换回官方指向；使用自动切换时，需设置 `launcher.hosts_switch: true` 并以管理员权限启动，launcher 退出会还原它管理的 hosts 条目。手动添加的条目需手动恢复，不要删除其他程序维护的条目。
+
+launcher 的托盘用绿、黄、红分别表示全部运行、部分运行、全部停止，可打开控制中心、进入管理后台、启停服务或退出。控制中心还提供单进程启停与重启、实时日志和构建版本信息；服务崩溃后会按指数退避自动重启。
+
+## 容器部署
+
+Windows、macOS 和 Linux 可使用 [Docker Compose](../docker/README.md) 多服务方式部署，也可使用根目录 Dockerfile 的 [Docker 单容器部署](../DOCKER.md)。两种方式二选一，不要同时占用相同宿主机端口。
+
 ## 组件与端口
 
 | 进程 | 默认端口 | 用途 |
@@ -29,6 +47,8 @@ powershell -ExecutionPolicy Bypass -File .\build.ps1
 Copy-Item config.example.yaml config.yaml
 ```
 
+也可使用 `make build`，构建产物默认位于 `bin/`。依赖为纯 Go 实现，SQLite 驱动使用 `modernc.org/sqlite`，无需 CGO。开发验证命令见[贡献指南](../CONTRIBUTING.md)；协议语料回环可运行 `make corpus`，本地没有语料文件时会自动跳过。
+
 启动前编辑 `config.yaml`：
 
 - 将 `gateway.advertise_host` 设置为客户端可用于实时连接的地址。
@@ -38,6 +58,13 @@ Copy-Item config.example.yaml config.yaml
 - 保持 `sqlite.static_path` 指向随附的 `server_data/static.sqlite3`。
 
 `config.yaml` 已被 `.gitignore` 排除。配置加载器支持 `config.example.yaml` 中说明的 `RF4_*` 覆盖项。
+
+常用配置入口：
+
+- `config.example.yaml` 是入库模板；实际使用 `config.yaml`，不得提交运行配置。
+- `sqlite.path` 指向玩家库；`sqlite.static_path` 指向运行期只读的静态目录。
+- `launcher.game_path` 保存客户端路径，`launcher.game_region` 默认为 `CN`。
+- 环境变量如 `RF4_SQLITE_PATH`、`RF4_SQLITE_STATIC_PATH`、`RF4_LOG_LEVEL`、`RF4_GAME_CLIENT_PATH` 可覆盖对应设置，完整列表见[配置模板](../config.example.yaml)。
 
 YAML 文件中的管理员用户名和密码会在启动时应用。账户不存在时会创建账户；已有账户的密码不同时会重置为配置中的密码。
 
@@ -90,7 +117,7 @@ bin\gateway.exe -config config.yaml
 
 手动运行这两个进程不会启动管理控制台；管理控制台随 `launcher` 的 9500 统一入口提供。
 
-默认本地开发凭据为 `admin` / `admin123`。对于任何未与本地计算机隔离的环境，请在 `config.yaml` 中替换这些凭据。
+Windows 发布包默认本地开发凭据为 `admin` / `admin123`；源码部署使用配置中的管理员凭据。对于任何未与本地计算机隔离的环境，请在 `config.yaml` 中替换凭据和密钥。
 
 ## 部署后自证版本
 
@@ -146,6 +173,8 @@ go build -trimpath -ldflags "-s -w -X 'rf4server/internal/buildinfo.Version=<语
 主数据库是一个 SQLite 文件，通常为 `data/rf4server.db`，由 gameserver、gateway 和内嵌管理后台共享使用，并启用 WAL 模式。
 
 静态目录存储在 `server_data/static.sqlite3` 中，运行时以只读方式挂载。隔离模型详见 [static_runtime_isolation.md](static_runtime_isolation.md)。
+
+更新发布包前，先退出 launcher 并确认所有服务已经停止，再备份 `data/`、`config.yaml` 和 `certs/`。保留原发布包，以便需要时配合升级前的数据备份恢复；不要用新版本初始化出的空数据库覆盖现有存档。不要上传或分享这些运行数据和密钥。
 
 `seed` 会将静态表导入主数据库，作为迁移和兼容副本。运行时会将对存储层所列静态表的读取重定向到只读的 `static` schema。
 

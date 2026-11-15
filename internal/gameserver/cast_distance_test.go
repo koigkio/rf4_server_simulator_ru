@@ -67,6 +67,23 @@ func TestCastWeightAndSkillFactors(t *testing.T) {
 	}
 }
 
+func TestCastRodWithoutTestDataUsesConservativeFactor(t *testing.T) {
+	// 静态竿库中约两成竿未登记 Test 区间；缺数据时按偏保守的固定
+	// 折减处理，不应与登记了合适 Test 区间的竿同等对待。
+	missing := rodTestWeightFactor(8, 0, 0)
+	if missing != 0.85 {
+		t.Fatalf("缺 Test 区间的竿应固定折减 0.85，实得 %f", missing)
+	}
+	if registered := rodTestWeightFactor(8, 5, 30); registered >= missing {
+		t.Fatalf("登记了合适 Test 区间的竿（系数 %.3f）应低于缺数据竿的固定折减 %.2f",
+			registered, missing)
+	}
+	// 负值同样视为未登记。
+	if rodTestWeightFactor(8, -1, 0) != 0.85 {
+		t.Fatal("testMaxG 为负也应按缺数据处理")
+	}
+}
+
 func TestCastOverTestPayloadShortensDistance(t *testing.T) {
 	peak := rodTestWeightFactor(10, 2, 10)
 	twenty := rodTestWeightFactor(20, 2, 10)

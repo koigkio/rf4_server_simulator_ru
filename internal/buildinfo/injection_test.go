@@ -15,12 +15,14 @@ var buildEntrypoints = []string{
 	"../../tools/build.ps1",
 	"../../.github/scripts/build-preview.sh",
 	"../../.github/scripts/build-release.sh",
+	"../../docker/Dockerfile",
+	"../../Dockerfile",
 }
 
 // identityFields 是 rf4_build_info 对外承诺的四个身份标签，缺一不可。
 var identityFields = []string{"Version", "BuildTs", "GitCommit", "SourceDir"}
 
-// TestBuildEntrypointsInjectFullIdentity 逐一读五个构建脚本，断言每个都含四个
+// TestBuildEntrypointsInjectFullIdentity 逐一读所有构建入口，断言每个都含四个
 // internal/buildinfo.<字段> 的 -X 注入。删掉任一入口的任一注入即变红。
 // 测试 cwd 是 internal/buildinfo，../../ 即仓库根。
 func TestBuildEntrypointsInjectFullIdentity(t *testing.T) {
