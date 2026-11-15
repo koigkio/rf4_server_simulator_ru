@@ -5,6 +5,8 @@
 ## 使用与部署
 
 - [部署指南](deploy.md)：构建、配置、初始化、启动、客户端接入与安全约束。
+- [Docker Compose 部署](../docker/README.md)：多服务容器、本地与局域网接入、存档和更新。
+- [Docker 单容器部署](../DOCKER.md)：单镜像构建、必需配置与数据卷。
 - [客户端兼容性检查清单](client-checklist.md)：登录、会话、玩家状态、钓鱼、物品与经济等回归项。
 - [管理控制台](admin-console.md)：launcher 内嵌 Control Deck 的功能与 API。
 - [静态数据隔离](static_runtime_isolation.md)：可写玩家库与只读静态目录的运行时隔离模型。
