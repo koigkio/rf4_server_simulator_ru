@@ -57,6 +57,7 @@ type FishState struct {
 	LureMotionMask  uint32  // 14/7 f5 原始拟饵运动位，保留给完整状态映射
 	LureAction      string  // 已识别的运动状态；未知时为空
 	LureLayer       float64 // 0=水面，1=水底；路亚实时水层
+	LureDive        float64 // 仅进程内：当前拟饵名义泳层（loadLureAttributes 的 DiveDepth），0=未知；钳制运动推导值并作抛竿种子
 	LureStateAt     time.Time
 	LureLayerAt     time.Time
 	LurePulseAt     time.Time
@@ -113,7 +114,15 @@ func (st *FishState) effectiveBaitDepthCMLocked(now time.Time) int64 {
 		return 0
 	}
 	if rigTypeLureFamily[st.RigType] {
-		return int64(math.Round(normalizeWaterLayer(st.LureLayer) * 500))
+		// LureLayer=0 为"未知"态（复审 P3）：按种子 LureDive 兜底，再退旧中层 250cm，
+		// 避免无证据饵落库 0cm 污染 qualification 深度判定。
+		if st.LureLayer > 0 {
+			return int64(math.Round(normalizeWaterLayer(st.LureLayer) * 500))
+		}
+		if st.LureDive > 0 {
+			return int64(math.Round(normalizeWaterLayer(st.LureDive) * 500))
+		}
+		return 250
 	}
 	target := st.DepthCM
 	if target <= 0 {
