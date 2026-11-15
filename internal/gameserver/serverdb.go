@@ -37,6 +37,11 @@ func (s *Server) attachDB(db *store.DB, log *slog.Logger) {
 	if err := s.reloadFishEcologyCache(context.Background()); err != nil {
 		s.log.Warn("鱼种生态缓存加载失败", "err", err)
 	}
+	if n, err := s.reloadMarineFishKeys(context.Background()); err != nil {
+		s.log.Warn("海图鱼种集合加载失败，海水组回退词表判定", "err", err)
+	} else if n > 0 {
+		s.log.Info("海图鱼种集合已加载", "species", n)
+	}
 	if n, err := s.ensureFishSkillEffects(context.Background()); err != nil {
 		s.log.Warn("鱼口技能效果初始化失败", "err", err)
 	} else if n > 0 {
@@ -102,7 +107,7 @@ func (s *Server) buildFightCurves(species string, pull float64) *proto.Value {
 	s.curveMu.Lock()
 	rows := s.curves[species]
 	if len(rows) == 0 {
-		rows = s.curves[fishFightArchetypeFor(species).CurvePool]
+		rows = s.curves[fishCurveArchetypeFor(species, s.fishMarineGroupHit(species)).CurvePool]
 		if len(rows) == 0 {
 			rows = s.curves["crucian"]
 		}

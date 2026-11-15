@@ -67,6 +67,12 @@ type Server struct {
 	fishEcologyCache       map[string]fishEcologyProfile
 	fishEcologyCacheLoaded bool
 
+	// 海图鱼种集合：唯一海图（loc_alias 把 level_012_north_sea 解析到
+	// 「挪威海」）在 loc_fish 里的全部鱼种。启动时一次加载、之后只读；
+	// nil 表示静态库不可用/无海图数据，海水组回退词表判定。
+	marineFishMu   sync.RWMutex
+	marineFishKeys map[string]bool
+
 	// rf4records 饵占比缓存（食性分级提案 bait-evidence-threshold 的占比判据）。
 	// 键 fish_key -> bait_id -> 占比百分比（0~100）；异步预热，TTL 30 分钟。
 	rf4ShareMu      sync.RWMutex

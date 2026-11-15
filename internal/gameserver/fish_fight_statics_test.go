@@ -32,12 +32,18 @@ var officialFightStaticsAnchors = []struct {
 	{"b_gill", 113, 1, 2, 2.98462, 1.06095, 0.737278, 0.45, 0.45, 10, 1, 0.94152, 0.929121, 0.999804},
 }
 
+// marineByKeyword 纯函数测试用词表判定：无 DB 时海图集合不可用，marine
+// 参数按词表显式传入；海图归属驱动的用例见 TestFishMarineGroupHitFromChartRoster。
+func marineByKeyword(species string) bool {
+	return fishFightArchetypeFor(species) == fishFightArchetypes["marine"]
+}
+
 // TestFishFightStaticsMatchesOfficialAnchors 防回归：落表种的 27 静态参数
 // 必须落在官服 14/14 样本 ±tol% 内（f7/f12 官方恒 0 不在列；f19 见
 // TestFishFightStaticsF19FloatRigFallback）。回滚任一表值即红。
 func TestFishFightStaticsMatchesOfficialAnchors(t *testing.T) {
 	for _, a := range officialFightStaticsAnchors {
-		got := fight27StaticsFor(a.species, float64(a.weightG), a.grade)
+		got := fight27StaticsFor(a.species, float64(a.weightG), a.grade, marineByKeyword(a.species))
 		fields := []struct {
 			name      string
 			want, got float64
@@ -61,7 +67,7 @@ func TestFishFightStaticsMatchesOfficialAnchors(t *testing.T) {
 // 其余钓法强制 1）：taran 有浮钓真值（0.00204695@611g 常数），其余落表种样本
 // 均为非浮钓 rig，浮钓沿用 fallbackFightStatics 体重插值（落表前行为不变）。
 func TestFishFightStaticsF19FloatRigFallback(t *testing.T) {
-	if got := fight27StaticsFor("taran", 611, 2).f19; math.Abs(got-0.00204695) > 1e-9 {
+	if got := fight27StaticsFor("taran", 611, 2, false).f19; math.Abs(got-0.00204695) > 1e-9 {
 		t.Errorf("taran 611g 浮钓 f19=%v，官服真值 0.00204695", got)
 	}
 	for _, c := range []struct {
@@ -73,7 +79,7 @@ func TestFishFightStaticsF19FloatRigFallback(t *testing.T) {
 		{"n.pike", 4305, 2}, {"merlang", 252, 1}, {"piksha", 2975, 2}, {"b_gill", 113, 1},
 	} {
 		want := fallbackFightStatics(float64(c.weightG))[19]
-		if got := fight27StaticsFor(c.species, float64(c.weightG), c.grade).f19; got != want {
+		if got := fight27StaticsFor(c.species, float64(c.weightG), c.grade, marineByKeyword(c.species)).f19; got != want {
 			t.Errorf("%s %dg 浮钓 f19=%v，应沿用 fallback 插值 %v", c.species, c.weightG, got, want)
 		}
 	}
@@ -84,7 +90,7 @@ func TestFishFightStaticsF19FloatRigFallback(t *testing.T) {
 // 未命中 → fallbackFightStatics 第三层（保持现状）。另钉大型海鱼（金枪/大比目鱼）
 // 与鲤科变种，避免组回退只被 menek/karasekarp 一条断言发现。
 func TestFishFightStaticsGroupFallback(t *testing.T) {
-	m := fight27StaticsFor("menek", 22800, 2)
+	m := fight27StaticsFor("menek", 22800, 2, marineByKeyword("menek"))
 	for _, c := range []struct {
 		name      string
 		want, got float64
@@ -100,21 +106,21 @@ func TestFishFightStaticsGroupFallback(t *testing.T) {
 	}
 	// 大型海鱼与普通海鱼同组：组参数是常数，不随体重缩放。
 	for _, sp := range []string{"thynnus_t", "halibut_b"} {
-		g := fight27StaticsFor(sp, 120000, 2)
+		g := fight27StaticsFor(sp, 120000, 2, marineByKeyword(sp))
 		if g.f14 != 22.5 || g.f15 != 225 || g.f16 != 0.19048 {
 			t.Errorf("%s（大型海鱼）应走海水组：f14=%v f15=%v f16=%v", sp, g.f14, g.f15, g.f16)
 		}
 	}
-	k := fight27StaticsFor("karasekarp", 5000, 2)
+	k := fight27StaticsFor("karasekarp", 5000, 2, false)
 	if k.f13 != 0.35 || k.f14 != 1.0 || k.f15 != 6 || k.f16 != 1.0 || k.f17 != 0.93 {
 		t.Errorf("karasekarp（鲤科组）静态参数不符：f13=%v f14=%v f15=%v f16=%v f17=%v",
 			k.f13, k.f14, k.f15, k.f16, k.f17)
 	}
 	// 变种同样归鲤科组（g_carp_albino 不在逐种表，但不应掉到第三层）。
-	if v := fight27StaticsFor("g_carp_albino", 5000, 2); v.f14 != 1.0 || v.f16 != 1.0 {
+	if v := fight27StaticsFor("g_carp_albino", 5000, 2, false); v.f14 != 1.0 || v.f16 != 1.0 {
 		t.Errorf("g_carp_albino（鲤科变种）应走鲤科组：f14=%v f16=%v", v.f14, v.f16)
 	}
-	fb := fight27StaticsFor("riv_rb_trout", 1000, 2)
+	fb := fight27StaticsFor("riv_rb_trout", 1000, 2, false)
 	if fb.f14 != 0.5 || fb.f16 != 0.833907 || fb.f20 != 0.997804 {
 		t.Errorf("riv_rb_trout（未命中组）应走第三层 fallback：f14=%v f16=%v f20=%v", fb.f14, fb.f16, fb.f20)
 	}
@@ -174,5 +180,95 @@ func TestFishFightArchetypeMarineKeywords(t *testing.T) {
 		if arch := fishFightArchetypeFor(c.species); arch != fishFightArchetypes[c.group] {
 			t.Errorf("%s 应归 %s，实得 %+v", c.species, c.group, arch)
 		}
+	}
+}
+
+// TestFishMarineGroupHitFromChartRoster 海图归属驱动海水组判定（搏鱼脱钩方案
+// §五B 的词表缺口修复）：2026-11-15 北海日志四次 f0=2 脱钩鱼种
+// m_zubatka/meagre/x_gladius 均不在 marine 词表（zubatka 反被归进淡水 small
+// 组），全部掉进 fallbackFightStatics（f16=0.834 挣脱概率差海水组 4.4 倍）。
+// 改为读静态库 loc_fish：唯一海图（loc_alias: level_012_north_sea → 挪威海）
+// 的鱼种即纯海水集合。本用例 ATTACH 真实 static.sqlite3，海图集合未加载时红。
+func TestFishMarineGroupHitFromChartRoster(t *testing.T) {
+	srv, _ := newStaticRigTestServer(t)
+	// 当晚脱钩/上岸的全部北海鱼种：海图集合命中（词表均不在 marine 内）。
+	for _, sp := range []string{"m_zubatka", "meagre", "x_gladius", "chlamys_isl",
+		"cetorhinus_m", "red_fish", "s_saurus"} {
+		if !srv.fishMarineGroupHit(sp) {
+			t.Errorf("%s 在挪威海 loc_fish 内，应判海水组", sp)
+		}
+	}
+	// 词表 marine 仍兜底（静态库未收录的种照旧判定）。
+	if !srv.fishMarineGroupHit("menek") || !srv.fishMarineGroupHit("halibut_w") {
+		t.Fatal("词表 marine 命中的种不能因海图集合上线而失效")
+	}
+	// 淡水种与未收录种不得误判。
+	for _, sp := range []string{"crucian", "karasekarp", "riv_rb_trout", "not_in_calib"} {
+		if srv.fishMarineGroupHit(sp) {
+			t.Errorf("%s 不在海图也不在 marine 词表，不应判海水组", sp)
+		}
+	}
+	// 无 DB（marineFishKeys 为 nil）时纯词表，行为与落表前一致。
+	bare := &Server{}
+	if bare.fishMarineGroupHit("m_zubatka") {
+		t.Fatal("无静态库时 m_zubatka 不应判海水组（词表现状：small 淡水组）")
+	}
+	if !bare.fishMarineGroupHit("menek") {
+		t.Fatal("无静态库时词表 marine 兜底应仍生效")
+	}
+}
+
+// TestFight27StaticsChartRosterMarine 静态层端到端：海图命中的未实测海鱼
+// 走海水组参数（f14/f15/f16 量级对齐官方），词表判定（marine=false）保持
+// 第三层 fallback 现状，锚定修复前后的分界。
+func TestFight27StaticsChartRosterMarine(t *testing.T) {
+	srv, _ := newStaticRigTestServer(t)
+	// 当晚 28s 搏鱼后脱钩的 meagre 54kg：修复后走海水组。
+	hit := srv.fishMarineGroupHit("meagre")
+	g := fight27StaticsFor("meagre", 54054, 2, hit)
+	if !hit {
+		t.Fatal("meagre 应由海图集合命中海水组")
+	}
+	if g.f14 != 22.5 || g.f15 != 225 || g.f16 != 0.19048 || g.f20 != 0.9997705 {
+		t.Errorf("meagre（海水组）f14=%v f15=%v f16=%v f20=%v", g.f14, g.f15, g.f16, g.f20)
+	}
+	if g.f9 != 4.88225 || g.f10 != 1.57905 || g.f11 != 1.09599 || g.f13 != 0.50 {
+		t.Errorf("meagre（海水组）f9=%v f10=%v f11=%v f13=%v", g.f9, g.f10, g.f11, g.f13)
+	}
+	// 词表判定（无海图集合）保持修复前现状：meagre 不在词表 → 第三层 fallback。
+	before := fight27StaticsFor("meagre", 54054, 2, false)
+	if before.f14 != 0.5 || before.f16 != 0.833907 {
+		t.Errorf("marine=false 时 meagre 应走 fallback 现状：f14=%v f16=%v", before.f14, before.f16)
+	}
+	// 曲线/耐力层兜底：default/small 桶改归 marine；专属词表不覆盖。
+	if arch := fishCurveArchetypeFor("m_zubatka", true); arch != fishFightArchetypes["marine"] {
+		t.Errorf("m_zubatka 海图命中应改归 marine 曲线层，实得 %+v", arch)
+	}
+	if arch := fishCurveArchetypeFor("m_zubatka", false); arch != fishFightArchetypes["small"] {
+		t.Errorf("marine=false 时 m_zubatka 保持词表现状 small，实得 %+v", arch)
+	}
+	if arch := fishCurveArchetypeFor("cetorhinus_m", true); arch != fishFightArchetypes["apex"] {
+		t.Errorf("cetorhinus_m 走 apex 专属词表，不应被 marine 覆盖，实得 %+v", arch)
+	}
+}
+
+// TestFishStaminaF6ChartRosterMarine f5/f6 层端到端：海图命中的未实测海鱼
+// 体力池走海水组每克均值（8.445/g，不乘 StaminaScale）、f6 兜底 0.50。
+func TestFishStaminaF6ChartRosterMarine(t *testing.T) {
+	srv, _ := newStaticRigTestServer(t)
+	profile := fishFightProfile{StaminaScale: 0.72}
+	if got := srv.fishStaminaForProfile(&RolledFish{Species: "m_zubatka", WeightG: 3088}, profile); math.Abs(got-8.445*3088) > 1e-6 {
+		t.Errorf("m_zubatka 体力=%v，应海水组 8.445/g×3088（组均值不乘 StaminaScale）", got)
+	}
+	if got := srv.fishStaminaForProfile(&RolledFish{Species: "x_gladius", WeightG: 194872}, profile); math.Abs(got-8.445*194872) > 1e-6 {
+		t.Errorf("x_gladius 体力=%v，应海水组 8.445/g×194872", got)
+	}
+	if got := srv.fishF6For(&RolledFish{Species: "meagre", WeightG: 54054}); got != 0.50 {
+		t.Errorf("meagre f6=%v，海水组应 0.50", got)
+	}
+	// 无静态库回退词表：m_zubatka 不在 marine 词表，f5 组均值不生效。
+	bare := &Server{}
+	if got := fishStaminaRateGroupFor("m_zubatka", bare.fishMarineGroupHit("m_zubatka")); got != 0 {
+		t.Errorf("无海图集合时 m_zubatka f5 组均值应 0（走旧口径），实得 %v", got)
 	}
 }

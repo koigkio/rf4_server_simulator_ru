@@ -81,7 +81,7 @@ func fishFightArchetypeFor(species string) fishFightArchetype {
 func (s *Server) fishFightProfileFor(f *RolledFish) fishFightProfile {
 	arch := fishFightArchetypeFor("")
 	if f != nil {
-		arch = fishFightArchetypeFor(f.Species)
+		arch = fishCurveArchetypeFor(f.Species, s.fishMarineGroupHit(f.Species))
 	}
 	ratio := 0.5
 	if f != nil {

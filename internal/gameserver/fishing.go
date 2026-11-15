@@ -1814,14 +1814,83 @@ var fishGroupFightStatics = map[string]*fishStatics{
 	},
 }
 
-// fishGroupStaticsFor 习性组兜底：归组复用 fishFightArchetypeFor 词表——
-// marine → 海水组、cyprinid → 鲤科组；其余组（salmonid/small/…）与未命中
-// 返回 nil，走 fallbackFightStatics 第三层（保持现状可回滚）。
-func fishGroupStaticsFor(species string) *fishStatics {
-	switch fishFightArchetypeFor(species) {
-	case fishFightArchetypes["marine"]:
+// reloadMarineFishKeys 从静态库加载海图鱼种集合。海图经 loc_alias 解析
+// （level_012_north_sea → 挪威海，唯一海图），该图鱼种与 17 张淡水图零交叉
+// （2026-11-15 实查 static.sqlite3），海图鱼种即纯海水集合。集合为空或查询
+// 失败时保留 nil，fishMarineGroupHit 回退词表判定，不阻断启动。
+func (s *Server) reloadMarineFishKeys(ctx context.Context) (int, error) {
+	if s == nil || s.DB == nil {
+		return 0, nil
+	}
+	rows, err := s.DB.SQL.QueryContext(ctx, `
+		SELECT DISTINCT f.fish_key
+		FROM loc_fish f
+		JOIN loc_alias a ON a.loc = f.loc
+		WHERE a.alias = 'level_012_north_sea'`)
+	if err != nil {
+		return 0, err
+	}
+	defer rows.Close()
+	keys := make(map[string]bool, 64)
+	for rows.Next() {
+		var key string
+		if rows.Scan(&key) == nil && strings.TrimSpace(key) != "" {
+			keys[strings.ToLower(strings.TrimSpace(key))] = true
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return 0, err
+	}
+	if len(keys) == 0 {
+		return 0, fmt.Errorf("loc_fish/loc_alias 无海图鱼种，海水组回退词表判定")
+	}
+	s.marineFishMu.Lock()
+	s.marineFishKeys = keys
+	s.marineFishMu.Unlock()
+	return len(keys), nil
+}
+
+// fishMarineGroupHit 海水组兜底判定（搏鱼脱钩方案 §五B 的归组输入）：
+// 优先静态库海图归属——词表是手写关键词，北海鱼种 meagre/x_gladius/m_zubatka
+// 等不在表内（zubatka 反被归进淡水 small 组），今晚 2026-11-15 四次 f0=2 脱钩
+// 全部栽在这里；词表 marine 命中兜底静态库未收录的海鱼。marineFishKeys 为
+// nil（静态库不可用）时纯词表，行为与落表前一致。
+func (s *Server) fishMarineGroupHit(species string) bool {
+	sp := strings.ToLower(strings.TrimSpace(species))
+	if s != nil {
+		s.marineFishMu.RLock()
+		hit := s.marineFishKeys != nil && s.marineFishKeys[sp]
+		s.marineFishMu.RUnlock()
+		if hit {
+			return true
+		}
+	}
+	return fishFightArchetypeFor(species) == fishFightArchetypes["marine"]
+}
+
+// fishCurveArchetypeFor 曲线池/耐力层的海图归属兜底：词表把海鱼落进
+// default/small 两个通用桶时改归 marine（perch 曲线池、耐力倍率 1.18），
+// 与搏鱼脱钩方案 §五B「组键也回退 CurvePool」同口径；apex/catfish/sturgeon
+// 等专属词表携带刻意的家族特化，不覆盖。
+func fishCurveArchetypeFor(species string, marine bool) fishFightArchetype {
+	arch := fishFightArchetypeFor(species)
+	if !marine {
+		return arch
+	}
+	if arch == fishFightArchetypes["default"] || arch == fishFightArchetypes["small"] {
+		return fishFightArchetypes["marine"]
+	}
+	return arch
+}
+
+// fishGroupStaticsFor 习性组兜底：marine 为真（海图归属或词表命中）→ 海水组；
+// 其余按 fishFightArchetypeFor 词表判鲤科组；salmonid/small/… 等其余组与
+// 未命中返回 nil，走 fallbackFightStatics 第三层（保持现状可回滚）。
+func fishGroupStaticsFor(species string, marine bool) *fishStatics {
+	if marine {
 		return fishGroupFightStatics["marine"]
-	case fishFightArchetypes["cyprinid"]:
+	}
+	if fishFightArchetypeFor(species) == fishFightArchetypes["cyprinid"] {
 		return fishGroupFightStatics["cyprinid"]
 	}
 	return nil
@@ -1904,7 +1973,7 @@ func (s *Server) fishStaminaForProfile(f *RolledFish, profile fishFightProfile) 
 		// 未实测种维持旧口径（2.388/g × archetype 耐力倍率）。
 		if rate, ok := fishStaminaRatePerGram[f.Species]; ok {
 			stamina = rate * float64(f.WeightG)
-		} else if rate := fishStaminaRateGroupFor(f.Species); rate > 0 {
+		} else if rate := fishStaminaRateGroupFor(f.Species, s.fishMarineGroupHit(f.Species)); rate > 0 {
 			// 组兜底同官方口径：直接 rate×体重，不乘 StaminaScale。
 			stamina = rate * float64(f.WeightG)
 		} else {
@@ -1970,12 +2039,13 @@ var fishF6Step = map[string]struct {
 
 // fishStaminaRateGroupFor 未实测鱼种的 f5 每克组均值：海水组 8.445
 // （merlang 10.50 与 piksha 6.39 均值）、鲤科组 2.5（方案约值）；
-// 未命中返回 0 走旧口径。归组复用 fishFightArchetypeFor 词表。
-func fishStaminaRateGroupFor(species string) float64 {
-	switch fishFightArchetypeFor(species) {
-	case fishFightArchetypes["marine"]:
+// 未命中返回 0 走旧口径。marine 由调用方按海图归属/词表判定，鲤科组
+// 仍走 fishFightArchetypeFor 词表。
+func fishStaminaRateGroupFor(species string, marine bool) float64 {
+	if marine {
 		return 8.445
-	case fishFightArchetypes["cyprinid"]:
+	}
+	if fishFightArchetypeFor(species) == fishFightArchetypes["cyprinid"] {
 		return 2.5
 	}
 	return 0
@@ -1993,7 +2063,7 @@ func (s *Server) fishF6For(f *RolledFish) float64 {
 		}
 		return v
 	}
-	if fishFightArchetypeFor(f.Species) == fishFightArchetypes["marine"] {
+	if s.fishMarineGroupHit(f.Species) {
 		return 0.50
 	}
 	return s.fishInitialStaminaRatio()
@@ -2016,14 +2086,15 @@ type fish27Statics struct {
 }
 
 // fight27StaticsFor 三层回退：实测种（officialSpeciesStatics）→ 习性组
-// （fishGroupStaticsFor）→ 旧 fallbackFightStatics（保持现状可回滚）。
-// f19 特例：只有浮钓族生效（buildFish27 对其余钓法强制 1）；taran 有浮钓
-// 真值，其余落表种样本均为非浮钓 rig，种级 f19 留零时沿用 fallback
-// 的体重插值（与落表前浮钓行为逐字节一致）。
-func fight27StaticsFor(species string, w float64, grade int64) fish27Statics {
+// （fishGroupStaticsFor，marine 由调用方按海图归属/词表判定）→ 旧
+// fallbackFightStatics（保持现状可回滚）。f19 特例：只有浮钓族生效
+// （buildFish27 对其余钓法强制 1）；taran 有浮钓真值，其余落表种样本均为
+// 非浮钓 rig，种级 f19 留零时沿用 fallback 的体重插值（与落表前浮钓行为
+// 逐字节一致）。
+func fight27StaticsFor(species string, w float64, grade int64, marine bool) fish27Statics {
 	src := officialSpeciesStatics[species]
 	if src == nil {
-		src = fishGroupStaticsFor(species)
+		src = fishGroupStaticsFor(species, marine)
 	}
 	if src != nil {
 		out := fish27Statics{
@@ -2064,7 +2135,7 @@ func fight27StaticsFor(species string, w float64, grade int64) fish27Statics {
 // 用于浮钓静置不上钩的应急恢复）。
 func (s *Server) buildFish27(f *RolledFish, hookGUID, gearGuid string, rigType int64) *proto.Value {
 	w := float64(f.WeightG)
-	st := fight27StaticsFor(f.Species, w, f.Grade)
+	st := fight27StaticsFor(f.Species, w, f.Grade, s.fishMarineGroupHit(f.Species))
 	f9, f10, f11 := st.f9, st.f10, st.f11
 	f12v, f13v, f14v, f15v := 0.0, st.f13, st.f14, st.f15
 	f16v, f17v, f18v := st.f16, st.f17, st.f18
