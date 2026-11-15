@@ -6,6 +6,8 @@ import (
 	"testing"
 	"time"
 
+	"rf4server/internal/logging"
+	"rf4server/internal/proto"
 	"rf4server/internal/store"
 )
 
@@ -134,14 +136,17 @@ func castCalibrationDistance(payloadG float64, spoolSize int64) float64 {
 }
 
 func TestCastCalibrationBands(t *testing.T) {
+	// 标称 27.5（2026-11-13 官服手感校准，specs/changes/cast-distance-calibration）
+	// 后的区间；期望值按因子链手算：8g = 27.5×0.888×0.72 ≈ 17.57（6000 大杯）、
+	// 27.5×0.888×0.84 ≈ 20.51（2000 小杯），10g 再 ×1.0107。
 	for _, payload := range []float64{8, 10} {
 		largeSpool := castCalibrationDistance(payload, 5) // 6000
 		smallSpool := castCalibrationDistance(payload, 2) // 2000
-		if largeSpool < 28 || largeSpool > 31 {
-			t.Fatalf("6000线杯 %.0fg 距离=%0.2f，期望28～30米区间", payload, largeSpool)
+		if largeSpool < 17.4 || largeSpool > 17.9 {
+			t.Fatalf("6000线杯 %.0fg 距离=%0.2f，期望17.4～17.9米区间", payload, largeSpool)
 		}
-		if smallSpool < 32 || smallSpool > 36.5 {
-			t.Fatalf("2000线杯 %.0fg 距离=%0.2f，期望32～36米区间", payload, smallSpool)
+		if smallSpool < 20.3 || smallSpool > 20.9 {
+			t.Fatalf("2000线杯 %.0fg 距离=%0.2f，期望20.3～20.9米区间", payload, smallSpool)
 		}
 		if smallSpool <= largeSpool+2 {
 			t.Fatalf("小线杯应比6000线杯远至少2米: 小杯=%0.2f 大杯=%0.2f", smallSpool, largeSpool)
@@ -167,7 +172,9 @@ func TestCastPlayerStateFactorZeroStateUsesFloor(t *testing.T) {
 	}
 }
 
-func TestCastHighEndGearCanReachFortyFiveMeters(t *testing.T) {
+// 官服手感校准（2026-11-13）后高阶装备的顶配上限 ~29.7m，落在官方
+// 20~30m 手感带顶部；45m「精准抛投」区间不再可达（旧断言 ≥44.9）。
+func TestCastHighEndGearCeilingNearThirtyMeters(t *testing.T) {
 	d, _ := calculateCastDistance(CastDistanceContext{
 		RigType: 5, CastAction: 1, CastPower: 1,
 		RodLengthM: 4.2, RodAction: 4, RodTestMinG: 5, RodTestMaxG: 30,
@@ -177,8 +184,50 @@ func TestCastHighEndGearCanReachFortyFiveMeters(t *testing.T) {
 		PlayerPrimary: defaultPlayerConditionPrimary, PlayerSecondary: defaultPlayerConditionSecondary,
 		SkillMastery: 100, SkillCastPct: 10,
 	})
-	if d < 44.9 {
-		t.Fatalf("高阶装备应能进入45米精准抛投区间，实得%0.2f", d)
+	if d < 29.4 || d > 30.0 {
+		t.Fatalf("高阶装备上限应落在 ~29.7m（20~30m 官方手感带顶部），实得%0.2f", d)
+	}
+}
+
+// TestCastFreshwaterLureOfficialAnchorBand 复现实抓 2026-11-13 21:28 的 UL
+// 配置（1.8m 枪柄 + 水滴轮 + 3.33g 载荷，Test 1-8g，0.28 编织线，浅杯 8）
+// 与满级投距技能（708×7 + 717×5 = +60%）、熟练度 95。官服手感锚点
+// 「其实只能 20~30 米」取中值 25：27.5 标称 × 实抓因子链 0.9076 ≈ 24.96m。
+// 因子值全部来自当日日志账本，期望带手写，不用代码回算。
+func TestCastFreshwaterLureOfficialAnchorBand(t *testing.T) {
+	d, factors := calculateCastDistance(CastDistanceContext{
+		RigType: 5, CastAction: 1, CastPower: 1,
+		RodLengthM: 1.8, RodAction: 2, RodStiffness: 2,
+		RodTestMinG: 1, RodTestMaxG: 8, PayloadWeightG: 3.33,
+		ReelEfficiency: 0.857, ReelType: 2, SpoolSize: 8, SpoolFill: 1,
+		LineDiameterMM: 0.28, LineStretch: 0.01, LineMaterial: 3,
+		LineRunningWeightG: 0.078,
+		PlayerPrimary:      defaultPlayerConditionPrimary,
+		SkillMastery:       95, SkillCastPct: 60,
+	})
+	if math.IsNaN(d) || d < 24.5 || d > 25.4 {
+		t.Fatalf("UL 配置官方手感锚点应落在 ~24.96m（20~30m 中值），实得 %.2f factors=%+v",
+			d, factors)
+	}
+}
+
+// TestCastNominalDistanceByRigFamily 锁定标称分族：淡水路亚 27.5（官服
+// 手感校准）、海钓路亚 50-54 暂留 45 待补锚点、其余默认族 60。
+func TestCastNominalDistanceByRigFamily(t *testing.T) {
+	if got := castNominalDistanceM(5); got != 27.5 {
+		t.Fatalf("淡水路亚标称 = %v，期望 27.5", got)
+	}
+	if got := castNominalDistanceM(22); got != 27.5 {
+		t.Fatalf("淡水路亚 rigType22 标称 = %v，期望 27.5", got)
+	}
+	if got := castNominalDistanceM(52); got != 45.0 {
+		t.Fatalf("海钓路亚标称 = %v，期望 45（待补锚点保留旧值）", got)
+	}
+	if got := castNominalDistanceM(1); got != 60.0 {
+		t.Fatalf("浮钓默认族标称 = %v，期望 60", got)
+	}
+	if got := castNominalDistanceM(12); got != 60.0 {
+		t.Fatalf("底钓默认族标称 = %v，期望 60", got)
 	}
 }
 
@@ -339,5 +388,149 @@ func TestSpoolFillCapsAtCapacity(t *testing.T) {
 	}
 	if got := spoolFillRatio(0, 17); got != 0 {
 		t.Fatalf("无对应为 0，实得 %.3f", got)
+	}
+}
+
+// newOverMaxCastRig 造一根"红区可超上限"的带轮装配：返回竿 GUID、满竿上限
+// 与探针会话。选 4.5 m 鲤鱼竿 + 5000 轮，满竿上限约 25.3 m——红区 ×1.3 会越过
+// 30 m 成就阶梯，正好用来验证收口是否作用到成就口径。
+func newOverMaxCastRig(t *testing.T, srv *Server) (string, float64, *Session) {
+	t.Helper()
+	const uid = int64(1000001)
+	rod, err := srv.CreateItem(t.Context(), uid, "carp_10139_13_4_50", "backpack", 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	reel, err := srv.CreateItem(t.Context(), uid, "spin_5002", "backpack", 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	line, err := srv.CreateItem(t.Context(), uid, "mono_40853", "backpack", 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	sess := newProbeSess(srv)
+	mountGearForTest(t, srv, sess, rod.GUID, reel.GUID)
+	mountGearForTest(t, srv, sess, rod.GUID, line.GUID)
+	if !srv.rigSetType(t.Context(), uid, rod.GUID, 16) {
+		t.Fatal("设置底钓 Method 钓组失败")
+	}
+	rigMax := srv.castDistanceForRig(t.Context(), uid, rod.GUID, 16).DistanceM
+	if rigMax <= 0 {
+		t.Fatalf("装配满竿上限未生效: %v", rigMax)
+	}
+	return rod.GUID, rigMax, sess
+}
+
+// castOverMaxRequest 提交一次红区抛投（requested = 上限 ×1.3）并返回本次
+// 收口后的实测距离。
+func castOverMaxRequest(t *testing.T, srv *Server, sess *Session, rodGUID string, rigMax float64) float64 {
+	t.Helper()
+	fields := make([]proto.Field, 8)
+	for i := range fields {
+		fields[i] = proto.Field{Op: "U32", Num: ptrU64(0)}
+	}
+	// f0 = requested（上限 ×1.3，模拟红区）；f8 常规全挥杆（BYTE，系数 1.0）。
+	fields[0] = proto.Field{Op: "U32", Num: ptrU64(uint64(proto.F32Bits(float32(rigMax * 1.3))))}
+	fields = append(fields, proto.Field{Op: "BYTE", Num: ptrU64(1)})
+	tree := proto.Args524(proto.Guid(rodGUID), proto.Obj("olieodeoaof", 0, fields...))
+	c := &Ctx{Sess: sess, Main: 14, Sub: 2, Tree: tree,
+		DecodeOK: true, ExpectResponse: true, Log: logging.Discard()}
+	if body, handled := hCast(c); !handled || len(body) == 0 {
+		t.Fatalf("14/2 未处理: handled=%v len=%d", handled, len(body))
+	}
+	st := srv.stateFor(sess.Userid)
+	st.mu.Lock()
+	defer st.mu.Unlock()
+	return st.CastM
+}
+
+// 红区收口：带轮装配 14/2 requested 超过满竿上限（158.f1×动作系数）时按
+// 上限收口——客户端功率条满格红区可把请求推到上限的 ~1.25 倍（2026-11-13
+// 实抓 51m/40.85m），官服拉满就是上限本身。
+func TestCastOverMaxRequestedClampsToRigMax(t *testing.T) {
+	srv, _ := newRigTestServer(t)
+	rodGUID, rigMax, sess := newOverMaxCastRig(t, srv)
+	castM := castOverMaxRequest(t, srv, sess, rodGUID, rigMax)
+	if math.Abs(castM-rigMax) > 1e-6 {
+		t.Fatalf("红区请求应按满竿上限收口: CastM=%g 上限=%g", castM, rigMax)
+	}
+}
+
+// 红区请求同样不能计入成就：成就阶梯用的是与资格判定同一个收口后距离。
+// 不修时 DistanceM 取 requested（上限 ×1.3），比上限高一级的阶梯会被白刷。
+func TestCastOverMaxRequestedDoesNotUnlockAchievements(t *testing.T) {
+	srv, _ := newRigTestServer(t)
+	rodGUID, rigMax, sess := newOverMaxCastRig(t, srv)
+	castM := castOverMaxRequest(t, srv, sess, rodGUID, rigMax)
+	if math.Abs(castM-rigMax) > 1e-6 {
+		t.Fatalf("前置条件：本次距离应已收口到上限，CastM=%g 上限=%g", castM, rigMax)
+	}
+	// 1000-1004 是 30/45/60/80/100 m 阶梯（achievements_rules.go）。
+	tiers := []struct {
+		id int64
+		m  float64
+	}{{1000, 30}, {1001, 45}, {1002, 60}, {1003, 80}, {1004, 100}}
+	states, err := srv.DB.PlayerAchievementStates(t.Context(), sess.Userid)
+	if err != nil {
+		t.Fatal(err)
+	}
+	above := 0
+	for _, tr := range tiers {
+		if rigMax > tr.m {
+			continue // 上限本身就过了这一档，收不收口都该解锁
+		}
+		above++
+		if states[tr.id].Unlocked {
+			t.Fatalf("红区请求（%.2f）不应解锁 %.0f m 成就 %d，实际上限只有 %.2f",
+				rigMax*1.3, tr.m, tr.id, rigMax)
+		}
+	}
+	if above == 0 {
+		t.Fatalf("用例前提不成立：上限 %.2f 已覆盖全部成就阶梯", rigMax)
+	}
+	// 正对照：把同一个 1.3 倍距离直接喂给成就规则，30 m 阶梯必须能解锁——
+	// 证明上面"没解锁"是收口的结果，而不是成就系统没跑起来。
+	srv.evaluateAchievements(&Ctx{Sess: sess, Main: 14, Sub: 2, Log: logging.Discard()},
+		achievementEvent{Kind: evCast, DistanceM: rigMax * 1.3})
+	states2, err := srv.DB.PlayerAchievementStates(t.Context(), sess.Userid)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !states2[1000].Unlocked {
+		t.Fatalf("正对照失败：直接喂 %.2f m 应解锁 30 m 成就", rigMax*1.3)
+	}
+}
+
+// 无轮手竿走旧协议基线（7.5m 是协议兼容位，不是真实上限），14/2 requested
+// 直通、不做红区收口（手竿距离对齐见 PR #457）。
+func TestCastRodlessKeepsRequestedOverLegacyMax(t *testing.T) {
+	srv, _ := newRigTestServer(t)
+	const uid = int64(1000001)
+	if _, err := srv.DB.EnsureProfile(t.Context(), uid); err != nil {
+		t.Fatal(err)
+	}
+	rod, err := srv.CreateItem(t.Context(), uid, "tele_10012_tl16", "backpack", 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	sess := newProbeSess(srv)
+	fields := make([]proto.Field, 8)
+	for i := range fields {
+		fields[i] = proto.Field{Op: "U32", Num: ptrU64(0)}
+	}
+	fields[0] = proto.Field{Op: "U32", Num: ptrU64(uint64(proto.F32Bits(50)))}
+	tree := proto.Args524(proto.Guid(rod.GUID), proto.Obj("olieodeoaof", 0, fields...))
+	c := &Ctx{Sess: sess, Main: 14, Sub: 2, Tree: tree,
+		DecodeOK: true, ExpectResponse: true, Log: logging.Discard()}
+	if body, handled := hCast(c); !handled || len(body) == 0 {
+		t.Fatalf("14/2 未处理: handled=%v len=%d", handled, len(body))
+	}
+	st := srv.stateFor(uid)
+	st.mu.Lock()
+	castM := st.CastM
+	st.mu.Unlock()
+	if castM != 50 {
+		t.Fatalf("无轮手竿红区请求应直通: CastM = %g，期望 50", castM)
 	}
 }
