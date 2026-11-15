@@ -42,6 +42,12 @@ func (s *Server) attachDB(db *store.DB, log *slog.Logger) {
 	} else if n > 0 {
 		s.log.Info("鱼口技能效果初始化", "inserted", n)
 	}
+	// 必须在 ensureFishSkillEffects 之后：先种鱼侧行再删，DELETE 才能站稳。
+	if n, err := s.ensureCastSkillEffects(context.Background()); err != nil {
+		s.log.Warn("抛投技能效果初始化失败", "err", err)
+	} else if n > 0 {
+		s.log.Info("抛投技能效果初始化", "inserted", n)
+	}
 	if err := s.reloadHookBiteProfiles(context.Background()); err != nil {
 		s.log.Warn("鱼钩型号咬口缓存加载失败", "err", err)
 	}
@@ -271,6 +277,23 @@ func (s *Server) mountedHookSubTree(ctx context.Context, gearGUID, hookGUID stri
 		}
 	}
 	return nil
+}
+
+// buildHookTreeByGUID 返回指定钩实例的物品树（裸钩形状）。
+// 多钩钓组按钩位逐枚挂鱼时用，与 buildMountedHookTree 取“线末端钩”不同。
+func (s *Server) buildHookTreeByGUID(ctx context.Context, hookGUID string) *proto.Value {
+	if s == nil || s.DB == nil || hookGUID == "" {
+		return nil
+	}
+	row, err := s.DB.GetItemByGUID(ctx, hookGUID)
+	if err != nil || row == nil {
+		return nil
+	}
+	tree, terr := s.ItemToTree(ctx, row)
+	if terr != nil {
+		return nil
+	}
+	return tree
 }
 
 // lureContainsHook 判断钩 GUID 是否为拟饵 gpoaffnjbdo 数组中的内置钩

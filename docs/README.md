@@ -26,6 +26,8 @@
 - [钓鱼状态恢复](fishing-state-recovery.md)：快照、重连与未结算鱼的恢复路径。
 - [护网与钓获记录同步](keepnet-synchronization.md)：入护、记录与库存一致性。
 - [当前装备的技能加成](equipped-fishing-skills.md)：装备加成如何进入判定。
+- [官方投距技能效果对照表](cast-skill-official-effects.md)：skill_cast_effect_def
+  的官方文案提取方法与逐节点对照。
 - [欢乐时光](happy-hour.md)：计时口径、加成数值与资格持久化。
 - [战利品箱](loot-box.md)：开箱产出与发放口径。
 - [弹弓投掷视觉](slingshot-throw-visual.md)：投掷外观与服务端校验的边界。
@@ -69,9 +71,17 @@
   间隔双峰签名 × 官方 lure2 抓包运行位对照的证据源；结论已正式化为
   specs/changes/lure-fight-mount-flags/spec.md。
 - [升级礼物卡片机制（完整还原）](LEVEL_UP_GIFT_CARDS.md)。
+- [咬钩→搏鱼→断线全链机制与模拟器差异分析（2026-11-12）](analysis-bite-hook-fight-line-break-2026-11-12.md)。
+- [客户端"脱钩/断线"本地判定机制专项调研（2026-11-12）](analysis-client-line-break-detection-2026-11-12.md)。
+- [四类钓法状态门与路亚线杯状态排查（2026-11-12）](analysis-fishing-method-state-gates-2026-11-12.md)。
+- [浮钓顺水漂流不发鱼排查（2026-11-12）](analysis-float-drift-fish-spawn-2026-11-12.md)。
+- [鱼脱钩（跑鱼）客户端/服务端判定机制分析（2026-11-12）](客户端结算脱钩逻辑分析.md)。
 - [入水证据官方报文核验与浮钓顺流修复方案（2026-11-13）](analysis-inwater-evidence-packet-verification-2026-11-13.md)：
   六份官方 pcap 全量解码 14/7 f5 位序；浮钓顺流/下沉与 14/3 入水证据修复
   （P1/P2/P3）的依据与方案存档。
+- [搏鱼脱钩根因与修复整体方案（2026-11-13）](搏鱼脱钩根因与修复整体方案-2026-11-13.md)：
+  海鱼静态参数缺口的根因定量与落表方案；结论已正式化为
+  specs/changes/fight-statics-official-tables/spec.md。
 
 ## 工程约定
 
