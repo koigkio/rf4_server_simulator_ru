@@ -368,8 +368,9 @@ func TestCastDistanceUsesMountedReelAndClip(t *testing.T) {
 	}
 }
 
-// TestReelSpoolCapacityMatchesGameData 用游戏内“线轴容量”读数锁定容量拟合式。
-// 2000 杯容量系数 100，4000 杯按 180。
+// TestReelSpoolCapacityMatchesGameData 锁定客户端 lkgakdhinig.jnidmcfnkgp
+// 的分段容量公式。实机 UI 锚点为 Overlord 3RS 20S（spin_5425）0.7mm/34m、
+// Adriatica 3000S（spin_5026）0.42mm/91m；其余是公式回归与边界用例。
 func TestReelSpoolCapacityMatchesGameData(t *testing.T) {
 	cases := []struct {
 		name     string
@@ -377,18 +378,51 @@ func TestReelSpoolCapacityMatchesGameData(t *testing.T) {
 		diameter float64
 		want     float64
 	}{
-		{"2000/0.14", 100, 0.14, 234},
-		{"2000/0.18", 100, 0.18, 154},
-		{"2000/0.22", 100, 0.22, 111},
-		{"4000/0.20", 180, 0.20, 245},
-		{"4000/0.24", 180, 0.24, 181},
-		{"4000/0.26", 180, 0.26, 168},
+		{"Overlord-3RS-20S/0.70", 100, 0.70, 34},
+		{"Adriatica-3000S/0.42", 120, 0.42, 91},
+		{"2000/0.14", 100, 0.14, 260},
+		{"2000/0.18", 100, 0.18, 171},
+		{"2000/0.22", 100, 0.22, 123},
+		{"4000/0.20", 180, 0.20, 260},
+		{"4000/0.24", 180, 0.24, 192},
+		{"4000/0.26", 180, 0.26, 178},
+		{"boundary/0.25", 100, 0.25, 100},
+		{"boundary/0.80", 100, 0.80, 23},
+		{"coarse/1.20", 100, 1.20, 12},
+		{"minimum/5m", 1, 0.70, 5},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			got := reelSpoolCapacityM(tc.coef, tc.diameter)
-			if math.Abs(got-tc.want)/tc.want > 0.10 {
-				t.Fatalf("容量 %.1fm，期望 %.0fm（误差>10%%）", got, tc.want)
+			if math.Abs(got-tc.want) > 1e-9 {
+				t.Fatalf("容量 %.0fm，期望 %.0fm", got, tc.want)
+			}
+		})
+	}
+}
+
+// TestReelSpoolCapacityUsesStaticItemAnchors 直接从静态物品读取线杯系数，
+// 锁住实机锚点对应的具体轮型和线材，避免把同系列不同系数的 20S 混用。
+func TestReelSpoolCapacityUsesStaticItemAnchors(t *testing.T) {
+	srv, _ := newRigTestServer(t)
+	ctx := context.Background()
+	const uid = int64(1000001)
+	cases := []struct {
+		name, reelID, lineID string
+		want                 float64
+	}{
+		{"Overlord 3RS 20S / 0.70mm", "spin_5425", "wireline_40813", 34},
+		{"Adriatica 3000S / 0.42mm", "spin_5026", "wrl_sim_pfc_21LB", 91},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			reel, err := srv.CreateItem(ctx, uid, tc.reelID, "backpack", 1)
+			if err != nil {
+				t.Fatal(err)
+			}
+			_, _, got := srv.castReelSpoolStats(ctx, reel, tc.lineID)
+			if got != tc.want {
+				t.Fatalf("静态轮型 %s / 线材 %s 容量=%0.fm，期望 %0.fm", tc.reelID, tc.lineID, got, tc.want)
 			}
 		})
 	}
