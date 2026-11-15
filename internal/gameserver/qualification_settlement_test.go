@@ -70,16 +70,20 @@ func TestQualificationBiteSnapshotSurvivesBaitConsumption(t *testing.T) {
 		t.Fatalf("咬钩夜间标记 = %v，期望 %v", pending.IsNight, nowNight)
 	}
 
-	// 14/11 中鱼会消耗并删除挂载的天然饵子实例。
+	// 14/11 中鱼确认不再扣饵（扣饵挪到搏鱼终局，specs/changes/bait-consume-fight-end）：
+	// 天然饵子实例仍挂在钩上，让客户端搏鱼 ctor 读到完整挂载态。
 	hFishingHooked(miscCtx(sess, 14, 11, rigRequestTree(t, proto.Guid(rod.GUID))))
-	if row, _ := db.GetItemByGUID(t.Context(), baitChild); row != nil {
-		t.Fatalf("14/11 后天然饵子实例应已删除: %+v", row)
+	if row, _ := db.GetItemByGUID(t.Context(), baitChild); row == nil {
+		t.Fatal("14/11 中鱼确认不应扣饵，天然饵子实例应仍在钩上")
 	}
 
-	// 14/4 结算仍必须能按快照累计「使用天然饵」任务 4003。
+	// 14/4 结算即搏鱼终局：终局扣饵删除子实例，结算仍按快照累计「使用天然饵」任务 4003。
 	ctx14 := &Ctx{Sess: sess, Main: 14, Sub: 4, ExpectResponse: true, Log: logging.Discard()}
 	if body, ok := s.fishingEndSettle(ctx14); !ok || len(body) == 0 {
 		t.Fatalf("14/4 未处理: ok=%v bytes=%d", ok, len(body))
+	}
+	if row, _ := db.GetItemByGUID(t.Context(), baitChild); row != nil {
+		t.Fatalf("14/4 终局扣饵后天然饵子实例应已删除: %+v", row)
 	}
 	states, err := db.QualificationStates(t.Context(), uid)
 	if err != nil {

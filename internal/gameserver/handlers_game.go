@@ -1413,11 +1413,11 @@ func hFishingHooked(ctx *Ctx) ([]byte, bool) {
 		ctx.Log.Info("14/11 嘬饵未中钩，重新排鱼", "fish", shortGUID(fishGUID), "species", species)
 		return nil, true
 	}
-	if pending != nil {
-		if err := srv.consumeHookedBait(ctx.Sess, pending, gear); err != nil {
-			ctx.Log.Warn("中鱼后鱼饵扣减失败", "fish", pending.FishGUID, "err", err)
-		}
-	}
+	// 扣饵不在中鱼确认瞬间执行：此时客户端搏鱼 ctor 正在读取挂载态，扣饵
+	// 触发的 4/21 + 竿树重建 4/22（f5 去饵、flags=定义基值缺挂载运行位）会
+	// 让钩组/传动链构造失败 → f4=0 → 秒脱（specs/changes/bait-consume-fight-end）。
+	// 扣饵挪到搏鱼终局：14/12 跑鱼 / 14/5 入护 / 14/6 放生 / 14/4 收竿，
+	// 共享 txn(uid,'bait_bite',FishGUID) 幂等键，先到先扣。
 
 	// 登录恢复/提前起竿：复用完整判鱼链（概率、GM、装备限重、mounted hook），
 	// 保留本次 Hooked=true；不能直接 roll 后把竿 guid 当 f23。
@@ -1632,6 +1632,14 @@ func hFishingLeft(ctx *Ctx) ([]byte, bool) {
 		} else {
 			ctx.Log.Info("14/12 鱼未上钩离场，官方静默", "f0", f0, "hooked", hooked)
 		}
+		// 扣饵在搏鱼终局（此处客户端已离开搏鱼态）执行：中鱼确认瞬间扣饵会
+		// 打断搏鱼 ctor（specs/changes/bait-consume-fight-end）。幂等键
+		// txn(uid,'bait_bite',FishGUID)，与 14/5/14/6/14/4 先到先扣。
+		if hooked && pending != nil {
+			if err := srv.consumeHookedBait(ctx.Sess, pending, rodGUID); err != nil {
+				ctx.Log.Warn("脱钩后鱼饵扣减失败", "fish", pending.FishGUID, "err", err)
+			}
+		}
 		// 这一尾鱼的渔轮账到此为止，先落库再排下一尾。
 		srv.settleFightReelWearState(srv.dbCtx(), st, ctx.Sess.Userid, "14/12")
 		// 多钩：当前这条走了，队列里还有就立刻接管，不重新排咬钩。
@@ -1653,6 +1661,7 @@ func hFishingLeft(ctx *Ctx) ([]byte, bool) {
 	alreadyResolved := st.Resolved
 	hooked := st.Hooked
 	loc, spot := st.Loc, st.Spot
+	rodGUID := st.GearGuid
 	st.Resolved = true
 	st.Pending = nil
 	st.Hooked = false
@@ -1668,6 +1677,12 @@ func hFishingLeft(ctx *Ctx) ([]byte, bool) {
 		ctx.Log.Info("14/12 未知帧已中鱼跑鱼，按真脱钩播报", "f0", f0)
 	} else {
 		ctx.Log.Info("14/12 未知帧鱼未上钩，不记脱钩补偿", "f0", f0, "hooked", hooked)
+	}
+	// 扣饵在搏鱼终局执行（与 14/12 已知帧分支 / 14/5 / 14/6 / 14/4 共享幂等键）。
+	if hooked && pending != nil {
+		if err := srv.consumeHookedBait(ctx.Sess, pending, rodGUID); err != nil {
+			ctx.Log.Warn("脱钩后鱼饵扣减失败", "fish", pending.FishGUID, "err", err)
+		}
 	}
 	return nil, true
 }
