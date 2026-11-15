@@ -1,9 +1,9 @@
 # 咬钩→搏鱼→断线全链机制与模拟器差异分析（2026-11-12）
 
 数据来源：
-- 客户端反编译源码 `E:\RF4\cs\il2csharp_full`（混淆名，本文保留原样并附语义）
+- 客户端反编译源码（本机逆向资料，混淆名，本文保留原样并附语义）
 - 官方服抓包 `logs/captures/diaodiao2/`（2026-11-11"底钓2"会话，含官方黑草 b_carp 7828g 中鱼样本 + 274 个搏鱼期 4/22 + `timeline.json`）
-- 模拟器实测日志 `D:\QQFiles\858037698\FileRecv\gameserver - 副本.log`（2026-11-12 13:10~13:45 会话 sid=2，黑草连竿）
+- 模拟器实测日志（本机 gameserver 日志，2026-11-12 13:10~13:45 会话 sid=2，黑草连竿；含登录态，不随仓分发）
 - 曲线池数据 `internal/gameserver/assets/fight_curves_sets.json`
 
 标注约定：【实证】= 逐帧/源码验证；【推断】= 证据充分但未 100% 闭环。
@@ -200,9 +200,9 @@ geoplfemoon 三门控（gfgapohfogm.cs:75-90）：鱼表行带 `aebkednfafb`（f
 | 官方黑草 14/14（27对象+13条曲线真值） | logs/captures/diaodiao2/dd2_1414_950.hex |
 | 官方搏鱼期 4/22（274 帧） | logs/captures/diaodiao2/dd2_422_*.hex |
 | 官方会话时间线 | logs/captures/diaodiao2/timeline.json |
-| 官方底钓2 原始 pcap | tools/wireshark/底钓2.pcapng |
-| 模拟器实测日志（黑草连竿） | D:\QQFiles\858037698\FileRecv\gameserver - 副本.log（勿外传，含 token） |
+| 官方底钓2 原始 pcap | 本机抓包（底钓2.pcapng，不随仓分发） |
+| 模拟器实测日志（黑草连竿） | 本机 gameserver 日志（含登录态，不随仓分发） |
 | 曲线池数据 | internal/gameserver/assets/fight_curves_sets.json |
 | 池映射 | internal/gameserver/fish_fight_profile.go:22-33 |
-| 客户端源码根 | E:\RF4\cs\il2csharp_full\il2csharp_full\Assembly-CSharp\ |
+| 客户端源码根 | 本机反编译源码根（Assembly-CSharp 目录） |
 | 关键客户端类 | deghjmihlcf(14系收发) / gfgapohfogm(搏鱼态) / naihiiaooka(状态基类+f23校验) / llkfcijmgfd+dnblinaache+paldjjcggdd(机动引擎) / kldglnchdec+kejihbadeej(搏鱼参数/体力) / FishingSet(断线判定:1652,6016-6072) / dgmaokfcpke(线组件上限) / komaddgfhmo(14/8快照) |

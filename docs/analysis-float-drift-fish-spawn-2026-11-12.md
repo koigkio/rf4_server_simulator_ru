@@ -1,7 +1,7 @@
 # 浮钓顺水漂流不发鱼排查
 
 > 排查日期：2026-11-12
-> 
+>
 > 范围：服务端浮钓发鱼链路、14/7 钓组动画状态、客户端动作位定义。
 
 ## 结论
@@ -77,7 +77,7 @@ const (
 
 位置：`internal/gameserver/fish_ecology.go:410-415`。
 
-本地客户端逆向资料 `E:\RF4\cs\ida-docs\enums\fhiclnhgoge.md` 也将数值 64 对应为 `StreamMoving`，并记录为顺流移动。
+本地客户端逆向资料（本机 IDA 文档，枚举 `fhiclnhgoge` 的 `StreamMoving`）也将数值 64 对应为 `StreamMoving`，并记录为顺流移动。
 
 ### 4. 浮钓类型确实走这条通用门
 
@@ -106,7 +106,7 @@ Pending    = nil
 
 但是这套动作掩码只参与拟饵规则和生态权重，不能解除核心发鱼流程的 `InWater` 门槛。当前代码因此出现“漂流动作判定认可，发鱼入口不认可”的口径分裂。
 
-另外，`E:\RF4\cs\ida-docs\object_chains\fishing_rest.md` 仍保留旧版“14/7 的 `flag&0x200` 触发判鱼”描述。当前服务端已经改为“延迟定时器 + 入水状态门 + `rollFishForRig`”，该文档与现行实现不是同一套时序，应在后续协议资料整理时单独校准。
+另外，本机 IDA 文档（对象链 `fishing_rest`）仍保留旧版“14/7 的 `flag&0x200` 触发判鱼”描述。当前服务端已经改为“延迟定时器 + 入水状态门 + `rollFishForRig`”，该文档与现行实现不是同一套时序，应在后续协议资料整理时单独校准。
 
 ## 建议修复
 

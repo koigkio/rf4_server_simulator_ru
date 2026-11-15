@@ -1,11 +1,11 @@
 # 客户端"脱钩/断线"本地判定机制专项调研（2026-11-12）
 
-> 本文是针对客户端反编译源码（`E:\RF4\cs\il2csharp_full`）的专项调研结论，聚焦一个问题：
+> 本文是针对客户端反编译源码（本机逆向资料）的专项调研结论，聚焦一个问题：
 > **玩家看到的"脱钩"到底是客户端判断还是服务器判断？客户端的判定逻辑是什么？**
 > 实测对照数据（2026-11-12 中午模拟器会话）附于文末。
 > 全链对照与根因汇总见 `docs/analysis-bite-hook-fight-line-break-2026-11-12.md`。
 
-所有路径均在 `E:\RF4\cs\il2csharp_full\il2csharp_full\Assembly-CSharp\` 下（混淆名保留原样）。
+所有路径均在 `Assembly-CSharp/` 目录下（混淆名保留原样；本机目录不随仓分发）。
 
 ---
 
@@ -199,5 +199,5 @@ main=14 的接收处理器：`gdpondeemjf : hblakcbejpa`（`gdpondeemjf.cs:3-6`�
 
 - 全链分析（咬钩→搏鱼→断线 + 根因汇总）：`docs/analysis-bite-hook-fight-line-break-2026-11-12.md`
 - 官方黑草抓包：`logs/captures/diaodiao2/`（`dd2_1414_950.hex` = 27 对象真值 + 13 条曲线；`dd2_422_*.hex` = 搏鱼期装备快照）
-- 模拟器实测日志（2026-11-12 13:10~13:45 会话，含 17/9 断线逐帧时序）：`D:\QQFiles\858037698\FileRecv\gameserver - 副本.log`（含登录态，勿外传）
+- 模拟器实测日志（2026-11-12 13:10~13:45 会话，含 17/9 断线逐帧时序）：本机 gameserver 日志（含登录态，不随仓分发）
 - 曲线池数据：`internal/gameserver/assets/fight_curves_sets.json`

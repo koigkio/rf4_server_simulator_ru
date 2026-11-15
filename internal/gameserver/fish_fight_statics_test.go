@@ -81,7 +81,8 @@ func TestFishFightStaticsF19FloatRigFallback(t *testing.T) {
 
 // TestFishFightStaticsGroupFallback 未实测种走习性组兜底：menek → 海水组
 // （merlang+piksha 两点均值）、karasekarp → 鲤科组、salmonid 等其余组与
-// 未命中 → fallbackFightStatics 第三层（保持现状）。
+// 未命中 → fallbackFightStatics 第三层（保持现状）。另钉大型海鱼（金枪/大比目鱼）
+// 与鲤科变种，避免组回退只被 menek/karasekarp 一条断言发现。
 func TestFishFightStaticsGroupFallback(t *testing.T) {
 	m := fight27StaticsFor("menek", 22800, 2)
 	for _, c := range []struct {
@@ -97,10 +98,21 @@ func TestFishFightStaticsGroupFallback(t *testing.T) {
 			t.Errorf("menek（海水组）%s=%v，组均值 %v", c.name, c.got, c.want)
 		}
 	}
+	// 大型海鱼与普通海鱼同组：组参数是常数，不随体重缩放。
+	for _, sp := range []string{"thynnus_t", "halibut_b"} {
+		g := fight27StaticsFor(sp, 120000, 2)
+		if g.f14 != 22.5 || g.f15 != 225 || g.f16 != 0.19048 {
+			t.Errorf("%s（大型海鱼）应走海水组：f14=%v f15=%v f16=%v", sp, g.f14, g.f15, g.f16)
+		}
+	}
 	k := fight27StaticsFor("karasekarp", 5000, 2)
 	if k.f13 != 0.35 || k.f14 != 1.0 || k.f15 != 6 || k.f16 != 1.0 || k.f17 != 0.93 {
 		t.Errorf("karasekarp（鲤科组）静态参数不符：f13=%v f14=%v f15=%v f16=%v f17=%v",
 			k.f13, k.f14, k.f15, k.f16, k.f17)
+	}
+	// 变种同样归鲤科组（g_carp_albino 不在逐种表，但不应掉到第三层）。
+	if v := fight27StaticsFor("g_carp_albino", 5000, 2); v.f14 != 1.0 || v.f16 != 1.0 {
+		t.Errorf("g_carp_albino（鲤科变种）应走鲤科组：f14=%v f16=%v", v.f14, v.f16)
 	}
 	fb := fight27StaticsFor("riv_rb_trout", 1000, 2)
 	if fb.f14 != 0.5 || fb.f16 != 0.833907 || fb.f20 != 0.997804 {
@@ -119,6 +131,12 @@ func TestFishStaminaRateGroupFor(t *testing.T) {
 	if got := srv.fishStaminaForProfile(&RolledFish{Species: "karasekarp", WeightG: 5000}, profile); math.Abs(got-2.5*5000) > 1e-6 {
 		t.Errorf("karasekarp 体力=%v，应 2.5/g×5000", got)
 	}
+	if got := srv.fishStaminaForProfile(&RolledFish{Species: "thynnus_t", WeightG: 120000}, profile); math.Abs(got-8.445*120000) > 1e-6 {
+		t.Errorf("thynnus_t（大型海鱼）体力=%v，应 8.445/g×120000（组均值不乘 StaminaScale）", got)
+	}
+	if got := srv.fishStaminaForProfile(&RolledFish{Species: "g_carp_albino", WeightG: 5000}, profile); math.Abs(got-2.5*5000) > 1e-6 {
+		t.Errorf("g_carp_albino（鲤科变种）体力=%v，应 2.5/g×5000", got)
+	}
 	if got := srv.fishStaminaForProfile(&RolledFish{Species: "riv_rb_trout", WeightG: 1000}, profile); math.Abs(got-verifiedStaminaPerGram*1000*1.5) > 1e-6 {
 		t.Errorf("riv_rb_trout 体力=%v，应旧口径 2.388×1000×1.5", got)
 	}
@@ -130,6 +148,9 @@ func TestFishF6MarineGroupFallback(t *testing.T) {
 	srv := &Server{}
 	if got := srv.fishF6For(&RolledFish{Species: "menek", WeightG: 22800}); got != 0.50 {
 		t.Errorf("menek f6=%v，海水组应 0.50", got)
+	}
+	if got := srv.fishF6For(&RolledFish{Species: "thynnus_t", WeightG: 120000}); got != 0.50 {
+		t.Errorf("thynnus_t f6=%v，大型海鱼同走海水组 0.50", got)
 	}
 	if got := srv.fishF6For(&RolledFish{Species: "riv_rb_trout", WeightG: 1000}); got != srv.fishInitialStaminaRatio() {
 		t.Errorf("riv_rb_trout f6=%v，未命中组应旧常数 %v", got, srv.fishInitialStaminaRatio())

@@ -18,8 +18,8 @@ f0=1 秒脱钩 2 起）。根因是发鱼参数缺口：海鱼种没有官方静
 - f5 每克体力池：官方海鱼 6.4~10.5 vs 未测种旧口径 2.388×Scale（差 ~2.5 倍）。
 
 对照样本中脱钩鱼体力都没耗尽（menek 逃走时还剩 87%），是钩先掉——"体力 vs 钩保持"
-赛跑输在钩保持。词表还有一处误判：piksha（海水鲽科）被 `fishFightArchetypeFor`
-按 "pike" 子串归进淡水伏击组。
+赛跑输在钩保持。词表还有一处误判：piksha（海水鲽科）此前被显式列在 ambush
+关键词表里（淡水伏击组）。
 
 ## Solution
 
@@ -53,6 +53,11 @@ f16≈0.19、f5≈8.4/g，鲤科未测种 f14=1.0、f15=6、f16=1.0、f5=2.5/g�
   均值（鳕科/鲽科细分待 P3 锚点补抓）；鲤科组 f9 沿用 g_carp pow、其余取方案
   约值。f5 组回退：海水 8.445/g、鲤科 2.5/g（官方口径直接 rate×体重，不乘
   StaminaScale）；f6 组回退仅海水组 0.50。
+  影响面（2026-11-15 按 252 个鱼种枚举复核）：组兜底换 27 静态参数的共 61 种
+  —— 海水组 25 种（含 `thynnus_t`/`halibut_b`/`halibut_w`/`atl_cod`/`coalfish`
+  与各鲱鱼）、鲤科组 36 种（含 `carp`/`g_carp` 的 albino/ghost/red 变种）；
+  其余 176 种仍走第三层。海水组参数由 252g/2975g 两点均值外推，大体重海鱼
+  （金枪/大比目鱼）偏离锚点时精度未知，靠 P3 补抓锚点收敛。
 - C. 词表修正：piksha 移出 ambush 关键词；menek/agar/warm/merlang 补进 marine
   （merlang 此前落 default 组，方案 §五B 归组明确其属海水组）。CurvePool 随
   marine 归 perch 池（现有海兜底池，302 主导形状与官方一致），不再落 crucian 池。
@@ -69,6 +74,8 @@ f16≈0.19、f5≈8.4/g，鲤科未测种 f14=1.0、f15=6、f16=1.0、f5=2.5/g�
     覆盖）钉 f9~f11/f13~f18/f20，容差 ±2%（g_carp 行 ±3%：f9 五样本 pow 拟合
     最大残差 2.7%）。期望值 = 抓包解码真值，非同代码复算。
   - 组兜底：menek（海水组）钉 f9/f14/f16/f20 与 f5 每克 8.445、f6 0.50；
+    thynnus_t/halibut_b（大型海鱼走同一组）与 g_carp_albino（鲤科变种）钉组值，
+    保证组回退或词表回滚不只被 menek/karasekarp 一条断言发现；
     karasekarp（鲤科组）钉 f14=1.0/f16=1.0/f5 每克 2.5；未命中种钉 f14=0.5
     （第三层不变）。
   - 词表：piksha/menek/agar/warm/merlang → marine（CurvePool=perch），
@@ -105,7 +112,10 @@ f16≈0.19、f5≈8.4/g，鲤科未测种 f14=1.0、f15=6、f16=1.0、f5=2.5/g�
   均值对中间体重的误差未知；P3 §四已列绿青鳕/单鳍鳕补抓为第三锚点。
 - `[推断]` 单样本种（b_carp/carp/n.pike/merlang/piksha/taran/b_gill）f9~f11 存
   常数，体重偏离样本点时精度未知；spec 与代码注释均标"待补包改 pow"。
-- `[事实]` 词表误判：`fishFightArchetypeFor("piksha")` 命中 ambush（"pike" 子串），
-  实测为海水鲽科；menek/agar/warm 落 default（crucian 池）。
+- `[事实]` 词表误判：`fishFightArchetypeFor("piksha")` 命中 ambush——ambush 关键词
+  表里**显式**列了 `"piksha"`（不是子串匹配；`has` 是 `strings.Contains`，
+  "piksha" 不含 "pike"）。实测为海水鲽科；menek/agar/warm 落 default（crucian 池）。
+  注意：piksha 的组归属移动对行为中性——ambush 与 marine 的 CurvePool 同为 perch，
+  且 piksha 的 f5/f6 早已在逐种表中，实际修复来自官方 statics 落表。
 - 样本档位（f2 解码）：g_carp ×5 全 grade 2；b_carp/taran/n.pike/piksha grade 2；
   carp/merlang/b_gill grade 1。
