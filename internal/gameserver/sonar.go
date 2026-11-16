@@ -3,7 +3,6 @@ package gameserver
 import (
 	"context"
 	"database/sql"
-	_ "embed"
 	"encoding/json"
 	"fmt"
 	"math"
@@ -14,15 +13,15 @@ import (
 	"sync/atomic"
 	"time"
 
+	"rf4server/internal/fishmaps"
 	"rf4server/internal/proto"
 	"rf4server/internal/store"
 	"rf4server/internal/wiregen"
 )
 
 // 声呐网格资产；文件定义各水域的网格几何、单元格顺序和采样参数。
-//
-//go:embed assets/sonar_grids_4_0_24799.json
-var sonarGridsJSON []byte
+// 资产正本在 internal/fishmaps（与后台海图渲染共用同一副本），此处只解析。
+var sonarGridsJSON = fishmaps.SonarGridsJSON()
 
 const (
 	sonarResponseClass = "efnipphkbce"
