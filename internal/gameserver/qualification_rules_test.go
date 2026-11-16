@@ -1129,7 +1129,7 @@ func TestQualificationRule7002PelletFlavors(t *testing.T) {
 	}
 }
 
-// 5007 条件字段：竿型/硬度/顺流位应下发到客户端「鱼竿」文案。
+// 5007 条件字段使用官服静态规则；4502 覆盖竿型、硬度、鱼档位、重量、线型和线强。
 func TestQualificationRule5007Conditions(t *testing.T) {
 	decode := func(ruleID uint64) *proto.Value {
 		t.Helper()
@@ -1155,69 +1155,31 @@ func TestQualificationRule5007Conditions(t *testing.T) {
 		return out
 	}
 
-	r1001 := decode(1001)
-	if got := uint32(*r1001.Fields[4].Num); got != 2 {
-		t.Fatalf("1001 钓组大类应为 2（路亚），实得 %d", got)
+	r4502 := decode(4502)
+	if got := u32s(r4502.Fields[5].Val); len(got) != 1 || got[0] != 3 {
+		t.Fatalf("4502 竿型应为 [3]，实得 %v", got)
 	}
-	if v := r1001.Fields[5].Val; v != nil && len(v.Items) > 0 {
-		t.Fatalf("1001 文案未限定竿型，Idx5 不应下发，实得 %v", v)
+	if got := u32s(r4502.Fields[6].Val); len(got) != 1 || got[0] != 1 {
+		t.Fatalf("4502 竿硬度应为 [1]，实得 %v", got)
 	}
-
-	// 3001「轻型渔具」也不写竿型，只有硬度档。
-	r3001 := decode(3001)
-	if v := r3001.Fields[5].Val; v != nil && len(v.Items) > 0 {
-		t.Fatalf("3001 文案未限定竿型，Idx5 不应下发，实得 %v", v)
+	if got := u32s(r4502.Fields[12].Val); len(got) != 2 || got[0] != 3 || got[1] != 4 {
+		t.Fatalf("4502 鱼档位应为 [3,4]，实得 %v", got)
 	}
-	if got := u32s(r3001.Fields[6].Val); len(got) != 2 || got[0] != 1 || got[1] != 2 {
-		t.Fatalf("3001 硬度应为 [1,2]，实得 %v", got)
+	if got := uint32(*r4502.Fields[14].Num); got != 0x3f000000 {
+		t.Fatalf("4502 最低重量位模式应为 0x3f000000，实得 %#x", got)
 	}
-
-	// 3302「轻型纺车竿」是文案里明确写出的竿型。
-	r3302 := decode(3302)
-	if got := u32s(r3302.Fields[5].Val); len(got) != 1 || got[0] != 1 {
-		t.Fatalf("3302 竿型应为 [1]，实得 %v", got)
+	if got := uint32(*r4502.Fields[15].Num); got != 0x7f7fffff {
+		t.Fatalf("4502 最高重量位模式应为 float32 max，实得 %#x", got)
 	}
-
-	// 回归（玩家反馈 纺车 5-2/6-1）：1402 文案点名「抽停硬饵钓组」，客户端
-	// pgjliohpiie 只允许抽停竿(12)装 rig 22，故 Idx5 必须是 [12]；
-	// 1501 只写「水表路亚」，文案没限定竿型，不下发 Idx5。
-	r1402 := decode(1402)
-	if got := uint32(*r1402.Fields[4].Num); got != 2 {
-		t.Fatalf("1402 钓组大类应为 2（路亚），实得 %d", got)
+	if got := u32s(r4502.Fields[22].Val); len(got) != 2 || got[0] != 1 || got[1] != 2 {
+		t.Fatalf("4502 线型应为 [1,2]，实得 %v", got)
 	}
-	if got := u32s(r1402.Fields[5].Val); len(got) != 1 || got[0] != 12 {
-		t.Fatalf("1402 竿型应为 [12]（抽停竿），实得 %v", got)
-	}
-	r1501 := decode(1501)
-	if v := r1501.Fields[5].Val; v != nil && len(v.Items) > 0 {
-		t.Fatalf("1501 文案未限定竿型，Idx5 不应下发，实得 %v", v)
+	if got := uint32(*r4502.Fields[23].Num); got != 0x3fc00000 {
+		t.Fatalf("4502 线强上限位模式应为 1.5，实得 %#x", got)
 	}
 
-	// 硬度档也按文案：3003/4303 只写「超轻」→ [1]；3102 写「轻型或超轻型」→ [1,2]。
-	r3003 := decode(3003)
-	if got := u32s(r3003.Fields[6].Val); len(got) != 1 || got[0] != 1 {
-		t.Fatalf("3003 硬度应为 [1]（文案只写超轻），实得 %v", got)
-	}
-	r3102 := decode(3102)
-	if got := u32s(r3102.Fields[6].Val); len(got) != 2 || got[0] != 1 || got[1] != 2 {
-		t.Fatalf("3102 硬度应为 [1,2]（文案写轻型或超轻型），实得 %v", got)
-	}
-	r4303 := decode(4303)
-	if got := u32s(r4303.Fields[6].Val); len(got) != 1 || got[0] != 1 {
-		t.Fatalf("4303 硬度应为 [1]（文案只写超轻），实得 %v", got)
-	}
-
-	r5002 := decode(5002)
-	if got := uint32(*r5002.Fields[27].Num); got != 64 {
+	if got := uint32(*decode(5002).Fields[27].Num); got != 64 {
 		t.Fatalf("5002 应带顺流位 64，实得 %d", got)
-	}
-	r7001 := decode(7001)
-	if v := r7001.Fields[5].Val; v != nil && len(v.Items) > 0 {
-		t.Fatalf("7001 文案未限定竿型，Idx5 不应下发，实得 %v", v)
-	}
-	r8001 := decode(8001)
-	if v := r8001.Fields[5].Val; v != nil && len(v.Items) > 0 {
-		t.Fatalf("8001 文案未限定竿型，Idx5 不应下发，实得 %v", v)
 	}
 }
 
