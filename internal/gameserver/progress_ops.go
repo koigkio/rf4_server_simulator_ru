@@ -404,13 +404,6 @@ func (s *Server) fishingEndSettle(ctx *Ctx) ([]byte, bool) {
 			ctx.ReplyFailure("System.IO.IOException", "钓获结算未能保存，请重试")
 			return nil, true
 		}
-		// 本尾鱼让某分支最后一条任务达标时，整分支完成发奖杯（kv 幂等，
-		// 重放不发）；奖杯挂 801.f8 奖励列表并在响应后推 4/22。
-		if !res.replayed && len(qualChanges) > 0 {
-			qualCups = s.ensureQualificationCups(cctx, uid)
-			// 阶段礼物：本尾鱼让某阶段最后一条可见任务达标时按配置发放（kv 幂等）。
-			stageGifts = s.ensureEventStageGifts(cctx, uid)
-		}
 		stats813 = s.buildSettle813(cctx, uid, pending, res)
 		profileTree, _ = s.BuildProfile307W(cctx, uid, worldTotalGameMin(time.Now()))
 		skill312 = s.buildSingleSkill312(cctx, uid, res.skillID)
@@ -435,6 +428,22 @@ func (s *Server) fishingEndSettle(ctx *Ctx) ([]byte, bool) {
 		// 主鱼咬钩未刺中就收竿：本杆没有有效渔获，额外鱼同样按脱落处理，
 		// 不能留到 14/5 被当成"入护"结掉。
 		ctx.Log.Info("14/4 未刺中收竿：额外鱼一并脱落", "rod", shortGUID(gearGUID), "条数", dropped)
+	}
+	// 同一任务的后续鱼包含累计进度，覆盖主鱼的旧值后一次下发。
+	for _, extra := range extraResults {
+		for id, state := range extra.qualChanges {
+			if qualChanges == nil {
+				qualChanges = make(map[int64]store.QualificationState)
+			}
+			qualChanges[id] = state
+		}
+	}
+	if hasFish && len(qualChanges) > 0 {
+		// 最后一项也可能由额外鱼完成；所有鱼结算后巡检，发杯仍按 kv 幂等。
+		qualCups = s.ensureQualificationCups(cctx, uid)
+		if !res.replayed {
+			stageGifts = s.ensureEventStageGifts(cctx, uid)
+		}
 	}
 
 	// 801 即使空竿也返回完整对象，f0/f6/f7 为 null。

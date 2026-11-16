@@ -186,10 +186,17 @@ func qualificationStageList(branch uint64) *proto.Value {
 func qualificationTaskList(branch, stage uint64) *proto.Value {
 	tasks := make([]*proto.Value, 0, qualificationTasks)
 	for task := uint64(1); task <= qualificationTasks; task++ {
+		ruleID := qualificationRuleID(branch, stage, task)
+		rule := qualificationRule(ruleID)
+		// 这些海洋任务只限制水域，不额外要求海钓钓组。
+		switch ruleID {
+		case 8001, 8002, 8003, 8103, 8201, 8203, 8301,
+			8401, 8402, 8501, 8503, 8601, 8602, 8603:
+			rule.Fields[9].Val = proto.U32Arr([]uint32{})
+		}
 		tasks = append(tasks, proto.Obj("gjbbiokohda", 5019,
 			proto.Field{Op: "BYTE", Num: ptrU64(0)}, // Idx0 枚举 fidehpgfmmo（仅成员 0）
-			proto.Field{Op: "VAL", Val: proto.Args(proto.S("204"),
-				qualificationRule(qualificationRuleID(branch, stage, task)))},
+			proto.Field{Op: "VAL", Val: proto.Args(proto.S("204"), rule)},
 		))
 	}
 	return proto.Args(proto.S("216"), tasks...)
