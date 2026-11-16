@@ -164,8 +164,8 @@ func TestFishF6MarineGroupFallback(t *testing.T) {
 }
 
 // TestFishFightArchetypeMarineKeywords 词表修正：piksha 移出 ambush（实测海水
-// 鲽科）、menek/agar/warm/merlang 补进 marine（CurvePool 随 marine 归 perch 池，
-// 不再落 crucian 池）；词表其余判定不回退。
+// 鲽科）、menek/agar/warm/merlang 补进 marine（CurvePool 随 marine 归官方
+// merlang 池，不再落 crucian 池）；词表其余判定不回退。
 func TestFishFightArchetypeMarineKeywords(t *testing.T) {
 	for _, sp := range []string{"piksha", "menek", "agar", "warm", "merlang", "coalfish", "m_scorpius"} {
 		if arch := fishFightArchetypeFor(sp); arch != fishFightArchetypes["marine"] {
