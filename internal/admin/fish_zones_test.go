@@ -95,6 +95,7 @@ func TestFishZoneAPI(t *testing.T) {
 		`{"loc":"x","kind":"grid_rect","gx0":0,"gx1":1,"gz0":0,"gz1":1,"mode":"weird"}`,
 		`{"loc":"x","kind":"grid_rect","gx0":0,"gx1":1,"gz0":0,"gz1":1,"mode":"exclusive","fish":[{"fish_key":"no_such_fish","weight":1,"enabled":true}]}`,
 		`{"loc":"x","kind":"grid_rect","gx0":0,"gx1":1,"gz0":0,"gz1":1,"mode":"boost","boost":999,"fish":[]}`,
+		`{"loc":"x","kind":"grid_rect","gx0":0,"gx1":1,"gz0":0,"gz1":1,"mode":"boost","boost":0,"fish":[]}`,
 	} {
 		if code, out := call("POST", "/api/fish/zones", bad); code == 200 {
 			t.Fatalf("invalid zone accepted: %s -> %v", bad, out)
