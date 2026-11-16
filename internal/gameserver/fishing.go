@@ -1869,9 +1869,9 @@ func (s *Server) fishMarineGroupHit(species string) bool {
 }
 
 // fishCurveArchetypeFor 曲线池/耐力层的海图归属兜底：词表把海鱼落进
-// default/small 两个通用桶时改归 marine（perch 曲线池、耐力倍率 1.18），
-// 与搏鱼脱钩方案 §五B「组键也回退 CurvePool」同口径；apex/catfish/sturgeon
-// 等专属词表携带刻意的家族特化，不覆盖。
+// default/small 两个通用桶时改归 marine（官方 merlang 曲线池、耐力倍率
+// 1.18），与搏鱼脱钩方案 §五B「组键也回退 CurvePool」同口径；
+// apex/catfish/sturgeon 等专属词表携带刻意的家族特化，不覆盖。
 func fishCurveArchetypeFor(species string, marine bool) fishFightArchetype {
 	arch := fishFightArchetypeFor(species)
 	if !marine {
