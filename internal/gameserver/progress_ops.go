@@ -387,11 +387,10 @@ func (s *Server) fishingEndSettle(ctx *Ctx) ([]byte, bool) {
 	hasFish := pending != nil && hooked
 
 	if pending != nil && !hooked {
-		// 鱼已咬钩但玩家未刺中就收竿：鱼会凭空消失，必须有反馈。
-		// 用跑鱼模板（kind3/语气词）播报"跑掉了"，不再静默。
-		ctx.Log.Info("14/4 未刺中收竿：咬钩未上钩，补发跑鱼提示",
+		// 咬饵≠咬钩（2026-11-16 两阶段模型收敛）：未刺中的鱼从未真正
+		// 挂牢，官方对此无播报载体——玩家侧只有饵收回的动画。静默离场。
+		ctx.Log.Info("14/4 未刺中收竿：咬饵未咬钩，官方静默",
 			"fish", shortGUID(pending.FishGUID), "species", pending.Species)
-		s.notifyFishEscape(ctx.Sess, pending, "收竿跑鱼")
 	}
 	var res *settleXpResult
 	var qualCups []*store.Item
