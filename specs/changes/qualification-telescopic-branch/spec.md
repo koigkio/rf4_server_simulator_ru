@@ -1,6 +1,6 @@
 # 资格任务判定与进度结算修复
 
-Status: in-progress
+Status: done
 
 ## Problem Statement
 

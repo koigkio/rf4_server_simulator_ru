@@ -150,3 +150,33 @@ func TestQualificationFloatTaskTextConditions(t *testing.T) {
 		t.Fatal("4402 must count exactly 7000 base XP")
 	}
 }
+
+// 永久手竿分支共 21 条，每条的 5007 显示与服务端过滤都必须限定伸缩竿。
+func TestQualificationAllFloatTasksRequireTelescopicRod(t *testing.T) {
+	count := 0
+	for _, rule := range qualificationRules {
+		if rule.ID/1000 != 4 {
+			continue
+		}
+		count++
+		types := qualificationRodTypesFor(rule.ID)
+		if len(types) != 1 || types[0] != rodTypeTelescope {
+			t.Fatalf("task %d rod filter = %v, want [3]", rule.ID, types)
+		}
+		body, err := proto.EncodeValue(qualificationRule(uint64(rule.ID)), wiregen.Table())
+		if err != nil {
+			t.Fatal(err)
+		}
+		wireRule, _, err := proto.DecodeValue(body, 0, wiregen.Table())
+		if err != nil {
+			t.Fatal(err)
+		}
+		got := wireRule.Fields[5].Val.Items
+		if len(got) != 1 || got[0].U32Val() != rodTypeTelescope {
+			t.Fatalf("task %d shown rod filter = %v, want [3]", rule.ID, got)
+		}
+	}
+	if count != 21 {
+		t.Fatalf("float branch task count = %d, want 21", count)
+	}
+}
