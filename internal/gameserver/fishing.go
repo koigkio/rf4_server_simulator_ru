@@ -801,6 +801,10 @@ func (s *Server) fightOfficialStrength() bool {
 	return s.tunableF("fight_official_strength", 0) != 0
 }
 
+func (s *Server) fishFightGroupFallback() bool {
+	return s.tunableF("fish_fight_group_fallback", 1) != 0
+}
+
 func (s *Server) fishFightPullFor(f *RolledFish) float64 {
 	if f == nil {
 		return 0
@@ -2121,9 +2125,13 @@ func (s *Server) fishStaminaForProfile(f *RolledFish, profile fishFightProfile) 
 		// 未实测种维持旧口径（2.388/g × archetype 耐力倍率）。
 		if rate, ok := fishStaminaRatePerGram[f.Species]; ok {
 			stamina = rate * float64(f.WeightG)
-		} else if rate := fishStaminaRateGroupFor(f.Species, s.fishMarineGroupHit(f.Species)); rate > 0 {
-			// 组兜底同官方口径：直接 rate×体重，不乘 StaminaScale。
-			stamina = rate * float64(f.WeightG)
+		} else if s.fishFightGroupFallback() {
+			if rate := fishStaminaRateGroupFor(f.Species, s.fishMarineGroupHit(f.Species)); rate > 0 {
+				// 组兜底同官方口径：直接 rate×体重，不乘 StaminaScale。
+				stamina = rate * float64(f.WeightG)
+			} else {
+				stamina = verifiedStaminaPerGram * float64(f.WeightG) * profile.StaminaScale
+			}
 		} else {
 			stamina = verifiedStaminaPerGram * float64(f.WeightG) * profile.StaminaScale
 		}
@@ -2252,8 +2260,10 @@ func (s *Server) fishF6BaseFor(f *RolledFish) float64 {
 		}
 		return v
 	}
-	if v, ok := fishF6Group[fishFightGroupKeyFor(f.Species, s.fishMarineGroupHit(f.Species))]; ok {
-		return v
+	if s.fishFightGroupFallback() {
+		if v, ok := fishF6Group[fishFightGroupKeyFor(f.Species, s.fishMarineGroupHit(f.Species))]; ok {
+			return v
+		}
 	}
 	return s.fishInitialStaminaRatio()
 }
@@ -2281,8 +2291,12 @@ type fish27Statics struct {
 // 非浮钓 rig，种级 f19 留零时沿用 fallback 的体重插值（与落表前浮钓行为
 // 逐字节一致）。
 func fight27StaticsFor(species string, w float64, grade int64, marine bool) fish27Statics {
+	return fight27StaticsForMode(species, w, grade, marine, true)
+}
+
+func fight27StaticsForMode(species string, w float64, grade int64, marine, groupFallback bool) fish27Statics {
 	src := officialSpeciesStatics[species]
-	if src == nil {
+	if src == nil && groupFallback {
 		src = fishGroupStaticsFor(species, marine)
 	}
 	if src != nil {
@@ -2324,7 +2338,7 @@ func fight27StaticsFor(species string, w float64, grade int64, marine bool) fish
 // 用于浮钓静置不上钩的应急恢复）。
 func (s *Server) buildFish27(f *RolledFish, hookGUID, gearGuid string, rigType int64) *proto.Value {
 	w := float64(f.WeightG)
-	st := fight27StaticsFor(f.Species, w, f.Grade, s.fishMarineGroupHit(f.Species))
+	st := fight27StaticsForMode(f.Species, w, f.Grade, s.fishMarineGroupHit(f.Species), s.fishFightGroupFallback())
 	f9, f10, f11 := st.f9, st.f10, st.f11
 	f12v, f13v, f14v, f15v := 0.0, st.f13, st.f14, st.f15
 	f16v, f17v, f18v := st.f16, st.f17, st.f18

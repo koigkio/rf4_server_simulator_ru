@@ -113,7 +113,7 @@ func protoF32Field(row *proto.Value, idx int) float64 {
 	return float64(proto.F32FromBits(uint32(u64Of(row.Fields[idx].Num))))
 }
 
-// setOfficialF6 让测试隔离生产默认的 fish_f6_scale=1.5，直接核对官方表。
+// setOfficialF6 隔离 A/B 的 fish_f6_scale，直接核对官方表。
 func setOfficialF6(srv *Server) {
 	srv.tunMu.Lock()
 	if srv.tunCache == nil {
@@ -126,6 +126,33 @@ func setOfficialF6(srv *Server) {
 	srv.tunText["fish_f6_scale"] = "1"
 	srv.tunAt = time.Now()
 	srv.tunMu.Unlock()
+}
+
+// TestFishFightGroupFallbackCanBeDisabled 验证组兜底热切换关闭后，
+// 未实测鱼种完整回到旧 fallback 静态参数、旧 f5 公式和旧 f6 常数。
+func TestFishFightGroupFallbackCanBeDisabled(t *testing.T) {
+	srv, _ := newRigTestServer(t)
+	srv.tunMu.Lock()
+	srv.tunCache = map[string]float64{"fish_fight_group_fallback": 0}
+	srv.tunText = map[string]string{"fish_fight_group_fallback": "0"}
+	srv.tunAt = time.Now()
+	srv.tunMu.Unlock()
+
+	f := &RolledFish{Species: "not_in_calib", Grade: 1, WeightG: 100, LengthM: 0.2}
+	tree := srv.buildFish27(f, "", "", 24)
+	wantStamina := verifiedStaminaPerGram * 100 * srv.fishFightProfileFor(f).StaminaScale
+	if got := f32At(tree, 5); math.Abs(got-wantStamina) > 0.001 {
+		t.Fatalf("关闭组兜底后 f5=%f，期望旧公式 %f", got, wantStamina)
+	}
+	if got := f32At(tree, 6); math.Abs(got-defaultFishInitialStaminaRatio) > 1e-6 {
+		t.Fatalf("关闭组兜底后 f6=%f，期望旧常数 %f", got, defaultFishInitialStaminaRatio)
+	}
+	if got := f32At(tree, 14); math.Abs(got-0.5) > 1e-6 {
+		t.Fatalf("关闭组兜底后 f14=%f，期望旧 fallback 0.5", got)
+	}
+	if got := f32At(tree, 16); math.Abs(got-0.833907) > 1e-6 {
+		t.Fatalf("关闭组兜底后 f16=%f，期望旧 fallback 0.833907", got)
+	}
 }
 
 // TestFightLegacyModelRestoresOldScales 旧版完整模型：f8 回到

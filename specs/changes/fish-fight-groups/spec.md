@@ -1,6 +1,6 @@
 # 补全鱼种搏斗习性组参数
 
-Status: in-progress
+Status: done
 
 ## Problem Statement
 
@@ -53,6 +53,8 @@ catfish / sturgeon / eel / small / default
 - `fight_hook_full_sync`：默认 `1` 保持 14/11 后全树同步；设为 `0` 时仅发
   钩帧，用于 A/B 验证全树是否重建客户端搏鱼目标。
 - `fight_phase_scales`：单独启用阶段倍率，不启用 legacy 模型。
+- `fish_fight_group_fallback`：默认 `1`；设为 `0` 时未实测鱼种的
+  f9~f20、f5 组均值和 f6 组值全部回到旧 fallback 口径，用于整组回滚。
 
 这些开关是诊断/平衡实验入口，不改变默认官方口径；实机配置由
 `tunables` 覆盖。
@@ -63,7 +65,8 @@ catfish / sturgeon / eel / small / default
 - 钉 `riv_rb_trout`、`s.orfe`、`l_salmon`、`catfish`、`sturgeon`、`eel`、
   `gudgeon`、`cetorhinus_m`、`neiva`；
 - 钉 `f5` 每克组值和 `f6` 组值；
-- 回滚任一组条目，对应断言变红。
+- 回滚任一组条目，对应断言变红；
+- `fish_fight_group_fallback=0` 时未实测鱼种的 f9~f20、f5、f6 全部回到旧口径。
 
 ## Out of Scope
 
