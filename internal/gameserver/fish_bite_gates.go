@@ -19,9 +19,9 @@ import (
 //     真实玩法）照常。
 //   - G2 水层（软地板）：目标水层超出 [LayerMin−0.15, LayerMax+0.15] 时权重乘
 //     bite_gate_layer_floor（默认 0.01），不剔除——深水鱼偶尔在浅水被钓起是
-//     有意保留的极小杂口。0.15 容差经 252 种全量数据核对：没有任何鱼种的
-//     LayerMax < 0.78，底钓（目标 0.93）零误伤；104 种底层鱼（鳗/七鳃鳗/鲟/
-//     庸鲽）会被水面拟饵（0.06+0.15）地板。
+//     有意保留的极小杂口。0.15 容差用于减少底层杆在相邻水层间的误伤；当前
+//     生态表仍有上层/中层鱼 LayerMax < 0.78，底钓（目标 0.93）时它们会按设计
+//     落到地板。104 种底层鱼（鳗/七鳃鳗/鲟/庸鲽）会被水面拟饵（0.06+0.15）地板。
 //   - G-diet 天然饵双票（默认随门开启）：生态食性表 diet_json 首次参与咬口，
 //     与攻略证据（fishing_bait_rules.txt / companion_bait_fish / loc_bait_fish）
 //     合成双票，口径沿用窝料已验证的「双票打折」语义——
@@ -118,14 +118,14 @@ func biteGateDietKeys(b ruleBait) []string {
 		return []string{"worm"}
 	case 3, 4, 14, 15: // 蛙/活饵鱼/鱼片/死饵鱼
 		return []string{"fish"}
-	case 8, 9, 10, 17: // 煮饵/波趴/风味饵/Zig 球
+	case 8, 9, 17: // 煮饵/颗粒/风味饵/Zig 球
 		return []string{"boilie"}
-	case 11, 13: // 老虎坚果/面团与粥
+	case 10, 11, 13: // 玉米/老虎坚果/面团与粥
 		return []string{"plant"}
 	case 12, 16: // 钩虾/海虫贝类
 		return []string{"crustacean"}
-	case 1: // 杂类：植物/煮饵/动物肉任一
-		return []string{"plant", "boilie", "crustacean"}
+	case 1: // 杂类：植物/煮饵/鱼虾贝任一
+		return []string{"plant", "boilie", "crustacean", "fish"}
 	}
 	return nil
 }

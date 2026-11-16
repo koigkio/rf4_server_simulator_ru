@@ -20,9 +20,11 @@ Status: done
    泥鳅 0.20/鲤族 0 不再攻亮片；狗鱼 2.07、江鳕 0.63、鲟族 0.30+（jig 钓鲟是真实玩法）照常。
 2. **水层门 G2（软地板）**：目标水层超出 `[LayerMin−0.15, LayerMax+0.15]` 时权重乘
    `bite_gate_layer_floor`（默认 0.01），不剔除——深水鱼偶尔在浅水被钓起是有意保留的杂口。
-   容差经 252 种全量核对：没有任何鱼种 `LayerMax < 0.78`，底钓（0.93）零误伤。
+   0.15 容差减少相邻水层误伤；当前生态表仍有 `LayerMax < 0.78` 的上层/中层鱼，
+   底钓（0.93）时它们会按设计落到地板，不能宣称零误伤。
 3. **食性双票 G-diet**：天然饵（类别 27）按饵类型映射到 diet 键（baitType 2/6/7→worm、
-   3/4/14/15→fish、8/9/10/17→boilie、11/13→plant、12/16→crustacean、1→杂类任一），
+   3/4/14/15→fish、8/9/17→boilie、10/11/13→plant、12/16→crustacean、
+   1→植物/煮饵/鱼虾贝任一），
    与攻略证据（fishing_bait_rules.txt / companion_bait_fish / loc_bait_fish）双票合成：
    双认原权重、单认 ×`bite_gate_diet_floor`（0.05）、零票或明确禁饵剔除。
 4. **空候选语义**：门把候选剔空时走「本轮无符合条件的鱼」重排，并且经
@@ -53,7 +55,7 @@ Status: done
 - tunables：`bite_gate_enabled`（默认 0）、`bite_gate_lure_diet_min`（0.30）、
   `bite_gate_layer_floor`（0.01）、`bite_gate_diet_min`（0.25，高于合成基线 0.2 噪声地板）、
   `bite_gate_diet_floor`（0.05）、`bite_empty_retry_scale`（1）、
-  `bite_gate_pity_rounds`（0）。游戏参数页可调。
+  `bite_gate_pity_rounds`（0）。本 PR 提供后端参数；管理页接线随后续区域名册 PR 完成。
 - 数据：不动表结构、不动静态库；`fishRollContext` 新增 `gateBlocked`/`emptyReason`/
   `pityEnv`/`EmptyStreak` 纯运行时字段。
 - 兼容：客户端对鱼种选择零语义校验（14/14 发什么渲染什么），服务端任意收紧不触协议；

@@ -2,6 +2,7 @@ package gameserver
 
 import (
 	"context"
+	"slices"
 	"testing"
 	"time"
 )
@@ -14,6 +15,30 @@ func setBiteGateSwitch(t *testing.T, s *Server, value string) {
 	s.tunMu.Lock()
 	s.tunAt = time.Time{}
 	s.tunMu.Unlock()
+}
+
+func TestBiteGateDietKeyMapping(t *testing.T) {
+	for _, tc := range []struct {
+		name     string
+		baitType int64
+		want     []string
+	}{
+		{"mixed", 1, []string{"plant", "boilie", "crustacean", "fish"}},
+		{"worm", 6, []string{"worm"}},
+		{"live-fish", 4, []string{"fish"}},
+		{"popup", 8, []string{"boilie"}},
+		{"pellet", 9, []string{"boilie"}},
+		{"corn", 10, []string{"plant"}},
+		{"shellfish", 16, []string{"crustacean"}},
+		{"zig", 17, []string{"boilie"}},
+		{"unknown", 99, nil},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := biteGateDietKeys(ruleBait{baitType: tc.baitType}); !slices.Equal(got, tc.want) {
+				t.Fatalf("baitType %d keys=%v, want %v", tc.baitType, got, tc.want)
+			}
+		})
+	}
 }
 
 // G1：钩上是拟饵时，食性 lure 权重低于门槛的鱼直接出候选——
