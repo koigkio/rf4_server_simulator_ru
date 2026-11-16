@@ -119,6 +119,41 @@ func TestFishZoneAPI(t *testing.T) {
 		t.Fatalf("update not visible: %s", raw)
 	}
 
+	// 合同语义（2026-11-16 评审 P2）：keep_others=0 是合法值（名单外全清），
+	// 必须原样落地，不再被兜底改写成 0.35；越界值显式 400，不做静默钳制。
+	code, out = call("POST", "/api/fish/zones",
+		`{"loc":"旧奥斯特罗格湖","name":"清塘区","kind":"grid_rect","gx0":0,"gz0":0,"gx1":1,"gz1":1,
+		 "mode":"boost","boost":2,"keep_others":0,"enabled":true,
+		 "fish":[{"fish_key":"carp","weight":1,"enabled":true}]}`)
+	if code != 200 {
+		t.Fatalf("keep_others=0 是合法值，应保存: %d %v", code, out)
+	}
+	code, out = call("GET", "/api/fish/zones", "")
+	raw, _ = json.Marshal(out["zones"])
+	if !strings.Contains(string(raw), `"keep_others":0`) {
+		t.Fatalf("keep_others=0 被兜底改写: %s", raw)
+	}
+	for _, bad := range []string{
+		`{"loc":"x","kind":"grid_rect","gx0":0,"gx1":1,"gz0":0,"gz1":1,"mode":"boost","boost":2,"keep_others":1.5,"fish":[]}`,
+		`{"loc":"x","kind":"grid_rect","gx0":0,"gx1":1,"gz0":0,"gz1":1,"mode":"boost","boost":-2,"fish":[]}`,
+	} {
+		if code, out := call("POST", "/api/fish/zones", bad); code == 200 {
+			t.Fatalf("越界值应显式拒绝而非静默钳制: %s -> %v", bad, out)
+		}
+	}
+	// boost 字段省略（JSON 落 0）仍是唯一缺省归一：按「无倍增」落 1。
+	code, out = call("POST", "/api/fish/zones",
+		`{"loc":"旧奥斯特罗格湖","name":"省略乘数区","kind":"grid_rect","gx0":0,"gz0":0,"gx1":1,"gz1":1,
+		 "mode":"exclusive","enabled":true,"fish":[]}`)
+	if code != 200 {
+		t.Fatalf("boost 省略应按缺省归一通过: %d %v", code, out)
+	}
+	code, out = call("GET", "/api/fish/zones", "")
+	raw, _ = json.Marshal(out["zones"])
+	if !strings.Contains(string(raw), `"boost":1`) {
+		t.Fatalf("省略的 boost 应缺省为 1: %s", raw)
+	}
+
 	// 删除。
 	if code, out = call("POST", "/api/fish/zones/delete", fmt.Sprintf(`{"id":%d}`, int64(zoneID))); code != 200 {
 		t.Fatalf("delete zone: %d %v", code, out)

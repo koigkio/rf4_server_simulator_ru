@@ -167,16 +167,12 @@ func (d *DB) ListFishZones(ctx context.Context) ([]FishZone, error) {
 
 // SaveFishZone 整行保存（含名册）；ID 为 0 时新增。
 func (d *DB) SaveFishZone(ctx context.Context, z *FishZone, updatedBy string) error {
-	// 缺省归一先于校验：省略 boost/keep_others 的调用方落到默认值，
-	// 再由 Validate 拦下归一后仍离谱的数值。
-	if z.Boost <= 0 {
+	// 唯一的缺省归一：boost 字段省略（JSON 不带，落 0）按「无倍增」落 1。
+	// 其余越界值一律由 Validate 显式拒绝，不做静默钳制——keep_others=0 是
+	// 合同内的合法值（名单外全清），1.5 这类越界必须报错而不是悄悄收 1
+	//（2026-11-16 PR #510 评审 P2：与后台 handler 的兜底改写二选一，统一为报错）。
+	if z.Boost == 0 {
 		z.Boost = 1
-	}
-	if z.KeepOthers < 0 {
-		z.KeepOthers = 0
-	}
-	if z.KeepOthers > 1 {
-		z.KeepOthers = 1
 	}
 	if err := z.Validate(); err != nil {
 		return err

@@ -57,9 +57,9 @@ func (s *Server) handleFishZoneSave(w http.ResponseWriter, r *http.Request) {
 	if z.GZ0 > z.GZ1 {
 		z.GZ0, z.GZ1 = z.GZ1, z.GZ0
 	}
-	if z.KeepOthers == 0 && z.Mode == "boost" {
-		z.KeepOthers = 0.35
-	}
+	// keep_others 不在此兜底改写（2026-11-16 PR #510 评审 P2）：boost 模式下
+	// 0 是合同内的合法值（名单外全清），静默改 0.35 会让玩家配置失真；
+	// 越界值由 store.Validate 显式拒绝并回 400 提示。
 	ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
 	defer cancel()
 	// 拼错鱼种会得到「永不命中的死区」且无任何报错提示，逐个核对全库名册。

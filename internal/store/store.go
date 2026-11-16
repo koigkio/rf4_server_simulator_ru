@@ -252,9 +252,9 @@ var renumberedColumnMigrations = map[string]struct {
 	columns []string
 	remains string
 }{
-	"migrations/00066_fish_zone_cells.sql":  {table: "fish_zone", columns: []string{"cells_json"}},
-	"migrations/00067_fish_zone_circle.sql": {table: "fish_zone", columns: []string{"cx", "cz", "radius"}},
-	"migrations/00068_catch_log_hook.sql":   {table: "catch_log", columns: []string{"hook"}, remains: `CREATE INDEX IF NOT EXISTS idx_catch_log_fish_hook ON catch_log(fish_key, hook);`},
+	"migrations/00066_fish_zone_cells.sql":   {table: "fish_zone", columns: []string{"cells_json"}},
+	"migrations/00067_fish_zone_circle.sql":  {table: "fish_zone", columns: []string{"cx", "cz", "radius"}},
+	"migrations/00068_catch_log_hook.sql":    {table: "catch_log", columns: []string{"hook"}, remains: `CREATE INDEX IF NOT EXISTS idx_catch_log_fish_hook ON catch_log(fish_key, hook);`},
 	"migrations/00069_fish_zone_sea_set.sql": {table: "fish_zone", columns: []string{"sea_zones_json"}},
 }
 
