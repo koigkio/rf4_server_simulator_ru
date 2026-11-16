@@ -185,6 +185,7 @@ func rolledFishToStore(f *RolledFish) *store.FishingFish {
 		QualBaitSizeMM:   f.QualBait.SizeMM,
 		CastM:            f.CastM,
 		IsNight:          f.IsNight,
+		BiteUnix:         f.BiteUnix,
 		DepthCM:          f.DepthCM,
 		OnBoat:           f.OnBoat,
 		Drift:            f.Drift,
@@ -224,11 +225,12 @@ func rolledFishFromStore(f *store.FishingFish) *RolledFish {
 			LenCM:    f.QualBaitLenCM,
 			SizeMM:   f.QualBaitSizeMM,
 		},
-		CastM:   f.CastM,
-		IsNight: f.IsNight,
-		DepthCM: f.DepthCM,
-		OnBoat:  f.OnBoat,
-		Drift:   f.Drift,
+		CastM:    f.CastM,
+		IsNight:  f.IsNight,
+		BiteUnix: f.BiteUnix,
+		DepthCM:  f.DepthCM,
+		OnBoat:   f.OnBoat,
+		Drift:    f.Drift,
 	}
 }
 

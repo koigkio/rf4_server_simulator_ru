@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	"rf4server/internal/proto"
 	"rf4server/internal/store"
@@ -80,7 +81,11 @@ func (s *Server) ensureQualificationCups(ctx context.Context, uid int64) []*stor
 	var granted []*store.Item
 	var names []string
 	permanentDone := 0
+	activeEvents := s.activeQualificationEventBranches(time.Now().Unix())
 	for branch := int64(1); branch <= 20; branch++ {
+		if branch >= 9 && !activeEvents[branch] {
+			continue
+		}
 		cup, ok := qualificationCupByBranch[branch]
 		if !ok || len(branchRules[branch]) == 0 {
 			continue

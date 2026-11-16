@@ -180,6 +180,7 @@ func (s *Server) settleCatchOnceWithQualification(ctx context.Context, uid int64
 	if err != nil {
 		return nil, err
 	}
+	activeEvents := s.activeQualificationEventBranches(time.Now().Unix())
 	tx, err := s.DB.SQL.BeginTx(ctx, nil)
 	if err != nil {
 		return nil, err
@@ -302,7 +303,8 @@ func (s *Server) settleCatchOnceWithQualification(ctx context.Context, uid int64
 	if ev != nil {
 		qev := *ev
 		qev.XP = totalXP
-		changes, err := evaluateQualificationsTx(ctx, tx, uid, qev, float64(time.Now().Unix()))
+		qev.BaseXP = xp
+		changes, err := evaluateQualificationsTx(ctx, tx, uid, qev, float64(time.Now().Unix()), activeEvents)
 		if err != nil {
 			return nil, err
 		}

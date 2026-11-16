@@ -223,3 +223,40 @@ func TestQualificationSettlementAtomicAndReplayable(t *testing.T) {
 func catchSettlementKey(uid int64, fishGUID string) string {
 	return fmt.Sprintf("catch-settlement:%d:%s", uid, strings.ToLower(fishGUID))
 }
+
+func TestQualification4402UsesSettledBaseXP(t *testing.T) {
+	srv, db := newDetachTestServer(t)
+	if err := db.Migrate(); err != nil {
+		t.Fatal(err)
+	}
+	ctx := context.Background()
+	const uid = int64(1000001)
+	if _, err := db.EnsureProfile(ctx, uid); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.SQL.ExecContext(ctx, `UPDATE profile SET membership=1,membership_exp=? WHERE uid=?`, time.Now().Unix()+3600, uid); err != nil {
+		t.Fatal(err)
+	}
+	// 未特殊校准的 bream 基础经验为 0.4/g，会员加成翻倍。
+	for _, tc := range []struct {
+		weight, base, total int64
+		complete            bool
+	}{{10000, 4000, 8000, false}, {17500, 7000, 14000, true}} {
+		fish := &RolledFish{FishGUID: newFishGUID(), Species: "bream", Grade: 2, WeightG: tc.weight, LocLevel: evLocBelaya}
+		ev := qualificationEvent{Kind: qevFishLanded, CatchGUID: fish.FishGUID, Species: fish.Species, WeightG: fish.WeightG, RigType: 1, RodType: 3}
+		result, err := srv.settleCatchOnceWithQualification(ctx, uid, fish, 1, &ev)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if result.baseXP != tc.base || result.totalXP != tc.total {
+			t.Fatalf("unexpected fixture XP: base=%d total=%d", result.baseXP, result.totalXP)
+		}
+		if complete := result.qualChanges[4402].CompletedTS > 0; complete != tc.complete {
+			t.Fatalf("base XP %d, total XP %d: completed=%v", tc.base, tc.total, complete)
+		}
+		replay, err := srv.settleCatchOnceWithQualification(ctx, uid, fish, 1, &ev)
+		if err != nil || !replay.replayed {
+			t.Fatalf("settlement replay failed: %+v %v", replay, err)
+		}
+	}
+}
