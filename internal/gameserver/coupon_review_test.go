@@ -529,3 +529,47 @@ func TestValidateMailAttachmentRejectsOversizedCoupon(t *testing.T) {
 		t.Fatalf("非券类不应受券张数上限影响: %v", err)
 	}
 }
+
+// TestCouponGrantRepairFailsClosedWhenTrophyDefsMissing —— 补偿必须能识别
+// cat71 标本产物定义缺失：此时无法计算已用券数，不能把 used 当成 0 后补满
+// 全部发放量并写完成标记。静态库不完整时应保持原券数并返回 error，下次再试。
+func TestCouponGrantRepairFailsClosedWhenTrophyDefsMissing(t *testing.T) {
+	t.Parallel()
+	db := openRecipeTestDB(t)
+	srv := newSkillsCraftServer(t, db)
+	ctx := context.Background()
+	const uid int64 = 2100070
+	if _, err := db.EnsureProfile(ctx, uid); err != nil {
+		t.Fatalf("建玩家档案: %v", err)
+	}
+	seedCouponGrantAudit(t, db, uid, 999, 1000)
+	coupon, err := srv.CreateItem(ctx, uid, couponChucheloItemID, "backpack", 1)
+	if err != nil {
+		t.Fatalf("创建券失败: %v", err)
+	}
+	if _, err := db.SQL.Exec(`DELETE FROM item_def WHERE category=?`, trophyMountCategory); err != nil {
+		t.Fatalf("删除标本产物定义: %v", err)
+	}
+
+	fixed, err := srv.repairCouponGrantQuantities(ctx)
+	if err == nil {
+		t.Fatal("缺少 cat71 产物定义时补偿必须 fail closed")
+	}
+	if fixed != 0 {
+		t.Fatalf("fail closed 时 fixed=%d，期望 0", fixed)
+	}
+	if _, done, _ := db.KVGet(ctx, couponGrantRepairKey); done {
+		t.Fatal("fail closed 时不得写完成标记")
+	}
+	fresh, err := db.GetItemByGUID(ctx, coupon.GUID)
+	if err != nil || fresh == nil {
+		t.Fatalf("读回券失败: %v", err)
+	}
+	fields, err := FieldsFromJSON(fresh.FieldsJSON)
+	if err != nil {
+		t.Fatalf("解析券字段: %v", err)
+	}
+	if n, ok := itemQtyValue(fresh.WireClass, fields); !ok || n != 1 {
+		t.Fatalf("fail closed 后券数被改成 %d ok=%v，期望保持 1", n, ok)
+	}
+}

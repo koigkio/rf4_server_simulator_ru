@@ -68,6 +68,11 @@ func (s *Server) repairCouponGrantQuantities(ctx context.Context) (int, error) {
 	if err != nil {
 		return 0, err
 	}
+	if len(trophyOutputs) == 0 {
+		// 没有 cat71 产物定义就无法把制作流水映射成已用券数。此时若继续，
+		// trophyCraftCountSince 会把 used 当成 0，按全部发放量补券并永久写 marker。
+		return 0, fmt.Errorf("梦鱼券补偿：找不到标本产物定义(category=%d)", trophyMountCategory)
+	}
 
 	fixed, skippedMulti := 0, 0
 	for uid, grant := range grants {
