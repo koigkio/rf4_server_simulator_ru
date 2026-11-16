@@ -63,8 +63,13 @@ Status: done
   - 14/12 的 f0=1/2/8 分支与未知帧分支：在跑鱼播报之后、
     `settleFightReelWearState` 之前，`hooked && pending != nil` 时调用
     `consumeHookedBait`；
+  - 14/9 海钓 `needsConfirmation` 与多钩额外鱼 14/11 同样只确认、不扣饵；
+  - 多钩额外鱼若以已确认状态从 14/12 离场或被拒收，按其 `HookConfirmed`
+    在移除队列前扣掉对应钩位的饵；
 - `internal/gameserver/econ.go`：`fishingKeep`（14/5）与 `fishingRelease`
   （14/6）在清 `st.Pending` 前扣饵（`st.Hooked` 为真时）；
+- `internal/gameserver/multi_hook.go`：`settleExtraOnReelIn` 在额外鱼终局
+  先扣饵，再尝试结算，避免结算失败时把挂载饵留成可循环使用；
 - `internal/gameserver/progress_ops.go`：`fishingEndSettle` 的 `hasFish`
   分支开头扣饵；
 - 资格/统计不受影响：QualBait 咬钩快照在掷鱼时即固化（fishing.go:2592），
@@ -77,11 +82,14 @@ Status: done
     饵实例仍在、探针未收到 4/21/4/22（回归：mid-ctor 推送消失）；
   - `TestEscapeConsumesBaitOnceAfterFight`：14/12 跑鱼后饵被扣且 4/21/4/22
     在播报之后到达；同 FishGUID 重复 14/12 不再扣；
-  - `TestKeepConsumesBaitOnce`：14/5 入护路径扣饵一次，随后的 14/4 不重复扣。
+  - `TestKeepConsumesBaitOnce`：14/5 入护路径扣饵一次，随后的 14/4 不重复扣；
+  - `TestMarineStrikeDoesNotConsumeMountedBait`：14/9 确认瞬间不扣饵，14/12 终局扣一次；
+  - `TestExtraFishHookConfirmDoesNotConsumeBait`：额外鱼 14/11 不扣饵，14/4 结算扣一次；
+  - `TestExtraFishEscapeConsumesMountedBait`：额外鱼 14/12 终局扣自己的饵，不误扣主鱼饵。
 - 既有测试回归：`selected_hook_test.go`（直接调 consumeHookedBait 的用例
   不受调用点迁移影响）、`qualification_settlement_test.go`（快照语义）、
   嘬饵/补饵族测试原样通过。
-- 门禁：`go build/vet/test ./...`（cafe 基线失败不计）+ 实机回归：
+- 门禁：`go test -count=1 ./...`、`go vet ./...`、`go build ./...`、`doccheck`；实机回归：
   挂沙蚕中鱼 → 正常搏鱼入护；左上角饵条在终局后消失、下一竿自动补饵。
 
 ## Out of Scope

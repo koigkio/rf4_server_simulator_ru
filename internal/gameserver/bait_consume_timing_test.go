@@ -12,6 +12,7 @@ import (
 
 	"rf4server/internal/logging"
 	"rf4server/internal/proto"
+	"rf4server/internal/wiregen"
 )
 
 // 带饵钩 14/11 中鱼确认：饵实例仍在钩上、来源库存不扣、无 4/21 扣饵推送。
@@ -306,5 +307,77 @@ func TestExtraFishHookConfirmDoesNotConsumeBait(t *testing.T) {
 	}
 	if row, _ := db.GetItemByGUID(t.Context(), source); row == nil || baitQuantity(row) != 3 {
 		t.Fatalf("14/4 multi-hook settle: source = %+v, want 3 (one unit + one rebait reserve)", row)
+	}
+}
+
+// 多钩额外鱼若已确认中钩后从 14/12 离场，也应在其终局扣掉对应的挂载饵；
+// 不能因为从未进入 14/4 Batch 就永久复用同一份饵。
+func TestExtraFishEscapeConsumesMountedBait(t *testing.T) {
+	s, db := newRigTestServer(t)
+	if err := db.Migrate(); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { stopFishingRecoveryTimers(s) })
+	sess := newProbeSess(s)
+	s.sessions[sess.ID] = sess
+	uid := sess.Userid
+	if _, err := db.EnsureProfile(t.Context(), uid); err != nil {
+		t.Fatal(err)
+	}
+
+	rod, err := s.CreateItem(t.Context(), uid, "boatr_10222_SBH80_100", "backpack", 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !s.rigSetType(t.Context(), uid, rod.GUID, 50) {
+		t.Fatal("marine rig rejected")
+	}
+	mountHookForBaitTest(t, s, rod.GUID, 0)
+	extraHook := mountHookForBaitTest(t, s, rod.GUID, 1)
+	_, mainChild := baitTestMount(t, s, rod.GUID, "worm_01", 5, 350)
+	_, extraChild := baitTestMount(t, s, rod.GUID, "worm_01", 5, 351)
+
+	main := &RolledFish{FishGUID: newFishGUID(), Species: "atl_cod", Grade: 2,
+		WeightG: 4200, LengthM: .4, BaitsKnown: true, BaitGUIDs: mainChild}
+	extra := &RolledFish{FishGUID: newFishGUID(), Species: "p_zubatka", Grade: 1,
+		WeightG: 800, LengthM: .25, HookGUID: extraHook, HookConfirmed: true,
+		BaitsKnown: true, BaitGUIDs: extraChild}
+	st := s.fishingStateForRod(uid, rod.GUID)
+	st.mu.Lock()
+	st.GearGuid = rod.GUID
+	st.Loc = "unknown-map"
+	st.Bait = "worm_01"
+	st.RigType, st.CastActive, st.InWater = 50, true, true
+	st.Pending, st.PushSent, st.Hooked = main, true, true
+	st.Resolved = false
+	st.Extra = []*RolledFish{extra}
+	st.mu.Unlock()
+	t.Cleanup(func() {
+		st.mu.Lock()
+		st.cancelBiteTimerLocked()
+		st.cancelPendingTimerLocked()
+		st.mu.Unlock()
+	})
+
+	tree := rigRequestTree(t, proto.Guid(rod.GUID), proto.Guid(extra.FishGUID),
+		wiregen.MustMakeObj("lhicjpmglbo", map[int]*proto.Value{0: proto.U32(2)}))
+	if _, ok := hFishingLeft(miscCtx(sess, 14, 12, tree)); !ok {
+		t.Fatal("14/12 extra-fish leave was not handled")
+	}
+	st.mu.Lock()
+	st.cancelBiteTimerLocked()
+	st.cancelPendingTimerLocked()
+	st.mu.Unlock()
+	if row, _ := db.GetItemByGUID(t.Context(), extraChild); row != nil {
+		t.Fatalf("escaped extra fish left its mounted bait behind: %+v", row)
+	}
+	if row, _ := db.GetItemByGUID(t.Context(), mainChild); row == nil {
+		t.Fatal("extra-fish terminal consumed the main fish bait")
+	}
+	st.mu.Lock()
+	left := len(st.Extra)
+	st.mu.Unlock()
+	if left != 0 {
+		t.Fatalf("escaped extra fish still in queue: %d", left)
 	}
 }

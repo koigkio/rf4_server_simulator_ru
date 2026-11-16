@@ -1541,15 +1541,29 @@ func hFishingLeft(ctx *Ctx) ([]byte, bool) {
 						"fish", shortGUID(extra.FishGUID), "hook", shortGUID(extra.HookGUID))
 					return nil, true
 				}
+				hooked := extra.HookConfirmed
 				removeExtraAt(st, i)
+				rodGUID := st.GearGuid
 				st.mu.Unlock()
+				if hooked {
+					if err := srv.consumeHookedBait(ctx.Sess, extra, rodGUID); err != nil {
+						ctx.Log.Warn("额外鱼放弃时扣饵失败", "fish", shortGUID(extra.FishGUID), "err", err)
+					}
+				}
 				ctx.Log.Info("14/12 客户端拒收额外鱼实体，放弃该尾", "fish", shortGUID(extra.FishGUID))
 				return nil, true
 			case 1, 2, 8:
+				hooked := extra.HookConfirmed
 				removeExtraAt(st, i)
+				rodGUID := st.GearGuid
 				st.mu.Unlock()
+				if hooked {
+					if err := srv.consumeHookedBait(ctx.Sess, extra, rodGUID); err != nil {
+						ctx.Log.Warn("额外鱼离场扣饵失败", "fish", shortGUID(extra.FishGUID), "err", err)
+					}
+				}
 				ctx.Log.Info("14/12 额外鱼离场", "fish", shortGUID(extra.FishGUID),
-					"hooked", extra.HookConfirmed)
+					"hooked", hooked)
 				return nil, true
 			}
 		}

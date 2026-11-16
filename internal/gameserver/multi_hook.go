@@ -477,17 +477,17 @@ func (s *Server) settleExtraOnReelIn(sess *Session, ctx context.Context, uid int
 		if f == nil || f.FishGUID == "" {
 			continue
 		}
-		res, _ := s.settleCatchXPWithQualifications(ctx, uid, f, rigType, nil)
-		if res == nil {
-			s.log.Warn("14/4 多钩额外鱼结算失败，按脱落处理",
-				"fish", shortGUID(f.FishGUID), "鱼种", f.Species, "重量_g", f.WeightG)
-			continue
-		}
 		// 额外鱼默认连实体都不派，客户端不会为它们发 14/11，扣饵只能在这里做：
 		// 否则同一份饵会被反复用于多钩判定。consumeHookedBait 以鱼 GUID 为幂等键，
 		// 将来若客户端真的对额外鱼发了 14/11 也不会重复扣。
 		if err := s.consumeHookedBait(sess, f, gear); err != nil {
 			s.log.Warn("14/4 多钩额外鱼扣饵失败", "fish", shortGUID(f.FishGUID), "err", err)
+		}
+		res, _ := s.settleCatchXPWithQualifications(ctx, uid, f, rigType, nil)
+		if res == nil {
+			s.log.Warn("14/4 多钩额外鱼结算失败，按脱落处理",
+				"fish", shortGUID(f.FishGUID), "鱼种", f.Species, "重量_g", f.WeightG)
+			continue
 		}
 		settled = append(settled, f)
 		results = append(results, res)
