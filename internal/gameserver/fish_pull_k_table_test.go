@@ -113,11 +113,11 @@ func TestFishPullGroupFallback(t *testing.T) {
 		wantK   float64
 	}{
 		{"riv_rb_trout", "salmonid", 18.0},
-		{"lm_b_bass", "predator", 17.30},   // v2：组值锚 n.pike 实测
-		{"din_m_carp", "carp_mid", 16.50},  // v2：组值锚 carp
-		{"karasekarp", "still_carp", 15.05}, // v2：组值锚 crucian
-		{"shemaya", "small_forage", 18.64},  // v2：移出 roach_run，同黑海欧白鱼实测族
-		{"cetorhinus_m", "apex", 25.53},     // v2 新组：鲨/剑鱼/金枪鱼（纯推断）
+		{"lm_b_bass", "predator", 17.30},     // v2：组值锚 n.pike 实测
+		{"din_m_carp", "carp_mid", 16.50},    // v2：组值锚 carp
+		{"karasekarp", "still_carp", 15.05},  // v2：组值锚 crucian
+		{"shemaya", "small_forage", 18.64},   // v2：移出 roach_run，同黑海欧白鱼实测族
+		{"cetorhinus_m", "apex", 25.53},      // v2 新组：鲨/剑鱼/金枪鱼（纯推断）
 		{"carp_albino", "alias→carp", 16.50}, // v2 别名：皮肤变种继承宿主 carp
 		{"not_in_calib", "fallback", 17.5},
 	}
