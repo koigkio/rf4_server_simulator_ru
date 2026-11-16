@@ -86,6 +86,23 @@ func awaitPushEnvelope(t *testing.T, gc *tunnel.Conn) *proto.Envelope {
 	}
 }
 
+func assertNoPush(t *testing.T, gc *tunnel.Conn, timeout time.Duration, message string) {
+	t.Helper()
+	ch := make(chan error, 1)
+	go func() {
+		_, _, _, err := gc.ReadRecord()
+		ch <- err
+	}()
+	select {
+	case err := <-ch:
+		if err != nil {
+			t.Fatalf("%s，读取出错: %v", message, err)
+		}
+		t.Fatal(message)
+	case <-time.After(timeout):
+	}
+}
+
 // 未上钩离场（14/12 f0=1/2 窗口超时；f0=8 且未中过鱼=刺鱼瞬间钩没挂上）
 // 官方语义静默：客户端模板表无「未上钩」类，客户端自己播游走动画；
 // 服务端不得广播模板 7「鱼脱钩了」（鱼从未上钩，语义不成立）。
@@ -108,16 +125,7 @@ func TestFishUnhookedDepartureIsSilent(t *testing.T) {
 	}
 
 	// 静默断言：短窗口内不得有任何推送。
-	ch := make(chan error, 1)
-	go func() {
-		_, _, _, err := gc.ReadRecord()
-		ch <- err
-	}()
-	select {
-	case err := <-ch:
-		t.Fatalf("f0=1/2/8 未上钩离场不应产生任何推送，实得 %v", err)
-	case <-time.After(400 * time.Millisecond):
-	}
+	assertNoPush(t, gc, 400*time.Millisecond, "f0=1/2/8 未上钩离场不应产生任何推送")
 }
 
 // 已中鱼后的离场按 f0 分流（2026-11-16 客户端两阶段模型收敛，
@@ -129,13 +137,28 @@ func TestFishUnhookedDepartureIsSilent(t *testing.T) {
 func TestFishHookedEscapeSplitsByF0(t *testing.T) {
 	srv, db := newRigTestServer(t)
 
-	// f0=1：已中鱼也静默。
+	// f0=1：已中鱼也静默；用奖杯级鱼和预置非零补偿状态，
+	// 防止 recordHuntEscape 回归时只被 Grade=0 样本掩盖。
+	const (
+		loc  = "hunt-test"
+		spot = uint64(7)
+	)
 	sess, gc := newTunnelProbe(t, srv)
+	seed := &fishHuntState{
+		UID: sess.Userid, Loc: loc, Spot: spot,
+		BigMiss: 2, CompFish: 2, CompGrade: 3,
+		CompUntil: float64(time.Now().Add(time.Hour).Unix()),
+	}
+	srv.saveFishHuntState(context.Background(), seed)
 	st := srv.stateFor(sess.Userid)
 	st.mu.Lock()
 	st.CastActive = true
 	st.Hooked = true
-	st.Pending = &RolledFish{Species: "g_tench", WeightG: 547}
+	st.Loc, st.Spot = loc, spot
+	st.Pending = &RolledFish{
+		Species: "g_tench", WeightG: 6300, Grade: 4,
+		HuntStageKnown: true, HuntStage: fishHuntActive,
+	}
 	st.mu.Unlock()
 	tree := proto.Args524(proto.Obj("lhicjpmglbo", 0,
 		proto.Field{Op: "U32", Num: ptrU64(1)}))
@@ -145,16 +168,12 @@ func TestFishHookedEscapeSplitsByF0(t *testing.T) {
 	if got := counterValue(t, db, sess.Userid, "escapes"); got != 0 {
 		t.Fatalf("f0=1 叼住吐出不应计 escapes，实得 %d", got)
 	}
-	ch := make(chan error, 1)
-	go func() {
-		_, _, _, err := gc.ReadRecord()
-		ch <- err
-	}()
-	select {
-	case err := <-ch:
-		t.Fatalf("f0=1 叼住吐出不应产生任何推送，实得 %v", err)
-	case <-time.After(400 * time.Millisecond):
+	hunt := srv.loadFishHuntState(context.Background(), sess.Userid, loc, spot)
+	if hunt.BigMiss != 2 || hunt.CompFish != 2 || hunt.CompGrade != 3 {
+		t.Fatalf("f0=1 不应改写鱼猎脱钩补偿，实得 BigMiss=%d CompFish=%d CompGrade=%d",
+			hunt.BigMiss, hunt.CompFish, hunt.CompGrade)
 	}
+	assertNoPush(t, gc, 400*time.Millisecond, "f0=1 叼住吐出不应产生任何推送")
 
 	// f0=2/8：真脱钩，播报 24/27 蓝色模板 3。
 	for _, f0 := range []uint64{2, 8} {

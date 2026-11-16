@@ -37,9 +37,11 @@ escapes + 触发大鱼脱钩补偿——给官方不存在的节点发了官方�
 
 ## 验收
 
-- `TestFishHookedEscapeSplitsByF0`（重写自 TestFishHookedEscapeBroadcasts）：
-  f0=1 已中鱼 → 无推送 + escapes=0；f0=2/8 → 24/27 蓝色模板 3 + 跑鱼文案；
-  `fish_escape_taunt=0` 回退官方模板 7。
+- `TestFishHookedEscapeSplitsByF0`：f0=1 奖杯级已中鱼 → 无推送、escapes=0，
+  且 `BigMiss` / `CompFish` / `CompGrade` 均不变化；f0=2/8 → 24/27 蓝色模板 3 +
+  跑鱼文案；`fish_escape_taunt=0` 回退官方模板 7。
+- `TestFishingEndSettleUnhookedDoesNotCountEscape`：14/4 咬饵未咬钩收竿 →
+  无 24/27 跑鱼推送、escapes 不增加。
 - 实机：跑鱼播报量降到 ≈ 中鱼的 6%，全部伴随真实搏鱼时长（多负载帧）。
 
 ## 风险与回滚
