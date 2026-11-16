@@ -673,34 +673,64 @@ const (
 // （实测 461g 鱼被磨损账记成 6.57kg 拉力）。口径见 specs/changes/reel-wear-pull-unit/spec.md。
 const newtonPerKgf = 9.80665
 
-// fishPullK0 是逐鱼种拉力基值（=1kg 体重时的 k，N/kg），来自官服 14/14 抓包
-// A 级样本按 k0 = k − fishPullLnSlope·ln(w_kg) 反推；f8 = w_kg × (K0 + slope·ln(w_kg))。
-// 种内斜率 ~0.3–0.4，已用 perch/crucian/g_carp 多重量级样本钉死；样本与推导见
-// specs/changes/fish-pull-k-table/spec.md「Further Notes」。
+// fishPullParam 逐鱼种拉力参数：f8 = w_kg × (K0 + Slope·ln(w_kg))（牛）。
+// K0 = 1kg 体重时的 k（N/kg）；Slope = k 对 ln(w_kg) 的斜率。
+// 2026-11-16/17 断电抢救包 53 条 14/14 A 级样本（累计 84 条）发现鱼种分两类：
+//   - 恒 k 类（Slope=0）：海鱼与小型鱼，k 落在离散集合 {17.66, 18.64, 19.62,
+//     21.58, 22.56, 23.54, 25.53}，同种跨体重档 k 精确不变（coalfish/atl_cod
+//     702~5677g 恒 21.58、m_scorpius 205~1142g 恒 17.66、shemaya_cha/tiulka/
+//     menek 恒 18.64），疑似服务端曲线池直配幅值；
+//   - 变 k 类（Slope 0.23~0.59）：鲤科淡水鱼，k 随体重对数上行，斜率鱼种各异。
+// Slope<0 = 单样本未标定斜率，回落全局 fishPullLnSlope（鲤科先验 0.35）。
+type fishPullParam struct {
+	K0    float64
+	Slope float64
+}
+
 const fishPullLnSlope = 0.35
 
-var fishPullK0 = map[string]float64{
-	"merlang":    21.1,
-	"b_gill":     20.4,
-	"taran":      18.8,
-	"g_carp":     18.5,
-	"piksha":     18.3,
-	"b_carp":     18.0,
-	"n.pike":     17.3,
-	"perch":      17.6,
-	"din_l_carp": 16.9,
-	"carp":       16.5,
-	"c.roach":    16.4,
-	"crucian":    15.05,
-	"c.carp":     13.7,
-	"s.bream":    13.0,
+var fishPullK0 = map[string]fishPullParam{
+	// —— 变 k 类（鲤科族，n≥3 跨度足够，自拟合 slope）——
+	"perch":   {K0: 17.60, Slope: 0.38}, // 9 样本 93~1070g
+	"carp":    {K0: 16.50, Slope: 0.49}, // 7 样本 1063~5710g
+	"crucian": {K0: 15.05, Slope: 0.35}, // 6 样本 193~743g
+	"c.carp":  {K0: 13.84, Slope: 0.45}, // 4 样本 140~1574g
+	"c.roach": {K0: 16.36, Slope: 0.23}, // 3 样本 150~713g
+	"rudd":    {K0: 19.24, Slope: 0.53}, // 4 样本 195~402g（2026-11-16 新实测）
+	"g_carp":  {K0: 18.79, Slope: 0.23}, // 5 样本 4880~21742g
+	"m_carp":  {K0: 16.27, Slope: 0.59}, // 4 样本 2312~5370g（新）
+	// —— 单样本（Slope<0 → 全局 0.35；鲤科按鲤科先验）——
+	"carp_ghost": {K0: 16.73, Slope: -1}, // 4513g（新）
+	"n_carp":     {K0: 16.53, Slope: -1}, // 4405g（新）
+	"kw_tench":   {K0: 18.68, Slope: -1}, // 987g（新）
+	"c_bleak":    {K0: 18.81, Slope: -1}, // 24g（新；ln 外推远，低置信）
+	"n.pike":     {K0: 17.30, Slope: -1},
+	"din_l_carp": {K0: 16.94, Slope: -1},
+	"b_carp":     {K0: 18.00, Slope: -1},
+	"s.bream":    {K0: 13.00, Slope: -1},
+	"merlang":    {K0: 21.10, Slope: -1}, // 252g 实测 k=20.60；海鱼疑似恒k，待第二样本
+	// —— 恒 k 类（海鱼/小型鱼，Slope=0）——
+	"coalfish":      {K0: 21.58, Slope: 0}, // 4 样本 702~3027g 精确恒
+	"atl_cod":       {K0: 21.58, Slope: 0}, // 2 样本 2674~5677g
+	"m_scorpius":    {K0: 17.66, Slope: 0}, // 5 样本 205~1142g
+	"shemaya_cha":   {K0: 18.64, Slope: 0}, // 4 样本 117~237g
+	"tiulka":        {K0: 18.64, Slope: 0}, // 6 样本 10~13g
+	"pumps_sunfish": {K0: 19.62, Slope: 0}, // 2 样本 52g（与 b_gill 同离散值）
+	"menek":         {K0: 18.64, Slope: 0}, // 6117g
+	"pollachius":    {K0: 22.56, Slope: 0}, // 2387g
+	"atl_herring":   {K0: 22.57, Slope: 0}, // 560g
+	"makrel":        {K0: 23.54, Slope: 0}, // 1891g
+	"cha_herring":   {K0: 25.53, Slope: 0}, // 114g（全表最高）
+	"taran":         {K0: 18.64, Slope: 0}, // 611g 实测 k 与离散值精确重合，v2 重估
+	"piksha":        {K0: 18.64, Slope: 0}, // 2975g 同上
+	"b_gill":        {K0: 19.62, Slope: 0}, // 113g 同上
 }
 
 // fishPullGroupK0 是未实测鱼种的习性组拉力基值（v1 推断，依据已实测样本呈现的
 // 梯度：同科体型单调、海水/洄游高于静水；推断组 ±1.5，见 spec「Further Notes」）。
 // 键 = 习性组名。
 var fishPullGroupK0 = map[string]float64{
-	"marine_gadid":    19.7, // 海水鳕科
+	"marine_gadid":    19.7, // 海水鳕科（组内实测成员已升逐鱼种表：21.58/22.56/18.64）
 	"herb_carp":       18.2, // 大型草食鲤科
 	"migratory_roach": 18.8, // 洄游速游鲤科
 	"sunfish":         20.4, // 小型凶猛太阳鱼科
@@ -717,11 +747,11 @@ var fishPullGroupK0 = map[string]float64{
 }
 
 // fishPullSpeciesGroup 把未实测但高频的鱼种映射到习性组；缺省走 fallback。
+// （coalfish/pollachius/menek/n_carp/kw_tench 已升实测，v2 移除。）
 var fishPullSpeciesGroup = map[string]string{
 	"karasekarp":    "still_carp",
 	"din_m_carp":    "carp_mid",
 	"din_n_carp":    "carp_mid",
-	"n_carp":        "carp_mid",
 	"kohaku":        "carp_mid",
 	"o_ogon":        "carp_mid",
 	"n_asagi":       "carp_mid",
@@ -729,7 +759,6 @@ var fishPullSpeciesGroup = map[string]string{
 	"hi_utsri":      "carp_mid",
 	"m_goshiki":     "carp_mid",
 	"tench":         "carp_mid",
-	"kw_tench":      "carp_mid",
 	"c_barbel":      "carp_mid",
 	"bream":         "still_carp",
 	"wa_bream":      "still_carp",
@@ -754,9 +783,6 @@ var fishPullSpeciesGroup = map[string]string{
 	"gc_smelt":      "salmonid",
 	"taimen":        "salmonid",
 	"os_grayling":   "salmonid",
-	"coalfish":      "marine_gadid",
-	"pollachius":    "marine_gadid",
-	"menek":         "marine_gadid",
 	"p_sturgeon":    "sturgeon",
 	"sterlet":       "sturgeon",
 	"beluga":        "sturgeon",
@@ -776,17 +802,23 @@ var fishPullSpeciesGroup = map[string]string{
 	"m_zubatka":     "predator",
 }
 
-// fishPullK0For 返回鱼种拉力基值：实测种 → 习性组 → fallback（tunable 可覆盖）。
-func (s *Server) fishPullK0For(species string) float64 {
-	if k, ok := fishPullK0[species]; ok {
-		return k
+// fishPullParamFor 返回鱼种拉力参数：实测种 → 习性组 → fallback（tunable 可覆盖）。
+// 组/fallback 路径 Slope=-1（未标定），由调用方回落全局 fishPullLnSlope。
+func (s *Server) fishPullParamFor(species string) fishPullParam {
+	if p, ok := fishPullK0[species]; ok {
+		return p
 	}
 	if g, ok := fishPullSpeciesGroup[species]; ok {
 		if k, ok := fishPullGroupK0[g]; ok {
-			return k
+			return fishPullParam{K0: k, Slope: -1}
 		}
 	}
-	return s.tunableF("fish_pull_fallback_k", 17.5)
+	return fishPullParam{K0: s.tunableF("fish_pull_fallback_k", 17.5), Slope: -1}
+}
+
+// fishPullK0For 返回鱼种拉力基值（K0）；保留给日志与显示层使用。
+func (s *Server) fishPullK0For(species string) float64 {
+	return s.fishPullParamFor(species).K0
 }
 
 // fishFightPullFor 计算 obj27#8 拉力（牛）：
@@ -823,13 +855,20 @@ func (s *Server) fishFightPullFor(f *RolledFish) float64 {
 	}
 	if pull <= 0 {
 		wKg := math.Max(0.01, float64(f.WeightG)/1000)
-		slope := s.tunableF("fish_pull_ln_slope", fishPullLnSlope)
-		pull = wKg * (s.fishPullK0For(f.Species) + slope*math.Log(wKg))
+		p := s.fishPullParamFor(f.Species)
+		slope := p.Slope
+		if slope < 0 {
+			slope = s.tunableF("fish_pull_ln_slope", fishPullLnSlope)
+		}
+		pull = wKg * (p.K0 + slope*math.Log(wKg))
 	}
 	if k := s.tunableF("fight_power_scale", 1.0); k > 0 && k != 1.0 {
 		pull = math.Max(0.5, math.Round(pull*k*10000)/10000)
 	}
-	return math.Max(0.5, math.Round(pull*10000)/10000)
+	// 官方无 0.5N 下限：2026-11-16 抓包 10g 棱鲱 f8=0.186N、24g 欧鲌 0.424N。
+	// 下限只防浮点归零（最小 wKg 0.01kg×K0≈0.19N，实际到不了），legacy 分支
+	// 的旧 0.5N 下限保持不动。
+	return math.Max(0.05, math.Round(pull*10000)/10000)
 }
 
 // fishFightPullKgfFor 把 27.f8 的鱼拉力（牛）换算成公斤力，供与渔轮泄力、锁轮承力
@@ -2156,24 +2195,42 @@ func (s *Server) fishStaminaForProfile(f *RolledFish, profile fishFightProfile) 
 	return stamina
 }
 
-// fishStaminaRatePerGram 是官方 14/14 抓包实测鱼种的 f5 每克均值（2026-11-11，
-// 31 样本；见 specs/changes/fish-official-data-tables/spec.md）。海钓两科的
-// 官方值远高于旧版常数 2.388（merlang 10.5 / piksha 6.4）。
+// fishStaminaRatePerGram 是官方 14/14 抓包实测鱼种的 f5 每克均值（2026-11-11
+// 31 样本 + 2026-11-16/17 断电抢救包 53 样本；见
+// specs/changes/fish-official-data-tables/spec.md 与 fish-pull-k-table v2）。
+// 海钓科目的官方值远高于旧版常数 2.388（merlang 10.5 / 鲭鲱类 11.7~19.3）。
+// 每克均值本身随体重下行（crucian 193g 2.79 → 611g 1.78），此处为样本均值口径。
 var fishStaminaRatePerGram = map[string]float64{
-	"merlang":    10.50,
-	"piksha":     6.39,
-	"s.bream":    5.87,
-	"b_gill":     4.07,
-	"taran":      3.55,
-	"din_l_carp": 2.77,
-	"n.pike":     2.76,
-	"perch":      2.75,
-	"c.carp":     2.52,
-	"c.roach":    2.51,
-	"g_carp":     2.44,
-	"crucian":    2.29,
-	"carp":       2.10,
-	"b_carp":     2.09,
+	"cha_herring":   19.29,
+	"makrel":        17.84,
+	"atl_herring":   11.71,
+	"shemaya_cha":   8.84,
+	"coalfish":      8.98,
+	"merlang":       10.50,
+	"pollachius":    7.52,
+	"menek":         7.37,
+	"atl_cod":       6.79,
+	"piksha":        6.39,
+	"s.bream":       5.87,
+	"pumps_sunfish": 4.75,
+	"b_gill":        4.07,
+	"m_scorpius":    3.98,
+	"rudd":          3.47,
+	"taran":         3.55,
+	"tiulka":        2.92,
+	"din_l_carp":    2.77,
+	"c_bleak":       2.84,
+	"n.pike":        2.76,
+	"perch":         2.69,
+	"c.carp":        2.78,
+	"c.roach":       2.51,
+	"g_carp":        2.44,
+	"crucian":       2.29,
+	"carp_ghost":    2.32,
+	"carp":          2.10,
+	"b_carp":        2.09,
+	"kw_tench":      2.08,
+	"n_carp":        1.98,
 }
 
 // fishF6Table 是官方实测鱼种的 f6 抗疲劳系数（0.05 步进量化值）。语义：

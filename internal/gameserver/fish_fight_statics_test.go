@@ -149,11 +149,15 @@ func TestFishFightStaticsGroupFallback(t *testing.T) {
 
 // TestFishStaminaRateGroupFor f5 每克组兜底：海水 8.445/g、鲤科 2.5/g、
 // 鲑科 3.0/g（组口径直接 rate×体重，不乘 StaminaScale）。
+// menek v2 已升逐鱼种实测表（7.37/g），组兜底改用仍未实测的 halibut_b。
 func TestFishStaminaRateGroupFor(t *testing.T) {
 	srv := &Server{}
 	profile := fishFightProfile{StaminaScale: 1.5}
-	if got := srv.fishStaminaForProfile(&RolledFish{Species: "menek", WeightG: 22800}, profile); math.Abs(got-8.445*22800) > 1e-6 {
-		t.Errorf("menek 体力=%v，应 8.445/g×22800（组均值不乘 StaminaScale）", got)
+	if got := srv.fishStaminaForProfile(&RolledFish{Species: "menek", WeightG: 22800}, profile); math.Abs(got-7.37*22800) > 1e-6 {
+		t.Errorf("menek 体力=%v，应实测 7.37/g×22800（v2 升实测，优先于组表）", got)
+	}
+	if got := srv.fishStaminaForProfile(&RolledFish{Species: "halibut_b", WeightG: 22800}, profile); math.Abs(got-8.445*22800) > 1e-6 {
+		t.Errorf("halibut_b（未实测海鱼）体力=%v，应 8.445/g×22800（组均值不乘 StaminaScale）", got)
 	}
 	if got := srv.fishStaminaForProfile(&RolledFish{Species: "karasekarp", WeightG: 5000}, profile); math.Abs(got-2.5*5000) > 1e-6 {
 		t.Errorf("karasekarp 体力=%v，应 2.5/g×5000", got)

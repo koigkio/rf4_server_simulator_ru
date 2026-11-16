@@ -157,3 +157,53 @@ Status: in-progress
 - [假设] slope=0.35 种内通用：perch/crucian/g_carp 多重量级样本钉死，其余种
   样本量不足以独立验证斜率。
 - amp 列存在 ~1.3 独立因子，形式未定，未验证，本期不动。
+
+## v2 增补：恒 k/变 k 两类模型 + 17 新实测种（2026-11-17）
+
+数据源：2026-11-16/17 断电抢救包（`tools/wireshark/断电抢救-20261116.pcapng`，
+53 条 14/14 A 级样本，全部经服务端通道切换恢复解密——见
+logs/captures/official_trace/HANDOFF.md v2 章节）。鱼种代码↔中文名对照以
+static.sqlite3 `loc_fish` 表为准。
+
+### 发现：k 与体重关系分两类
+
+- **恒 k 类（Slope=0，pull = w×k）**：海鱼与小型鱼。跨体重档 k 精确不变：
+  coalfish 绿青鳕 702~3027g ×4 恒 21.58、atl_cod 大西洋鳕 ×2 恒 21.58、
+  m_scorpius 短角大杜父鱼 205~1142g ×5 恒 17.66、shemaya_cha 黑海欧白鱼
+  117~237g ×4 恒 18.64、tiulka 棱鲱 ×6 恒 ≈18.6。k 取值落在离散集合
+  {17.66, 18.64, 19.62, 21.58, 22.56, 23.54, 25.53}，疑似服务端曲线池直配幅值。
+  旧单样本 taran（18.64）/piksha（18.64）/b_gill（19.62）与离散值精确重合，
+  v2 一并改判恒 k。
+- **变 k 类（k = K0 + slope·ln(w_kg)，slope 鱼种各异）**：鲤科淡水鱼。
+  c.roach 0.23 / g_carp 0.23 / crucian 0.35 / perch 0.38 / carp 0.49 /
+  c.carp 0.45 / rudd 0.53 / m_carp 0.59。v1 的全局 slope=0.35 是折中值。
+
+### 实现变更
+
+- `fishPullK0` 值类型 `float64` → `fishPullParam{K0, Slope}`；Slope<0 表示
+  单样本未标定，回落全局 `fishPullLnSlope`（=0.35，降级为组/fallback 默认斜率）。
+- 恒 k 类不吃 `fish_pull_ln_slope` tunable（锚点测试断言）。
+- `fishPullK0For` 保留返回 K0（日志/显示层用），主路径改 `fishPullParamFor`。
+- f8 官方路径 0.5N 下限降为 0.05N：官方 10g 棱鲱 f8=0.186N、24g 欧鲌 0.424N，
+  旧下限与 A 级样本矛盾（legacy 分支保持 0.5N 不动）。
+- 17 个新实测种入表（恒 k 13 + 变 k/先验 4）：coalfish 21.58、atl_cod 21.58、
+  m_scorpius 17.66、shemaya_cha 18.64、tiulka 18.64、pumps_sunfish 19.62、
+  menek 18.64、pollachius 22.56、atl_herring 22.57、makrel 23.54、
+  cha_herring 25.53、rudd {19.24, 0.53}、carp_ghost 16.73、n_carp 16.53、
+  kw_tench 18.68、c_bleak 18.81（均为 K0，恒 k 类 Slope=0、鲤科单样本 -1）。
+- 旧种复核修正：carp {16.50, 0.49}（7 样本）、c.carp {13.84, 0.45}（4）、
+  c.roach {16.36, 0.23}、perch {17.60, 0.38}（9）、g_carp {18.79, 0.23}（5，
+  底钓2 样本重拟合）；crucian {15.05, 0.35} 6 样本精确复核不变。
+- `fishPullSpeciesGroup` 移除已实测 5 种（coalfish/pollachius/menek/n_carp/
+  kw_tench）；`marine_gadid` 19.7 组值保留给未实测鳕形目，注释标注实测离散值。
+- f5 `fishStaminaRatePerGram` 新增 17 种（均值口径，样本极差 ±13%~30%）；
+  perch 2.75→2.69、c.carp 2.52→2.78（样本扩充重算）。
+- 搏斗组词表补 tiulka → small 组（原落 default）。
+
+### 锚点与自校验
+
+- 锚点测试扩到 29 种 74 条（新种配跨体重档对钉 slope/恒 k）；
+  crucian K0=15.05 与 v1 spec 精确一致、f5 每 g 2.297 vs 2.29 双指标自校验通过。
+- 全量门禁：gameserver 包仅剩既有基线失败 TestCafeNativeFlowPaysAndPushesRemoval
+  （单跑过、时序敏感，口径同 AGENTS.md）；其余包 2 失败均为环境/工作区既有问题
+  （launcher GOTMPDIR 路径分隔符、docs 索引缺 2026-11-16 解码文档登记），与本分支无关。

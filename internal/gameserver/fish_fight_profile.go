@@ -72,7 +72,8 @@ func fishFightArchetypeFor(species string) fishFightArchetype {
 	case has("carp", "bream", "tench", "barbel", "buffalo", "karasekarp"):
 		return fishFightArchetypes["cyprinid"]
 	case has("roach", "rudd", "dace", "bleak", "gudgeon", "minnow",
-		"vendace", "sabrefish", "shemaya", "zubatka", "vobla", "stickleback"):
+		"vendace", "sabrefish", "shemaya", "zubatka", "vobla", "stickleback",
+		"tiulka"):
 		return fishFightArchetypes["small"]
 	case has("cod", "herring", "mackerel", "makrel", "tuna", "thynnus",
 		"halibut", "kambala", "coalfish", "pollachius", "merluza", "molva",
