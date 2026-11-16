@@ -159,7 +159,10 @@ func stackCountTx(ctx context.Context, tx *sql.Tx, it *store.Item) int64 {
 	}
 	fields, err := FieldsFromJSON(it.FieldsJSON)
 	if err == nil {
-		if n, ok := itemQtyValue(it.WireClass, fields); ok && n > 0 {
+		// 通用库存读「剩余件数」：券读 dnmfciolgep，其余类别（含 metaQtyFamily
+		// 家族）读 csQty。用 itemQtyValue 会把 cat58 家族的 attrs 常量（实测 100）
+		// 当成剩余量，导致材料校验虚增、扣减后数量不动。
+		if n, ok := itemStackQtyValue(it.WireClass, fields); ok && n > 0 {
 			return int64(n)
 		}
 	}
@@ -240,6 +243,13 @@ func (s *Server) prepareNewItem(ctx context.Context, uid int64, itemID, containe
 			writeItemQty(cls.Class, obj, fieldQty)
 			rowQty = int64(fieldQty)
 		}
+	} else if def.Category == couponCategory {
+		// 一券一实例：数量槽固定 1，与 CreateItem 对称。units 必须严格等于 1，
+		// 多张请走 prepareCouponRows 逐张建行；这里不夹值，避免静默白送或多发。
+		if units != 1 {
+			return nil, fmt.Errorf("梦鱼券需按张建行，prepareNewItem 不支持 units=%d", units)
+		}
+		writeItemQty(cls.Class, obj, 1)
 	}
 	s.materializeInto(ctx, cls.Class, def, obj, guid, 1, 1)
 	if idx := fieldIdxByCS(cls.Class, csCreated); idx >= 0 {
