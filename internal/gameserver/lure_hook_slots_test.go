@@ -65,6 +65,50 @@ func TestLureHookSlotsPurchasedLureWithoutPositionRecord(t *testing.T) {
 	})
 }
 
+// TestNoHookAttractantLurePurchaseVisible 回归：装饰性吸引成分（八爪鱼/虾/
+// 彩珠，category 17 拟饵类）没有出厂钩（gpoaffnjbdo=null）。项目到 ItemToTree
+// 时 projectLureHookSlots 不能因 f0 不是 args(60) 而报错，否则 hStoreBuy 跳过
+// 物品树，出现"db 已入包但客户端看不到"的现象。
+func TestNoHookAttractantLurePurchaseVisible(t *testing.T) {
+	for _, model := range []string{"okt_21080_1", "shr_21107_1", "color_bead_006"} {
+		t.Run(model, func(t *testing.T) {
+			s := newSkillsCraftServer(t, openRecipeTestDB(t))
+			if _, err := s.DB.EnsureProfile(t.Context(), craftLureTestUID); err != nil {
+				t.Fatal(err)
+			}
+			if _, err := s.DB.SQL.Exec(`UPDATE profile SET silver=200000 WHERE uid=?`, craftLureTestUID); err != nil {
+				t.Fatal(err)
+			}
+			if _, err := s.DB.SQL.Exec(`INSERT INTO shop_item(store_id,item_id,silver,gold,stock) VALUES('shop',?,1000,0,10)`, model); err != nil {
+				t.Fatal(err)
+			}
+			c := economyTestCtx(s, craftLureTestUID, proto.Args524(proto.StrVal("shop"), proto.StrVal(model), proto.U64(1)))
+			c.ExpectResponse = true
+			c.replyCapture = &ctxReplyCapture{}
+			body, ok := hStoreBuy(false)(c)
+			if !ok || len(body) == 0 {
+				t.Fatal("购买失败")
+			}
+			var guid string
+			if err := s.DB.SQL.QueryRow(`SELECT guid FROM item WHERE uid=? AND item_id=?`, craftLureTestUID, model).Scan(&guid); err != nil {
+				t.Fatalf("物品未入包: %v", err)
+			}
+			// 购买响应 f1 必须携带这尾拟饵的物品树（客户端据此显示入包）。
+			result := decodeTreeValue(t, s, body)
+			list := result.Fields[1].Val
+			if list == nil || list.Kind != proto.KindArgs || len(list.Items) != 1 || treeRootGUID(list.Items[0]) != guid {
+				t.Fatalf("购买响应缺少物品树，客户端将看不到入包: %+v", list)
+			}
+			// 背包详情同样要能构造物品树（ItemToTree 不得报错）。
+			dctx := economyTestCtx(s, craftLureTestUID, proto.Args524(proto.U32(0), proto.GuidArr([]string{guid})))
+			db, okd := hItemDetails(dctx)
+			if !okd || len(db) == 0 {
+				t.Fatal("背包详情未返回，ItemToTree 仍可能报错")
+			}
+		})
+	}
+}
+
 func assertLureWireSlots(t *testing.T, tree *proto.Value, want []string) {
 	t.Helper()
 	list := tree.Fields[lureHookFieldIndex(tree.Class)].Val

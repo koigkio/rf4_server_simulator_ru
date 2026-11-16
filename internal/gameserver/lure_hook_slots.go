@@ -139,6 +139,16 @@ func (s *Server) projectLureHookSlots(ctx context.Context, row *store.Item, obj 
 	}
 	list := obj.Fields[idx].Val
 	if list == nil || list.Kind != proto.KindArgs {
+		// 装饰性吸引成分（彩珠/八爪鱼/虾等）的 gpoaffnjbdo 出厂钩配置为 null，
+		// 物化后 f0 保持 Null，没有钩位需要投影。这类拟饵是合法在售商品：
+		// 若在此报错，ItemToTree 会失败，hStoreBuy 末尾的循环 continue 跳过
+		// 物品树，最终 db 已入包但 804 响应不带物品树，客户端看不到入包。
+		// 仅当定义里确实没有钩配置时放行；真正的数据损坏仍要报错，避免掩盖。
+		if def, derr := s.DB.GetItemDef(ctx, row.NumericID); derr == nil && def != nil {
+			if cfgs, _ := defAttrs(def)[lureHooksAttr].([]any); len(cfgs) == 0 {
+				return nil
+			}
+		}
 		return fmt.Errorf("lure hook array missing")
 	}
 	positions, err := s.loadLureHookPositions(ctx, row, list.Items)
