@@ -220,7 +220,8 @@ func TestQualificationMarineExtrasSettleAndDeliverProgress(t *testing.T) {
 	assertResponse := func(root *proto.Value) {
 		t.Helper()
 		for _, counter := range root.Field(3).Val.Field(2).Val.Items {
-			if counter.Field(0).U32() == 8502 {
+			id := counter.Field(0)
+			if id.U32() == 8502 {
 				if len(counter.Field(1).Val.Items) != 3 || *counter.Field(2).Num == 0 {
 					t.Fatal("14/4 must deliver final 3/3 progress, not main-fish-only 1/3")
 				}
