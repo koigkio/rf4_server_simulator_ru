@@ -1318,9 +1318,10 @@ func hFishingPull(ctx *Ctx) ([]byte, bool) {
 		return nil, true
 	}
 	if needsConfirmation {
-		if err := srv.consumeHookedBait(ctx.Sess, pending, gear); err != nil {
-			ctx.Log.Warn("海钓抬竿后鱼饵扣减失败", "fish", pending.FishGUID, "err", err)
-		}
+		// 扣饵不在海钓抬竿确认瞬间执行：与 14/11 同理，客户端此刻正进入搏鱼
+		// ctor 读挂载态，确认阶段任何扣饵推送（4/21+竿树重建）都会打断构造
+		// → f4=0 秒脱（specs/changes/bait-consume-fight-end）。由该鱼自己的
+		// 终局（14/12/14/5/14/6/14/4）按 FishGUID 幂等键扣除。
 		bound := false
 		if ctx.Sess.marineHookConfirm() {
 			bound = ctx.Sess.Push14_15(gear, pending.FishGUID)
@@ -1364,9 +1365,10 @@ func hFishingHooked(ctx *Ctx) ([]byte, bool) {
 			extra := st.Extra[i]
 			extra.HookConfirmed = true
 			st.mu.Unlock()
-			if err := srv.consumeHookedBait(ctx.Sess, extra, gear); err != nil {
-				ctx.Log.Warn("额外鱼中钩后扣饵失败", "fish", extra.FishGUID, "err", err)
-			}
+			// 扣饵不在额外鱼中钩确认瞬间执行（specs/changes/bait-consume-fight-end）：
+			// 与主鱼同理，确认推送（钩树 4/22）之前扣饵+4/21 会打断客户端搏鱼
+			// ctor。额外鱼的饵由 14/4 多钩结算（settleExtraOnReelIn）按 FishGUID
+			// 幂等键兜底扣除——那里本就是额外鱼唯一的终局。
 			// 挂竿位要推这尾鱼自己的钩，不能推线末端那枚（Push4_22Hook 只取槽位 12）。
 			ctx.Sess.Push4_22HookGUID(extra.HookGUID, true)
 			ctx.Log.Info("14/11 额外鱼中钩确认", "rod", shortGUID(gear),

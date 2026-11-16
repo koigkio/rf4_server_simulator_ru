@@ -183,3 +183,128 @@ func TestKeepConsumesBaitOnce(t *testing.T) {
 		t.Fatalf("14/4 auto-rebait should mount 1 bait, got %d", got)
 	}
 }
+
+// 海钓 rigType=50 的 14/9 抬竿确认（评审 P1 修复回归）：确认瞬间不扣饵、
+// 天然饵子实例仍在钩上，由该鱼终局按 FishGUID 幂等键扣除。
+func TestMarineStrikeDoesNotConsumeMountedBait(t *testing.T) {
+	s, db := newRigTestServer(t)
+	if err := db.Migrate(); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { stopFishingRecoveryTimers(s) })
+	sess, _ := newTunnelProbe(t, s)
+	s.sessions[sess.ID] = sess
+	uid := sess.Userid
+	if _, err := db.EnsureProfile(t.Context(), uid); err != nil {
+		t.Fatal(err)
+	}
+
+	rod, err := s.CreateItem(t.Context(), uid, "boatr_10222_SBH80_100", "backpack", 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !s.rigSetType(t.Context(), uid, rod.GUID, 50) {
+		t.Fatal("marine rig rejected")
+	}
+	mountHookForBaitTest(t, s, rod.GUID, 0)
+	source, child := baitTestMount(t, s, rod.GUID, "worm_01", 5, 350)
+
+	fish := &RolledFish{FishGUID: newFishGUID(), Species: "atl_cod", Grade: 2,
+		WeightG: 4200, LengthM: .4, BaitsKnown: true, BaitGUIDs: child}
+	st := s.fishingStateForRod(uid, rod.GUID)
+	st.mu.Lock()
+	st.GearGuid = rod.GUID
+	st.Loc = "unknown-map"
+	st.Bait = "worm_01"
+	st.RigType, st.CastActive, st.InWater = 50, true, true
+	st.Pending, st.PushSent, st.Hooked = fish, true, false
+	st.Resolved = false
+	st.mu.Unlock()
+
+	if _, ok := hFishingPull(miscCtx(sess, 14, 9, nil)); !ok {
+		t.Fatal("14/9 marine strike was not handled")
+	}
+	// 确认瞬间：来源堆不动（挂饵已预留 5→4）、天然饵子实例仍在钩上。
+	if row, _ := db.GetItemByGUID(t.Context(), source); row == nil || baitQuantity(row) != 4 {
+		t.Fatalf("marine strike consumed the mounted bait before fight end: %+v", row)
+	}
+	if row, _ := db.GetItemByGUID(t.Context(), child); row == nil {
+		t.Fatal("marine strike removed the mounted bait child before fight end")
+	}
+	// 终局（14/12）扣一次。
+	if _, ok := hFishingLeft(&Ctx{Sess: sess, Main: 14, Sub: 12, Log: logging.Discard()}); !ok {
+		t.Fatal("14/12 fish-left was not handled")
+	}
+	if row, _ := db.GetItemByGUID(t.Context(), source); row == nil || baitQuantity(row) != 4 {
+		t.Fatalf("fight end did not consume exactly one unit: %+v", row)
+	}
+	if row, _ := db.GetItemByGUID(t.Context(), child); row != nil {
+		t.Fatalf("consumed bait child still exists after fight end: %+v", row)
+	}
+}
+
+// 多钩额外鱼的 14/11 确认（评审 P1 修复回归）：确认瞬间不扣饵，额外鱼的饵
+// 由 14/4 多钩结算（settleExtraOnReelIn）按 FishGUID 幂等键兜底扣除。
+func TestExtraFishHookConfirmDoesNotConsumeBait(t *testing.T) {
+	s, db := newRigTestServer(t)
+	if err := db.Migrate(); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { stopFishingRecoveryTimers(s) })
+	sess, _ := newTunnelProbe(t, s)
+	s.sessions[sess.ID] = sess
+	uid := sess.Userid
+	if _, err := db.EnsureProfile(t.Context(), uid); err != nil {
+		t.Fatal(err)
+	}
+
+	rod, err := s.CreateItem(t.Context(), uid, "boatr_10222_SBH80_100", "backpack", 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !s.rigSetType(t.Context(), uid, rod.GUID, 50) {
+		t.Fatal("marine rig rejected")
+	}
+	mountHookForBaitTest(t, s, rod.GUID, 0)
+	source, child := baitTestMount(t, s, rod.GUID, "worm_01", 5, 350)
+
+	main := &RolledFish{FishGUID: newFishGUID(), Species: "atl_cod", Grade: 2,
+		WeightG: 4200, LengthM: .4, BaitsKnown: true, BaitGUIDs: child}
+	extra := &RolledFish{FishGUID: newFishGUID(), Species: "p_zubatka", Grade: 1,
+		WeightG: 800, LengthM: .25, HookGUID: "", BaitsKnown: true, BaitGUIDs: child}
+	st := s.fishingStateForRod(uid, rod.GUID)
+	st.mu.Lock()
+	st.GearGuid = rod.GUID
+	st.Loc = "unknown-map"
+	st.Bait = "worm_01"
+	st.RigType, st.CastActive, st.InWater = 50, true, true
+	st.Pending, st.PushSent, st.Hooked = main, true, true
+	st.Resolved = false
+	st.Extra = []*RolledFish{extra}
+	st.mu.Unlock()
+
+	// 客户端为额外鱼发 14/11（args 含额外鱼 GUID）。
+	extraCtx := miscCtx(sess, 14, 11, rigRequestTree(t, proto.Guid(rod.GUID), proto.Guid(extra.FishGUID)))
+	if _, ok := hFishingHooked(extraCtx); !ok {
+		t.Fatal("14/11 extra-fish confirm was not handled")
+	}
+	// 确认瞬间：饵仍在钩上。
+	if row, _ := db.GetItemByGUID(t.Context(), source); row == nil || baitQuantity(row) != 4 {
+		t.Fatalf("extra-fish confirm consumed the mounted bait: %+v", row)
+	}
+	if row, _ := db.GetItemByGUID(t.Context(), child); row == nil {
+		t.Fatal("extra-fish confirm removed the mounted bait child")
+	}
+	// 14/4 多钩结算：主鱼 + 额外鱼一起终局；饵按幂等键只扣一次，
+	// 结算内置补饵再预留 1 份（4→3）。
+	st.mu.Lock()
+	st.Hooked = true
+	st.mu.Unlock()
+	endCtx := &Ctx{Sess: sess, Main: 14, Sub: 4, ExpectResponse: true, Log: logging.Discard()}
+	if body, ok := s.fishingEndSettle(endCtx); !ok || len(body) == 0 {
+		t.Fatalf("14/4 was not handled: ok=%v", ok)
+	}
+	if row, _ := db.GetItemByGUID(t.Context(), source); row == nil || baitQuantity(row) != 3 {
+		t.Fatalf("14/4 multi-hook settle: source = %+v, want 3 (one unit + one rebait reserve)", row)
+	}
+}
