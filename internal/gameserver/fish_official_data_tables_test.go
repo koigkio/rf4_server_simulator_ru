@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math"
 	"testing"
+	"time"
 )
 
 // 官服 f5 锚点（A 级 14/14 样本，specs/changes/fish-official-data-tables/spec.md）。
@@ -48,6 +49,11 @@ func TestFishStaminaMatchesOfficialAnchors(t *testing.T) {
 // TestFishF6MatchesOfficialTable 验证 f6 量化表、体重台阶与 fallback。
 func TestFishF6MatchesOfficialTable(t *testing.T) {
 	srv2, _ := newRigTestServer(t)
+	srv2.tunMu.Lock()
+	srv2.tunCache = map[string]float64{"fish_f6_scale": 1}
+	srv2.tunText = map[string]string{"fish_f6_scale": "1"}
+	srv2.tunAt = time.Now()
+	srv2.tunMu.Unlock()
 	cases := []struct {
 		species string
 		weightG int64
@@ -61,7 +67,7 @@ func TestFishF6MatchesOfficialTable(t *testing.T) {
 		{"s.bream", 359, 0.30},
 		{"n.pike", 4305, 0.80},
 		{"g_carp", 21742, 0.70},
-		{"not_in_calib", 500, defaultFishInitialStaminaRatio},
+		{"not_in_calib", 500, 0.55},
 	}
 	for _, c := range cases {
 		f := &RolledFish{Species: c.species, WeightG: c.weightG}
@@ -98,6 +104,32 @@ func TestFightCurvesSpeciesPoolsLoaded(t *testing.T) {
 	fallback := srv.buildFightCurves("not_in_calib", 10)
 	if fallback == nil || len(fallback.Items) == 0 {
 		t.Fatal("未入库种借池兜底失效")
+	}
+}
+
+// TestFightCurvesMarineFallbackUsesOfficialMerlang 防回归：marine 组借官方
+// merlang 真池（39a1085 官服 14/14 抓包直配入库）。此前借 perch 池是淡水
+// 小杂鱼剧本（主搏 105 仅 4.5~8s、逃窜权重 1~2%、98% 时间碎潜水），实测
+// 84.2kg meagre 全程 19s 被匀速拖回、14/8 遥测零负步（2026-11-16 搏鱼秒起
+// 调查）。词表命中 marine 的未入库种（menek）必须与 merlang 拿到同一池：
+// 同 pull 同池 uniform 缩放，全部 19 列应逐行一致。
+func TestFightCurvesMarineFallbackUsesOfficialMerlang(t *testing.T) {
+	if pool := fishFightArchetypes["marine"].CurvePool; pool != "merlang" {
+		t.Fatalf("marine 组曲线池=%q，应为官方 merlang 池", pool)
+	}
+	srv, _ := newRigTestServer(t)
+	const pull = 100.0
+	menek := srv.buildFightCurves("menek", pull)
+	merlang := srv.buildFightCurves("merlang", pull)
+	if len(menek.Items) == 0 || len(menek.Items) != len(merlang.Items) {
+		t.Fatalf("menek 借池行数=%d，merlang 池=%d", len(menek.Items), len(merlang.Items))
+	}
+	for i, row := range menek.Items {
+		for col := 0; col < 19; col++ {
+			if got, want := protoF32Field(row, col), protoF32Field(merlang.Items[i], col); got != want {
+				t.Fatalf("menek 行 %d 列 %d=%f，merlang 池=%f（借池应为官方 merlang 真池）", i, col, got, want)
+			}
+		}
 	}
 }
 

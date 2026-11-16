@@ -873,7 +873,7 @@ func (s *Server) stackCountOf(ctx context.Context, it *store.Item) int64 {
 	if err != nil {
 		return 1
 	}
-	q := fieldIdxByCS(it.WireClass, csQty)
+	q := stackQtyFieldIdx(it.WireClass)
 	if q < 0 || q >= len(fields) {
 		// 字段缺失时使用定义中的默认数量，仍缺失则返回 1。
 		if def, derr := s.DB.GetItemDef(ctx, it.NumericID); derr == nil && def != nil {
@@ -898,9 +898,7 @@ func (s *Server) setStackCount(ctx context.Context, row *store.Item, count int64
 	if err != nil {
 		return
 	}
-	if q := fieldIdxByCS(row.WireClass, csQty); q >= 0 && q < len(fields) {
-		fields[q].Num = ptrU64(uint64(count))
-	}
+	setStackCountFields(row.WireClass, fields, count)
 	bumpCreatedTicks(fields, row.WireClass)
 	fj, jerr := FieldsToJSON(fields)
 	if jerr != nil {
@@ -922,9 +920,7 @@ func (s *Server) setStackCountTx(ctx context.Context, tx *sql.Tx, row *store.Ite
 	if err != nil {
 		return err
 	}
-	if q := fieldIdxByCS(row.WireClass, csQty); q >= 0 && q < len(fields) {
-		fields[q].Num = ptrU64(uint64(count))
-	}
+	setStackCountFields(row.WireClass, fields, count)
 	bumpCreatedTicks(fields, row.WireClass)
 	fj, jerr := FieldsToJSON(fields)
 	if jerr != nil {
@@ -1063,7 +1059,7 @@ func (s *Server) splitMountableChild(ctx context.Context, uid int64, parentGUID,
 		return itemGUID, ""
 	}
 	childGUID := NewItemGUID()
-	if q := fieldIdxByCS(row.WireClass, csQty); q >= 0 && q < len(childFields) {
+	if q := stackQtyFieldIdx(row.WireClass); q >= 0 && q < len(childFields) {
 		childFields[q].Num = ptrU64(uint64(n)) // 数量=一钩份数
 	}
 	if p := fieldIdxByCS(row.WireClass, csParent); p >= 0 && p < len(childFields) {
@@ -1147,7 +1143,7 @@ func (s *Server) materializeHanditemChild(ctx context.Context, uid int64, parent
 		return itemGUID, ""
 	}
 	childGUID := NewItemGUID()
-	if q := fieldIdxByCS(row.WireClass, csQty); q >= 0 && q < len(childFields) {
+	if q := stackQtyFieldIdx(row.WireClass); q >= 0 && q < len(childFields) {
 		childFields[q].Num = ptrU64(uint64(load)) // 装填份数（缺省 1，整堆模式为 count）
 	}
 	if p := fieldIdxByCS(row.WireClass, csParent); p >= 0 && p < len(childFields) {

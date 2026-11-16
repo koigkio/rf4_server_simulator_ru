@@ -387,14 +387,14 @@ func (s *Server) fishingEndSettle(ctx *Ctx) ([]byte, bool) {
 	hasFish := pending != nil && hooked
 
 	if pending != nil && !hooked {
-		// 鱼已咬钩但玩家未刺中就收竿：鱼会凭空消失，必须有反馈。
-		// 用跑鱼模板（kind3/语气词）播报"跑掉了"，不再静默。
-		ctx.Log.Info("14/4 未刺中收竿：咬钩未上钩，补发跑鱼提示",
+		// 咬饵≠咬钩（2026-11-16 两阶段模型收敛）：未刺中的鱼从未真正
+		// 挂牢，官方对此无播报载体——玩家侧只有饵收回的动画。静默离场。
+		ctx.Log.Info("14/4 未刺中收竿：咬饵未咬钩，官方静默",
 			"fish", shortGUID(pending.FishGUID), "species", pending.Species)
-		s.notifyFishEscape(ctx.Sess, pending, "收竿跑鱼")
 	}
 	var res *settleXpResult
 	var qualCups []*store.Item
+	var stageGifts []*store.Item
 	if hasFish {
 		// 扣饵在搏鱼终局执行：客户端发 14/4 时已离开搏鱼态，此时扣饵推送
 		// （4/21 + 竿树重建 4/22）不会再打断搏鱼 ctor。与 14/12/14/5/14/6
@@ -414,6 +414,8 @@ func (s *Server) fishingEndSettle(ctx *Ctx) ([]byte, bool) {
 		// 重放不发）；奖杯挂 801.f8 奖励列表并在响应后推 4/22。
 		if !res.replayed && len(qualChanges) > 0 {
 			qualCups = s.ensureQualificationCups(cctx, uid)
+			// 阶段礼物：本尾鱼让某阶段最后一条可见任务达标时按配置发放（kv 幂等）。
+			stageGifts = s.ensureEventStageGifts(cctx, uid)
 		}
 		stats813 = s.buildSettle813(cctx, uid, pending, res)
 		profileTree, _ = s.BuildProfile307W(cctx, uid, worldTotalGameMin(time.Now()))
@@ -481,6 +483,11 @@ func (s *Server) fishingEndSettle(ctx *Ctx) ([]byte, bool) {
 	}
 	for _, row := range qualCups {
 		if tree, terr := s.awardItemTree(cctx, row); terr == nil {
+			grants.Items = append(grants.Items, tree)
+		}
+	}
+	for _, row := range stageGifts {
+		if tree, terr := s.ItemToTree(cctx, row); terr == nil {
 			grants.Items = append(grants.Items, tree)
 		}
 	}
@@ -556,6 +563,20 @@ func (s *Server) fishingEndSettle(ctx *Ctx) ([]byte, bool) {
 				ctx.Log.Warn("资格奖杯礼物行构造失败", "err", lerr)
 			} else if line != nil {
 				giftRows = append811Row(giftRows, line)
+			}
+		}
+		// 阶段礼物：普通商品走正常物品树，不能使用分支奖杯的 f4=14 奖赏投影。
+		if len(stageGifts) > 0 {
+			if line, lerr := s.giftRows811(cctx, []gift811Line{{
+				source: giftSourceGameEvent,
+				param:  1,
+				items:  stageGifts,
+			}}); lerr != nil {
+				ctx.Log.Warn("阶段礼物礼物行构造失败", "err", lerr)
+			} else if line != nil && line.Kind != proto.KindNull {
+				// giftRows811 已经返回 args(173) 容器；合并容器元素，不能
+				// 把整个 args(173) 再作为一个 811 元素嵌进去。
+				giftRows = append811Rows(giftRows, line)
 			}
 		}
 	}
@@ -635,6 +656,14 @@ func (s *Server) fishingEndSettle(ctx *Ctx) ([]byte, bool) {
 		ctx.AfterResponse(func() {
 			for _, row := range cups {
 				s.pushAwardUpdate(uid, row)
+			}
+		})
+	}
+	if len(stageGifts) > 0 {
+		gifts := stageGifts
+		ctx.AfterResponse(func() {
+			for _, row := range gifts {
+				s.pushItemUpdate(uid, row)
 			}
 		})
 	}

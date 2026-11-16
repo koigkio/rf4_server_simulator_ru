@@ -89,6 +89,7 @@ type FishState struct {
 	biteTicket     uint64
 	pendingTicket  uint64
 	PendingRepush  int           // 14/12 f0=3/5/6 连续拒收鱼实体时的重推次数
+	EmptyStreak    int           // 连续空轮计数（保底杂口 bite_gate_pity_rounds 用；出鱼即清零，不持久化）
 	BiteAt         time.Time     // 原定咬钩绝对时刻；硬重启后据此恢复 timer
 	Keepnet        []*RolledFish // 回退缓存（DB 权威）
 	Bait           string
@@ -792,11 +793,33 @@ func (s *Server) fishPullK0For(species string) float64 {
 // （specs/changes/fish-pull-k-table/spec.md）。官方 k 无 archetype 形状，
 // 因此 profile 不再参与力的缩放；RolledFish.Force 手动覆盖与
 // fight_power_scale 应急缩放保留。
+func (s *Server) fightLegacyModel() bool {
+	return s.tunableF("fight_legacy_model", 0) != 0
+}
+
+func (s *Server) fightOfficialStrength() bool {
+	return s.tunableF("fight_official_strength", 0) != 0
+}
+
+func (s *Server) fishFightGroupFallback() bool {
+	return s.tunableF("fish_fight_group_fallback", 1) != 0
+}
+
 func (s *Server) fishFightPullFor(f *RolledFish) float64 {
 	if f == nil {
 		return 0
 	}
 	pull := f.Force
+	if s.fightLegacyModel() && !s.fightOfficialStrength() {
+		if pull <= 0 {
+			pull = verifiedForcePerGram * float64(f.WeightG)
+		}
+		if k := s.tunableF("fight_power_scale", 1.0); k > 0 && k != 1.0 {
+			pull = math.Max(0.5, math.Round(pull*k*10000)/10000)
+		}
+		profile := s.fishFightProfileFor(f)
+		return math.Max(0.5, math.Round(pull*profile.ForceScale*10000)/10000)
+	}
 	if pull <= 0 {
 		wKg := math.Max(0.01, float64(f.WeightG)/1000)
 		slope := s.tunableF("fish_pull_ln_slope", fishPullLnSlope)
@@ -945,6 +968,10 @@ func (s *Server) rollFishWithRules(loc, bait string, gearCapKg float64, bonus fi
 	if c.baits == nil {
 		c.baits = []string{bait}
 	}
+	// 硬性鱼口门剔空本图名册时置位：这种杆必须空竿重排，不能落到
+	// 内置鱼池兜底去捞不属于本图的鱼。
+	gateBlocked := false
+	c.gateBlocked = &gateBlocked
 	if s.tunableF("fish_bait_rules_enabled", 0) == 1 {
 		if s.DB != nil && s.cachedResolveStatLoc(s.dbCtx(), c, loc) == "" {
 			return s.rollFishPoolsWithRules(loc, gearCapKg, bonus, c)
@@ -957,6 +984,9 @@ func (s *Server) rollFishWithRules(loc, bait string, gearCapKg float64, bonus fi
 	if s.DB != nil {
 		if f := s.rollFishFromDBWithRules(loc, bait, gearCapKg, bonus, c); f != nil {
 			return f
+		}
+		if gateBlocked {
+			return nil
 		}
 		// 已知水域的鱼群无法匹配时保持空竿。
 		if roster, err := s.cachedLocRoster(s.dbCtx(), c, s.cachedResolveStatLoc(s.dbCtx(), c, loc)); err == nil && len(roster) > 0 {
@@ -1029,6 +1059,36 @@ func (s *Server) rollFishFromDBWithRules(loc, bait string, gearCapKg float64, bo
 			}
 		}
 	}
+	// 硬性鱼口资格门（bite_gate_enabled，默认关）：拟饵不喂非掠食鱼、
+	// 天然饵按攻略+生态双票、水层超界只留极小杂口。剔空整杆走
+	// 「本轮无符合条件的鱼」重排。空因写进 c.emptyReason（诊断日志用）。
+	markEmpty := func(reason string) {
+		if c.emptyReason != nil {
+			*c.emptyReason = reason
+		}
+	}
+	if gate := s.biteGateConfig(); gate.enabled {
+		keys, wts = s.applyBiteGates(cctx, keys, wts, c, gate, statLoc)
+		if len(keys) == 0 {
+			markEmpty("食性/水层硬门")
+			if c.gateBlocked != nil {
+				*c.gateBlocked = true
+			}
+			return nil
+		}
+	}
+	// 区域固定鱼种名册（fish_zone，后台可编辑，默认无配置=不限制）：
+	// 落点命中独占区只出名单鱼种，命中增益区名单内加权、名单外打折。
+	if zk, zw, hit := s.applyFishZoneRoster(cctx, statLoc, keys, wts, c); hit {
+		keys, wts = zk, zw
+		if len(keys) == 0 {
+			markEmpty("区域名册（独占区无交集）")
+			if c.gateBlocked != nil {
+				*c.gateBlocked = true
+			}
+			return nil
+		}
+	}
 	interests := map[string]float64{}
 	if strict {
 		base := map[string]float64{}
@@ -1037,6 +1097,7 @@ func (s *Server) rollFishFromDBWithRules(loc, bait string, gearCapKg float64, bo
 		}
 		keys, wts = s.filterFishBaitSet(statLoc, c.baits, keys, wts, c.now, c)
 		if len(keys) == 0 {
+			markEmpty("饵料规则（strict）")
 			return nil
 		}
 		for i, key := range keys {
@@ -1048,6 +1109,7 @@ func (s *Server) rollFishFromDBWithRules(loc, bait string, gearCapKg float64, bo
 	if distribution && (c.query == nil || !c.query.regional) {
 		applyFishDistribution(statLoc, keys, wts, c)
 		if !slices.ContainsFunc(wts, func(w float64) bool { return w > 0 }) {
+			markEmpty("分布散布（本时段本格无鱼）")
 			return nil
 		}
 	}
@@ -1164,6 +1226,10 @@ func (s *Server) rollFishFromDBWithRules(loc, bait string, gearCapKg float64, bo
 		if baitHit {
 			s.log.Info("roll_from_db 命中饵效", "鱼种", key, "重量", w, "tier", tiers[key])
 		}
+		// 咬钩落点审计：世界坐标 + 40m 网格 + 命中的区域名册（后台划区对账用）。
+		// resolveFishZone 与 applyFishZoneRoster 同源（缓存复用），纯查不改判鱼结果。
+		s.log.Info("咬钩落点", "鱼种", key, "x", math.Round(c.x), "z", math.Round(c.z),
+			"网格", fishArea(statLoc, c), "区域", zoneHitNote(s.fishZonesFor(cctx, statLoc), c))
 		if s.huntStateEnabled() && c.uid > 0 {
 			s.log.Info("发鱼阶段", "uid", c.uid, "loc", c.loc, "spot", c.spot,
 				"stage", s.fishHuntStageName(huntReady.Mode, huntReady.Stage), "A", roundTo(huntReady.A, 3),
@@ -1543,6 +1609,12 @@ func (s *Server) rollFishPoolsWithRules(loc string, gearCapKg float64, bonus fis
 		keys[i] = p.species
 		wts[i] = s.fishBiteEnvironmentWeight(s.dbCtx(), p.species, c)
 	}
+	if gate := s.biteGateConfig(); gate.enabled {
+		keys, wts = s.applyBiteGates(s.dbCtx(), keys, wts, c, gate, "")
+		if len(keys) == 0 {
+			return nil
+		}
+	}
 	if !slices.ContainsFunc(wts, func(w float64) bool { return w > 0 }) {
 		return nil
 	}
@@ -1799,8 +1871,10 @@ var officialSpeciesStatics = map[string]*fishStatics{
 
 // fishGroupFightStatics 未实测鱼种的习性组兜底静态参数（搏鱼脱钩方案 §五B /
 // P3 §五）：海水组 = merlang+piksha 两样本均值（鳕科/鲽科细分待 P3 锚点补抓），
-// 鲤科组 f9 沿用 g_carp pow、其余取方案约值与鲤科锚点均值。单样本种均为
-// 常数外推，体重偏离锚点时精度未知。
+// 鲤科组 f9 沿用 g_carp pow、其余取方案约值与鲤科锚点均值。其余组按常见
+// 体型/行为补组值：鲑科会冲、伏击鱼会突然发力、鲶/鲟沉重、鳗鱼持续扭动、
+// 小型鱼动作碎。组值是经验标定，不等于官服逐鱼种真值；拿到官方 14/14
+// 样本后应由 officialSpeciesStatics 逐种覆盖。
 var fishGroupFightStatics = map[string]*fishStatics{
 	"marine": {
 		f13: map[int64]float64{1: 0.50}, f14: map[int64]float64{1: 22.5}, f15: map[int64]float64{1: 225.0},
@@ -1811,6 +1885,62 @@ var fishGroupFightStatics = map[string]*fishStatics{
 		f13: map[int64]float64{1: 0.35}, f14: map[int64]float64{1: 1.00}, f15: map[int64]float64{1: 6.0},
 		f16: 1, f17: map[int64]float64{1: 0.93}, f18: 0.948364, f20: 0.999767,
 		f9: [2]float64{0.401, 0.179}, f10: [2]float64{1.6, 0}, f11: [2]float64{0.71, 0},
+	},
+	// 鲑科：中速持续发力，伴随短促冲刺；低于海鱼的外冲幅度，但明显高于
+	// 小鲫鱼兜底。
+	"salmonid": {
+		f13: map[int64]float64{1: 0.35, 2: 0.35}, f14: map[int64]float64{1: 1.20, 2: 1.20},
+		f15: map[int64]float64{1: 60.0, 2: 60.0},
+		f16: 0.70, f17: map[int64]float64{1: 0.75, 2: 0.75}, f18: 0.96, f20: 0.9995,
+		f9: [2]float64{3.80, 0}, f10: [2]float64{1.20, 0}, f11: [2]float64{0.85, 0},
+	},
+	// 伏击鱼：平时沉稳，受惊后短距离爆发；动作幅度比鲑科大。
+	"ambush": {
+		f13: map[int64]float64{1: 0.18, 2: 0.24}, f14: map[int64]float64{1: 0.70, 2: 0.70},
+		f15: map[int64]float64{1: 50.0, 2: 50.0},
+		f16: 0.90, f17: map[int64]float64{1: 0.80, 2: 0.80}, f18: 0.98, f20: 0.9995,
+		f9: [2]float64{3.20, 0}, f10: [2]float64{1.10, 0}, f11: [2]float64{0.80, 0},
+	},
+	// 鲶科：低速大扭矩，冲刺少但持续拉拽明显。
+	"catfish": {
+		f13: map[int64]float64{1: 0.35, 2: 0.35}, f14: map[int64]float64{1: 1.50, 2: 1.50},
+		f15: map[int64]float64{1: 60.0, 2: 60.0},
+		f16: 0.60, f17: map[int64]float64{1: 0.80, 2: 0.80}, f18: 0.95, f20: 0.9995,
+		f9: [2]float64{3.50, 0}, f10: [2]float64{1.20, 0}, f11: [2]float64{0.90, 0},
+	},
+	// 鲟科：重量级、持续强拉，动作不快但很难收线。
+	"sturgeon": {
+		f13: map[int64]float64{1: 0.40, 2: 0.40}, f14: map[int64]float64{1: 2.00, 2: 2.00},
+		f15: map[int64]float64{1: 80.0, 2: 80.0},
+		f16: 0.70, f17: map[int64]float64{1: 0.80, 2: 0.80}, f18: 0.95, f20: 0.9995,
+		f9: [2]float64{4.00, 0}, f10: [2]float64{1.30, 0}, f11: [2]float64{1.00, 0},
+	},
+	// 鳗鱼：持续扭动、方向变化多，单次拉力不大。
+	"eel": {
+		f13: map[int64]float64{1: 0.30, 2: 0.30}, f14: map[int64]float64{1: 0.80, 2: 0.80},
+		f15: map[int64]float64{1: 30.0, 2: 30.0},
+		f16: 0.80, f17: map[int64]float64{1: 0.80, 2: 0.80}, f18: 0.95, f20: 0.9995,
+		f9: [2]float64{3.00, 0}, f10: [2]float64{1.00, 0}, f11: [2]float64{0.70, 0},
+	},
+	// 小型鱼：动作碎、幅度小，但不应继续掉进大鱼的参数里。
+	"small": {
+		f13: map[int64]float64{1: 0.25, 2: 0.30}, f14: map[int64]float64{1: 0.40, 2: 0.40},
+		f15: map[int64]float64{1: 8.0, 2: 8.0},
+		f16: 1.0, f17: map[int64]float64{1: 0.84, 2: 0.84}, f18: 0.95, f20: 0.9995,
+		f9: [2]float64{2.80, 0}, f10: [2]float64{1.00, 0}, f11: [2]float64{0.70, 0},
+	},
+	// 鲨鱼/顶级掠食者：外冲和持续拉力都按海鱼最高档。
+	"apex": {
+		f13: map[int64]float64{1: 0.50}, f14: map[int64]float64{1: 22.5}, f15: map[int64]float64{1: 225.0},
+		f16: 0.19048, f17: map[int64]float64{1: 0.970964}, f18: 0.967488, f20: 0.9997705,
+		f9: [2]float64{4.88225, 0}, f10: [2]float64{1.57905, 0}, f11: [2]float64{1.09599, 0},
+	},
+	// 未归组鱼种：给中性偏强的兜底，不再使用小鲫鱼 f14=0.5/f15=4。
+	"default": {
+		f13: map[int64]float64{1: 0.30, 2: 0.35}, f14: map[int64]float64{1: 0.80, 2: 0.80},
+		f15: map[int64]float64{1: 20.0, 2: 20.0},
+		f16: 0.90, f17: map[int64]float64{1: 0.84, 2: 0.84}, f18: 0.95, f20: 0.9995,
+		f9: [2]float64{2.50, 0}, f10: [2]float64{0.90, 0}, f11: [2]float64{0.60, 0},
 	},
 }
 
@@ -1869,9 +1999,9 @@ func (s *Server) fishMarineGroupHit(species string) bool {
 }
 
 // fishCurveArchetypeFor 曲线池/耐力层的海图归属兜底：词表把海鱼落进
-// default/small 两个通用桶时改归 marine（perch 曲线池、耐力倍率 1.18），
-// 与搏鱼脱钩方案 §五B「组键也回退 CurvePool」同口径；apex/catfish/sturgeon
-// 等专属词表携带刻意的家族特化，不覆盖。
+// default/small 两个通用桶时改归 marine（官方 merlang 曲线池、耐力倍率
+// 1.18），与搏鱼脱钩方案 §五B「组键也回退 CurvePool」同口径；
+// apex/catfish/sturgeon 等专属词表携带刻意的家族特化，不覆盖。
 func fishCurveArchetypeFor(species string, marine bool) fishFightArchetype {
 	arch := fishFightArchetypeFor(species)
 	if !marine {
@@ -1883,17 +2013,41 @@ func fishCurveArchetypeFor(species string, marine bool) fishFightArchetype {
 	return arch
 }
 
-// fishGroupStaticsFor 习性组兜底：marine 为真（海图归属或词表命中）→ 海水组；
-// 其余按 fishFightArchetypeFor 词表判鲤科组；salmonid/small/… 等其余组与
-// 未命中返回 nil，走 fallbackFightStatics 第三层（保持现状可回滚）。
-func fishGroupStaticsFor(species string, marine bool) *fishStatics {
+// fishFightGroupKeyFor 把鱼种映射到习性组。海图归属优先；其余按
+// fishFightArchetypeFor 的词表分组。未知鱼种落 default 中性组，不再落
+// 小鲫鱼 fallback。
+func fishFightGroupKeyFor(species string, marine bool) string {
 	if marine {
-		return fishGroupFightStatics["marine"]
+		return "marine"
 	}
-	if fishFightArchetypeFor(species) == fishFightArchetypes["cyprinid"] {
-		return fishGroupFightStatics["cyprinid"]
+	switch fishFightArchetypeFor(species) {
+	case fishFightArchetypes["marine"]:
+		return "marine"
+	case fishFightArchetypes["cyprinid"]:
+		return "cyprinid"
+	case fishFightArchetypes["salmonid"]:
+		return "salmonid"
+	case fishFightArchetypes["ambush"]:
+		return "ambush"
+	case fishFightArchetypes["catfish"]:
+		return "catfish"
+	case fishFightArchetypes["sturgeon"]:
+		return "sturgeon"
+	case fishFightArchetypes["eel"]:
+		return "eel"
+	case fishFightArchetypes["small"]:
+		return "small"
+	case fishFightArchetypes["apex"]:
+		return "apex"
+	default:
+		return "default"
 	}
-	return nil
+}
+
+// fishGroupStaticsFor 返回鱼种所属习性组的搏鱼静态参数。所有鱼种都至少
+// 命中一个组，只有官方逐鱼种表优先于本函数。
+func fishGroupStaticsFor(species string, marine bool) *fishStatics {
+	return fishGroupFightStatics[fishFightGroupKeyFor(species, marine)]
 }
 
 // staticPow 计算 A*w^p，重量单位为克。
@@ -1965,6 +2119,16 @@ func (s *Server) fishStaminaForProfile(f *RolledFish, profile fishFightProfile) 
 	if f == nil {
 		return 0
 	}
+	if s.fightLegacyModel() && !s.fightOfficialStrength() {
+		stamina := f.Stamina
+		if stamina <= 0 {
+			stamina = verifiedStaminaPerGram * float64(f.WeightG)
+		}
+		if scale := s.tunableF("fish_stamina_scale", defaultFishStaminaScale); scale > 0 {
+			stamina *= scale
+		}
+		return stamina * profile.StaminaScale
+	}
 	stamina := f.Stamina
 	if stamina <= 0 {
 		// 实测种走官方每克均值（A 级样本，specs/changes/fish-official-data-tables/spec.md），
@@ -1973,9 +2137,13 @@ func (s *Server) fishStaminaForProfile(f *RolledFish, profile fishFightProfile) 
 		// 未实测种维持旧口径（2.388/g × archetype 耐力倍率）。
 		if rate, ok := fishStaminaRatePerGram[f.Species]; ok {
 			stamina = rate * float64(f.WeightG)
-		} else if rate := fishStaminaRateGroupFor(f.Species, s.fishMarineGroupHit(f.Species)); rate > 0 {
-			// 组兜底同官方口径：直接 rate×体重，不乘 StaminaScale。
-			stamina = rate * float64(f.WeightG)
+		} else if s.fishFightGroupFallback() {
+			if rate := fishStaminaRateGroupFor(f.Species, s.fishMarineGroupHit(f.Species)); rate > 0 {
+				// 组兜底同官方口径：直接 rate×体重，不乘 StaminaScale。
+				stamina = rate * float64(f.WeightG)
+			} else {
+				stamina = verifiedStaminaPerGram * float64(f.WeightG) * profile.StaminaScale
+			}
 		} else {
 			stamina = verifiedStaminaPerGram * float64(f.WeightG) * profile.StaminaScale
 		}
@@ -2041,20 +2209,61 @@ var fishF6Step = map[string]struct {
 // （merlang 10.50 与 piksha 6.39 均值）、鲤科组 2.5（方案约值）；
 // 未命中返回 0 走旧口径。marine 由调用方按海图归属/词表判定，鲤科组
 // 仍走 fishFightArchetypeFor 词表。
-func fishStaminaRateGroupFor(species string, marine bool) float64 {
-	if marine {
-		return 8.445
-	}
-	if fishFightArchetypeFor(species) == fishFightArchetypes["cyprinid"] {
-		return 2.5
-	}
-	return 0
+// fishStaminaRateGroup 未实测鱼种的 f5 每克组均值。海鱼 8.445 来自
+// merlang/piksha 两样本；其余为经验估计：鲑科/伏击鱼高于静水小鲫鱼，
+// 鲶/鲟更耐拉，鳗鱼和小型鱼偏低。
+var fishStaminaRateGroup = map[string]float64{
+	"marine":   8.445,
+	"apex":     8.445,
+	"cyprinid": 2.50,
+	"salmonid": 3.00,
+	"ambush":   2.75,
+	"catfish":  3.20,
+	"sturgeon": 3.50,
+	"eel":      2.80,
+	"small":    2.50,
+	"default":  2.60,
 }
 
-// fishF6For 返回本鱼 f6：实测种量化表（含体重台阶）→ 海水组兜底 0.50
-// （merlang/piksha 实测均 0.50）→ 旧版校准常数 fallback。
+func fishStaminaRateGroupFor(species string, marine bool) float64 {
+	return fishStaminaRateGroup[fishFightGroupKeyFor(species, marine)]
+}
+
+// fishF6Group 未实测鱼种的 f6 组兜底。值越高越耐疲劳；海鱼/鲶/鲟偏低，
+// 伏击鱼和小型鱼偏高。
+var fishF6Group = map[string]float64{
+	"marine":   0.50,
+	"apex":     0.50,
+	"cyprinid": 0.55,
+	"salmonid": 0.60,
+	"ambush":   0.65,
+	"catfish":  0.50,
+	"sturgeon": 0.50,
+	"eel":      0.50,
+	"small":    0.50,
+	"default":  0.55,
+}
+
+// fishF6For 返回本鱼 f6：实测种量化表（含体重台阶）→ 习性组兜底。
 func (s *Server) fishF6For(f *RolledFish) float64 {
+	v := s.fishF6BaseFor(f)
+	if scale := s.tunableF("fish_f6_scale", 1); scale > 0 && scale != 1 {
+		v *= scale
+		if v > 1 {
+			v = 1
+		}
+		if v < 0.05 {
+			v = 0.05
+		}
+	}
+	return v
+}
+
+func (s *Server) fishF6BaseFor(f *RolledFish) float64 {
 	if f == nil {
+		return s.fishInitialStaminaRatio()
+	}
+	if s.fightLegacyModel() && !s.fightOfficialStrength() {
 		return s.fishInitialStaminaRatio()
 	}
 	if v, ok := fishF6Table[f.Species]; ok {
@@ -2063,8 +2272,10 @@ func (s *Server) fishF6For(f *RolledFish) float64 {
 		}
 		return v
 	}
-	if s.fishMarineGroupHit(f.Species) {
-		return 0.50
+	if s.fishFightGroupFallback() {
+		if v, ok := fishF6Group[fishFightGroupKeyFor(f.Species, s.fishMarineGroupHit(f.Species))]; ok {
+			return v
+		}
 	}
 	return s.fishInitialStaminaRatio()
 }
@@ -2092,8 +2303,12 @@ type fish27Statics struct {
 // 非浮钓 rig，种级 f19 留零时沿用 fallback 的体重插值（与落表前浮钓行为
 // 逐字节一致）。
 func fight27StaticsFor(species string, w float64, grade int64, marine bool) fish27Statics {
+	return fight27StaticsForMode(species, w, grade, marine, true)
+}
+
+func fight27StaticsForMode(species string, w float64, grade int64, marine, groupFallback bool) fish27Statics {
 	src := officialSpeciesStatics[species]
-	if src == nil {
+	if src == nil && groupFallback {
 		src = fishGroupStaticsFor(species, marine)
 	}
 	if src != nil {
@@ -2135,7 +2350,7 @@ func fight27StaticsFor(species string, w float64, grade int64, marine bool) fish
 // 用于浮钓静置不上钩的应急恢复）。
 func (s *Server) buildFish27(f *RolledFish, hookGUID, gearGuid string, rigType int64) *proto.Value {
 	w := float64(f.WeightG)
-	st := fight27StaticsFor(f.Species, w, f.Grade, s.fishMarineGroupHit(f.Species))
+	st := fight27StaticsForMode(f.Species, w, f.Grade, s.fishMarineGroupHit(f.Species), s.fishFightGroupFallback())
 	f9, f10, f11 := st.f9, st.f10, st.f11
 	f12v, f13v, f14v, f15v := 0.0, st.f13, st.f14, st.f15
 	f16v, f17v, f18v := st.f16, st.f17, st.f18
@@ -2197,7 +2412,7 @@ func (s *Server) buildFish27(f *RolledFish, hookGUID, gearGuid string, rigType i
 		18: proto.F32(float32(f18v)),
 		19: proto.F32(float32(f19v)),
 		20: proto.F32(float32(f20v)),
-		21: s.buildFightCurves(f.Species, pull),
+		21: s.buildFightCurvesForFish(f, pull),
 		22: proto.Str(f22),
 		23: proto.Guid(hook),
 		24: proto.Null(),
@@ -2561,19 +2776,46 @@ func (s *Server) onRodBiteTimerTicket(uid int64, st *FishState, ticket fishingTi
 	lureLayer, lureAction, lureMask := st.LureLayer, st.LureAction, st.LureMotionMask
 	lureSpeed := st.ReelSetting
 	boatOn, boatKnown := st.onBoatLocked(now.Unix())
-	rollCtx := fishRollContext{
-		x: x, z: z, hasPos: hasPos, spot: st.Spot, depthCM: baitDepthCM,
-		lureLayer: lureLayer, lureAction: lureAction, lureMask: lureMask, lureSpeed: lureSpeed, rigType: rigType,
-		onBoat: boatOn, boatKnown: boatKnown,
-		now: now, weather: sess.weatherAt(st.Loc, now), happyBite: sess.currentHappyHour().BiteBonus,
+	buildRollCtx := func(pity bool) fishRollContext {
+		var reason string
+		return fishRollContext{
+			x: x, z: z, hasPos: hasPos, spot: st.Spot, depthCM: baitDepthCM,
+			lureLayer: lureLayer, lureAction: lureAction, lureMask: lureMask, lureSpeed: lureSpeed, rigType: rigType,
+			onBoat: boatOn, boatKnown: boatKnown, pityEnv: pity,
+			emptyReason: &reason,
+			now:         now, weather: sess.weatherAt(st.Loc, now), happyBite: sess.currentHappyHour().BiteBonus,
+		}
 	}
+	rollCtx := buildRollCtx(false)
 	f := s.rollFishForRig(s.dbCtx(), uid, st.GearGuid, st.Loc, st.Bait, st.Bonus, rollCtx)
 	if f == nil {
-		s.log.Info("本轮无符合条件的鱼，继续等待", "rod", shortGUID(st.GearGuid), "rig_type", st.RigType)
+		st.EmptyStreak++
+		// 保底杂口（bite_gate_pity_rounds，0=关）：连续空杆后放宽环境类因素重掷一次，
+		// 食性硬门不动——泥鳅依然不攻亮片，只是「鱼群不在/水层不对」不再死寂。
+		if pityN := int(s.tunableF("bite_gate_pity_rounds", 0)); pityN > 0 && st.EmptyStreak >= pityN {
+			pityCtx := buildRollCtx(true)
+			if f = s.rollFishForRig(s.dbCtx(), uid, st.GearGuid, st.Loc, st.Bait, st.Bonus, pityCtx); f != nil {
+				st.EmptyStreak = 0
+				s.log.Info("保底杂口", "rod", shortGUID(st.GearGuid), "鱼种", f.Species, "连续空轮", pityN)
+			}
+		}
+	}
+	if f == nil {
+		// 空轮也带落点、区域命中与空因：后台对账用，不推玩家提示。
+		rollC := fishRollContext{x: x, z: z, hasPos: hasPos}
+		zoneNote := zoneHitNote(s.fishZonesFor(s.dbCtx(), st.Loc), rollC)
+		reason := "概率/权重全零"
+		if rollCtx.emptyReason != nil && *rollCtx.emptyReason != "" {
+			reason = *rollCtx.emptyReason
+		}
+		s.log.Info("本轮无符合条件的鱼，继续等待", "rod", shortGUID(st.GearGuid), "rig_type", st.RigType,
+			"x", math.Round(x), "z", math.Round(z), "网格", fishArea(st.Loc, rollC), "区域", zoneNote, "空因", reason,
+			"连续空轮", st.EmptyStreak)
 		s.emptyWeatherBiteLocked(sess, st, now)
 		st.mu.Unlock()
 		return
 	}
+	st.EmptyStreak = 0
 	// 鱼吃口扣份：窝被吃薄，死窝会自己缓过来（设计稿第 6 节）。
 	s.groundbaitConsumeBite(s.dbCtx(), uid, st.Loc, x, z, hasPos, st.Spot, s.tunableF("groundbait_consume_bite", 0.20))
 	if !f.BaitsKnown {

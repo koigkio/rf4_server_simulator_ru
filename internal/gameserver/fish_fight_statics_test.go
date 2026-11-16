@@ -3,6 +3,7 @@ package gameserver
 import (
 	"math"
 	"testing"
+	"time"
 )
 
 // 官服 14/14 抓包 A 级锚点（2026-11-13 落表 8 种 12 样本，
@@ -85,10 +86,9 @@ func TestFishFightStaticsF19FloatRigFallback(t *testing.T) {
 	}
 }
 
-// TestFishFightStaticsGroupFallback 未实测种走习性组兜底：menek → 海水组
-// （merlang+piksha 两点均值）、karasekarp → 鲤科组、salmonid 等其余组与
-// 未命中 → fallbackFightStatics 第三层（保持现状）。另钉大型海鱼（金枪/大比目鱼）
-// 与鲤科变种，避免组回退只被 menek/karasekarp 一条断言发现。
+// TestFishFightStaticsGroupFallback 未实测种走习性组兜底：menek → 海水组、
+// karasekarp → 鲤科组、riv_rb_trout → 鲑科组；所有鱼种至少命中一个组，
+// 不再掉进小鲫鱼 fallback。另钉大型海鱼、鲤科变种和未归组鱼种。
 func TestFishFightStaticsGroupFallback(t *testing.T) {
 	m := fight27StaticsFor("menek", 22800, 2, marineByKeyword("menek"))
 	for _, c := range []struct {
@@ -121,13 +121,34 @@ func TestFishFightStaticsGroupFallback(t *testing.T) {
 		t.Errorf("g_carp_albino（鲤科变种）应走鲤科组：f14=%v f16=%v", v.f14, v.f16)
 	}
 	fb := fight27StaticsFor("riv_rb_trout", 1000, 2, false)
-	if fb.f14 != 0.5 || fb.f16 != 0.833907 || fb.f20 != 0.997804 {
-		t.Errorf("riv_rb_trout（未命中组）应走第三层 fallback：f14=%v f16=%v f20=%v", fb.f14, fb.f16, fb.f20)
+	if fb.f14 != 1.2 || fb.f15 != 60 || fb.f16 != 0.7 || fb.f20 != 0.9995 {
+		t.Errorf("riv_rb_trout（鲑科组）f14=%v f15=%v f16=%v f20=%v", fb.f14, fb.f15, fb.f16, fb.f20)
+	}
+	// 其余组必须有非零组值，不能再落到 f14=0.5/f15=4 的小鲫鱼参数。
+	for _, c := range []struct {
+		species string
+		f14     float64
+		f15     float64
+	}{
+		{"s.orfe", 0.7, 50},         // ambush
+		{"l_salmon", 1.2, 60},       // salmonid
+		{"catfish", 1.5, 60},        // catfish
+		{"sturgeon", 2.0, 80},       // sturgeon
+		{"eel", 0.8, 30},            // eel
+		{"gudgeon", 0.4, 8},         // small
+		{"cetorhinus_m", 22.5, 225}, // apex
+		{"neiva", 0.8, 20},          // default
+	} {
+		g := fight27StaticsFor(c.species, 1000, 2, false)
+		if g.f14 != c.f14 || g.f15 != c.f15 {
+			t.Errorf("%s 组参数不符：f14=%v f15=%v，期望 %.1f/%.1f",
+				c.species, g.f14, g.f15, c.f14, c.f15)
+		}
 	}
 }
 
-// TestFishStaminaRateGroupFor f5 每克组兜底：海水 8.445/g、鲤科 2.5/g
-// （官方口径直接 rate×体重），其余组旧口径 2.388×Scale。
+// TestFishStaminaRateGroupFor f5 每克组兜底：海水 8.445/g、鲤科 2.5/g、
+// 鲑科 3.0/g（组口径直接 rate×体重，不乘 StaminaScale）。
 func TestFishStaminaRateGroupFor(t *testing.T) {
 	srv := &Server{}
 	profile := fishFightProfile{StaminaScale: 1.5}
@@ -143,29 +164,34 @@ func TestFishStaminaRateGroupFor(t *testing.T) {
 	if got := srv.fishStaminaForProfile(&RolledFish{Species: "g_carp_albino", WeightG: 5000}, profile); math.Abs(got-2.5*5000) > 1e-6 {
 		t.Errorf("g_carp_albino（鲤科变种）体力=%v，应 2.5/g×5000", got)
 	}
-	if got := srv.fishStaminaForProfile(&RolledFish{Species: "riv_rb_trout", WeightG: 1000}, profile); math.Abs(got-verifiedStaminaPerGram*1000*1.5) > 1e-6 {
-		t.Errorf("riv_rb_trout 体力=%v，应旧口径 2.388×1000×1.5", got)
+	if got := srv.fishStaminaForProfile(&RolledFish{Species: "riv_rb_trout", WeightG: 1000}, profile); math.Abs(got-3.0*1000) > 1e-6 {
+		t.Errorf("riv_rb_trout 体力=%v，应鲑科组 3.0/g×1000", got)
 	}
 }
 
-// TestFishF6MarineGroupFallback f6 组兜底：海水组未实测种 0.50
-// （merlang/piksha 实测均 0.50），其余组旧常数。
-func TestFishF6MarineGroupFallback(t *testing.T) {
+// TestFishF6GroupFallback f6 组兜底：海水 0.50、鲑科 0.60、伏击 0.65。
+func TestFishF6GroupFallback(t *testing.T) {
 	srv := &Server{}
+	srv.tunCache = map[string]float64{"fish_f6_scale": 1}
+	srv.tunText = map[string]string{"fish_f6_scale": "1"}
+	srv.tunAt = time.Now()
 	if got := srv.fishF6For(&RolledFish{Species: "menek", WeightG: 22800}); got != 0.50 {
 		t.Errorf("menek f6=%v，海水组应 0.50", got)
 	}
 	if got := srv.fishF6For(&RolledFish{Species: "thynnus_t", WeightG: 120000}); got != 0.50 {
 		t.Errorf("thynnus_t f6=%v，大型海鱼同走海水组 0.50", got)
 	}
-	if got := srv.fishF6For(&RolledFish{Species: "riv_rb_trout", WeightG: 1000}); got != srv.fishInitialStaminaRatio() {
-		t.Errorf("riv_rb_trout f6=%v，未命中组应旧常数 %v", got, srv.fishInitialStaminaRatio())
+	if got := srv.fishF6For(&RolledFish{Species: "riv_rb_trout", WeightG: 1000}); got != 0.60 {
+		t.Errorf("riv_rb_trout f6=%v，鲑科组应 0.60", got)
+	}
+	if got := srv.fishF6For(&RolledFish{Species: "s.orfe", WeightG: 1000}); got != 0.65 {
+		t.Errorf("s.orfe f6=%v，伏击组应 0.65", got)
 	}
 }
 
 // TestFishFightArchetypeMarineKeywords 词表修正：piksha 移出 ambush（实测海水
-// 鲽科）、menek/agar/warm/merlang 补进 marine（CurvePool 随 marine 归 perch 池，
-// 不再落 crucian 池）；词表其余判定不回退。
+// 鲽科）、menek/agar/warm/merlang 补进 marine（CurvePool 随 marine 归官方
+// merlang 池，不再落 crucian 池）；词表其余判定不回退。
 func TestFishFightArchetypeMarineKeywords(t *testing.T) {
 	for _, sp := range []string{"piksha", "menek", "agar", "warm", "merlang", "coalfish", "m_scorpius"} {
 		if arch := fishFightArchetypeFor(sp); arch != fishFightArchetypes["marine"] {
@@ -219,8 +245,8 @@ func TestFishMarineGroupHitFromChartRoster(t *testing.T) {
 }
 
 // TestFight27StaticsChartRosterMarine 静态层端到端：海图命中的未实测海鱼
-// 走海水组参数（f14/f15/f16 量级对齐官方），词表判定（marine=false）保持
-// 第三层 fallback 现状，锚定修复前后的分界。
+// 走海水组参数（f14/f15/f16 量级对齐官方）；无海图集合时也不掉回小鲫鱼，
+// 而是进入 default 中性组。
 func TestFight27StaticsChartRosterMarine(t *testing.T) {
 	srv, _ := newStaticRigTestServer(t)
 	// 当晚 28s 搏鱼后脱钩的 meagre 54kg：修复后走海水组。
@@ -235,10 +261,10 @@ func TestFight27StaticsChartRosterMarine(t *testing.T) {
 	if g.f9 != 4.88225 || g.f10 != 1.57905 || g.f11 != 1.09599 || g.f13 != 0.50 {
 		t.Errorf("meagre（海水组）f9=%v f10=%v f11=%v f13=%v", g.f9, g.f10, g.f11, g.f13)
 	}
-	// 词表判定（无海图集合）保持修复前现状：meagre 不在词表 → 第三层 fallback。
+	// 无海图集合时走 default 组，不再掉回小鲫鱼 f14=0.5/f16=0.834。
 	before := fight27StaticsFor("meagre", 54054, 2, false)
-	if before.f14 != 0.5 || before.f16 != 0.833907 {
-		t.Errorf("marine=false 时 meagre 应走 fallback 现状：f14=%v f16=%v", before.f14, before.f16)
+	if before.f14 != 0.8 || before.f16 != 0.9 {
+		t.Errorf("marine=false 时 meagre 应走 default 组：f14=%v f16=%v", before.f14, before.f16)
 	}
 	// 曲线/耐力层兜底：default/small 桶改归 marine；专属词表不覆盖。
 	if arch := fishCurveArchetypeFor("m_zubatka", true); arch != fishFightArchetypes["marine"] {
@@ -256,6 +282,7 @@ func TestFight27StaticsChartRosterMarine(t *testing.T) {
 // 体力池走海水组每克均值（8.445/g，不乘 StaminaScale）、f6 兜底 0.50。
 func TestFishStaminaF6ChartRosterMarine(t *testing.T) {
 	srv, _ := newStaticRigTestServer(t)
+	setOfficialF6(srv)
 	profile := fishFightProfile{StaminaScale: 0.72}
 	if got := srv.fishStaminaForProfile(&RolledFish{Species: "m_zubatka", WeightG: 3088}, profile); math.Abs(got-8.445*3088) > 1e-6 {
 		t.Errorf("m_zubatka 体力=%v，应海水组 8.445/g×3088（组均值不乘 StaminaScale）", got)
@@ -266,9 +293,14 @@ func TestFishStaminaF6ChartRosterMarine(t *testing.T) {
 	if got := srv.fishF6For(&RolledFish{Species: "meagre", WeightG: 54054}); got != 0.50 {
 		t.Errorf("meagre f6=%v，海水组应 0.50", got)
 	}
-	// 无静态库回退词表：m_zubatka 不在 marine 词表，f5 组均值不生效。
+	// 无静态库回退词表：m_zubatka 不在 marine 词表，按 small 组走 2.5/g，
+	// 不再返回 0 掉回旧口径。
 	bare := &Server{}
-	if got := fishStaminaRateGroupFor("m_zubatka", bare.fishMarineGroupHit("m_zubatka")); got != 0 {
-		t.Errorf("无海图集合时 m_zubatka f5 组均值应 0（走旧口径），实得 %v", got)
+	setOfficialF6(bare)
+	if got := fishStaminaRateGroupFor("m_zubatka", bare.fishMarineGroupHit("m_zubatka")); got != 2.5 {
+		t.Errorf("无海图集合时 m_zubatka f5 组均值应 small 组 2.5，实得 %v", got)
+	}
+	if got := bare.fishF6For(&RolledFish{Species: "m_zubatka", WeightG: 3088}); got != 0.50 {
+		t.Errorf("无海图集合时 m_zubatka f6 应 small 组 0.50，实得 %v", got)
 	}
 }
