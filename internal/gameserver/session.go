@@ -144,7 +144,7 @@ func (s *Session) Push(main, sub uint8, body *proto.Value) uint32 {
 	env := proto.BuildRequestEnvelope(callID, main, sub, append(bodyBytes, 0x01))
 	if traceCmds {
 		s.log.Info("TRACE 推", "cmd", cmdKey(main, sub), "len", len(bodyBytes),
-			"hex", traceHexHead(bodyBytes, 160))
+			"hex", traceHexHead(bodyBytes, traceHexMax))
 	}
 	if err := s.tunnel.WriteRecord(tunnel.TypeData, s.ID, env); err != nil {
 		s.log.Warn("推送发送失败", "cmd", cmdKey(main, sub), "err", err)

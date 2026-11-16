@@ -258,6 +258,7 @@ func (s *Server) fishingKeep(ctx *Ctx) ([]byte, bool) {
 
 	st.mu.Lock()
 	pending := st.Pending
+	hooked := st.Hooked
 	if pending != nil {
 		if want != "" && !strings.EqualFold(want, pending.FishGUID) {
 			st.mu.Unlock()
@@ -315,6 +316,13 @@ func (s *Server) fishingKeep(ctx *Ctx) ([]byte, bool) {
 		rodGUID := st.GearGuid
 		keepLoc, keepSpot, keepBait := st.Loc, int64(st.Spot), st.Bait
 		st.mu.Unlock()
+		// 扣饵在搏鱼终局执行（specs/changes/bait-consume-fight-end）：客户端
+		// 发 14/5 时已离开搏鱼态。与 14/12/14/6/14/4 共享 FishGUID 幂等键。
+		if pending != nil && hooked {
+			if err := s.consumeHookedBait(ctx.Sess, pending, rodGUID); err != nil {
+				ctx.Log.Warn("入护鱼饵扣减失败", "fish", pending.FishGUID, "err", err)
+			}
+		}
 		if extraKept := s.keepBatchCatches(cctx, uid, batch, keepLoc, keepSpot,
 			keepBait, capacity, keepLevel, tackleCat); len(extraKept) > 0 {
 			sess := ctx.Sess
@@ -474,6 +482,7 @@ func (s *Server) fishingRelease(ctx *Ctx) ([]byte, bool) {
 	defer st.finishMu.Unlock()
 	st.mu.Lock()
 	pending := st.Pending
+	hooked := st.Hooked
 	if pending != nil && len(guids) > 0 && !strings.EqualFold(guids[len(guids)-1], pending.FishGUID) {
 		st.mu.Unlock()
 		ctx.ReplyFailure("System.ArgumentException", "放生的鱼与本次钓获不一致")
@@ -481,7 +490,15 @@ func (s *Server) fishingRelease(ctx *Ctx) ([]byte, bool) {
 	}
 	loc := st.Loc
 	rigType := st.RigType
+	rodGUID := st.GearGuid
 	st.mu.Unlock()
+	// 扣饵在搏鱼终局执行（specs/changes/bait-consume-fight-end）：与
+	// 14/12/14/5/14/4 共享 FishGUID 幂等键，先到先扣。
+	if pending != nil && hooked {
+		if err := s.consumeHookedBait(ctx.Sess, pending, rodGUID); err != nil {
+			ctx.Log.Warn("放生鱼饵扣减失败", "fish", pending.FishGUID, "err", err)
+		}
+	}
 
 	// 807.f1 的 811 礼物行：仅在本次放生真实升级且发放了礼物时非 null。
 	giftRows := proto.Null()

@@ -396,6 +396,12 @@ func (s *Server) fishingEndSettle(ctx *Ctx) ([]byte, bool) {
 	var qualCups []*store.Item
 	var stageGifts []*store.Item
 	if hasFish {
+		// 扣饵在搏鱼终局执行：客户端发 14/4 时已离开搏鱼态，此时扣饵推送
+		// （4/21 + 竿树重建 4/22）不会再打断搏鱼 ctor。与 14/12/14/5/14/6
+		// 共享 txn(uid,'bait_bite',FishGUID) 幂等键（specs/changes/bait-consume-fight-end）。
+		if err := s.consumeHookedBait(ctx.Sess, pending, gearGUID); err != nil {
+			ctx.Log.Warn("收竿结算鱼饵扣减失败", "fish", pending.FishGUID, "err", err)
+		}
 		// 资格事件在结算前用咬钩快照装配；判定与经验/回执在同一事务提交。
 		// 达标当尾的结算响应即带完成（增量下发），重放从回执还原同一增量。
 		ev := s.qualificationEventForCatch(cctx, pending, rigType)
