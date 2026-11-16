@@ -130,6 +130,28 @@ func (d *DB) Migrate() error {
 				}
 			}
 		}
+		if spec, ok := renumberedColumnMigrations[name]; ok {
+			// 本地 fish_zone 族 2026-11-16 因上游占用 00060~00062 改号为 00065~00069，
+			// 已按旧编号建过列的库会以新名字重放这些 ADD COLUMN（无 IF NOT EXISTS）。
+			// 与 00055 同口径：列已在就跳过 ALTER，只登记新编号。圆形三列是同一
+			// 迁移原子加的，要么全有要么全无，按全有判断。
+			present := 0
+			for _, col := range spec.columns {
+				var n int
+				if err := tx.QueryRow(
+					fmt.Sprintf(`SELECT COUNT(*) FROM pragma_table_info('%s') WHERE name=?`, spec.table), col).Scan(&n); err != nil {
+					_ = tx.Rollback()
+					return err
+				}
+				present += n
+			}
+			if present == len(spec.columns) {
+				body = []byte("-- 列已由改号前的旧编号迁移建过，跳过 ALTER，只登记新编号")
+				if spec.remains != "" {
+					body = []byte(spec.remains)
+				}
+			}
+		}
 		if _, err := tx.Exec(string(body)); err != nil {
 			_ = tx.Rollback()
 			return fmt.Errorf("迁移 %s: %w", name, err)
@@ -221,6 +243,20 @@ func (d *DB) ensureLegacyPlayerColumns() error {
 // staleMigrationVersionBase 是退役登记行的编号段。远高于真实迁移编号，
 // 只为让出原编号并保留可追溯的名字，不会被任何主线迁移占用。
 const staleMigrationVersionBase = 9_000_000
+
+// renumberedColumnMigrations 是改号后重放的 ADD COLUMN 类迁移：列已存在时
+// 跳过 ALTER（remains 非空则只跑这段幂等 SQL），迁移本身仍登记新编号。
+// 键是迁移在 migrationsFS 里的名字。
+var renumberedColumnMigrations = map[string]struct {
+	table   string
+	columns []string
+	remains string
+}{
+	"migrations/00066_fish_zone_cells.sql":  {table: "fish_zone", columns: []string{"cells_json"}},
+	"migrations/00067_fish_zone_circle.sql": {table: "fish_zone", columns: []string{"cx", "cz", "radius"}},
+	"migrations/00068_catch_log_hook.sql":   {table: "catch_log", columns: []string{"hook"}, remains: `CREATE INDEX IF NOT EXISTS idx_catch_log_fish_hook ON catch_log(fish_key, hook);`},
+	"migrations/00069_fish_zone_sea_set.sql": {table: "fish_zone", columns: []string{"sea_zones_json"}},
+}
 
 // catchTackleCatBackfillSQL 是 00055 迁移里除 ALTER TABLE 之外的部分（回填 + 索引）。
 // 分支库可能已建过 tackle_cat 列，此时跳过 ALTER 只跑这一段，保证迁移可重复执行。
