@@ -658,3 +658,70 @@ func TestHookConfirmSendsHookFrameThenFightSync(t *testing.T) {
 		}
 	}
 }
+
+// TestHookConfirmSkipsFightSyncWhenDisabled 验证 A/B 关闭分支：
+// fight_hook_full_sync=0 时 14/11 只发钩帧，不再追加全树同步。
+func TestHookConfirmSkipsFightSyncWhenDisabled(t *testing.T) {
+	srv, db := newDetachTestServer(t)
+	srv.tunMu.Lock()
+	srv.tunCache = map[string]float64{"fight_hook_full_sync": 0}
+	srv.tunText = map[string]string{"fight_hook_full_sync": "0"}
+	srv.tunAt = time.Now()
+	srv.tunMu.Unlock()
+	ctx := context.Background()
+	const uid = int64(1000001)
+	rod, err := srv.CreateItem(ctx, uid, "spin_10032_S60L", "backpack", 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	line, err := srv.CreateItem(ctx, uid, "mono_15097", "backpack", 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	reel, err := srv.CreateItem(ctx, uid, "bclp_5004", "backpack", 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	lure, err := srv.CreateItem(ctx, uid, "crankbaits_2171", "backpack", 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	sess := newProbeSess(srv)
+	runRodSet(t, srv, sess, rod.GUID, line.GUID, 0)
+	runRodSet(t, srv, sess, rod.GUID, reel.GUID, 0)
+	mountLure(t, db, srv, rod.GUID, lure.GUID)
+	st := srv.stateFor(uid)
+	st.mu.Lock()
+	st.GearGuid = rod.GUID
+	st.RigType = 5
+	st.CastActive = true
+	st.InWater = true
+	st.Pending = &RolledFish{FishGUID: strings.Repeat("ab", 16), Species: "perch",
+		Grade: 2, WeightG: 321, LengthM: 0.24, BiteQuality: "solid", HookHoldP: 1}
+	st.mu.Unlock()
+
+	conn, peer := cleanupTestTunnel(t, "hook-fight-sync-off")
+	live := registerBiteTestSession(t, srv, 405, conn)
+	frames := make(chan *proto.Value, 2)
+	go func() {
+		for i := 0; i < 2; i++ {
+			v, err := readFightSyncPush(srv, peer)
+			if err != nil {
+				return
+			}
+			frames <- v
+		}
+	}()
+	if _, ok := hFishingHooked(&Ctx{Sess: live, Main: 14, Sub: 11, Log: logging.Discard()}); !ok {
+		t.Fatal("14/11 未处理")
+	}
+	hookFrame := waitFightFrame(t, frames)
+	if hookFrame.ArgCount() != 1 || hookFrame.Items[0] == nil || hookFrame.Items[0].Class != "ioombppcnlh" {
+		t.Fatalf("关闭全树后第一帧应为钩帧，实得 %v", classList(hookFrame.Items))
+	}
+	select {
+	case v := <-frames:
+		t.Fatalf("fight_hook_full_sync=0 不应再推全树，实得 %v", classList(v.Items))
+	case <-time.After(300 * time.Millisecond):
+	}
+}

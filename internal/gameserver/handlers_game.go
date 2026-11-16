@@ -1439,14 +1439,18 @@ func hFishingHooked(ctx *Ctx) ([]byte, bool) {
 	// 竿/线/轮/前导的运行位必须当刻可达——只等结算再推对秒脱来说已经晚了
 	// （官方搏鱼期每 2s 全树帧同口径）。紧随钩帧发一次全树运行位同步；
 	// extras 取受力链组件（轮/前导/丝锁/铅芯），竿线由全量分支覆盖。
-	fightExtras := make([]string, 0, 4)
-	ids := srv.rigGearIDs(srv.dbCtx(), ctx.Sess.Userid, gear)
-	for _, g := range []string{ids.ReelGUID, ids.LeaderGUID, ids.LeadcoreGUID, ids.ConnectorGUID} {
-		if g != "" {
-			fightExtras = append(fightExtras, g)
+	// A/B：fight_hook_full_sync=0 时只发钩帧，不发紧随的全树，用于验证
+	// 全树同步是否会把客户端刚建立的搏鱼目标重建掉。
+	if srv.tunableF("fight_hook_full_sync", 1) != 0 {
+		fightExtras := make([]string, 0, 4)
+		ids := srv.rigGearIDs(srv.dbCtx(), ctx.Sess.Userid, gear)
+		for _, g := range []string{ids.ReelGUID, ids.LeaderGUID, ids.LeadcoreGUID, ids.ConnectorGUID} {
+			if g != "" {
+				fightExtras = append(fightExtras, g)
+			}
 		}
+		ctx.Sess.Push4_22FightSync(gear, fightExtras)
 	}
-	ctx.Sess.Push4_22FightSync(gear, fightExtras)
 	if announce {
 		srv.notifyFishHooked(ctx.Sess, hookedFish, gear)
 	}
