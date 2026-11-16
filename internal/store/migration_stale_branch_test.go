@@ -53,6 +53,38 @@ func TestMigrateKeepsUnrelatedBranchRowInPlace(t *testing.T) {
 		`SELECT COUNT(*) FROM schema_migrations WHERE name LIKE 'retired/%'`, 0)
 }
 
+// TestMigrateRetiresSameNumberAcrossTwoRounds 复刻 2026-11-16 实机事故：退役编号段
+// 被上一轮退役占住时，同号第二轮退役撞 UNIQUE，gameserver 崩溃循环。
+// 上一轮：主线 00060 曾在本库登记后被退役到 9000060；本轮：另一分支遗留的同号
+// 60 登记行（名字已不在迁移目录）要让位给主线，固定落点 9000060 已被占，
+// 必须向上探测到 9000061。
+func TestMigrateRetiresSameNumberAcrossTwoRounds(t *testing.T) {
+	db := openCatchHistoryDBAtVersion(t, 59)
+	if _, err := db.SQL.Exec(`
+		INSERT INTO schema_migrations VALUES(60,'migrations/00060_branch_only_feature.sql',0);
+		INSERT INTO schema_migrations VALUES(9000060,'retired/migrations/00060_skill_cast_effects.sql',0);
+	`); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := db.Migrate(); err != nil {
+		t.Fatalf("退役段被占导致迁移失败: %v", err)
+	}
+	assertCount(t, db,
+		`SELECT COUNT(*) FROM schema_migrations WHERE version=60 AND name='migrations/00060_skill_cast_effects.sql'`, 1)
+	assertCount(t, db,
+		`SELECT COUNT(*) FROM schema_migrations WHERE version=9000061 AND name='retired/migrations/00060_branch_only_feature.sql'`, 1)
+	assertCount(t, db,
+		`SELECT COUNT(*) FROM schema_migrations WHERE version=9000060 AND name='retired/migrations/00060_skill_cast_effects.sql'`, 1)
+
+	// 幂等：再跑一轮，退役行不能再被挪动。
+	if err := db.Migrate(); err != nil {
+		t.Fatalf("二次迁移应幂等: %v", err)
+	}
+	assertCount(t, db,
+		`SELECT COUNT(*) FROM schema_migrations WHERE name='retired/migrations/00060_branch_only_feature.sql'`, 1)
+}
+
 func TestMigrateRenumbersFishHuntBranchMigration(t *testing.T) {
 	db := openCatchHistoryDBAtVersion(t, 45)
 	createLegacyFishHuntState(t, db)
