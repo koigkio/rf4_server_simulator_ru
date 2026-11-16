@@ -309,8 +309,9 @@ type RolledFish struct {
 	QualBait qualificationBait
 	// CastM / IsNight 同样是咬钩快照：抛投距离取本杆实际落点，夜间按咬钩
 	// 时刻判定，避免搏鱼跨过 06:00/19:00 后改用结算时间。
-	CastM   float64
-	IsNight bool
+	CastM    float64
+	IsNight  bool
+	BiteUnix int64 // 精确时段资格使用的咬钩时间，随鱼持久化。
 	// ModelVariant 这尾鱼在客户端用的 FishFamily 族名（a_salmon_f2 等）；
 	// 空=用鱼种默认族。溜鱼 / 结算弹窗 / 渔护 / 鱼卡共用这一个值。
 	ModelVariant string
@@ -2560,6 +2561,7 @@ func (s *Server) onRodBiteTimerTicket(uid int64, st *FishState, ticket fishingTi
 		f.Drift = st.LureMotionMask&lureMotionDriftBit != 0
 		f.CastM = st.CastM
 		f.IsNight = worldIsNight(now.Unix())
+		f.BiteUnix = now.Unix()
 		if !f.BaitsKnown {
 			f.BaitGUIDs, f.BaitsKnown = s.biteBaitSnapshot(s.dbCtx(), st.GearGuid)
 		}
@@ -2654,6 +2656,7 @@ func (s *Server) onRodBiteTimerTicket(uid int64, st *FishState, ticket fishingTi
 	f.Drift = lureMask&lureMotionDriftBit != 0
 	f.CastM = st.CastM
 	f.IsNight = worldIsNight(now.Unix())
+	f.BiteUnix = now.Unix()
 	f.QualBait = s.qualificationMountedBait(s.dbCtx(), f.BaitGUIDs)
 	// 多钩钓组：主鱼定下来后，其余已挂饵的钩位各自掷骰。
 	// 闸门在 rollExtraFishForRig 内部完成，返回的鱼已经绑定各自钩位。

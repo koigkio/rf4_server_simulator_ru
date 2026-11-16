@@ -144,6 +144,26 @@ func (s *Server) eventStage() uint32 {
 	return 0
 }
 
+// activeQualificationEventBranches 与面板开关、分支选择和结束时间共用配置。
+// 在开启结算事务前读取，避免事务持写锁时另一个连接读 tunable。
+func (s *Server) activeQualificationEventBranches(nowUnix int64) map[int64]bool {
+	if s == nil || s.eventStage() == 0 {
+		return nil
+	}
+	end := s.tunableF(eventEndKey, 0)
+	if end <= 0 {
+		end = defaultEventEndUnix
+	}
+	if float64(nowUnix) >= end {
+		return nil
+	}
+	active := make(map[int64]bool)
+	for _, branch := range s.eventBranches() {
+		active[int64(branch)] = true
+	}
+	return active
+}
+
 // eventNodes 返回当前活动面板的分支节点。Idx1 由开启的开关决定，挂哪些分支由
 // event_branches 配置决定；客户端按 qlfctn_n_<id> / qlfctn_t_<id> 查文案。
 func (s *Server) eventNodes() []*proto.Value {

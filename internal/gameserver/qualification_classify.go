@@ -235,8 +235,27 @@ func qXPAtLeast(xp int64) qFilter {
 	return func(ev qualificationEvent) bool { return ev.XP >= xp }
 }
 
+func qBaseXPAtLeast(xp int64) qFilter {
+	return func(ev qualificationEvent) bool { return ev.BaseXP >= xp }
+}
+
 func qIsNight() qFilter {
 	return func(ev qualificationEvent) bool { return ev.IsNight }
+}
+
+// qBiteHours 使用咬钩时间判断跨午夜时段，开始时刻包含、结束时刻不包含。
+// 升级前已挂住的鱼没有准确时间，不能以结算时间冒充咬钩时间。
+func qBiteHours(start, end int64) qFilter {
+	return func(ev qualificationEvent) bool {
+		if ev.BiteUnix <= 0 {
+			return false
+		}
+		_, hour := worldDayAndHour(ev.BiteUnix)
+		if start > end {
+			return hour >= start || hour < end
+		}
+		return hour >= start && hour < end
+	}
 }
 
 // qDrifting 顺水漂流：咬钩时客户端上报过 0x40 StreamMoving。

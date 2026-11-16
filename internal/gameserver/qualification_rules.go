@@ -22,9 +22,8 @@ import (
 // 的结算响应即带上完成（避免慢一拍）；达标后封顶不再计数，14/4 只增量下发本次
 // 变化的计数器（避免完成后每尾鱼重复弹完成窗），28/2 登录发全量快照。
 //
-// 条件来源：任务文案（客户端本地化键 qlfctn_t_<id>）。分支只是分组，具体条件
-// 全在任务文案里（如分支 4 任务 4303「使用超轻钓具」），因此 1001「钓获 3 种
-// 不同的鱼」按鱼种去重计数，不附加钓具过滤。
+// 手竿及海洋的明确任务条件按客户端 4.0.25034 的 5007 条件表校正。
+// 未指定钓组的海洋任务仅限制地图；活动条件来自任务文案，缺失的条件不猜测补齐。
 
 type qualificationEventKind uint8
 
@@ -55,9 +54,11 @@ type qualificationEvent struct {
 	DepthCM        int64   // 钓深（厘米）
 	IsShore        bool    // 岸钓（非船上）
 	IsNight        bool    // 夜间（19:00–06:00，worldDayAndHour）
+	BiteUnix       int64   // 咬钩时间；精确时段任务不使用宽泛的 IsNight 代替。
 	Drift          bool    // 咬钩时钓组处于顺流移动（14/7 0x40 StreamMoving）
 	LocLevel       string  // 水域 key（地点过滤用）
-	XP             int64   // 本尾鱼经验（pending.XP，settleCatchXP 写入）
+	XP             int64   // 本尾鱼结算总经验（含加成，settleCatchXP 写入）。
+	BaseXP         int64   // 结算基础经验，不含会员、装备、饮品和欢乐时光加成。
 	MainLine       int64   // 主线材质（1 尼龙 2 碳线 3 编织…）
 	LeaderMat      int64   // 前导线材质（1 尼龙 2 碳线…）
 	CastM          float64 // 本杆抛投距离（米）
@@ -70,6 +71,8 @@ type qualificationRuleDef struct {
 	Event qualificationEventKind
 	// Counted 返回本次事件应计入的去重键；空串表示本次不计入。
 	Counted func(qualificationEvent) string
+	// AlternateCounted 是独立的另一条完成路径；两条路径不能混加进度。
+	AlternateCounted func(qualificationEvent) string
 }
 
 // 竿型枚举（celffbjpmma）：1=纺车 2=枪柄 3=手竿 4=博洛尼亚 5=竞赛
@@ -88,11 +91,11 @@ const (
 	rodTypeMarine    = 16
 )
 
-// qualificationRodTypesFor 返回任务文案明确限定的竿型（celffbjpmma）；空=任意。
+// qualificationRodTypesFor 返回任务允许的竿型（celffbjpmma）；空=任意。
 // 同一份表同时用于服务端过滤与 5007.Idx5 下发，保证「鱼竿」文案与判定一致。
 //
-// 竿型条件只来自任务文案（客户端 qlfctn_t_<id>），分支名只是分组：文案没写
-// 竿型就不下发、不拦。按分支兜底（如把 1xxx 全限成纺车竿）会两头出错：
+// 手竿分支按真实 5007.Idx5 全部限定伸缩竿；其他分支仍沿用已有逐任务限制。
+// 不能把所有分支都按名称兜底（如把 1xxx 全限成纺车竿），否则会两头出错：
 //   - 客户端「鱼竿」行显示文案里没有的竿型（例：1402 抽停硬饵显示「纺车竿」）；
 //   - 把唯一可行的钓法挡在门外（1402 抽停钓组只能配抽停竿 12），任务因此
 //     永远无法完成。
@@ -103,6 +106,9 @@ const (
 func qualificationRodTypesFor(ruleID int64) []int64 {
 	if ruleID/1000 >= 9 {
 		return eventRodTypes[ruleID]
+	}
+	if ruleID/1000 == 4 {
+		return []int64{rodTypeTelescope}
 	}
 	switch ruleID {
 	// 分支 1：1402 文案点名抽停硬饵钓组（rig 22），只有抽停竿能装。
@@ -130,7 +136,7 @@ func qualificationRodTypesFor(ruleID int64) []int64 {
 	case 6102, 6201, 6203, 6301, 6302, 6401, 6403, 6503, 6601, 6602, 6603:
 		return []int64{rodTypePicker, rodTypeFeeder}
 	default:
-		// 分支 1/2/4/7/8 的其余文案不写竿型（只写钓组/硬度/鱼种/水域），
+		// 分支 1/2/7/8 的其余文案不写竿型（只写钓组/硬度/鱼种/水域），
 		// 5001/5002/5102/5502/5603/6502 文案只写钓组，竿型由钓组装配矩阵约束。
 		return nil
 	}
@@ -302,8 +308,7 @@ var qualificationRules = []qualificationRuleDef{
 	{ID: 3603, Event: qevFishLanded, Counted: qCountSingle(qUltralight(), qSpeciesIn("riv_brown_trout"), qGradeAtLeast(3))},
 
 	// ---- 分支 4 手竿(伸缩竿)捕钓（阶段 1-7）----
-	// 文案本身未限定手竿（4303/4502 反而要求超轻钓具），因此按文案条件判定，
-	// 不额外加竿型过滤。鱼饵按天然饵（cat27）计；昆虫饵按饵类 2/7。
+	// 真实 5007 条件：全部限定伸缩竿；4501 昆虫饵类仅为 7。
 	// 阶段 1
 	{ID: 4001, Event: qevFishLanded, Counted: qCountSpecies()},
 	{ID: 4002, Event: qevFishLanded, Counted: qCountSingle(qWeightAtLeast(1000))},
@@ -319,22 +324,21 @@ var qualificationRules = []qualificationRuleDef{
 	// 阶段 4
 	{ID: 4301, Event: qevFishLanded, Counted: qCountSpecies()},
 	{ID: 4302, Event: qevFishLanded, Counted: qCountSingle(qIsNight(), qWeightAtLeast(6000))},
-	{ID: 4303, Event: qevFishLanded, Counted: qCountSingle(qUltralight(), qSpeciesIn("dace"), qGradeAtLeast(3))},
+	{ID: 4303, Event: qevFishLanded, Counted: qCountSingle(qRodIn(rodTypeTelescope), qUltralight(), qSpeciesIn("dace"), qGradeAtLeast(3))},
 	// 阶段 5
 	{ID: 4401, Event: qevFishLanded, Counted: qCountSingle(qWeightAtMost(150), qGradeAtLeast(3))},
-	{ID: 4402, Event: qevFishLanded, Counted: qCountSingle(qXPAtLeast(7000))},
+	{ID: 4402, Event: qevFishLanded, Counted: qCountSingle(qBaseXPAtLeast(7000))},
 	{ID: 4403, Event: qevFishLanded, Counted: qCountSingle(qDrifting(), qSpeciesIn("sabrefish", "rudd"), qGradeAtLeast(3))},
 	// 阶段 6
-	{ID: 4501, Event: qevFishLanded, Counted: qCountSpecies(qBaitClassIn(2, 7))},
-	{ID: 4502, Event: qevFishLanded, Counted: qCountSingle(qUltralight(), qLineMaterialIn(1, 2), qWeightAtLeast(500), qGradeAtLeast(3))},
+	{ID: 4501, Event: qevFishLanded, Counted: qCountSpecies(qBaitClassIn(7))},
+	{ID: 4502, Event: qevFishLanded, Counted: qCountSingle(qRodIn(rodTypeTelescope), qUltralight(), qLineMaterialIn(1, 2), qLineStrengthAtMost(1.5), qWeightAtLeast(500), qGradeAtLeast(3))},
 	{ID: 4503, Event: qevFishLanded, Counted: qCountSingle(qWeightAtLeast(5000), qGradeAtLeast(3))},
 	// 阶段 7
 	{ID: 4601, Event: qevFishLanded, Counted: qCountSpecies(qGradeAtLeast(3))},
 	{ID: 4602, Event: qevFishLanded, Counted: qCountSpecies()},
 	{ID: 4603, Event: qevFishLanded, Counted: qCountSingle(qDepthAtLeast(400), qSpeciesIn(
-		"a_omul", "b_omul", "chir", "muksun", "peled", "ripus", "sig", "sig_black",
-		"sig_kuor", "sig_ludoga", "sig_o_l", "sig_ostr", "sig_p", "sig_valaam",
-		"sig_vouksa", "sv_sig", "syb_vendace", "tugun", "vendace", "wfish",
+		"sig_valaam", "sig", "sig_vouksa", "sig_ludoga", "sig_p",
+		"sig_kuor", "sig_ostr", "sig_o_l", "sv_sig", "sig_black",
 	), qGradeAtLeast(3))},
 
 	// ---- 分支 5 博洛尼亚和赛竿（阶段 1-7）----
@@ -372,7 +376,7 @@ var qualificationRules = []qualificationRuleDef{
 
 	// ---- 分支 6 飞德钓竿（阶段 1-7）----
 	// 飞德竿=竿型 10，Picker=竿型 9；面团=饵类 13；红虫=bloodworm 前缀；
-	// 飞德钓组（6502）取 {12,13,14,15,16}（保守目标值 1，见 targets.ambiguous）。
+	// 飞德钓组（6502）为 {12,13,14,15,17}，五种均需计入。
 	// 阶段 1
 	{ID: 6001, Event: qevFishLanded, Counted: qCountSpecies(qRodIn(10))},
 	{ID: 6002, Event: qevFishLanded, Counted: qCountSingle(qRodIn(10), qWeightAtLeast(1500))},
@@ -395,7 +399,7 @@ var qualificationRules = []qualificationRuleDef{
 	{ID: 6403, Event: qevFishLanded, Counted: qCountSingle(qRodIn(9, 10), qSpeciesIn("b_bream"), qGradeAtLeast(3))},
 	// 阶段 6
 	{ID: 6501, Event: qevFishLanded, Counted: qCountSingle(qRodIn(9), qWeightAtLeast(30000))},
-	{ID: 6502, Event: qevFishLanded, Counted: qCountRig(qRigIn(12, 13, 14, 15, 16), qGradeAtLeast(3))},
+	{ID: 6502, Event: qevFishLanded, Counted: qCountRig(qRigIn(12, 13, 14, 15, 17), qGradeAtLeast(3))},
 	{ID: 6503, Event: qevFishLanded, Counted: qCountSingle(qRodIn(9, 10), qSpeciesIn("sterlet"), qGradeAtLeast(3))},
 	// 阶段 7
 	{ID: 6601, Event: qevFishLanded, Counted: qCountSpecies(qRodIn(9, 10), qGradeAtLeast(3))},
@@ -428,7 +432,7 @@ var qualificationRules = []qualificationRuleDef{
 	{ID: 7403, Event: qevFishLanded, Counted: qCountSingle(qRigIn(24, 25, 26, 27, 28, 29, 30, 31, 32, 34), qSpeciesIn("s_carp"), qGradeAtLeast(3))},
 	// 阶段 6
 	{ID: 7501, Event: qevFishLanded, Counted: qCountSingle(qSpeciesIn(ghostCarpKeys...), qGradeAtLeast(3))},
-	{ID: 7502, Event: qevFishLanded, Counted: qCountRig(qRigIn(24, 25, 26, 27, 28, 29, 32, 34), qGradeAtLeast(3))},
+	{ID: 7502, Event: qevFishLanded, Counted: qCountRig(qRigIn(24, 25, 26, 27, 28, 29, 16, 32, 34), qGradeAtLeast(3))},
 	{ID: 7503, Event: qevFishLanded, Counted: qCountSingle(qRigIn(24, 25, 26, 27, 28, 29, 30, 31, 32, 34), qSpeciesIn("common_carp"), qGradeAtLeast(3))},
 	// 阶段 7
 	{ID: 7601, Event: qevFishLanded, Counted: qCountSpecies(qRigIn(24, 25, 26, 27, 28, 29, 30, 31, 32, 34), qGradeAtLeast(3))},
@@ -436,38 +440,39 @@ var qualificationRules = []qualificationRuleDef{
 	{ID: 7603, Event: qevFishLanded, Counted: qCountSpecies(qSpeciesIn("n_carp", "r_carp", "l_carp", "m_carp_red", "carp_red"))},
 
 	// ---- 分支 8 海洋钓鱼（阶段 1-7）----
-	// 柳叶亮片=rig 50，海洋汲钩=51，海洋底部=55，带响珠=56，链斗式=57，
+	// 所有任务限定挪威海；仅任务明确指定钓组时再限制钓组类型。
+	// 柳叶亮片=rig 50，海洋汲钩=51/52，海洋底部=55，带响珠=56，链斗式=57，
 	// 天平=58，底部死鱼=59。文案「稀有鱼」= 奖杯个体（档位 >=3）；
-	// 8603「罕见或极其罕见的鱼种」明确指鱼种，按物种稀有度 >=1。
+	// 8603 同时要求物种稀有度 >=1 和个体档位 >=3。
 	// 海钓深度取 17/12 设置的钓深（咬钩快照），未设置时深度任务不计数。
 	// 阶段 1
-	{ID: 8001, Event: qevFishLanded, Counted: qCountSpecies()},
-	{ID: 8002, Event: qevFishLanded, Counted: qCountSingle(qWeightAtLeast(7000))},
-	{ID: 8003, Event: qevFishLanded, Counted: qCountBaitItem()},
+	{ID: 8001, Event: qevFishLanded, Counted: qCountSpecies(qLocLevelIn(evLocNorthSea))},
+	{ID: 8002, Event: qevFishLanded, Counted: qCountSingle(qLocLevelIn(evLocNorthSea), qWeightAtLeast(7000))},
+	{ID: 8003, Event: qevFishLanded, Counted: qCountBaitItem(qLocLevelIn(evLocNorthSea))},
 	// 阶段 2
-	{ID: 8101, Event: qevFishLanded, Counted: qCountSingle(qRigIn(50), qWeightAtLeast(15000))},
-	{ID: 8102, Event: qevFishLanded, Counted: qCountSpecies(qRigIn(50))},
-	{ID: 8103, Event: qevFishLanded, Counted: qCountSingle(qGradeAtLeast(3))},
+	{ID: 8101, Event: qevFishLanded, Counted: qCountSingle(qLocLevelIn(evLocNorthSea), qRigIn(50), qWeightAtLeast(15000))},
+	{ID: 8102, Event: qevFishLanded, Counted: qCountSpecies(qLocLevelIn(evLocNorthSea), qRigIn(50))},
+	{ID: 8103, Event: qevFishLanded, Counted: qCountSingle(qLocLevelIn(evLocNorthSea), qGradeAtLeast(3))},
 	// 阶段 3
-	{ID: 8201, Event: qevFishLanded, Counted: qCountSingle(qWeightAtLeast(35000))},
-	{ID: 8202, Event: qevFishLanded, Counted: qCountSpecies(qRigIn(51))},
-	{ID: 8203, Event: qevFishLanded, Counted: qCountSingle(qWeightAtMost(5000), qGradeAtLeast(3))},
+	{ID: 8201, Event: qevFishLanded, Counted: qCountSingle(qLocLevelIn(evLocNorthSea), qWeightAtLeast(35000))},
+	{ID: 8202, Event: qevFishLanded, Counted: qCountSpecies(qLocLevelIn(evLocNorthSea), qRigIn(51, 52))},
+	{ID: 8203, Event: qevFishLanded, Counted: qCountSingle(qLocLevelIn(evLocNorthSea), qWeightAtMost(5000), qGradeAtLeast(3))},
 	// 阶段 4
-	{ID: 8301, Event: qevFishLanded, Counted: qCountSingle(qWeightAtLeast(50000))},
-	{ID: 8302, Event: qevFishLanded, Counted: qCountSingle(qRigIn(58), qGradeAtLeast(3))},
-	{ID: 8303, Event: qevFishLanded, Counted: qCountSpecies(qRigIn(55, 56))},
+	{ID: 8301, Event: qevFishLanded, Counted: qCountSingle(qLocLevelIn(evLocNorthSea), qWeightAtLeast(50000))},
+	{ID: 8302, Event: qevFishLanded, Counted: qCountSingle(qLocLevelIn(evLocNorthSea), qRigIn(58), qSpeciesIn("sea_kambala", "lh_kambala", "hippoglos_p", "turbot"), qGradeAtLeast(3))},
+	{ID: 8303, Event: qevFishLanded, Counted: qCountSpecies(qLocLevelIn(evLocNorthSea), qRigIn(55, 56))},
 	// 阶段 5
-	{ID: 8401, Event: qevFishLanded, Counted: qCountSpecies(qDepthAtLeast(12000))},
-	{ID: 8402, Event: qevFishLanded, Counted: qCountSingle(qSpeciesIn("m_zubatka", "d_zubatka"), qGradeAtLeast(3))},
-	{ID: 8403, Event: qevFishLanded, Counted: qCountSingle(qRigIn(57), qSpeciesIn("red_fish"), qGradeAtLeast(3))},
+	{ID: 8401, Event: qevFishLanded, Counted: qCountSpecies(qLocLevelIn(evLocNorthSea), qDepthAtLeast(12000))},
+	{ID: 8402, Event: qevFishLanded, Counted: qCountSingle(qLocLevelIn(evLocNorthSea), qSpeciesIn("p_zubatka", "m_zubatka", "d_zubatka"), qGradeAtLeast(3))},
+	{ID: 8403, Event: qevFishLanded, Counted: qCountSingle(qLocLevelIn(evLocNorthSea), qRigIn(57), qSpeciesIn("sebastes_n", "red_fish", "sebastes_m"), qGradeAtLeast(3))},
 	// 阶段 6
-	{ID: 8501, Event: qevFishLanded, Counted: qCountSingle(qSpeciesIn("atl_cod"), qGradeAtLeast(3))},
-	{ID: 8502, Event: qevFishLanded, Counted: qCountSpecies(qRigIn(59), qGradeAtLeast(3))},
-	{ID: 8503, Event: qevFishLanded, Counted: qCountSingle(qDepthAtLeast(12000), qGradeAtLeast(3))},
+	{ID: 8501, Event: qevFishLanded, Counted: qCountSingle(qLocLevelIn(evLocNorthSea), qSpeciesIn("atl_cod"), qGradeAtLeast(3))},
+	{ID: 8502, Event: qevFishLanded, Counted: qCountSingle(qLocLevelIn(evLocNorthSea), qRigIn(59), qGradeAtLeast(3))},
+	{ID: 8503, Event: qevFishLanded, Counted: qCountSingle(qLocLevelIn(evLocNorthSea), qDepthAtLeast(12000), qGradeAtLeast(3))},
 	// 阶段 7
-	{ID: 8601, Event: qevFishLanded, Counted: qCountSingle(qSpeciesIn("halibut_w"), qGradeAtLeast(3))},
-	{ID: 8602, Event: qevFishLanded, Counted: qCountSingle(qSpeciesIn("m_molva", "molva"), qGradeAtLeast(3))},
-	{ID: 8603, Event: qevFishLanded, Counted: qCountSingle(qRarityAtLeast(1))},
+	{ID: 8601, Event: qevFishLanded, Counted: qCountSingle(qLocLevelIn(evLocNorthSea), qSpeciesIn("halibut_w", "halibut_b"), qGradeAtLeast(3))},
+	{ID: 8602, Event: qevFishLanded, Counted: qCountSingle(qLocLevelIn(evLocNorthSea), qSpeciesIn("m_molva", "molva"), qGradeAtLeast(3))},
+	{ID: 8603, Event: qevFishLanded, Counted: qCountSingle(qLocLevelIn(evLocNorthSea), qRarityAtLeast(1), qGradeAtLeast(3))},
 }
 
 // ---- 限时活动分支 9..20（273 条）见 qualification_event_rules.go ----
@@ -492,13 +497,14 @@ func (s *Server) evaluateQualifications(ctx *Ctx, ev qualificationEvent) map[int
 		return changed
 	}
 	uid := ctx.Sess.Userid
+	activeEvents := s.activeQualificationEventBranches(time.Now().Unix())
 	tx, err := beginEconomyTx(s.dbCtx(), s.DB)
 	if err != nil {
 		ctx.Log.Error("资格进度事务开启失败", "uid", uid, "err", err)
 		return changed
 	}
 	defer tx.Rollback()
-	out, err := evaluateQualificationsTx(s.dbCtx(), tx, uid, ev, float64(time.Now().Unix()))
+	out, err := evaluateQualificationsTx(s.dbCtx(), tx, uid, ev, float64(time.Now().Unix()), activeEvents)
 	if err != nil {
 		ctx.Log.Error("资格进度判定失败", "uid", uid, "err", err)
 		return changed
@@ -513,7 +519,7 @@ func (s *Server) evaluateQualifications(ctx *Ctx, ev qualificationEvent) map[int
 // evaluateQualificationsTx 在调用方事务内判定并写入全部变化。
 // 任一条写失败都返回错误，由调用方回滚整笔结算，重放时再补记；
 // 每尾鱼的去重键保证重复判定不会重复计数。
-func evaluateQualificationsTx(ctx context.Context, tx *sql.Tx, uid int64, ev qualificationEvent, now float64) (map[int64]store.QualificationState, error) {
+func evaluateQualificationsTx(ctx context.Context, tx *sql.Tx, uid int64, ev qualificationEvent, now float64, activeEvents map[int64]bool) (map[int64]store.QualificationState, error) {
 	changed := make(map[int64]store.QualificationState)
 	states, err := store.QualificationStatesTx(ctx, tx, uid)
 	if err != nil {
@@ -523,6 +529,13 @@ func evaluateQualificationsTx(ctx context.Context, tx *sql.Tx, uid int64, ev qua
 		if r.Event != ev.Kind {
 			continue
 		}
+		branch := r.ID / 1000
+		if branch >= 9 && !activeEvents[branch] {
+			continue // 未开启、未选择或已结束的活动不推进。
+		}
+		if branch == 4 && (ev.RodType != rodTypeTelescope || !floatRigTypes[ev.RigType]) {
+			continue // 未知竿型也不能满足真实规则表的伸缩竿限制。
+		}
 		if !qualificationRodAllowed(qualificationRodTypesFor(r.ID), ev.RodType) {
 			continue // 竿型不符（事件未带竿型时不拦）
 		}
@@ -530,20 +543,23 @@ func evaluateQualificationsTx(ctx context.Context, tx *sql.Tx, uid int64, ev qua
 		if st.CompletedTS > 0 {
 			continue // 已达标封顶，不再计数
 		}
-		key := r.Counted(ev)
-		if key == "" {
-			continue
-		}
-		guid := qualificationCountedGUID(key)
-		if qualificationHasGUID(st.Counted, guid) {
-			continue
+		if r.AlternateCounted != nil {
+			counted, advanced, err := countQualificationAlternativesTx(ctx, tx, uid, r, st, ev)
+			if err != nil {
+				return nil, err
+			}
+			if !advanced {
+				continue
+			}
+			st.Counted = counted
+		} else {
+			key := r.Counted(ev)
+			if key == "" || qualificationHasGUID(st.Counted, qualificationCountedGUID(key)) {
+				continue
+			}
+			st.Counted = append(st.Counted, qualificationCatchRecord(key, ev))
 		}
 		st.RuleID = r.ID
-		st.Counted = append(st.Counted, store.QualificationFish{
-			GUID: guid, FishGUID: ev.CatchGUID, Species: ev.Species, NameZh: ev.NameZh,
-			WeightG: ev.WeightG, LengthM: ev.LengthM, Grade: ev.Grade,
-			RigType: ev.RigType, RodType: ev.RodType,
-		})
 		if uint32(len(st.Counted)) >= qualificationTarget(uint64(r.ID)) {
 			st.CompletedTS = now
 		}
@@ -599,6 +615,7 @@ func (s *Server) qualificationEventForCatch(ctx context.Context, f *RolledFish, 
 	ev.LureLenCM, ev.BaitSizeMM = bait.LenCM, bait.SizeMM
 	ev.DepthCM, ev.IsShore = f.DepthCM, !f.OnBoat
 	ev.IsNight, ev.Drift = f.IsNight, f.Drift
+	ev.BiteUnix = f.BiteUnix
 	ev.LocLevel, ev.XP = f.LocLevel, f.XP
 	ev.MainLine, ev.LeaderMat = mainLine, leaderMat
 	ev.CastM = f.CastM
@@ -686,8 +703,31 @@ func (s *Server) qualificationRod(ctx context.Context, rodGUID string) (int64, s
 	return rodDefRodType(def), rodPowerClass(def.ItemID), testMax
 }
 
+// qualificationMainLineDef 从竿的专用主线字段读取定义；主线不属于 f5 组件。
+// 不读 rig_component 派生索引，避免拆线后用残留索引继续累计资格。
+func (s *Server) qualificationMainLineDef(ctx context.Context, rodGUID string) *store.ItemDef {
+	row, err := s.DB.GetItemByGUID(ctx, rodGUID)
+	if err != nil || row == nil {
+		return nil
+	}
+	fields, err := FieldsFromJSON(row.FieldsJSON)
+	if err != nil {
+		return nil
+	}
+	idx := fieldIdxByCS(row.WireClass, csLine)
+	if idx < 0 || idx >= len(fields) || !validRigGUID(fields[idx].GuidHex()) {
+		return nil
+	}
+	line, err := s.DB.GetItemByGUID(ctx, fields[idx].GuidHex())
+	if err != nil || line == nil {
+		return nil
+	}
+	def, _ := s.DB.GetItemDef(ctx, line.NumericID)
+	return def
+}
+
 // qualificationLineMaterials 返回竿上主线与前导线的材质档。
-// 主线(cat11)读 fopbhlmkcpe，前导线(cat15)读 ocmbfkebgpp：1=尼龙 2=碳线。
+// 主线从专用字段读取，前导线从 f5 读取；材质 1=尼龙、2=碳线。
 func (s *Server) qualificationLineMaterials(ctx context.Context, rodGUID string) (main, leader int64) {
 	if rodGUID == "" {
 		return 0, 0
@@ -707,33 +747,34 @@ func (s *Server) qualificationLineMaterials(ctx context.Context, rodGUID string)
 		}
 		return 0
 	}
-	return materialOf(11, "fopbhlmkcpe"), materialOf(15, "ocmbfkebgpp")
+	return itemDefInt(s.qualificationMainLineDef(ctx, rodGUID), "fopbhlmkcpe"), materialOf(15, "ocmbfkebgpp")
 }
 
 // lineAttrMaxLoadKG 是线/前导线定义的最大负载字段（F32 位型，公斤）。
 const lineAttrMaxLoadKG = "kngaaefkpka"
 
 // qualificationLineStrength 返回竿上鱼线强度（公斤）：主线(cat11)与前导线(cat15)
-// 已装配者取最小值（最弱一环决定有效强度）；都未装配时返回 0（判定不拦）。
+// 主线来自专用字段，前导线来自 f5；已装配者取最小值，都未知时返回 0。
 func (s *Server) qualificationLineStrength(ctx context.Context, rodGUID string) float64 {
 	if rodGUID == "" {
 		return 0
 	}
 	comps := s.storedRigComponents(ctx, rodGUID)
-	min := 0.0
-	for _, category := range []int64{11, 15} {
-		for _, k := range rigCompKeysOfCategory(comps, category) {
-			row, err := s.DB.GetItemByGUID(ctx, comps[k].GUID)
-			if err != nil || row == nil {
-				continue
-			}
-			def, derr := s.DB.GetItemDef(ctx, row.NumericID)
-			if derr != nil || def == nil {
-				continue
-			}
-			if kg := itemDefF32(def, lineAttrMaxLoadKG); kg > 0 && (min == 0 || kg < min) {
-				min = kg
-			}
+	min := itemDefF32(s.qualificationMainLineDef(ctx, rodGUID), lineAttrMaxLoadKG)
+	if min < 0 {
+		min = 0
+	}
+	for _, k := range rigCompKeysOfCategory(comps, 15) {
+		row, err := s.DB.GetItemByGUID(ctx, comps[k].GUID)
+		if err != nil || row == nil {
+			continue
+		}
+		def, derr := s.DB.GetItemDef(ctx, row.NumericID)
+		if derr != nil || def == nil {
+			continue
+		}
+		if kg := itemDefF32(def, lineAttrMaxLoadKG); kg > 0 && (min == 0 || kg < min) {
+			min = kg
 		}
 	}
 	return min
