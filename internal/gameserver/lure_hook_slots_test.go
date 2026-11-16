@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"rf4server/internal/proto"
+	"rf4server/internal/store"
 )
 
 func TestLureHookSlotsPurchasedLureWithoutPositionRecord(t *testing.T) {
@@ -65,6 +66,149 @@ func TestLureHookSlotsPurchasedLureWithoutPositionRecord(t *testing.T) {
 	})
 }
 
+// TestNoHookAttractantLurePurchaseVisible 回归：装饰性吸引成分（八爪鱼/虾/
+// 彩珠，category 17 拟饵类）没有出厂钩（gpoaffnjbdo=null）。项目到 ItemToTree
+// 时 projectLureHookSlots 不能因 f0 不是 args(60) 而报错，否则 hStoreBuy 跳过
+// 物品树，出现"db 已入包但客户端看不到"的现象。
+func TestNoHookAttractantLurePurchaseVisible(t *testing.T) {
+	for _, model := range []string{"okt_21080_1", "shr_21107_1", "color_bead_006", "fire_tube_003"} {
+		t.Run(model, func(t *testing.T) {
+			s := newSkillsCraftServer(t, openRecipeTestDB(t))
+			def, err := s.DB.GetItemDefByItemID(t.Context(), model)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if hooks := defAttrs(def)[lureHooksAttr]; hooks != nil {
+				t.Fatalf("static definition must have no factory hooks: %#v", hooks)
+			}
+			if _, err := s.DB.EnsureProfile(t.Context(), craftLureTestUID); err != nil {
+				t.Fatal(err)
+			}
+			if _, err := s.DB.SQL.Exec(`UPDATE profile SET silver=200000 WHERE uid=?`, craftLureTestUID); err != nil {
+				t.Fatal(err)
+			}
+			if _, err := s.DB.SQL.Exec(`INSERT INTO shop_item(store_id,item_id,silver,gold,stock) VALUES('shop',?,1000,0,10)`, model); err != nil {
+				t.Fatal(err)
+			}
+			c := economyTestCtx(s, craftLureTestUID, proto.Args524(proto.StrVal("shop"), proto.StrVal(model), proto.U64(1)))
+			c.ExpectResponse = true
+			c.replyCapture = &ctxReplyCapture{}
+			body, ok := hStoreBuy(false)(c)
+			if !ok || len(body) == 0 {
+				t.Fatal("购买失败")
+			}
+			var guid string
+			if err := s.DB.SQL.QueryRow(`SELECT guid FROM item WHERE uid=? AND item_id=?`, craftLureTestUID, model).Scan(&guid); err != nil {
+				t.Fatalf("物品未入包: %v", err)
+			}
+			// 购买响应 f1 必须携带物品树，且无钩定义必须投影成空 args(60)。
+			result := decodeTreeValue(t, s, body)
+			list := result.Fields[1].Val
+			if list == nil || list.Kind != proto.KindArgs || len(list.Items) != 1 || treeRootGUID(list.Items[0]) != guid {
+				t.Fatalf("购买响应缺少物品树，客户端将看不到入包: %+v", list)
+			}
+			assertLureWireSlots(t, list.Items[0], nil)
+
+			row, err := s.DB.GetItemByGUID(t.Context(), guid)
+			if err != nil {
+				t.Fatal(err)
+			}
+			before := row.FieldsJSON
+			dbPath := s.DB.Path
+			if err := s.DB.Close(); err != nil {
+				t.Fatal(err)
+			}
+			reopened, err := store.Open(dbPath)
+			if err != nil {
+				t.Fatal(err)
+			}
+			t.Cleanup(func() { _ = reopened.Close() })
+			s.SetDB(reopened)
+
+			// 重开数据库后，背包详情仍应包含该物品，且 wire 投影不改落库字段。
+			dctx := economyTestCtx(s, craftLureTestUID, proto.Args524(proto.U32(0), proto.GuidArr([]string{guid})))
+			detailBody, okd := hItemDetails(dctx)
+			if !okd || len(detailBody) == 0 {
+				t.Fatal("背包详情未返回")
+			}
+			details := decodeTreeValue(t, s, detailBody)
+			if len(details.Items) != 1 || treeRootGUID(details.Items[0]) != guid {
+				t.Fatal("背包详情缺少已购买物品")
+			}
+			assertLureWireSlots(t, details.Items[0], nil)
+			fresh, err := s.DB.GetItemByGUID(t.Context(), guid)
+			if err != nil || fresh.FieldsJSON != before {
+				t.Fatal("wire projection mutated persisted fields", err)
+			}
+		})
+	}
+}
+
+func TestLureHookProjectionRejectsCorruptFactoryHookInstance(t *testing.T) {
+	s := newSkillsCraftServer(t, openRecipeTestDB(t))
+	if _, err := s.DB.EnsureProfile(t.Context(), craftLureTestUID); err != nil {
+		t.Fatal(err)
+	}
+	const model = "crank_f_1876"
+	it, err := s.CreateItem(t.Context(), craftLureTestUID, model, "backpack", 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	fields, err := FieldsFromJSON(it.FieldsJSON)
+	if err != nil {
+		t.Fatal(err)
+	}
+	idx := lureHookFieldIndex(it.WireClass)
+	if idx < 0 || idx >= len(fields) {
+		t.Fatal("test item has no hook field")
+	}
+	fields[idx] = proto.Field{Op: "VAL", Val: proto.StrVal("corrupt")}
+	it.FieldsJSON, err = FieldsToJSON(fields)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.DB.SQL.Exec(`UPDATE item SET fields_json=? WHERE guid=?`, it.FieldsJSON, it.GUID); err != nil {
+		t.Fatal(err)
+	}
+	it, err = s.DB.GetItemByGUID(t.Context(), it.GUID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.ItemToTree(t.Context(), it); err == nil {
+		t.Fatal("factory-hook definition with a corrupt instance field must fail closed")
+	}
+}
+func TestLureHookProjectionRejectsMalformedDefinition(t *testing.T) {
+	for _, tc := range []struct {
+		name  string
+		attrs string
+	}{
+		{name: "invalid-json", attrs: `{"gpoaffnjbdo":`},
+		{name: "wrong-type", attrs: `{"gpoaffnjbdo":"triple_20572"}`},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			s := newSkillsCraftServer(t, openRecipeTestDB(t))
+			if _, err := s.DB.EnsureProfile(t.Context(), craftLureTestUID); err != nil {
+				t.Fatal(err)
+			}
+			const model = "color_bead_006"
+			it, err := s.CreateItem(t.Context(), craftLureTestUID, model, "backpack", 1)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if _, err := s.DB.SQL.Exec(`UPDATE item_def SET attrs_json=? WHERE item_id=?`, tc.attrs, model); err != nil {
+				t.Fatal(err)
+			}
+			it, err = s.DB.GetItemByGUID(t.Context(), it.GUID)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if _, err := s.ItemToTree(t.Context(), it); err == nil {
+				t.Fatal("malformed factory-hook definition must fail closed")
+			}
+		})
+	}
+}
 func assertLureWireSlots(t *testing.T, tree *proto.Value, want []string) {
 	t.Helper()
 	list := tree.Fields[lureHookFieldIndex(tree.Class)].Val
