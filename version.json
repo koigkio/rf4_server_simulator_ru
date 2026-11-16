@@ -9,11 +9,11 @@
     "download_mirror_url": "https://gh-proxy.com/https://github.com/OpenFisherCommunity/rf4_server_simulator/releases/download/v0.1.9/rf4_server_simulator-v0.1.9-windows-amd64.zip"
   },
   "preview": {
-    "version": "preview-20261116T140804Z-e8f807f",
-    "build_ts": "20261116140804",
-    "released_at": "2026-11-16T14:08:40Z",
-    "notes_url": "https://github.com/OpenFisherCommunity/rf4_server_simulator/releases/tag/preview-20261116T140804Z-e8f807f",
+    "version": "preview-20261116T143415Z-f61a693",
+    "build_ts": "20261116143415",
+    "released_at": "2026-11-16T14:34:47Z",
+    "notes_url": "https://github.com/OpenFisherCommunity/rf4_server_simulator/releases/tag/preview-20261116T143415Z-f61a693",
     "download_url": "https://github.com/OpenFisherCommunity/rf4_server_simulator/releases",
-    "download_mirror_url": "https://gh-proxy.com/https://github.com/OpenFisherCommunity/rf4_server_simulator/releases/download/preview-20261116T140804Z-e8f807f/rf4_server_simulator-preview-20261116T140804Z-e8f807f-windows-amd64.zip"
+    "download_mirror_url": "https://gh-proxy.com/https://github.com/OpenFisherCommunity/rf4_server_simulator/releases/download/preview-20261116T143415Z-f61a693/rf4_server_simulator-preview-20261116T143415Z-f61a693-windows-amd64.zip"
   }
 }
