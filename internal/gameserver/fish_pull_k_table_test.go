@@ -113,19 +113,23 @@ func TestFishPullGroupFallback(t *testing.T) {
 		wantK   float64
 	}{
 		{"riv_rb_trout", "salmonid", 18.0},
-		{"lm_b_bass", "predator", 17.5},
-		{"din_m_carp", "carp_mid", 16.7},
-		{"karasekarp", "still_carp", 15.0},
+		{"lm_b_bass", "predator", 17.30},   // v2：组值锚 n.pike 实测
+		{"din_m_carp", "carp_mid", 16.50},  // v2：组值锚 carp
+		{"karasekarp", "still_carp", 15.05}, // v2：组值锚 crucian
+		{"shemaya", "small_forage", 18.64},  // v2：移出 roach_run，同黑海欧白鱼实测族
+		{"cetorhinus_m", "apex", 25.53},     // v2 新组：鲨/剑鱼/金枪鱼（纯推断）
+		{"carp_albino", "alias→carp", 16.50}, // v2 别名：皮肤变种继承宿主 carp
 		{"not_in_calib", "fallback", 17.5},
 	}
 	for _, c := range cases {
 		if got := srv.fishPullK0For(c.species); math.Abs(got-c.wantK) > 1e-9 {
 			t.Errorf("%s K0=%f，期望 %s 组 %f", c.species, got, c.group, c.wantK)
 		}
-		// 100g 锚定斜率后不得越出官方 k 域 [12.6, 20.6] 太远（100g 时 ln 项 −1.6）。
+		// 官方 k 实测域 [12.59, 25.53]（v2：s.bream~cha_herring；v1 的 [12.6, 20.6]
+		// 被恒 k 海鱼实证推翻）。1kg 时 ln 项为 0，k 即 K0。
 		pull := srv.fishFightPullFor(&RolledFish{Species: c.species, WeightG: 1000})
 		k := pull // w=1kg 时 k 即 pull
-		if k < 12.0 || k > 21.5 {
+		if k < 12.0 || k > 26.0 {
 			t.Errorf("%s 1kg 等效 k=%f 越出官方域", c.species, k)
 		}
 	}

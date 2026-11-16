@@ -207,3 +207,27 @@ static.sqlite3 `loc_fish` 表为准。
 - 全量门禁：gameserver 包仅剩既有基线失败 TestCafeNativeFlowPaysAndPushesRemoval
   （单跑过、时序敏感，口径同 AGENTS.md）；其余包 2 失败均为环境/工作区既有问题
   （launcher GOTMPDIR 路径分隔符、docs 索引缺 2026-11-16 解码文档登记），与本分支无关。
+
+### v2.1 增补：未实测种全覆盖归组 + 皮肤变种别名（2026-11-17）
+
+- static 库 249 种全覆盖，不再有裸 fallback：31 实测 + 204 习性组 + 16 别名。
+- **别名表 `fishPullAlias`**：16 个皮肤/变种鱼种继承宿主实测参数（避免组表
+  斜率偏差）——carp 系 10（common_carp/三花/鳞鲤白化/匈红鲤/绿鲤/带形框形
+  镜鲤系）、m_carp 系 3、n_carp 系 2、g_carp_albino。
+- **组值按组内实测成员标定**（`fishPullGroupK0` 值类型同步升级
+  `fishPullParam`）：marine_gadid 19.7→{21.58,0}、sunfish 20.4→{19.62,0}、
+  migratory_roach 18.8→{18.64,0}、herb_carp 18.2→{18.79,0.23}、
+  roach_run 16.4→{16.36,0.23}、still_carp 15.0→{15.05,0.35}、
+  pond_carp 13.7→{13.84,0.45}、carp_mid 16.7→{16.50,-1}、
+  predator 17.5→{17.30,-1}、weak_silver/salmonid/sturgeon/catfish/flatfish
+  保持 K0（Slope=-1 全局先验）。海鱼类组 Slope=0 恒 k、鲤科组继承成员
+  自拟合斜率、纯估计组 -1 吃全局 tunable。
+- **新增 5 组**：marine_pelagic {22.57,0}（鲱鲭中上层）、marine_rock {17.66,0}
+  （鮋/杜父/绵鳚/鳗鳃类）、small_forage {18.64,0}（小型饵料鱼：刺鱼/鮈/鱥/
+  泥鳅/胡瓜鱼/shemaya 自 roach_run 移入）、apex {25.53,0}（鲨/剑鱼/金枪鱼，
+  纯推断取离散上界）。
+- 官方 k 域注释更新：v1 的 [12.6, 20.6] 被恒 k 海鱼实证推翻，实测域
+  [12.59, 25.53]（s.bream~cha_herring）。
+- 归组依据：key/中文名词表分类（鳞鲱鳟鲈鲷鲆鲽鲨鳗鲶鲟……）+ 离散 k 离散值
+  近亲继承；蟹/贝/蛙等无拉力数据的渔获按体型归 weak_silver/marine_rock
+  （低置信，抓到后即校准）。fallback 17.5 仅剩非 loc_fish 未知键兜底。
