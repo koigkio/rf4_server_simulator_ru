@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math"
 	"testing"
+	"time"
 )
 
 // 官服 f5 锚点（A 级 14/14 样本，specs/changes/fish-official-data-tables/spec.md）。
@@ -48,6 +49,11 @@ func TestFishStaminaMatchesOfficialAnchors(t *testing.T) {
 // TestFishF6MatchesOfficialTable 验证 f6 量化表、体重台阶与 fallback。
 func TestFishF6MatchesOfficialTable(t *testing.T) {
 	srv2, _ := newRigTestServer(t)
+	srv2.tunMu.Lock()
+	srv2.tunCache = map[string]float64{"fish_f6_scale": 1}
+	srv2.tunText = map[string]string{"fish_f6_scale": "1"}
+	srv2.tunAt = time.Now()
+	srv2.tunMu.Unlock()
 	cases := []struct {
 		species string
 		weightG int64
@@ -61,7 +67,7 @@ func TestFishF6MatchesOfficialTable(t *testing.T) {
 		{"s.bream", 359, 0.30},
 		{"n.pike", 4305, 0.80},
 		{"g_carp", 21742, 0.70},
-		{"not_in_calib", 500, defaultFishInitialStaminaRatio},
+		{"not_in_calib", 500, 0.55},
 	}
 	for _, c := range cases {
 		f := &RolledFish{Species: c.species, WeightG: c.weightG}

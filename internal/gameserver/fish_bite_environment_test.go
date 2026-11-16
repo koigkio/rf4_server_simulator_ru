@@ -365,7 +365,7 @@ func TestPrepareFishRollRuntimeResolvesChartFromSceneName(t *testing.T) {
 		`INSERT OR REPLACE INTO loc_alias(alias,loc) VALUES('level_012_north_sea','挪威海')`); err != nil {
 		t.Fatal(err)
 	}
-	// 1300/100 落在 loc12_157 网格内（assets/sonar_grids_4_0_24799.json）。
+	// 1300/100 落在 loc12_157 网格内（internal/fishmaps 声呐网格资产）。
 	c := &fishRollContext{loc: "loc12_157", x: 1300, z: 100, hasPos: true, rigType: 53}
 	srv.prepareFishRollRuntime(context.Background(), c, "挪威海")
 	if !c.runtime.chartKnown {

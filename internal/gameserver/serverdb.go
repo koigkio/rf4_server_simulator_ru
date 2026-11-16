@@ -104,6 +104,20 @@ func (s *Server) loadFightCurves() {
 // buildFightCurves 构造 27.f21 曲线池：鱼种池缺省借同习性池，张力列按
 // pull/池基准 uniform 缩放，其余列保持池原值（官方口径，见 spec）。
 func (s *Server) buildFightCurves(species string, pull float64) *proto.Value {
+	return s.buildFightCurvesWithProfile(species, pull,
+		s.fishFightProfileFor(&RolledFish{Species: species}))
+}
+
+// buildFightCurvesForFish 用实际鱼的档位/体重生成 profile，legacy 模式下
+// 需要 profile.DurationScale/RestScale 恢复旧节奏。
+func (s *Server) buildFightCurvesForFish(f *RolledFish, pull float64) *proto.Value {
+	if f == nil {
+		return s.buildFightCurves("", pull)
+	}
+	return s.buildFightCurvesWithProfile(f.Species, pull, s.fishFightProfileFor(f))
+}
+
+func (s *Server) buildFightCurvesWithProfile(species string, pull float64, profile fishFightProfile) *proto.Value {
 	s.curveMu.Lock()
 	rows := s.curves[species]
 	if len(rows) == 0 {
@@ -133,12 +147,39 @@ func (s *Server) buildFightCurves(species string, pull float64) *proto.Value {
 	if baseTension > 0 {
 		scale = pull / baseTension
 	}
+	legacy := s.fightLegacyModel()
+	phaseScales := legacy || s.tunableF("fight_phase_scales", 0) != 0
+	curveTensionScale := s.tunableF("fight_curve_tension_scale", 1)
+	if curveTensionScale <= 0 {
+		curveTensionScale = 1
+	}
 	for _, r := range selected {
 		items := map[int]*proto.Value{0: proto.U32(uint32(r[0]))}
+		stage := uint32(r[0])
+		phaseTension, phaseDuration := 1.0, 1.0
+		if phaseScales {
+			phaseTension = fightPhaseTensionScale(stage)
+			phaseDuration = fightPhaseDurationScale(stage)
+		}
+		durationScale := 1.0
+		if legacy {
+			durationScale = profile.DurationScale
+			if fightIsRestPhase(stage) {
+				durationScale = profile.RestScale
+			}
+		}
 		for i := 1; i <= 14; i++ {
 			v := r[i]
 			if i == 8 || i == 9 {
-				v *= scale
+				v *= scale * phaseTension * curveTensionScale
+			}
+			if (i == 2 || i == 3) && v > 0 {
+				if phaseScales {
+					v *= phaseDuration
+				}
+				if legacy {
+					v = math.Max(0.1, v*durationScale)
+				}
 			}
 			items[i] = proto.F32(float32(v))
 		}
