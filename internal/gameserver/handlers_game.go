@@ -1607,14 +1607,14 @@ func hFishingLeft(ctx *Ctx) ([]byte, bool) {
 		// 只清理当前鱼，并在同一水中钓组上重新安排下一次判鱼；
 		// 路亚脱钩同样重新排鱼，收线途中仍可能再次咬钩。
 		//
-		// 官方语义（客户端状态机 + 2026-11-06 线上日志实证）：
-		// f0=1/2/8 只是客户端鱼 AI 不同的内部计时器/状态机路径
-		// （咬钩窗口、试探窗口、钩概率掷骰），**f0 本身不区分鱼
-		// 是否上过钩**——搏鱼中跑鱼同样走计时器路径报 f0=2
-		// （riv_rb_trout 一轮 14/14 → 14/11 → f0=2，全程无 8/7）。
-		// 是否真脱钩以服务端记的 14/11 中鱼确认（st.Hooked）为准：
-		//   已中鱼 → 跑鱼等同 f0=7 真脱钩：播报模板 7 并计 escapes；
-		//   未中鱼 → 吃饵/试探后游走，官方静默（模板表无此类）。
+		// 官方语义（客户端两阶段模型，2026-11-16 逆向收敛，
+		// docs/路亚脱钩率分析-2026-11-16.md）：阶段一 kldglnchdec
+		// 进场保持掷骰失败 → 鱼叼住拟饵 0.5~2.0s 后吐出 = f0=1
+		// （咬饵未咬钩：客户端连「上鱼」通知都不出，本地化模板表
+		// 也无此类播报载体 → 官方静默）；阶段二 kejihbadeej 搏鱼
+		// 危险累计掷骰失败 → f0=2（真脱钩）；f0=8 试探窗口。
+		// 是否真脱钩 = 服务端 14/11 中鱼确认（st.Hooked）且 f0≠1。
+		// 注意 f0=7 是「无钓组」终态（docs/analysis-fishing-chain-2026-11-07.md），不在此分支。
 		st.cancelBiteTimerLocked()
 		pending := st.Pending
 		alreadyResolved := st.Resolved
@@ -1629,10 +1629,20 @@ func hFishingLeft(ctx *Ctx) ([]byte, bool) {
 		rodGUID := st.GearGuid
 		st.mu.Unlock()
 		if hooked && !alreadyResolved {
-			srv.bumpFishingCounter(ctx.Sess.Userid, "escapes")
-			srv.recordHuntEscape(ctx.Sess.pushCtx(), ctx.Sess.Userid, loc, spot, pending)
-			srv.notifyFishEscape(ctx.Sess, pending, "脱钩离开")
-			ctx.Log.Info("14/12 已中鱼跑鱼，按真脱钩播报", "f0", f0)
+			if f0 == 1 {
+				// 阶段一吐饵：鱼从未真正挂牢——官方无播报、不计 escapes、
+				// 不触发大鱼脱钩补偿；咬饵拉扯照样磨轮，重排照常。
+				fid := ""
+				if pending != nil {
+					fid = shortGUID(pending.FishGUID)
+				}
+				ctx.Log.Info("14/12 叼住吐出（咬饵未咬钩），官方静默", "f0", f0, "fish", fid)
+			} else {
+				srv.bumpFishingCounter(ctx.Sess.Userid, "escapes")
+				srv.recordHuntEscape(ctx.Sess.pushCtx(), ctx.Sess.Userid, loc, spot, pending)
+				srv.notifyFishEscape(ctx.Sess, pending, "脱钩离开")
+				ctx.Log.Info("14/12 搏鱼脱钩，按真脱钩播报", "f0", f0)
+			}
 		} else {
 			ctx.Log.Info("14/12 鱼未上钩离场，官方静默", "f0", f0, "hooked", hooked)
 		}
