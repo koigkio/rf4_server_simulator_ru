@@ -2,7 +2,9 @@ package gameserver
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"sort"
 	"strconv"
@@ -197,32 +199,74 @@ func (s *Server) ensureEventStageGifts(ctx context.Context, uid int64) []*store.
 		if !complete {
 			continue
 		}
-		items, name := s.grantEventStageGift(ctx, uid, plan)
+		items, stageNames := s.grantEventStageGift(ctx, uid, plan)
 		granted = append(granted, items...)
 		if len(items) > 0 {
-			names = append(names, name)
+			names = append(names, stageNames...)
 		}
 	}
 	if len(names) > 0 {
 		s.broadcastQualificationCups(uid, names)
 	}
-	return granted
+	return finalEventStageGiftItems(granted)
+}
+
+// finalEventStageGiftItems 保留每个 GUID 最后一次合并的状态，覆盖同阶段多行和跨阶段补发。
+func finalEventStageGiftItems(rows []*store.Item) []*store.Item {
+	indices := make(map[string]int, len(rows))
+	out := make([]*store.Item, 0, len(rows))
+	for _, row := range rows {
+		if i, ok := indices[row.GUID]; ok {
+			out[i] = row
+		} else {
+			indices[row.GUID] = len(out)
+			out = append(out, row)
+		}
+	}
+	return out
+}
+
+// grantEventStageGiftItemTx 沿用普通库存合并；目标堆容量不足时将当前奖励行另存为一堆。
+func grantEventStageGiftItemTx(ctx context.Context, tx *sql.Tx, it *store.Item) (*store.Item, error) {
+	def, err := itemDefByItemIDTx(ctx, tx, it.ItemID)
+	if err != nil {
+		return nil, err
+	}
+	merge := countableCategories[def.Category]
+	if merge {
+		limit := bundleQuantityLimit(it.WireClass)
+		if it.Qty < 1 || it.Qty > limit {
+			return nil, fmt.Errorf("阶段奖励数量超出数量槽范围: %s", it.ItemID)
+		}
+		// 与 grantPreparedItemTx 使用同一排序，容量判断和入账都在当前事务中。
+		row, err := scanTxItem(tx.QueryRowContext(ctx, `SELECT `+txItemCols+`
+			FROM item WHERE uid=? AND container=? AND item_id=?
+			ORDER BY slot, created_ts, guid LIMIT 1`, it.UID, it.Container, it.ItemID))
+		if err == nil {
+			cur := stackCountTx(ctx, tx, row)
+			merge = cur >= 0 && cur <= bundleQuantityLimit(row.WireClass)-it.Qty
+		} else if !errors.Is(err, sql.ErrNoRows) {
+			return nil, err
+		}
+	}
+	row, _, err := grantPreparedItemTx(ctx, tx, it, merge)
+	return row, err
 }
 
 // grantEventStageGift 单阶段发放：物品先按配置数量构造到正常背包，幂等键与全部入账
-// 同一经济事务提交；已发过返回 nil。播报文案取首个物品的静态中文名，
+// 同一经济事务提交；已发过返回 nil。播报名称按配置顺序取全部物品的静态中文名，同种物品只取一次，
 // 由调用方合并成一条发送。活动奖励是普通商品，不能复用资格奖杯的 house/奖赏分组。
-func (s *Server) grantEventStageGift(ctx context.Context, uid int64, plan *eventStageGiftPlan) ([]*store.Item, string) {
+func (s *Server) grantEventStageGift(ctx context.Context, uid int64, plan *eventStageGiftPlan) ([]*store.Item, []string) {
 	// 已发阶段在构造物品前返回；事务内仍保留唯一键防止并发重复发放。
 	if _, ok, _ := s.DB.KVGet(ctx, eventStageGiftKey(uid, plan.Branch, plan.Stage)); ok {
-		return nil, ""
+		return nil, nil
 	}
 	prepared := make([]*store.Item, 0, len(plan.Gifts))
 	for _, g := range plan.Gifts {
 		def, err := s.DB.GetItemDefByItemID(ctx, g.ItemID)
 		if err != nil || def == nil {
 			s.log.Warn("阶段礼物定义不存在", "item", g.ItemID, "err", err)
-			return nil, ""
+			return nil, nil
 		}
 		count := g.Qty
 		if countableCategories[def.Category] {
@@ -238,7 +282,7 @@ func (s *Server) grantEventStageGift(ctx context.Context, uid int64, plan *event
 			if err != nil {
 				s.log.Warn("阶段礼物物品构造失败", "uid", uid, "branch", plan.Branch,
 					"stage", plan.Stage, "item", g.ItemID, "err", err)
-				return nil, ""
+				return nil, nil
 			}
 			prepared = append(prepared, it)
 		}
@@ -246,31 +290,39 @@ func (s *Server) grantEventStageGift(ctx context.Context, uid int64, plan *event
 	tx, err := beginEconomyTx(ctx, s.DB)
 	if err != nil {
 		s.log.Warn("阶段礼物事务开启失败", "uid", uid, "err", err)
-		return nil, ""
+		return nil, nil
 	}
 	defer func() { _ = tx.Rollback() }()
 	res, err := tx.ExecContext(ctx, `INSERT OR IGNORE INTO kv(k,v) VALUES(?,?)`,
 		eventStageGiftKey(uid, plan.Branch, plan.Stage), "granted")
 	if err != nil {
 		s.log.Warn("阶段礼物幂等键写入失败", "uid", uid, "err", err)
-		return nil, ""
+		return nil, nil
 	}
 	if n, err := res.RowsAffected(); err != nil || n == 0 {
-		return nil, "" // 已发放过
+		return nil, nil // 已发放过
 	}
 	var out []*store.Item
 	for _, it := range prepared {
-		row, _, err := grantPreparedItemTx(ctx, tx, it, true)
+		row, err := grantEventStageGiftItemTx(ctx, tx, it)
 		if err != nil {
 			s.log.Warn("阶段礼物发放失败", "uid", uid, "branch", plan.Branch,
 				"stage", plan.Stage, "item", it.ItemID, "err", err)
-			return nil, ""
+			return nil, nil
 		}
 		out = append(out, row)
 	}
 	if err := tx.Commit(); err != nil {
 		s.log.Warn("阶段礼物提交失败", "uid", uid, "err", err)
-		return nil, ""
+		return nil, nil
 	}
-	return out, plan.Gifts[0].ItemID
+	var names []string
+	seen := make(map[string]bool, len(plan.Gifts))
+	for _, gift := range plan.Gifts {
+		if !seen[gift.ItemID] {
+			seen[gift.ItemID] = true
+			names = append(names, s.lootItemName(ctx, gift.ItemID))
+		}
+	}
+	return finalEventStageGiftItems(out), names
 }
