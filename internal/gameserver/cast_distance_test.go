@@ -585,3 +585,26 @@ func TestCastRodlessKeepsRequestedOverLegacyMax(t *testing.T) {
 		t.Fatalf("无轮手竿红区请求应直通: CastM = %g，期望 50", castM)
 	}
 }
+
+// 载荷未知（<=0）时走固定折减 0.80，是「缺 Test 区间竿按 0.85 折减」
+// 之外的另一条边界：见 specs/changes/rod-missing-test-default/spec.md
+// 「payload 为 0 的既有 0.80 分支不变」。该分支压得过低会让满功率抛投
+// 掉到脚边，也会让超出 rig 上限的解锁用例失去正对照参照，因此单独锁定。
+func TestRodTestWeightFactorWithoutPayloadKeepsDefault(t *testing.T) {
+	for _, tc := range []struct{ minG, maxG float64 }{
+		{2, 10}, {5, 30}, {0.5, 1.2}, {0, 8},
+	} {
+		if got := rodTestWeightFactor(0, tc.minG, tc.maxG); math.Abs(got-0.80) > 1e-9 {
+			t.Fatalf("载荷未知时应固定折减 0.80（Test %.1f~%.1f），实得 %.4f",
+				tc.minG, tc.maxG, got)
+		}
+	}
+	// 未登记 Test 区间时优先走 0.85 保守折减，不应被载荷未知分支覆盖。
+	if got := rodTestWeightFactor(0, 0, 0); math.Abs(got-0.85) > 1e-9 {
+		t.Fatalf("未登记 Test 且载荷未知时应取 0.85，实得 %.4f", got)
+	}
+	// 已知载荷不应落在未知载荷的默认值上，避免把「恒返回 0.80」写成合法实现。
+	if got := rodTestWeightFactor(8, 5, 30); math.Abs(got-0.80) < 1e-9 {
+		t.Fatalf("已知载荷不应返回未知载荷的默认折减: %.4f", got)
+	}
+}

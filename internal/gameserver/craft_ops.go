@@ -723,6 +723,13 @@ func hCraft(ctx *Ctx) ([]byte, bool) {
 		ctx.Log.Warn("9/1 产出物不可构造", "output", outputID, "err", err)
 		return srv.replyCraftResult(ctx, false, nil, nil, nil)
 	}
+	lureHooks, ordinaryMaterials, err := prepareCraftedLureHooks(producedRow, outputDef, req.Materials)
+	if err != nil {
+		ctx.Log.Warn("9/1 选钩无效", "err", err)
+		return srv.replyCraftResult(ctx, false, nil, nil, nil)
+	}
+	// Selected hooks are transferred, not consumed as ordinary recipe materials.
+	req.Materials = ordinaryMaterials
 
 	// 标本/奖章族（悬挂板 board s/m/l、落地架 stand xl、吊顶 ceil xxl，
 	// 输出均为 cat 71）：客户端材料槽带鱼护 EchoGUID+鱼种（bhfikaplhmh
@@ -1092,6 +1099,14 @@ func hCraft(ctx *Ctx) ([]byte, bool) {
 		if err := srv.materializeCraftedLeaderTx(cctx, tx, producedRow, leaderMaterials); err != nil {
 			return fail("引线成品物化失败", "err", err)
 		}
+	}
+	var craftedHookGUIDs []string
+	if lureHooks != nil {
+		craftedHookGUIDs, err = srv.materializeCraftedLureTx(cctx, tx, producedRow, lureHooks)
+		if err != nil {
+			return fail("拟饵选钩装配失败", "err", err)
+		}
+		touched = append(touched, craftedHookGUIDs...)
 	}
 
 	// 本次产出量：可计件产物在 prepareNewItem 已按定义单位量×份数折算；

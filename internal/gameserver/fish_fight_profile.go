@@ -27,9 +27,15 @@ var fishFightArchetypes = map[string]fishFightArchetype{
 	"catfish":  {Stamina: 1.65, CurvePool: "e.chub"},
 	"sturgeon": {Stamina: 1.75, CurvePool: "e.chub"},
 	"small":    {Stamina: 0.72, CurvePool: "c.roach"},
-	"marine":   {Stamina: 1.18, CurvePool: "perch"},
-	"eel":      {Stamina: 0.92, CurvePool: "a.sleeper"},
-	"apex":     {Stamina: 1.55, CurvePool: "e.chub"},
+	// marine 借官方 merlang 真池（39a1085 官服 14/14 抓包直配入库）：主搏 105
+	// 6.5~20s、持续逃窜段 5~23s。此前借 perch 池是淡水小杂鱼剧本（主搏仅
+	// 4.5~8s、逃窜权重 1~2%、98% 时间 0.3~0.7s 碎潜水），实测 84.2kg meagre
+	// 全程 19s 被匀速拖回、14/8 遥测零负步（2026-11-16 搏鱼秒起调查）。张力
+	// 列按 pull/池基准 uniform 缩放，时长/速度/权重保持池原值，故大鱼直接
+	// 继承官方海鱼的搏斗节奏。
+	"marine": {Stamina: 1.18, CurvePool: "merlang"},
+	"eel":    {Stamina: 0.92, CurvePool: "a.sleeper"},
+	"apex":   {Stamina: 1.55, CurvePool: "e.chub"},
 }
 
 func fishFightArchetypeFor(species string) fishFightArchetype {
@@ -69,9 +75,8 @@ func fishFightArchetypeFor(species string) fishFightArchetype {
 		// 列在 ambush 关键词表里（淡水伏击组；不是子串匹配——has 是
 		// strings.Contains，"piksha" 并不含 "pike"）；menek/merlang 为海图鱼种。
 		// agar/warm 是旧词表命中、静态库中只在淡水图出现，当前为行为兼容保留
-		// （见 chart-roster-marine-group spec）。piksha 的组归属移动对行为中性
-		// （ambush 与 marine 的 CurvePool 同为 perch，f5/f6 已有显式表），它的
-		// 实际修复来自官方 statics 落表。
+		// （见 chart-roster-marine-group spec）。piksha 的组归属移动对行为中性：
+		// 它有官方直配池（buildFightCurves 鱼种池优先），f5/f6 已有显式表。
 		"merlang", "menek", "piksha", "agar", "warm"):
 		return fishFightArchetypes["marine"]
 	default:
