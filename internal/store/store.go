@@ -243,6 +243,11 @@ CREATE INDEX IF NOT EXISTS idx_catch_log_uid_tackle ON catch_log(uid, tackle_cat
 // 迁移、该文件后来没有并入主线时，主线同号迁移第一次登记就会撞 schema_migrations.version
 // 的 UNIQUE 约束，整个服务直接起不来（实测：00035_reel_component_wear 挡住 00035_trip_state）。
 // 这里只把旧登记行改名挪到退役编号段，表结构和数据都不动。
+//
+// 退役编号段本身也会被上一轮退役占住：同一个编号经历两轮退役（2026-11-16 实机：
+// 9000060 已是上一轮 retired/00060_skill_cast_effects，另一分支遗留的同号 60 行
+// 又要退役）时，固定映射 9M+编号 会撞 UNIQUE，服务同样起不来。所以落点从
+// 9M+编号 起向上探测第一个空位，并对本轮已挪走的行记占位，避免相邻编号连锁互踩。
 func retireStaleMigrationRows(sql *sql.DB, entries []string) error {
 	known := make(map[string]bool, len(entries))
 	wanted := make(map[int64]bool, len(entries))
@@ -276,9 +281,22 @@ func retireStaleMigrationRows(sql *sql.DB, entries []string) error {
 	}
 	rows.Close()
 
+	claimed := make(map[int64]bool, len(stale))
 	for _, s := range stale {
+		target := staleMigrationVersionBase + s.version
+		for {
+			var n int
+			if err := sql.QueryRow(`SELECT COUNT(*) FROM schema_migrations WHERE version=?`, target).Scan(&n); err != nil {
+				return fmt.Errorf("探测退役编号 %d: %w", target, err)
+			}
+			if n == 0 && !claimed[target] {
+				break
+			}
+			target++
+		}
+		claimed[target] = true
 		if _, err := sql.Exec(`UPDATE schema_migrations SET version=?, name=? WHERE version=? AND name=?`,
-			staleMigrationVersionBase+s.version, "retired/"+s.name, s.version, s.name); err != nil {
+			target, "retired/"+s.name, s.version, s.name); err != nil {
 			return fmt.Errorf("退役旧分支迁移登记 %s: %w", s.name, err)
 		}
 	}
