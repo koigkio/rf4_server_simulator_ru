@@ -130,6 +130,28 @@ func lureHookStorageOrdinal(extra int64, positions []string, items []*proto.Valu
 	return -1
 }
 
+func lureHookConfigs(def *store.ItemDef) ([]any, error) {
+	if def == nil {
+		return nil, fmt.Errorf("lure definition missing")
+	}
+	if def.Category != 17 {
+		return nil, fmt.Errorf("lure definition category mismatch: %d", def.Category)
+	}
+	var attrs map[string]any
+	if err := json.Unmarshal([]byte(def.AttrsJSON), &attrs); err != nil {
+		return nil, fmt.Errorf("lure definition attributes invalid: %w", err)
+	}
+	raw, ok := attrs[lureHooksAttr]
+	if !ok || raw == nil {
+		return nil, nil
+	}
+	cfgs, ok := raw.([]any)
+	if !ok {
+		return nil, fmt.Errorf("lure hook configuration malformed")
+	}
+	return cfgs, nil
+}
+
 // Project slot positions only into outgoing trees. No nulls are written to
 // FieldsJSON and no inventory items are created for empty positions.
 func (s *Server) projectLureHookSlots(ctx context.Context, row *store.Item, obj *proto.Value) error {
@@ -137,17 +159,22 @@ func (s *Server) projectLureHookSlots(ctx context.Context, row *store.Item, obj 
 	if idx < 0 || idx >= len(obj.Fields) {
 		return fmt.Errorf("lure hook field missing")
 	}
+	def, err := s.DB.GetItemDef(ctx, row.NumericID)
+	if err != nil {
+		return fmt.Errorf("lure definition unavailable: %w", err)
+	}
+	cfgs, err := lureHookConfigs(def)
+	if err != nil {
+		return err
+	}
 	list := obj.Fields[idx].Val
 	if list == nil || list.Kind != proto.KindArgs {
 		// 装饰性吸引成分（彩珠/八爪鱼/虾等）的 gpoaffnjbdo 出厂钩配置为 null，
-		// 物化后 f0 保持 Null，没有钩位需要投影。这类拟饵是合法在售商品：
-		// 若在此报错，ItemToTree 会失败，hStoreBuy 末尾的循环 continue 跳过
-		// 物品树，最终 db 已入包但 804 响应不带物品树，客户端看不到入包。
-		// 仅当定义里确实没有钩配置时放行；真正的数据损坏仍要报错，避免掩盖。
-		if def, derr := s.DB.GetItemDef(ctx, row.NumericID); derr == nil && def != nil {
-			if cfgs, _ := defAttrs(def)[lureHooksAttr].([]any); len(cfgs) == 0 {
-				return nil
-			}
+		// 物化后 f0 保持 Null，没有钩位需要投影。这类拟饵是合法在售商品，
+		// 必须发送空 args(60) 而不是 null；有钩定义或配置损坏仍要报错。
+		if len(cfgs) == 0 {
+			obj.Fields[idx].Val = proto.Args(proto.S(lureHookArgsCode))
+			return nil
 		}
 		return fmt.Errorf("lure hook array missing")
 	}
