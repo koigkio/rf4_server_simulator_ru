@@ -63,10 +63,12 @@ func findPaperMap(name string) (string, bool) {
 }
 
 // paperMapPlaceholder 合成占位：全部纸地图都是 2048×2048（fishmaps Scenes/SeaPaper），
-// 深底网格让标定坐标读数可目测核对，文字提示部署路径。
+// 深底网格让标定坐标读数可目测核对，文字提示部署路径。svg 必须带显式
+// width/height，否则没有固有尺寸，<img> 侧 naturalWidth 恒为 0（工作台与
+// UI 测试都以解码成功为前提）。name 来自 URL，进入 XML 文本节点前做转义。
 func paperMapPlaceholder(w http.ResponseWriter, name string) {
 	var b strings.Builder
-	b.WriteString(`<!DOCTYPE svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2048 2048">`)
+	b.WriteString(`<!DOCTYPE svg><svg xmlns="http://www.w3.org/2000/svg" width="2048" height="2048" viewBox="0 0 2048 2048">`)
 	b.WriteString(`<rect width="2048" height="2048" fill="#1b2430"/>`)
 	for i := 0; i <= 16; i++ {
 		p := strconv.Itoa(i * 128)
@@ -74,10 +76,17 @@ func paperMapPlaceholder(w http.ResponseWriter, name string) {
 		b.WriteString(`<line x1="0" y1="` + p + `" x2="2048" y2="` + p + `" stroke="#2c3a4a" stroke-width="2"/>`)
 	}
 	b.WriteString(`<text x="1024" y="960" fill="#8aa2b8" font-size="72" text-anchor="middle" font-family="sans-serif">纸地图素材未部署</text>`)
-	b.WriteString(`<text x="1024" y="1080" fill="#61788e" font-size="48" text-anchor="middle" font-family="sans-serif">ref/paper_maps/` + name + `</text>`)
+	b.WriteString(`<text x="1024" y="1080" fill="#61788e" font-size="48" text-anchor="middle" font-family="sans-serif">ref/paper_maps/` + xmlEscape(name) + `</text>`)
 	b.WriteString(`<text x="1024" y="1180" fill="#61788e" font-size="40" text-anchor="middle" font-family="sans-serif">python tools/extract_paper_maps.py（见 docs/admin-console.md）</text>`)
 	b.WriteString(`</svg>`)
 	w.Header().Set("Content-Type", "image/svg+xml; charset=utf-8")
 	w.Header().Set("Cache-Control", "no-store")
 	_, _ = w.Write([]byte(b.String()))
+}
+
+// xmlEscape 只做 XML 文本节点必需的三个实体：贴图名已由路由约束为
+// filepath.Base + map_ 前缀 + .webp 后缀，不会再进属性位置。
+func xmlEscape(s string) string {
+	r := strings.NewReplacer("&", "&amp;", "<", "&lt;", ">", "&gt;")
+	return r.Replace(s)
 }

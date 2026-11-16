@@ -40,6 +40,13 @@ test('zone map editor draws on paper map with 40m grid snap',async()=>{
    {zone:121,x0:3690,z0:850,x1:3930,z1:630}]});
   if(key==='/api/fish/zones'&&req.method==='GET')return json({zones:[
    {id:7,loc:'旧奥斯特罗格湖',name:'湾口鲤区',kind:'grid_rect',sea_zone:0,gx0:0,gz0:0,gx1:2,gz1:1,mode:'exclusive',boost:3,keep_others:0.35,enabled:true,fish:[{fish_key:'crucian',weight:3,enabled:true}]}]});
+  // 贴图与生产 /maps/ 同口径：素材不入仓库，缺图回合成占位 SVG。
+  // 占位必须带显式 width/height——没有固有尺寸 <img> 的 naturalWidth 恒为 0，
+  // 下面的 waitForFunction 会永远等不到（2026-11-16 评审 P2：干净环境固定超时）。
+  if(key.startsWith('/maps/')&&key.endsWith('.webp')){
+   res.writeHead(200,{'Content-Type':'image/svg+xml; charset=utf-8'});
+   return res.end('<svg xmlns="http://www.w3.org/2000/svg" width="2048" height="2048" viewBox="0 0 2048 2048"><rect width="2048" height="2048" fill="#1b2430"/></svg>');
+  }
   if(key.startsWith('/api/')){
    let body='';req.on('data',c=>body+=c);req.on('end',()=>{posts.push({key,body});json({ok:true,id:9});});
    return;
