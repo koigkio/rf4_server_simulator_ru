@@ -9,7 +9,8 @@ import (
 )
 
 // 官服 f5 锚点（A 级 14/14 样本，specs/changes/fish-official-data-tables/spec.md；
-// 2026-11-16/17 断电抢救包新增 17 种，见 fish-pull-k-table spec v2）。
+// 2026-11-16/17 断电抢救包新增 16 种（m_carp 无 f5 实测，见 fish-pull-k-table
+// spec v2/v2.1.1）。
 // tolPct = 该种种内散布带（官方随机因子，grade 检验证实与档位无关）。
 // c.carp v2 由 6 放宽到 20：新样本实测每克 2.42~3.17（655g vs 631g 差 30%），
 // 旧 6% 是两样本巧合收紧，新散布带以 4 样本极差为准。

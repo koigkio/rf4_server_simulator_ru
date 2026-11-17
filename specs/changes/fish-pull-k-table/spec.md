@@ -260,3 +260,32 @@ static.sqlite3 `loc_fish` 表为准。
   Slope<0 未标定种的回退斜率——置 0 时 2kg fallback 恰为 2×17.5、
   置 1 时为 2×(17.5+ln2)；自拟合斜率（perch 0.38）与恒 k（coalfish）
   不受 tunable 影响；carp_albino 与 carp 2kg f8 逐位相等（整参数继承）。
+
+### v2.1.2 复审修正：组表驱动全搏斗层 + 别名全链路继承（2026-11-17，PR #516）
+
+- **f8 组表直查驱动 f5/f6/f21**（复审 P2-1）：新增 `fishPullGroupFightKey`
+  （f8 组 → 组键）与 `fightGroupKeyFromPullGroup`，`fishFightGroupKeyFor` 与
+  `fishCurveArchetypeFor` 淡水分支先查组表、词表只兜底未入组鱼种。修复
+  「54 个 f8 salmonid 中 26 个 f5/f6 落 default」等漂移：sig 系列等俄语译名
+  鲑科 →salmonid（3.00/g、f6 0.60、e.chub 池）、small_forage 组泥鳅/胡瓜鱼
+  →small（a_smelt 原被词表 smelt 误归 salmonid）、sunfish 组太阳鱼→small、
+  predator 组→ambush、weak_silver（crawfish）→small（2.50/g、f6 0.50、
+  c.roach 池）。海组（marine_*/flatfish）映射交回海图判定：淡水图的
+  marine_rock 成员（鳗/七鳃鳗/杜父）维持词表口径，淡水鳗鱼不吃 8.445/g
+  海水耐力。完备性测试保证组表/组值表每个键都有映射。
+- **agar/warm 移出 marine 词表**（复审点名 warm 跨层偏差）：两键只在淡水图
+  （chart-roster-marine-group spec §Further Notes 预留的「行为兼容保留」
+  口径），词表 marine 曾使 warm 的 f5 吃 8.445/g 海水耐力；移除后由组表
+  直查归 predator/sunfish。b_herring/c_herring/cha_herring/k_herring 为
+  里海流域洄游真海鱼，词表 marine 与 marine_pelagic 组语义同向，保留。
+- **皮肤变种全链路继承宿主**（复审 P2-2）：`fishPullAliasHost` 解析别名后
+  统一进 f5/f6 显式表（`fishStaminaRatePerGram`/`fishF6Table`/`fishF6Step`
+  用宿主键查询）与词表判定（`fishFightArchetypeFor` 入口解析）。midori_g
+  现在 f8/f5/f6/f21 = carp 的 16.50+0.49·ln(w)/2.10/g/0.65/c.carp 池，
+  非 1kg 断言（2kg f8 逐位相等）。
+- **fight_power_scale 分支下限 0.5N→0.05N**（复审 P2-3）：与主路径统一为
+  浮点保护下限；tiulka 10g 官方 f8=0.1864N，scale=0.5 现得 0.0932N
+  （旧下限抬回 0.5N），加回归测试。
+- **词表既有口径测试同步**：s.orfe（roach_run→small）、neiva（salmonid）、
+  m_zubatka（predator→ambush）等断言按组表直查新口径更新；受影响种在
+  生产的行为变化方向与 f8 组语义一致。
