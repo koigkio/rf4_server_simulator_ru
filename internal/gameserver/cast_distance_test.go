@@ -153,20 +153,20 @@ func castCalibrationDistance(payloadG float64, spoolSize int64) float64 {
 }
 
 func TestCastCalibrationBands(t *testing.T) {
-	// 标称 27.5（2026-11-13 官服手感校准，specs/changes/cast-distance-calibration）
-	// 后的区间；期望值按因子链手算：8g = 27.5×0.888×0.72 ≈ 17.57（6000 大杯）、
-	// 27.5×0.888×0.84 ≈ 20.51（2000 小杯），10g 再 ×1.0107。
+	// 标称随竿 Test 分档（2026-11-17，specs/changes/cast-rod-test-scaling）
+	// 后的区间：本 helper 竿 Test 上限 30g，标称 23.06×(30/4)^0.41 ≈ 52.9；
+	// 8g 得 33.68（6000 大杯）/ 39.30（2000 小杯），10g 再高约 1%。
 	for _, payload := range []float64{8, 10} {
 		largeSpool := castCalibrationDistance(payload, 5) // 6000
 		smallSpool := castCalibrationDistance(payload, 2) // 2000
-		if largeSpool < 17.4 || largeSpool > 17.9 {
-			t.Fatalf("6000线杯 %.0fg 距离=%0.2f，期望17.4～17.9米区间", payload, largeSpool)
+		if largeSpool < 33.4 || largeSpool > 34.4 {
+			t.Fatalf("6000线杯 %.0fg 距离=%0.2f，期望33.4～34.4米区间", payload, largeSpool)
 		}
-		if smallSpool < 20.3 || smallSpool > 20.9 {
-			t.Fatalf("2000线杯 %.0fg 距离=%0.2f，期望20.3～20.9米区间", payload, smallSpool)
+		if smallSpool < 39.0 || smallSpool > 40.0 {
+			t.Fatalf("2000线杯 %.0fg 距离=%0.2f，期望39.0～40.0米区间", payload, smallSpool)
 		}
-		if smallSpool <= largeSpool+2 {
-			t.Fatalf("小线杯应比6000线杯远至少2米: 小杯=%0.2f 大杯=%0.2f", smallSpool, largeSpool)
+		if smallSpool <= largeSpool+5 {
+			t.Fatalf("小线杯应比6000线杯远至少5米: 小杯=%0.2f 大杯=%0.2f", smallSpool, largeSpool)
 		}
 	}
 }
@@ -189,9 +189,9 @@ func TestCastPlayerStateFactorZeroStateUsesFloor(t *testing.T) {
 	}
 }
 
-// 官服手感校准（2026-11-13）后高阶装备的顶配上限 ~29.7m，落在官方
-// 20~30m 手感带顶部；45m「精准抛投」区间不再可达（旧断言 ≥44.9）。
-func TestCastHighEndGearCeilingNearThirtyMeters(t *testing.T) {
+// 标称随竿 Test 分档（2026-11-17）后，4.2m/Test30 的高阶路亚装配
+// + 满熟练 + 10% 技能上限约 56.8m。
+func TestCastHighEndGearCeilingAfterRodTestScaling(t *testing.T) {
 	d, _ := calculateCastDistance(CastDistanceContext{
 		RigType: 5, CastAction: 1, CastPower: 1,
 		RodLengthM: 4.2, RodAction: 4, RodTestMinG: 5, RodTestMaxG: 30,
@@ -201,16 +201,16 @@ func TestCastHighEndGearCeilingNearThirtyMeters(t *testing.T) {
 		PlayerPrimary: defaultPlayerConditionPrimary, PlayerSecondary: defaultPlayerConditionSecondary,
 		SkillMastery: 100, SkillCastPct: 10,
 	})
-	if d < 29.4 || d > 30.0 {
-		t.Fatalf("高阶装备上限应落在 ~29.7m（20~30m 官方手感带顶部），实得%0.2f", d)
+	if d < 56.4 || d > 57.2 {
+		t.Fatalf("高阶装备上限应落在 ~56.8m，实得%0.2f", d)
 	}
 }
 
 // TestCastFreshwaterLureOfficialAnchorBand 复现实抓 2026-11-13 21:28 的 UL
 // 配置（1.8m 枪柄 + 水滴轮 + 3.33g 载荷，Test 1-8g，0.28 编织线，浅杯 8）
-// 与满级投距技能（708×7 + 717×5 = +60%）、熟练度 95。官服手感锚点
-// 「其实只能 20~30 米」取中值 25：27.5 标称 × 实抓因子链 0.9076 ≈ 24.96m。
-// 因子值全部来自当日日志账本，期望带手写，不用代码回算。
+// 与满级投距技能（708×7 + 717×5 = +60%）、熟练度 95。Test 上限 8g 档标称
+// 23.06×(8/4)^0.41 ≈ 30.6，乘实抓因子链 0.9085 ≈ 27.45m——与官服
+// 「UL 满技能未改装约 27m」锚点一致。
 func TestCastFreshwaterLureOfficialAnchorBand(t *testing.T) {
 	d, factors := calculateCastDistance(CastDistanceContext{
 		RigType: 5, CastAction: 1, CastPower: 1,
@@ -222,20 +222,66 @@ func TestCastFreshwaterLureOfficialAnchorBand(t *testing.T) {
 		PlayerPrimary:      defaultPlayerConditionPrimary,
 		SkillMastery:       95, SkillCastPct: 60,
 	})
-	if math.IsNaN(d) || d < 24.5 || d > 25.4 {
-		t.Fatalf("UL 配置官方手感锚点应落在 ~24.96m（20~30m 中值），实得 %.2f factors=%+v",
+	if math.IsNaN(d) || d < 27.6 || d > 28.1 {
+		t.Fatalf("Test8 档 UL 配置应落在 ~27.82m（官服 UL 锚点 27m），实得 %.2f factors=%+v",
 			d, factors)
 	}
 }
 
-// TestCastNominalDistanceByRigFamily 锁定标称分族：淡水路亚 27.5（官服
-// 手感校准）、海钓路亚 50-54 暂留 45 待补锚点、其余默认族 60。
-func TestCastNominalDistanceByRigFamily(t *testing.T) {
-	if got := castNominalDistanceM(5); got != 27.5 {
-		t.Fatalf("淡水路亚标称 = %v，期望 27.5", got)
+// TestCastOfficialULAnchor 锁定官服 UL 锚点：2m/Test 0.5-4g 轻装 + 3.53g
+// 拟饵 + 水滴轮（效率 0.948）+ 0.24 编织线 + 满熟练 + 满技能（+60%），
+// 官服未改装约 27m（玩家实抛 100% 路亚熟练、技能点满）。
+func TestCastOfficialULAnchor(t *testing.T) {
+	d, factors := calculateCastDistance(CastDistanceContext{
+		RigType: 7, CastAction: 1, CastPower: 1,
+		RodLengthM: 2.0, RodAction: 2, RodStiffness: 2,
+		RodTestMinG: 0.5, RodTestMaxG: 4, PayloadWeightG: 3.53,
+		ReelEfficiency: 0.948, ReelType: 2, SpoolSize: 8, SpoolFill: 1,
+		LineDiameterMM: 0.24, LineLengthM: 300, LineStretch: 0.01, LineMaterial: 3,
+		LineRunningWeightG: 0.063,
+		PlayerPrimary:      defaultPlayerConditionPrimary,
+		PlayerSecondary:    defaultPlayerConditionSecondary,
+		SkillMastery:       100, SkillCastPct: 60,
+	})
+	if d < 26.9 || d > 27.1 {
+		t.Fatalf("UL 官服锚点应落在 27.0m，实得 %.2f factors=%+v", d, factors)
 	}
-	if got := castNominalDistanceM(22); got != 27.5 {
-		t.Fatalf("淡水路亚 rigType22 标称 = %v，期望 27.5", got)
+}
+
+// TestCastMHAnchorRegression 锁定中重装档的回归基线：2.7m/Test 15-49g + 63g
+// 载荷 + 6000 线杯，满熟练满技能下约 50m。
+//
+// 注意：这个 50m **不是官服实测锚点**。它来自早期对维护者一句「49g 杆子封顶
+// 50」的误读——那句说的是竿的 Test 上限（该竿 Test 15-49g，上限约 50g），
+// 不是抛投距离。该档的官服实测值至今没有取得，因此本断言只作为指数曲线的
+// 内部回归基线，防止后续改动意外改变这一档的落点；补齐官服实测后，需要用
+// 真实锚点重新反解 castNominalTestExp，并同步调整本断言。
+func TestCastMHAnchorRegression(t *testing.T) {
+	d, _ := calculateCastDistance(CastDistanceContext{
+		RigType: 7, CastAction: 1, CastPower: 1,
+		RodLengthM: 2.7, RodAction: 2, RodStiffness: 2,
+		RodTestMinG: 15, RodTestMaxG: 49, PayloadWeightG: 63,
+		ReelEfficiency: 0.95, ReelType: 1, SpoolSize: 5, SpoolFill: 1,
+		LineDiameterMM: 0.32, LineStretch: 0.01, LineMaterial: 3,
+		LineRunningWeightG: 0.08,
+		PlayerPrimary:      defaultPlayerConditionPrimary,
+		PlayerSecondary:    defaultPlayerConditionSecondary,
+		SkillMastery:       100, SkillCastPct: 60,
+	})
+	if d < 49.9 || d > 50.7 {
+		t.Fatalf("中重装档回归基线应落在 50m（非官服锚点，见函数注释），实得 %.2f", d)
+	}
+}
+
+// TestCastNominalDistanceByRigFamily 锁定标称分族：淡水路亚锚点档 23.06
+// （竿 Test 上限缺失或低于 4g 时取该档）、海钓路亚 50-54 暂留 45 待补
+// 锚点、其余默认族 60。
+func TestCastNominalDistanceByRigFamily(t *testing.T) {
+	if got := castNominalDistanceM(5); got != 23.06 {
+		t.Fatalf("淡水路亚锚点档标称 = %v，期望 23.06", got)
+	}
+	if got := castNominalDistanceM(22); got != 23.06 {
+		t.Fatalf("淡水路亚 rigType22 锚点档标称 = %v，期望 23.06", got)
 	}
 	if got := castNominalDistanceM(52); got != 45.0 {
 		t.Fatalf("海钓路亚标称 = %v，期望 45（待补锚点保留旧值）", got)
@@ -606,5 +652,67 @@ func TestRodTestWeightFactorWithoutPayloadKeepsDefault(t *testing.T) {
 	// 已知载荷不应落在未知载荷的默认值上，避免把「恒返回 0.80」写成合法实现。
 	if got := rodTestWeightFactor(8, 5, 30); math.Abs(got-0.80) < 1e-9 {
 		t.Fatalf("已知载荷不应返回未知载荷的默认折减: %.4f", got)
+	}
+}
+
+// TestCastCarpRigMatchesForumRange 锁定非路亚族的重装锚点：3.9m 鲤鱼竿
+// （Test 1587-2040g）+ 140g 铅坠 + 纺车轮 + 7 点鲤鱼竿/5 点纺车轮/竿自带
+// 15% = +75% 技能，玩家实测 135-146m。上游把该族压在固定 60 基准时同一
+// 配置只有 49m，差近三倍。
+func TestCastCarpRigMatchesForumRange(t *testing.T) {
+	d, factors := calculateCastDistance(CastDistanceContext{
+		RigType: 16, CastAction: 0, CastPower: 1,
+		RodLengthM: 3.9, RodAction: 2, RodStiffness: 2,
+		RodTestMinG: 1587, RodTestMaxG: 2040, PayloadWeightG: 140,
+		ReelEfficiency: 1.0, ReelType: 1, SpoolSize: 20, SpoolFill: 1,
+		LineDiameterMM: 0.35, LineStretch: 0.01, LineMaterial: 1,
+		PlayerPrimary:   defaultPlayerConditionPrimary,
+		PlayerSecondary: defaultPlayerConditionSecondary,
+		SkillMastery:    100, SkillCastPct: 75,
+	})
+	// 同帖四条重装实测分布 95 / 105-110 / 115 / 135 / 146m，配置差异主要在竿与轮；
+	// 指数取中位后本配置落在 112-117m（四条的中位区），而不是顶配那条的 146m。
+	if d < 105 || d > 130 {
+		t.Fatalf("3.9m/Test2040g/140g/+75%% 应落在四条实测的中位区 105-130m，实得 %.2f（nominal=%.1f，因子=%v）",
+			d, castNominalDistanceForRod(16, 2040), factors)
+	}
+	// 同配置只挂 +60%（无竿自带 15%）应略近，且仍远于旧 60 基准的 45m。
+	d60, _ := calculateCastDistance(CastDistanceContext{
+		RigType: 16, CastAction: 0, CastPower: 1,
+		RodLengthM: 3.9, RodAction: 2, RodStiffness: 2,
+		RodTestMinG: 1587, RodTestMaxG: 2040, PayloadWeightG: 140,
+		ReelEfficiency: 1.0, ReelType: 1, SpoolSize: 20, SpoolFill: 1,
+		LineDiameterMM: 0.35, LineStretch: 0.01, LineMaterial: 1,
+		PlayerPrimary:   defaultPlayerConditionPrimary,
+		PlayerSecondary: defaultPlayerConditionSecondary,
+		SkillMastery:    100, SkillCastPct: 60,
+	})
+	if d60 >= d {
+		t.Fatalf("+60%% 应比 +75%% 近: %.2f vs %.2f", d60, d)
+	}
+}
+
+// TestCastNominalNonLureFamilyScalesWithTest 锁定非路亚族同样随竿 Test 放大：
+// 博洛尼亚（Test 18g）明显近于飞德（Test 100g），两者都远小于鲤鱼竿。
+func TestCastNominalNonLureFamilyScalesWithTest(t *testing.T) {
+	bologna := castNominalDistanceForRod(1, 18)
+	feeder := castNominalDistanceForRod(12, 100)
+	carp := castNominalDistanceForRod(16, 2040)
+	if !(bologna < feeder && feeder < carp) {
+		t.Fatalf("非路亚族标称应随 Test 单调递增: 博洛尼亚 %.1f, 飞德 %.1f, 鲤鱼 %.1f",
+			bologna, feeder, carp)
+	}
+	if bologna < 35 || bologna > 41 {
+		t.Fatalf("博洛尼亚 Test18 标称应落在 35-41，实得 %.2f", bologna)
+	}
+	if feeder < 55 || feeder > 62 {
+		t.Fatalf("飞德 Test100 标称应落在 55-62，实得 %.2f", feeder)
+	}
+	// Test 缺失仍回落到族常量，不被分档曲线拉走。
+	if got := castNominalDistanceForRod(1, 0); got != 60.0 {
+		t.Fatalf("非路亚族 Test 缺失应回落 60，实得 %v", got)
+	}
+	if got := castNominalDistanceForRod(5, 0); got != 23.06 {
+		t.Fatalf("路亚族 Test 缺失应回落 23.06，实得 %v", got)
 	}
 }
