@@ -46,4 +46,4 @@ Status: done
 - Windows/amd64、CGO_ENABLED=0 下 `go build ./...` 与 `go vet ./...` 通过；CI 同款 `CGO_ENABLED=0 go test -p 1 ./internal/... ./cmd/gameserver/... ./cmd/gateway/... ./cmd/seed/...` 在 macOS 执行通过，无跳过用例。
 - macOS 原生 `go test ./...`、`go vet ./...`、`go build ./...` 受 cmd/launcher 的 Windows 专用依赖限制；不将交叉构建等同于 Windows 实机验证。
 - gofmt、doccheck 及差异检查通过；不引用旧无阻塞审查结论。
-- 用户此前实机反馈仅覆盖吸引成分、虾和彩珠；本次没有再次实机验证。
+- 审核修复版本 c5906af 已部署实机验证：吸引材料、虾、彩珠、响珠等商品购买显示，已有计件堆合并，连续购买，可退商品退货，退出重登持久性，以及余额不足拒购均通过；具体商品型号和币种未逐项记录。损坏旧堆、编码失败及回执重放由自动化回归覆盖。
