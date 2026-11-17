@@ -244,6 +244,10 @@ func (s *RealtimeServer) handleConn(nc net.Conn) {
 	}
 
 	// hermes 帧（明文，payload 含 <hermes>）
+	//
+	// 只消费到 hermes 那一帧为止。客户端常在同一个 TCP 段里紧跟 hermes 发出
+	// 第一个业务帧；若把整段解析结果一起吞掉，那一帧的 RC4 就被客户端消耗而
+	// 服务端没有消耗，此后每条上行都对不上 keystream——承接的会话第一帧就失步。
 	hermesSeen := false
 	for !hermesSeen {
 		frames, consumedBytes, err := proto.TakeCompleteFrames(buf)
@@ -251,12 +255,22 @@ func (s *RealtimeServer) handleConn(nc net.Conn) {
 			log.Warn("hermes 阶段帧解析失败", "err", err)
 			return
 		}
-		buf = buf[consumedBytes:]
-		for _, f := range frames {
+		keep := len(frames)
+		for i, f := range frames {
 			if f.FrameType == 0 && contains(f.Payload, hermesMarker) {
 				hermesSeen = true
+				keep = i + 1
+				break
 			}
 		}
+		consumed := 0
+		for _, f := range frames[:keep] {
+			consumed += len(f.Raw)
+		}
+		if consumed == 0 {
+			consumed = consumedBytes
+		}
+		buf = buf[consumed:]
 		if hermesSeen {
 			break
 		}
