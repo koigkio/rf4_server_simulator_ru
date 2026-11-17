@@ -1,6 +1,8 @@
 # fish-length-official-groups — 官服实测体长表 v3（拟合 + 单点锚 + 亲缘组全覆盖）
 
-Status: in-progress（代码已落地，待用户实测确认后提交 PR）
+Status: in-progress
+
+> 代码已落地（PR #522），待用户实测确认。
 
 ## Problem Statement
 

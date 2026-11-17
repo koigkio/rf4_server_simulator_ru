@@ -1,6 +1,8 @@
 # fish-xp-rate-table — 官服实测 XP 速率表（实测优先 + 亲缘组全覆盖）
 
-Status: in-progress（代码已落地，待用户实测确认后提交 PR）
+Status: in-progress
+
+> 代码已落地（PR #522），待用户实测确认。
 
 ## Problem Statement
 
