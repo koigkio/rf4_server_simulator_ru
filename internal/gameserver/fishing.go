@@ -981,11 +981,62 @@ var fishPullSpeciesGroup = map[string]string{
 	"turbot":              "flatfish",
 }
 
+// fishPullGroupFightKey 是 f8 习性组 → f5/f6/f21 组键的跨层映射（PR #516
+// 复审 P2-1：组表声明的习性必须驱动全部搏斗层，f8 归组而 f5/f6/f21 落
+// default 属跨层漂移）。海组映射为 "marine" 且只在海图判定为真时生效——
+// 淡水图的 marine_rock 成员（鳗/七鳃鳗/杜父，见 loc_fish）回落词表，
+// 避免淡水鳗鱼吃 8.445/g 的海水耐力。
+var fishPullGroupFightKey = map[string]string{
+	"marine_gadid":    "marine",
+	"marine_pelagic":  "marine",
+	"marine_rock":     "marine",
+	"flatfish":        "marine",
+	"apex":            "apex",
+	"small_forage":    "small",
+	"sunfish":         "small",
+	"migratory_roach": "small",
+	"roach_run":       "small",
+	"weak_silver":     "small",
+	"herb_carp":       "cyprinid",
+	"still_carp":      "cyprinid",
+	"carp_mid":        "cyprinid",
+	"pond_carp":       "cyprinid",
+	"predator":        "ambush",
+	"salmonid":        "salmonid",
+	"sturgeon":        "sturgeon",
+	"catfish":         "catfish",
+}
+
+// fishPullAliasHost 皮肤变种 → 宿主实测种（一层别名，无环）；非别名原样
+// 返回。f5/f6 显式表与组键判定经此继承宿主习性，与 f8 的 fishPullParamFor
+// 同源（PR #516 复审 P2-2：别名不得只继承 f8）。
+func fishPullAliasHost(species string) string {
+	if host, ok := fishPullAlias[strings.ToLower(strings.TrimSpace(species))]; ok {
+		return host
+	}
+	return species
+}
+
+// fightGroupKeyFromPullGroup 组表直查：f8 组表声明的习性组决定 f5/f6/f21
+// 组键，词表只兜底未入组鱼种。海组（映射值 marine）交回调用方按海图判定，
+// 返回 ok=false；淡水判定下的海组成员维持词表既有口径。
+func fightGroupKeyFromPullGroup(species string) (string, bool) {
+	g, ok := fishPullSpeciesGroup[fishPullAliasHost(species)]
+	if !ok {
+		return "", false
+	}
+	key, ok := fishPullGroupFightKey[g]
+	if !ok || key == "marine" {
+		return "", false
+	}
+	return key, true
+}
+
 // fishPullParamFor 返回鱼种拉力参数：皮肤变种（别名）→ 实测种 → 习性组 →
 // fallback。组表 Slope 按组内实测成员标定（海鱼类 0、鲤科类 0.23~0.45），
 // 先验组 Slope=-1 回落全局 fishPullLnSlope；fallback Slope=-1 同。
 func (s *Server) fishPullParamFor(species string) fishPullParam {
-	if host, ok := fishPullAlias[species]; ok {
+	if host := fishPullAliasHost(species); host != species {
 		return s.fishPullParamFor(host) // 皮肤变种继承宿主实测参数（一层别名，无环）
 	}
 	if p, ok := fishPullK0[species]; ok {
@@ -1046,7 +1097,9 @@ func (s *Server) fishFightPullFor(f *RolledFish) float64 {
 		pull = wKg * (p.K0 + slope*math.Log(wKg))
 	}
 	if k := s.tunableF("fight_power_scale", 1.0); k > 0 && k != 1.0 {
-		pull = math.Max(0.5, math.Round(pull*k*10000)/10000)
+		// 与主路径同为 0.05N 浮点保护下限（PR #516 复审 P2-3）：官方 10g
+		// 棱鲱 f8=0.186N，scale=0.5 应得 0.093N，0.5N 旧下限会把小鱼抬回。
+		pull = math.Max(0.05, math.Round(pull*k*10000)/10000)
 	}
 	// 官方无 0.5N 下限：2026-11-16 抓包 10g 棱鲱 f8=0.186N、24g 欧鲌 0.424N。
 	// 下限只防浮点归零（最小 wKg 0.01kg×K0≈0.19N，实际到不了），legacy 分支
@@ -2226,22 +2279,30 @@ func (s *Server) fishMarineGroupHit(species string) bool {
 // 1.18），与搏鱼脱钩方案 §五B「组键也回退 CurvePool」同口径；
 // apex/catfish/sturgeon 等专属词表携带刻意的家族特化，不覆盖。
 func fishCurveArchetypeFor(species string, marine bool) fishFightArchetype {
-	arch := fishFightArchetypeFor(species)
 	if !marine {
-		return arch
+		// 淡水判定：f8 组表直查优先（与 fishFightGroupKeyFor 同源），
+		// 词表兜底未入组鱼种。
+		if key, ok := fightGroupKeyFromPullGroup(species); ok {
+			return fishFightArchetypes[key]
+		}
+		return fishFightArchetypeFor(species)
 	}
+	arch := fishFightArchetypeFor(species)
 	if arch == fishFightArchetypes["default"] || arch == fishFightArchetypes["small"] {
 		return fishFightArchetypes["marine"]
 	}
 	return arch
 }
 
-// fishFightGroupKeyFor 把鱼种映射到习性组。海图归属优先；其余按
-// fishFightArchetypeFor 的词表分组。未知鱼种落 default 中性组，不再落
-// 小鲫鱼 fallback。
+// fishFightGroupKeyFor 把鱼种映射到习性组。海图归属优先；其余先查 f8 组表
+// 直查（PR #516 复审 P2-1：组表声明习性驱动全层），词表兜底未入组鱼种。
+// 未知鱼种落 default 中性组，不再落小鲫鱼 fallback。
 func fishFightGroupKeyFor(species string, marine bool) string {
 	if marine {
 		return "marine"
+	}
+	if key, ok := fightGroupKeyFromPullGroup(species); ok {
+		return key
 	}
 	switch fishFightArchetypeFor(species) {
 	case fishFightArchetypes["marine"]:
@@ -2358,7 +2419,7 @@ func (s *Server) fishStaminaForProfile(f *RolledFish, profile fishFightProfile) 
 		// 官方 f8/f5 都没有 archetype 形状，直接 rate×体重，不再乘 StaminaScale；
 		// 官方种内散布 ±13%~57%（g_carp 最大），均值表把个体误差压回散布带。
 		// 未实测种维持旧口径（2.388/g × archetype 耐力倍率）。
-		if rate, ok := fishStaminaRatePerGram[f.Species]; ok {
+		if rate, ok := fishStaminaRatePerGram[fishPullAliasHost(f.Species)]; ok {
 			stamina = rate * float64(f.WeightG)
 		} else if s.fishFightGroupFallback() {
 			if rate := fishStaminaRateGroupFor(f.Species, s.fishMarineGroupHit(f.Species)); rate > 0 {
@@ -2507,8 +2568,8 @@ func (s *Server) fishF6BaseFor(f *RolledFish) float64 {
 	if s.fightLegacyModel() && !s.fightOfficialStrength() {
 		return s.fishInitialStaminaRatio()
 	}
-	if v, ok := fishF6Table[f.Species]; ok {
-		if step, ok := fishF6Step[f.Species]; ok && f.WeightG >= step.AboveG {
+	if v, ok := fishF6Table[fishPullAliasHost(f.Species)]; ok {
+		if step, ok := fishF6Step[fishPullAliasHost(f.Species)]; ok && f.WeightG >= step.AboveG {
 			return step.F6
 		}
 		return v
