@@ -1025,7 +1025,15 @@ func (s *Server) damageReelLockOverload(ctx context.Context, uid int64, rodGUID,
 	if err != nil || reel == nil || reel.UID != uid {
 		return nil, sql.ErrNoRows
 	}
+	// 幂等守卫：耐久已是 0 说明这尾轮子此前就被打坏过，本次是重复/迟到的
+	// 17/9 帧。ReelBroken 的语义是「本次把耐久打到 0」，重复帧不满足该语义，
+	// 直接返回错误让上层放弃计数与损伤日志，避免 reel_breaks 被重传多记。
+	// 不加守卫时这里靠 setWireFloat 写相同值返回 false 而偶然失败，属实现细节
+	// 而非契约，改动 setWireFloat 就会静默破坏幂等。
 	before := reel.Durability
+	if before <= 0 {
+		return nil, errReelAlreadyBroken
+	}
 	reelFields, err := FieldsFromJSON(reel.FieldsJSON)
 	if err != nil {
 		return nil, err
@@ -1826,6 +1834,9 @@ func buildGearBreakResult(outcome *gearBreakOutcome) (*proto.Value, error) {
 var (
 	errLineLengthField = errors.New("鱼线长度字段不存在")
 	errDurabilityField = errors.New("耐久字段不存在")
+	// errReelAlreadyBroken 表示上报的渔轮在本次之前就已经损坏，属于重复上报
+	// （TCP 重传、客户端重试的 17/9 帧），本次不再产生耐久变更或损伤日志。
+	errReelAlreadyBroken = errors.New("渔轮已损坏")
 )
 
 // frictionWearDetail 组装渔轮磨损日志的 detail。extra 是本次结算的补充诊断字段，
