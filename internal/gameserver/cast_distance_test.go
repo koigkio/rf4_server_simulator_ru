@@ -154,7 +154,7 @@ func castCalibrationDistance(payloadG float64, spoolSize int64) float64 {
 
 func TestCastCalibrationBands(t *testing.T) {
 	// 标称随竿 Test 分档（2026-11-17，specs/changes/cast-rod-test-scaling）
-	// 后的区间：本 helper 竿 Test 上限 30g，标称 23.06×(30/4)^0.42 ≈ 53.9；
+	// 后的区间：本 helper 竿 Test 上限 30g，标称 23.06×(30/4)^0.41 ≈ 52.9；
 	// 8g 得 33.68（6000 大杯）/ 39.30（2000 小杯），10g 再高约 1%。
 	for _, payload := range []float64{8, 10} {
 		largeSpool := castCalibrationDistance(payload, 5) // 6000
@@ -209,7 +209,7 @@ func TestCastHighEndGearCeilingAfterRodTestScaling(t *testing.T) {
 // TestCastFreshwaterLureOfficialAnchorBand 复现实抓 2026-11-13 21:28 的 UL
 // 配置（1.8m 枪柄 + 水滴轮 + 3.33g 载荷，Test 1-8g，0.28 编织线，浅杯 8）
 // 与满级投距技能（708×7 + 717×5 = +60%）、熟练度 95。Test 上限 8g 档标称
-// 23.06×(8/4)^0.42 ≈ 30.2，乘实抓因子链 0.9085 ≈ 27.45m——与官服
+// 23.06×(8/4)^0.41 ≈ 30.6，乘实抓因子链 0.9085 ≈ 27.45m——与官服
 // 「UL 满技能未改装约 27m」锚点一致。
 func TestCastFreshwaterLureOfficialAnchorBand(t *testing.T) {
 	d, factors := calculateCastDistance(CastDistanceContext{
