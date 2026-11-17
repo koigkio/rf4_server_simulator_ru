@@ -179,6 +179,17 @@ func hStoreBuy(goldCol bool) Handler {
 				mergeable[it.ItemID] = craftOutputMerges(def)
 			}
 		}
+		// 数据库物品可创建不代表客户端物品树可下发；投影依赖的查询须在写事务前完成。
+		for _, it := range prepared {
+			tree, err := srv.ItemToTree(cctx, it)
+			if err == nil {
+				_, err = proto.EncodeValue(tree, ctx.Sess.Table())
+			}
+			if err != nil {
+				ctx.Log.Warn("商店商品不可下发", "item", it.ItemID, "err", err)
+				return fail("购买未完成，请刷新商店后重试")
+			}
+		}
 
 		tx, err := beginEconomyTx(cctx, srv.DB)
 		if err != nil {
