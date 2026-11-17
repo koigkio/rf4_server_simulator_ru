@@ -30,6 +30,8 @@ type GatewayHandle struct {
 	LoginPlainURL string
 	RealAddr      string
 	Store         *gateway.MemStore
+	// RT 暴露 realtime 服务本体，供关闭顺序 / 重连接管相关测试直接驱动。
+	RT *gateway.RealtimeServer
 }
 
 // StartGateway 在随机端口装配一个进程内网关（MemStore + 指定隧道地址）。
@@ -79,6 +81,7 @@ func StartGateway(t *testing.T, tunnelAddr, psk string) *GatewayHandle {
 		LoginPlainURL: "http://" + login.CompatAddr() + "/login.php",
 		RealAddr:      rt.RealAddr(),
 		Store:         store,
+		RT:            rt,
 	}
 }
 

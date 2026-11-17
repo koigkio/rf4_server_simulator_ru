@@ -20,13 +20,14 @@ import (
 
 // realtime 指标。
 var (
-	rtConnsActive  prometheus.Gauge
-	rtFramesIn     *prometheus.CounterVec
-	rtFramesOut    prometheus.Counter
-	rtAcksSent     prometheus.Counter
-	rtAuthFailures prometheus.Counter
-	rtHandoffSaved prometheus.Counter
-	rtHandoffUsed  prometheus.Counter
+	rtConnsActive    prometheus.Gauge
+	rtFramesIn       *prometheus.CounterVec
+	rtFramesOut      prometheus.Counter
+	rtAcksSent       prometheus.Counter
+	rtAuthFailures   prometheus.Counter
+	rtHandoffSaved   prometheus.Counter
+	rtHandoffUsed    prometheus.Counter
+	rtHandoffMissing prometheus.Counter
 )
 
 func initRealtimeMetrics(reg *prometheus.Registry) {
@@ -37,6 +38,7 @@ func initRealtimeMetrics(reg *prometheus.Registry) {
 	rtAuthFailures = metrics.NewCounter(reg, "gateway_realtime_auth_failures_total", "认证失败数")
 	rtHandoffSaved = metrics.NewCounter(reg, "gateway_realtime_handoff_saved_total", "重连状态保存数")
 	rtHandoffUsed = metrics.NewCounter(reg, "gateway_realtime_handoff_used_total", "重连状态恢复数")
+	rtHandoffMissing = metrics.NewCounter(reg, "gateway_realtime_handoff_missing_total", "重连请求但无状态可承接数")
 }
 
 // obsRegistry 观测端口缺省时用本地一次性注册表（测试场景），保证指标永不 nil。
@@ -57,6 +59,10 @@ type RealtimeServer struct {
 	sem    chan struct{}
 	sids   sync.Map // sid -> *clientSession
 	sidSeq atomic.Uint64
+	// wg 跟踪会话 goroutine（含写者收尾）。Close 必须等它归零，
+	// 否则 main 里的 db.Close() 会先于 handoff 落库，承接状态直接丢失。
+	wg      sync.WaitGroup
+	closing atomic.Bool
 }
 
 // NewRealtimeServer 构建 realtime 服务。
@@ -98,15 +104,33 @@ func (s *RealtimeServer) Serve() error {
 			return err
 		}
 		s.sem <- struct{}{}
+		s.wg.Add(1)
 		go func() {
+			defer s.wg.Done()
 			defer func() { <-s.sem }()
 			s.handleConn(nc)
 		}()
 	}
 }
 
-// Close 停止接受。
-func (s *RealtimeServer) Close() error { return s.ln.Close() }
+// Close 停止接受新连接，并等待在线会话收尾（含 handoff 落库）后返回。
+//
+// 关闭顺序很关键：隧道断开时主服会要求断开全部会话，这些会话的写者
+// goroutine 还要把 RC4 流与 wire_id 写进 handoff。如果这里不等它们结束，
+// 调用方随后的 db.Close() 会让最后一次——也是最准确的一次——保存失败，
+// 客户端重连时只能承接一份过期快照，keystream 立刻错位。
+func (s *RealtimeServer) Close() error {
+	first := !s.closing.Swap(true)
+	var err error
+	if s.ln != nil {
+		err = s.ln.Close()
+	}
+	if first {
+		s.dropAll("gateway_close")
+	}
+	s.wg.Wait()
+	return err
+}
 
 // byID 按 sid 取会话。
 func (s *RealtimeServer) byID(sid uint64) *clientSession {
@@ -270,6 +294,14 @@ func (s *RealtimeServer) handleConn(nc net.Conn) {
 			rtHandoffUsed.Inc()
 			log.Info("realtime 重连成功：承接既有 RC4 密码流", "next_wire_id", sess.nextWireID)
 			_ = s.store.DeleteHandoff(context.Background(), token)
+		} else {
+			// 客户端按「延续旧流」重连，但服务端没有可承接的状态。这里必须
+			// 显式记录下来：随后会用同一个 token 重新 KSA 出全新密码流，而
+			// 客户端的流早就走远了——除了客户端整条连接重建，没有别的救法。
+			// 不区分这两种情形，日志里只剩一片「信封解析失败」，无法定位。
+			rtHandoffMissing.Inc()
+			log.Warn("realtime 重连但无 handoff 可承接，将新建密码流（客户端大概率解不开下行）",
+				"err", err, "reconnect", reconnect)
 		}
 	}
 	if sess.rc4In == nil {
@@ -396,46 +428,54 @@ func (s *clientSession) writer(done chan<- struct{}) {
 	_ = s.conn.SetWriteDeadline(time.Now().Add(30 * time.Second))
 
 	// 周期性保存 handoff，避免进程异常退出时丢失 RC4 流和 wire_id。
+	//
+	// 这个 ticker 必须由写者本人在主循环里消费：nextWireID 与两个 RC4 流
+	// 都只由写者推进，快照才能是「同一时刻的流 + 对应的下一个 wire_id」。
+	// 曾经这里另起 goroutine 读 nextWireID，既与写者构成无同步读，抓到的
+	// 也永远是落后的值，客户端重连承接后就地错位。
 	periodicSave := time.NewTicker(2 * time.Second)
 	defer periodicSave.Stop()
-	go func() {
-		for range periodicSave.C {
+
+drain:
+	for {
+		select {
+		case <-periodicSave.C:
+			s.saveHandoff(nextWireID)
+			continue
+
+		case task, ok := <-s.outCh:
+			if !ok {
+				break drain
+			}
+			switch task.kind {
+			case outAck:
+				if _, err := s.conn.Write(proto.BuildAckFrame(task.wireID)); err != nil {
+					s.log.Info("写 ACK 失败", "err", err)
+					s.closed.Store(true)
+					continue
+				}
+				_ = s.conn.SetWriteDeadline(time.Now().Add(30 * time.Second))
+
+			case outData:
+				enc := s.rc4Out.Crypt(task.payload)
+				frame := proto.BuildFrame(0, nextWireID, enc)
+				nextWireID++
+				if _, err := s.conn.Write(frame); err != nil {
+					s.log.Info("写数据帧失败", "err", err)
+					s.closed.Store(true)
+					continue
+				}
+				s.framesSent.Add(1)
+				rtFramesOut.Inc()
+				_ = s.conn.SetWriteDeadline(time.Now().Add(30 * time.Second))
+
+			case outFinish:
+				// 不会出现在 channel（close(outCh) 退出）；防御
+			}
+
 			if s.closed.Load() {
-				return
+				break drain
 			}
-			s.saveHandoff(nextWireID) // nextWireID 由写者独占，此处取快照即可
-		}
-	}()
-
-	for task := range s.outCh {
-		switch task.kind {
-		case outAck:
-			if _, err := s.conn.Write(proto.BuildAckFrame(task.wireID)); err != nil {
-				s.log.Info("写 ACK 失败", "err", err)
-				s.closed.Store(true)
-				continue
-			}
-			_ = s.conn.SetWriteDeadline(time.Now().Add(30 * time.Second))
-
-		case outData:
-			enc := s.rc4Out.Crypt(task.payload)
-			frame := proto.BuildFrame(0, nextWireID, enc)
-			nextWireID++
-			if _, err := s.conn.Write(frame); err != nil {
-				s.log.Info("写数据帧失败", "err", err)
-				s.closed.Store(true)
-				continue
-			}
-			s.framesSent.Add(1)
-			rtFramesOut.Inc()
-			_ = s.conn.SetWriteDeadline(time.Now().Add(30 * time.Second))
-
-		case outFinish:
-			// 不会出现在 channel（close(outCh) 退出）；防御
-		}
-
-		if s.closed.Load() {
-			break
 		}
 	}
 
