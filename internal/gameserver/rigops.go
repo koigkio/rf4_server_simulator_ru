@@ -2015,7 +2015,7 @@ func (s *Server) rigDetachAt(ctx context.Context, parentGUID string, slot, ordin
 
 // rigRemoveAll 拆下父对象上的全部组件。
 func (s *Server) rigRemoveAll(ctx context.Context, uid int64, parentGUID string) []*rigDetachResult {
-	_, _ = s.DB.SQL.ExecContext(ctx, `DELETE FROM rod_setting WHERE guid=? AND key LIKE 'rebait:%'`, parentGUID)
+	_, _ = s.DB.SQL.ExecContext(ctx, `DELETE FROM rod_setting WHERE guid=? AND (key LIKE 'rebait:%' OR key LIKE 'refill:%')`, parentGUID)
 	rows, _ := s.DB.ListRigComponents(ctx, parentGUID)
 	comps := s.storedRigComponents(ctx, parentGUID)
 	seen := map[string]bool{}
