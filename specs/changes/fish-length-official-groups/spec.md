@@ -25,6 +25,12 @@ POverride 33 种 / Linear 53 种）。2026-11 官服抓包拿到 146 种 267 个
   → 组锚 → 缺省**。DB 非默认行=旧官方标定，被新拟合/单点取代（更新鲜的官服真值优先），
   Linear 表种不入新表（53 种的 Linear 分支原样保留，重叠 22 种已排除出新表）。
 
+### 别名继承
+
+- 皮肤变种自身有官服实测时继续使用自身锚；没有自身实测时继承宿主的拟合/单点参数，
+  避免旧 KOverride 继续把宿主已修正的偏长误差带给变种。
+- `common_carp`、`m_carp_ghost` 等自身有实测的变种仍优先自身参数。
+
 ### 修复清单（残差>15%）
 
 carp（14 点，p=0.4216）、c.carp（5 点）、carp_ghost（3 点）、coalfish（8 点）、
@@ -51,6 +57,7 @@ m_carp（7 点）、makrel（退化降级→单点）、n.pike（3 点，旧 0.0
 - `TestLengthGroupFallback`：零标定种落组锚。
 - `TestLengthLinearUntouched`：Linear 种不得进入新表（防止 Linear 分支被旁路）。
 - `TestLengthCoverage`：fishPullSpeciesGroup 每键落在 拟合/单点/KOverride/组锚 之一（全覆盖）。
+- `TestLengthAliasInheritsHostMeasured`：无独立实测的皮肤变种继承宿主官服参数，自身有实测者保持自身锚。
 
 旧测试更新：`TestCalibratedLengthKP`（n.pike/carp 新拟合值；perch/c.roach/crucian 旧标定被拟合取代、
 s.bream Linear 保持；crawfish 有官服单点 186g/0.2134m 不落组）、`TestCachedSpeciesLengthKPAppliesCalibration`

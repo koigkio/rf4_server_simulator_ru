@@ -258,3 +258,42 @@ func TestLengthCoverage(t *testing.T) {
 		}
 	}
 }
+
+// TestLengthAliasInheritsHostMeasured 皮肤变种没有自己的实测时，必须继承宿主的
+// 官服拟合/单点；否则旧 KOverride 会继续把宿主已修正的偏长误差带给变种。
+// 变种自己有实测锚时（如 common_carp/m_carp_ghost）仍必须优先使用自己的值。
+func TestLengthAliasInheritsHostMeasured(t *testing.T) {
+	inherited := 0
+	for alias, host := range fishPullAlias {
+		if _, ownFit := fishLengthOfficialKP[alias]; ownFit {
+			continue
+		}
+		if _, ownSingle := fishLengthSingleK[alias]; ownSingle {
+			continue
+		}
+		if _, ok := fishLengthOfficialKP[host]; !ok {
+			if _, ok := fishLengthSingleK[host]; !ok {
+				continue
+			}
+		}
+		inherited++
+		gotK, gotP := calibratedLengthKP(alias, defaultSpeciesLengthK, defaultSpeciesLengthP)
+		wantK, wantP := calibratedLengthKP(host, defaultSpeciesLengthK, defaultSpeciesLengthP)
+		if gotK != wantK || gotP != wantP {
+			t.Errorf("%s 应继承宿主 %s 的官服体长参数：got=(%f,%f) want=(%f,%f)",
+				alias, host, gotK, gotP, wantK, wantP)
+		}
+	}
+	if inherited == 0 {
+		t.Fatal("测试前提失效：没有可验证的别名继承用例")
+	}
+
+	for _, alias := range []string{"common_carp", "m_carp_ghost"} {
+		gotK, gotP := calibratedLengthKP(alias, defaultSpeciesLengthK, defaultSpeciesLengthP)
+		want := fishLengthSingleK[alias]
+		if gotK != want.k || gotP != want.p {
+			t.Errorf("%s 有独立实测锚时必须保留自身参数：got=(%f,%f) want=(%f,%f)",
+				alias, gotK, gotP, want.k, want.p)
+		}
+	}
+}
