@@ -997,6 +997,14 @@ func (s *Server) damageReelSlipWear(ctx context.Context, uid int64, rodGUID, ree
 	}); err != nil {
 		return nil, err
 	}
+	// 轮体耐久从正数跌到 0 就是「这一次坏了」：摩擦片是熔断件，磨穿后本体聚合值
+	// 必然归零，这条通道不算 ReelBroken（片换了就能用），但轮子确实是坏的，
+	// 不按耐久状态转换计数就会漏掉「磨穿摩擦片」这一类损坏。
+	if before > 0 && reel.Durability == 0 {
+		if err := store.BumpPlayerCounter(ctx, s.DB.SQL, uid, "reel_breaks"); err != nil {
+			return nil, err
+		}
+	}
 	updated := s.loadUpdatedTrees(ctx, []string{rodGUID, reelGUID})
 	return &gearBreakOutcome{
 		ReelDamaged: true, FrictionWorn: wornOut, KeepFight: true,
@@ -1027,7 +1035,7 @@ func (s *Server) damageReelLockOverload(ctx context.Context, uid int64, rodGUID,
 	}
 	// 幂等守卫：耐久已是 0 说明这尾轮子此前就被打坏过，本次是重复/迟到的
 	// 17/9 帧。ReelBroken 的语义是「本次把耐久打到 0」，重复帧不满足该语义，
-	// 直接返回错误让上层放弃计数与损伤日志，避免 reel_breaks 被重传多记。
+	// 直接返回错误让上层放弃损伤日志与计数，避免 reel_breaks 被重传多记。
 	// 不加守卫时这里靠 setWireFloat 写相同值返回 false 而偶然失败，属实现细节
 	// 而非契约，改动 setWireFloat 就会静默破坏幂等。
 	before := reel.Durability
@@ -1058,6 +1066,12 @@ func (s *Server) damageReelLockOverload(ctx context.Context, uid int64, rodGUID,
 			"wear_progress": 0, "reel_broken": true,
 		}),
 	}); err != nil {
+		return nil, err
+	}
+	// 计数与耐久、损伤日志同事务：计数写失败必须连耐久一起回滚，否则会出现
+	// 「轮子已损坏但 reel_breaks 没涨」，而重试又因耐久已是 0 被上面的幂等
+	// 守卫挡住，永久补不回来。
+	if err := store.BumpPlayerCounter(ctx, tx, uid, "reel_breaks"); err != nil {
 		return nil, err
 	}
 	if err := tx.Commit(); err != nil {

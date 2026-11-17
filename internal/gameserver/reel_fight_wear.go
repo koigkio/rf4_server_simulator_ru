@@ -489,6 +489,14 @@ func (s *Server) applyFightReelWear(ctx context.Context, uid int64, w fightReelW
 	if perr != nil {
 		return false
 	}
+	// 轮体耐久从正数跌到 0 就是「这一次坏了」：零件磨损同样能把本体打穿，
+	// 只认 outcome.ReelBroken 会漏掉这条通道。此路径没有外层事务，
+	// 计数失败只能整笔放弃（返回 false 让调用方不推送刷新）。
+	if before > 0 && durability == 0 {
+		if err := store.BumpPlayerCounter(ctx, s.DB.SQL, uid, "reel_breaks"); err != nil {
+			return false
+		}
+	}
 	// 竿侧零件与前导随同一笔受力账落库；前导 GUID 回填账本供下发使用。
 	rodParts := s.applyRodStressWear(ctx, uid, w.rodGUID, counts)
 	s.applyLeaderStressWear(ctx, uid, &w, counts.StressSecs)
