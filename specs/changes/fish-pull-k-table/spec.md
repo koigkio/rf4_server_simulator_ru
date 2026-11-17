@@ -190,19 +190,24 @@ static.sqlite3 `loc_fish` 表为准。
   m_scorpius 17.66、shemaya_cha 18.64、tiulka 18.64、pumps_sunfish 19.62、
   menek 18.64、pollachius 22.56、atl_herring 22.57、makrel 23.54、
   cha_herring 25.53、rudd {19.24, 0.53}、carp_ghost 16.73、n_carp 16.53、
-  kw_tench 18.68、c_bleak 18.81（均为 K0，恒 k 类 Slope=0、鲤科单样本 -1）。
+  kw_tench 18.68、c_bleak 18.81、m_carp {16.27, 0.59}（均为 K0，恒 k 类
+  Slope=0、鲤科单样本 -1）。**m_carp 为低置信口径**：4 样本仅产出拟合参数，
+  无单样本 f8 锚点、无 f5 实测值（样本原始值按 CONTRIBUTING 禁令不入库、
+  断电后未留档），测试只钉表参数；补抓样本后再升级数值锚点。
 - 旧种复核修正：carp {16.50, 0.49}（7 样本）、c.carp {13.84, 0.45}（4）、
   c.roach {16.36, 0.23}、perch {17.60, 0.38}（9）、g_carp {18.79, 0.23}（5，
   底钓2 样本重拟合）；crucian {15.05, 0.35} 6 样本精确复核不变。
 - `fishPullSpeciesGroup` 移除已实测 5 种（coalfish/pollachius/menek/n_carp/
   kw_tench）；`marine_gadid` 19.7 组值保留给未实测鳕形目，注释标注实测离散值。
-- f5 `fishStaminaRatePerGram` 新增 17 种（均值口径，样本极差 ±13%~30%）；
-  perch 2.75→2.69、c.carp 2.52→2.78（样本扩充重算）。
+- f5 `fishStaminaRatePerGram` 新增 16 种（均值口径，样本极差 ±13%~30%）；
+  perch 2.75→2.69、c.carp 2.52→2.78（样本扩充重算）。m_carp 不在 f5 表
+  （无实测均值），运行时走 cyprinid 组值 2.50/g 回退。
 - 搏斗组词表补 tiulka → small 组（原落 default）。
 
 ### 锚点与自校验
 
-- 锚点测试扩到 29 种 74 条（新种配跨体重档对钉 slope/恒 k）；
+- 锚点测试扩到 30 种 68 条（新种配跨体重档对钉 slope/恒 k；m_carp 无单样本
+  值不入锚点，仅钉表参数）；
   crucian K0=15.05 与 v1 spec 精确一致、f5 每 g 2.297 vs 2.29 双指标自校验通过。
 - 全量门禁：gameserver 包仅剩既有基线失败 TestCafeNativeFlowPaysAndPushesRemoval
   （单跑过、时序敏感，口径同 AGENTS.md）；其余包 2 失败均为环境/工作区既有问题
@@ -210,7 +215,9 @@ static.sqlite3 `loc_fish` 表为准。
 
 ### v2.1 增补：未实测种全覆盖归组 + 皮肤变种别名（2026-11-17）
 
-- static 库 249 种全覆盖，不再有裸 fallback：31 实测 + 204 习性组 + 16 别名。
+- static 库 249 种全覆盖，不再有裸 fallback：31 实测 + 204 习性组 + 16 别名
+  = 251 键，其中 `vobla`/`zander` 为两个非 loc_fish 兼容键（客户端旧键，
+  行为兼容保留），loc_fish 实际 249 种零遗漏。
 - **别名表 `fishPullAlias`**：16 个皮肤/变种鱼种继承宿主实测参数（避免组表
   斜率偏差）——carp 系 10（common_carp/三花/鳞鲤白化/匈红鲤/绿鲤/带形框形
   镜鲤系）、m_carp 系 3、n_carp 系 2、g_carp_albino。
@@ -231,3 +238,25 @@ static.sqlite3 `loc_fish` 表为准。
 - 归组依据：key/中文名词表分类（鳞鲱鳟鲈鲷鲆鲽鲨鳗鲶鲟……）+ 离散 k 离散值
   近亲继承；蟹/贝/蛙等无拉力数据的渔获按体型归 weak_silver/marine_rock
   （低置信，抓到后即校准）。fallback 17.5 仅剩非 loc_fish 未知键兜底。
+
+### v2.1.1 审查修正：跨层归组自洽 + 低置信口径落档（2026-11-17，PR #516）
+
+- **crawfish（河螯虾）归组修正**：salmonid → weak_silver。虾无拉力数据，
+  按「蟹/贝/蛙按体型归组」口径归贝/蛙组（K0 13.00），与 f5/f6 的
+  default 弱鱼口径（2.60/g、f6 0.55）方向一致；原 salmonid 18.00 与
+  虾的体型/习性明显不符。
+- **pinagor（圆鳍鱼）归组修正**：salmonid → marine_rock {17.66, 0}。
+  loc_fish 里圆鳍鱼仅出现在挪威海，运行时 marine 判定为真，f5/f6/f21
+  走 marine 口径（8.445/g、merlang 曲线池），f8 却走鲑科淡水模型
+  18.00 属跨层不自洽；圆鳍鱼为海底栖鱼，归 marine_rock 与 m_scorpius
+  恒 k 锚同族。
+- **m_carp 低置信口径落档**：4 样本仅产出拟合参数 {16.27, 0.59}，无单样本
+  f8 锚点、无 f5 实测值；f5 运行时走 cyprinid 组值 2.50/g 回退（表内
+  30 实测种、锚点 30 种 68 条计数以此为准）。测试钉表参数防误改，
+  补抓样本后再升级数值锚点。
+- **测试斜率可观测性修正**：斜率 tunable/别名继承断言原用 1kg
+  （ln(1)=0，斜率项恒消失，tunable 是否接线不可观测），改 2kg
+  （ln2≈0.693）并按 tunable 真实语义断言：`fish_pull_ln_slope` 只替换
+  Slope<0 未标定种的回退斜率——置 0 时 2kg fallback 恰为 2×17.5、
+  置 1 时为 2×(17.5+ln2)；自拟合斜率（perch 0.38）与恒 k（coalfish）
+  不受 tunable 影响；carp_albino 与 carp 2kg f8 逐位相等（整参数继承）。

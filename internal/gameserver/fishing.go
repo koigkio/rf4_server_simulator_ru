@@ -699,7 +699,7 @@ var fishPullK0 = map[string]fishPullParam{
 	"c.roach": {K0: 16.36, Slope: 0.23}, // 3 样本 150~713g
 	"rudd":    {K0: 19.24, Slope: 0.53}, // 4 样本 195~402g（2026-11-16 新实测）
 	"g_carp":  {K0: 18.79, Slope: 0.23}, // 5 样本 4880~21742g
-	"m_carp":  {K0: 16.27, Slope: 0.59}, // 4 样本 2312~5370g（新）
+	"m_carp":  {K0: 16.27, Slope: 0.59}, // 4 样本 2312~5370g（新）；仅拟合参数、无单样本 f8 锚点（低置信，见 spec v2）
 	// —— 单样本（Slope<0 → 全局 0.35；鲤科按鲤科先验）——
 	"carp_ghost": {K0: 16.73, Slope: -1}, // 4513g（新）
 	"n_carp":     {K0: 16.53, Slope: -1}, // 4405g（新）
@@ -733,7 +733,7 @@ var fishPullK0 = map[string]fishPullParam{
 var fishPullGroupK0 = map[string]fishPullParam{
 	"marine_gadid":    {K0: 21.58, Slope: 0},    // 鳕形目（恒k锚 coalfish/atl_cod 21.58；组员无须鳕/蓝鳕/魣鳕/长尾鳕/白姑鱼）
 	"marine_pelagic":  {K0: 22.57, Slope: 0},    // 鲱鲭中上层（恒k锚 atl_herring 22.57；组员西鲱/沙丁/竹刀/带鱼/月鱼）
-	"marine_rock":     {K0: 17.66, Slope: 0},    // 礁岩底栖/鮋杜父/鳗鳃类（恒k锚 m_scorpius 17.66；鳗/七鳃鳗/蟹虾低置信归入）
+	"marine_rock":     {K0: 17.66, Slope: 0},    // 礁岩底栖/鮋杜父/鳗鳃类（恒k锚 m_scorpius 17.66；鳗/七鳃鳗/蟹虾/pinagor 低置信归入）
 	"small_forage":    {K0: 18.64, Slope: 0},    // 小型饵料鱼（恒k锚 tiulka/shemaya_cha 18.64；刺鱼/鮈/鱥/泥鳅/胡瓜鱼）
 	"apex":            {K0: 25.53, Slope: 0},    // 鲨/剑鱼/金枪鱼顶级（纯推断取离散上界 25.53，无实测）
 	"sunfish":         {K0: 19.62, Slope: 0},    // 太阳鱼科（恒k锚 b_gill/pumps_sunfish 19.62）
@@ -744,8 +744,8 @@ var fishPullGroupK0 = map[string]fishPullParam{
 	"carp_mid":        {K0: 16.50, Slope: -1},   // 中型力量鲤科（K0 锚 carp 16.50，斜率先验 0.35；锦鲤系/丁鱥/鼓鱼）
 	"pond_carp":       {K0: 13.84, Slope: 0.45}, // 小型池塘鲤（变k锚 c.carp {13.84, 0.45}）
 	"predator":        {K0: 17.30, Slope: -1},   // 梭形掠食者（K0 锚 n.pike 17.30，斜率先验 0.35）
-	"weak_silver":     {K0: 13.00, Slope: -1},   // 小型银色弱鱼/贝类（变k锚 s.bream {13.00, 0.35}）
-	"salmonid":        {K0: 18.00, Slope: -1},   // 鲑科（纯估计 18.0，无新数据）
+	"weak_silver":     {K0: 13.00, Slope: -1},   // 小型银色弱鱼/贝类/虾蛙（变k锚 s.bream {13.00, 0.35}；crawfish 无拉力数据按体型归入）
+	"salmonid":        {K0: 18.00, Slope: -1},   // 鲑科（纯估计 18.0，无新数据；crawfish/pinagor 已按习性移出，见 spec v2.1 修正）
 	"sturgeon":        {K0: 17.00, Slope: -1},   // 鲟科（纯估计 17.0）
 	"catfish":         {K0: 16.00, Slope: -1},   // 鲶科（纯估计 16.0）
 	"flatfish":        {K0: 16.00, Slope: -1},   // 比目鱼（纯估计 16.0）
@@ -908,7 +908,7 @@ var fishPullSpeciesGroup = map[string]string{
 	"chartus_kuoriius":    "salmonid",
 	"chavycha":            "salmonid",
 	"chir":                "salmonid",
-	"crawfish":            "salmonid",
+	"crawfish":            "weak_silver",
 	"dr_char":             "salmonid",
 	"gc_smelt":            "salmonid",
 	"golets_lev":          "salmonid",
@@ -932,7 +932,7 @@ var fishPullSpeciesGroup = map[string]string{
 	"palia_kr":            "salmonid",
 	"palia_lud":           "salmonid",
 	"peled":               "salmonid",
-	"pinagor":             "salmonid",
+	"pinagor":             "marine_rock",
 	"ripus":               "salmonid",
 	"riv_brown_trout":     "salmonid",
 	"riv_rb_trout":        "salmonid",
