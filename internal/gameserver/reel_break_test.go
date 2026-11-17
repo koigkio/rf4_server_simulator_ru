@@ -345,3 +345,118 @@ func TestReelBreakCounterFailureRollsBackDurability(t *testing.T) {
 		t.Fatalf("计数失败必须同时回滚损伤日志，实得 %d 行", logs)
 	}
 }
+
+// TestReelWearCounterFailureRollsBackDurability 覆盖泄力打滑磨穿路径的计数失败：
+// 计数器写不进去时，轮体耐久和损伤日志也必须随事务回滚。
+func TestReelWearCounterFailureRollsBackDurability(t *testing.T) {
+	t.Parallel()
+	srv, db := newStaticRigTestServer(t)
+	ctx := context.Background()
+	const uid = int64(1000001)
+
+	rod, err := srv.CreateItem(ctx, uid, "feeder_10125_FD360", "backpack", 1)
+	if err != nil {
+		t.Fatalf("造竿失败: %v", err)
+	}
+	reel, err := srv.CreateItem(ctx, uid, "bclp_5004", "backpack", 1)
+	if err != nil {
+		t.Fatalf("造轮失败: %v", err)
+	}
+	mountReelOnRod(t, srv, rod.GUID, reel.GUID)
+	if _, perr := srv.syncReelPerformance(ctx, reel); perr != nil {
+		t.Fatalf("同步轮子物理参数失败: %v", perr)
+	}
+	seedFrictionWasherNearWorn(t, srv, ctx, reel.GUID)
+	if _, derr := srv.damageReelSlip(ctx, uid, rod.GUID, reel.GUID); derr != nil {
+		t.Fatalf("第一次打滑失败: %v", derr)
+	}
+
+	before, err := db.GetItemByGUID(ctx, reel.GUID)
+	if err != nil || before == nil {
+		t.Fatalf("读取磨损前轮子失败: %v", err)
+	}
+	perfBefore, err := db.GetReelPerformance(ctx, reel.GUID)
+	if err != nil || perfBefore == nil {
+		t.Fatalf("读取磨损前性能失败: %v", err)
+	}
+	var logsBefore int64
+	if err := db.SQL.QueryRowContext(ctx, `SELECT COUNT(*) FROM item_damage_log WHERE uid=?`, uid).Scan(&logsBefore); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.SQL.ExecContext(ctx, `DROP TABLE player_counters`); err != nil {
+		t.Fatalf("移除计数器表失败: %v", err)
+	}
+	if _, err := srv.damageReelSlip(ctx, uid, rod.GUID, reel.GUID); err == nil {
+		t.Fatal("计数写入失败时磨穿应返回错误，实际成功")
+	}
+
+	after, err := db.GetItemByGUID(ctx, reel.GUID)
+	if err != nil || after == nil {
+		t.Fatalf("回滚后读取轮子失败: %v", err)
+	}
+	if after.Durability != before.Durability {
+		t.Fatalf("计数失败必须回滚磨损耐久，期望 %v，实得 %v", before.Durability, after.Durability)
+	}
+	var logsAfter int64
+	if err := db.SQL.QueryRowContext(ctx, `SELECT COUNT(*) FROM item_damage_log WHERE uid=?`, uid).Scan(&logsAfter); err != nil {
+		t.Fatal(err)
+	}
+	if logsAfter != logsBefore {
+		t.Fatalf("计数失败必须回滚损伤日志，期望 %d 行，实得 %d 行", logsBefore, logsAfter)
+	}
+	perfAfter, err := db.GetReelPerformance(ctx, reel.GUID)
+	if err != nil || perfAfter == nil {
+		t.Fatalf("回滚后读取性能失败: %v", err)
+	}
+	if perfAfter.Durability != perfBefore.Durability || perfAfter.BaseDragKg != perfBefore.BaseDragKg {
+		t.Fatalf("计数失败必须回滚性能表，before=%+v after=%+v", perfBefore, perfAfter)
+	}
+}
+
+// TestFightWearCounterFailureRollsBackDurability 覆盖搏鱼受力结算磨穿路径：
+// 计数失败时，轮体字段和性能表也必须随事务回滚。
+func TestFightWearCounterFailureRollsBackDurability(t *testing.T) {
+	t.Parallel()
+	srv, db, ctx, reelGUID, perf := wearReelFixture(t)
+	rated, ok := srv.reelWasherRatedFromRow(ctx, wearReelRow(t, db, ctx, reelGUID))
+	if !ok || rated <= 0 {
+		t.Fatal("读不到摩擦片额定制动力")
+	}
+	w := newFightAccount(rated, perf, reelGUID)
+	w.SlipWear = 1
+
+	before := wearReelRow(t, db, ctx, reelGUID)
+	perfBefore, err := db.GetReelPerformance(ctx, reelGUID)
+	if err != nil || perfBefore == nil {
+		t.Fatalf("读取搏鱼磨损前性能失败: %v", err)
+	}
+	var logsBefore int64
+	if err := db.SQL.QueryRowContext(ctx, `SELECT COUNT(*) FROM item_damage_log WHERE uid=?`, wearTestUID).Scan(&logsBefore); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.SQL.ExecContext(ctx, `DROP TABLE player_counters`); err != nil {
+		t.Fatalf("移除计数器表失败: %v", err)
+	}
+	if srv.applyFightReelWear(ctx, wearTestUID, w, "14/4", true) {
+		t.Fatal("计数写入失败时搏鱼磨损应返回 false，实际成功")
+	}
+
+	after := wearReelRow(t, db, ctx, reelGUID)
+	if after.Durability != before.Durability {
+		t.Fatalf("计数失败必须回滚搏鱼磨损耐久，期望 %v，实得 %v", before.Durability, after.Durability)
+	}
+	var logsAfter int64
+	if err := db.SQL.QueryRowContext(ctx, `SELECT COUNT(*) FROM item_damage_log WHERE uid=?`, wearTestUID).Scan(&logsAfter); err != nil {
+		t.Fatal(err)
+	}
+	if logsAfter != logsBefore {
+		t.Fatalf("计数失败必须不新增损伤日志，期望 %d 行，实得 %d 行", logsBefore, logsAfter)
+	}
+	perfAfter, err := db.GetReelPerformance(ctx, reelGUID)
+	if err != nil || perfAfter == nil {
+		t.Fatalf("回滚后读取搏鱼性能失败: %v", err)
+	}
+	if perfAfter.Durability != perfBefore.Durability || perfAfter.BaseDragKg != perfBefore.BaseDragKg {
+		t.Fatalf("计数失败必须回滚搏鱼性能表，before=%+v after=%+v", perfBefore, perfAfter)
+	}
+}
