@@ -1,6 +1,6 @@
 # 鱼饵偏好判定与官服证据对齐
 
-Status: ready
+Status: done
 
 ## Problem Statement
 
