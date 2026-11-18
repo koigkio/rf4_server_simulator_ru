@@ -36,6 +36,24 @@ func TestWalletAtmDirectCredit(t *testing.T) {
 	if cnt != 0 {
 		t.Fatalf("背包不应留 wallet_100 实例，实得 %d 行", cnt)
 	}
+	decoded, _, err := proto.DecodeValue(result.body, 0, srv.Table())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if decoded.Class != "jfafgmcfjkc" || len(decoded.Fields) != 4 {
+		t.Fatalf("804 形状异常: class=%s fields=%d", decoded.Class, len(decoded.Fields))
+	}
+	if decoded.Fields[0].Op != "STR" || decoded.Fields[0].Str == nil || *decoded.Fields[0].Str != "wallet_100" {
+		t.Fatalf("804.f0 应为 wallet_100: %+v", decoded.Fields[0])
+	}
+	for i := 1; i < 4; i++ {
+		if decoded.Fields[i].Op != "VAL" || decoded.Fields[i].Val == nil || decoded.Fields[i].Val.Kind != proto.KindNull {
+			t.Fatalf("804.f%d 应为 null: %+v", i, decoded.Fields[i])
+		}
+	}
+	if len(request.afterResponse) != 1 {
+		t.Fatalf("应登记一次响应后 2/1 刷新，实得 %d", len(request.afterResponse))
+	}
 }
 
 // 余额不足时不得到账，也不得留物品。
@@ -56,9 +74,14 @@ func TestWalletAtmInsufficient(t *testing.T) {
 	if !result.nativeFailure {
 		t.Fatal("余额不足应被拒")
 	}
-	var silver int64
-	db.SQL.QueryRow(`SELECT silver FROM profile WHERE uid=?`, uid).Scan(&silver)
-	if silver != 0 {
-		t.Fatalf("余额不足时不应到账，实得 silver=%d", silver)
+	var silver, gold int64
+	db.SQL.QueryRow(`SELECT silver,gold FROM profile WHERE uid=?`, uid).Scan(&silver, &gold)
+	if silver != 0 || gold != 0 {
+		t.Fatalf("余额不足时钱包应整体不变，silver=%d gold=%d", silver, gold)
+	}
+	var txns int
+	db.SQL.QueryRow(`SELECT COUNT(*) FROM txn WHERE uid=? AND item_id='wallet_100'`, uid).Scan(&txns)
+	if txns != 0 {
+		t.Fatalf("余额不足时不应写购买流水，实得 %d 行", txns)
 	}
 }
