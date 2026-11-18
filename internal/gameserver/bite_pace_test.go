@@ -468,9 +468,9 @@ func TestPaceScoreForGroups(t *testing.T) {
 	ctx := t.Context()
 	base := fishRollContext{now: time.Now()}
 	cases := []struct {
-		name    string
-		groups  [][]string
-		want    float64
+		name   string
+		groups [][]string
+		want   float64
 	}{
 		{"no groups", nil, 0.5},
 		{"empty group", [][]string{{}}, 0.5},

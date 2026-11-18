@@ -30,7 +30,7 @@ import (
 
 // paceDietTTL 名册食性聚合缓存的存活期，对齐 tunables 热更节奏。
 // 每张地图独立计时：访问新图只刷新自己的时间戳，不复活其他已过期条目
-//（PR #531 审查 P2-4）；fish_ecology 全量重载/失效时整体清空。
+// （PR #531 审查 P2-4）；fish_ecology 全量重载/失效时整体清空。
 const paceDietTTL = 30 * time.Second
 
 // paceRosterDiet 一个水域名册的食性聚合：拟饵取 diet_json.lure 的最大权重，
@@ -140,7 +140,7 @@ func (s *Server) paceStandardBiteDelay(sample, weather, speed, pace, ground floa
 // paceFloorShrink 打窝压缩落水保护：只缩短不拉长，pace_groundbait_floor 兜底；
 // fixed 指定延迟的管理员口径原样保留（与 biteDelayInWeather 的直通一致），
 // 路亚族固定 1.2 秒不动。运行中热关闭 bite_pace_enabled 时立即回到原保护
-//（审查 P2-1：不得只看 st.PaceKnown 残留）。
+// （审查 P2-1：不得只看 st.PaceKnown 残留）。
 func (s *Server) paceFloorShrink(cfg biteDelaySettings, st *FishState, lure bool, floor time.Duration) time.Duration {
 	if st == nil || !s.paceEnabled() || !st.PaceKnown || cfg.fixed > 0 || lure || st.PaceGround >= 1 {
 		return floor
@@ -228,7 +228,7 @@ func (s *Server) paceRosterDietFor(ctx context.Context, c fishRollContext, statL
 }
 
 // invalidatePaceDietCache 清空名册食性聚合缓存。fish_ecology 全量重载
-//（reload_tunables）与后台覆盖失效（invalidateFishEcologyCache）时调用，
+// （reload_tunables）与后台覆盖失效（invalidateFishEcologyCache）时调用，
 // 否则旧聚合会活过 TTL。
 func (s *Server) invalidatePaceDietCache() {
 	s.paceDietMu.Lock()
@@ -239,7 +239,7 @@ func (s *Server) invalidatePaceDietCache() {
 // baitPaceScore 一组饵对本水域名册的「对口分」0~1：
 // 证据票（companion tier / 本图实证 / rf4 占比）与生态食性票取最大，多饵取最好。
 // 天然饵与拟饵共用同一套证据源（审查 P2-3）；两者无任何证据时都给 0.30 基线
-//（中性偏慢，不判死）。名册读不到、饵定义读不到、没挂饵：返回中性 0.5，
+// （中性偏慢，不判死）。名册读不到、饵定义读不到、没挂饵：返回中性 0.5，
 // 不因数据缺失改变节奏。
 func (s *Server) baitPaceScore(ctx context.Context, c fishRollContext, loc string, baits []string, rigType int64) float64 {
 	if s.DB == nil || loc == "" || len(baits) == 0 {
