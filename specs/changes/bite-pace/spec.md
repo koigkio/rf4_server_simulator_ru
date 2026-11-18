@@ -53,9 +53,24 @@ Status: done
   `rf4BaitShare`（实测占比，自带 30 分钟缓存）、`fishEcology`（食性；
   名册级 max 食性权重按 statLoc 做 30 秒进程内缓存，与 tunCache 同风格）。
 - 映射：tier3=1.0 / tier2=0.8 / tier1=0.6；本图证据 0.5；rf4 占比 ≥5%=0.9、≥1%=0.7、
-  ≥0.2%=0.4；无证据基线 0.30；食性票 = 名册内该食性最大 diet 权重（拟饵取
-  `diet_json.lure/2`，天然饵取食性键最大值 ×0.8 **并封顶 0.6**——家族对口只保证
-  「不差」（mid 档），「好」必须由证据票给出）；未识别水域/未识别饵 → 中性 0.5。
+  ≥0.2%=0.4；无证据基线 0.30（天然饵与拟饵同口径）；食性票 = 名册内该食性最大 diet
+  权重（拟饵取 `diet_json.lure/2`，天然饵取食性键最大值 ×0.8 **并封顶 0.6**——家族
+  对口只保证「不差」（mid 档），「好」必须由证据票给出）；未识别水域/未识别饵 →
+  中性 0.5。拟饵与天然饵共用同一套三类证据票（companion/本图/rf4，审查 P2-3）。
+- 多钩钓组按 `baitedHookSets` 的钩位分组（与判鱼/扣饵同一来源），每钩独立评分、
+  整杆取最好一钩（审查 P2-5）。产品决策：与 `rollFishForRig` 的「任意已挂饵钩位都
+  可能出鱼」同语义——哪口饵先出鱼，哪口饵决定节奏；不引入「选中主钩」概念
+  （判鱼时钩位是随机洗牌的，没有稳定的主钩）。
+- 名册食性聚合缓存按 statLoc 独立 30 秒过期（一张新图写缓存不复活其他图的过期
+  条目），`fish_ecology` 全量重载（reload_tunables）与后台覆盖失效时整体清空
+  （审查 P2-4）。
+- 开关热关闭语义（审查 P2-1）：`bite_pace_enabled` 运行中改回 0 后，延迟、
+  单轮概率、落水保护在**下一次判定/重排立即**回到 legacy（三处消费点都受
+  当前开关门控，不依赖快照里的 `PaceKnown`）；已排定 timer 的绝对时刻不重排，
+  到点后按 legacy 落水保护重新校验。
+- 查鱼助手口径：按候选饵乘同一档位概率与底层杆 clamp，但**不含**
+  `hookBiteDelayFactorForRig`（钩型咬口倍率）——查询构造的 state 没有竿实例，
+  与既有 `meanBiteDelay` 口径一致，实际等待按钩型略有出入（约 ±10%）。
 - 档位（tunable 可调）：good ≥`pace_score_good`(0.75)、mid ≥`pace_score_mid`(0.45)、
   其余为 bad。乘数 `pace_factor_mid`=1.6 / `pace_factor_bad`=3.0（good 恒 1.0）；
   底层杆概率 `pace_prob_good/mid/bad`=1.0/0.5/0.12；路亚轮概率
@@ -76,11 +91,16 @@ Status: done
 ## Testing Decisions
 
 - 分数映射单测：companion tier / 本图证据 / rf4 占比 / 食性票（拟饵与天然饵）/
-  无名册中性 / 未识别饵中性。
+  拟饵 rf4 证据票 / 无名册中性 / 未识别饵中性。
 - 档位映射单测：三档阈值边界与乘数、概率（底层杆与路亚轮两套）。
 - 延迟单测：clamp 边界（bottom 60、marine 30、groundbait 下限 3）、
-  满窝好饵落在 3~18s、死窝不加速、**legacy 等价**（开关关/未计算时输出与
-  旧公式逐位一致）。
+  满窝好饵落在 3~18s、死窝不加速、legacy 等价（开关关闭时输出严格落在
+  旧通道 [6,20]）。
+- 审查回归（PR #531）：热关闭后落水保护/概率立即回 legacy（`TestPaceHotDisableStopsFloorAndProb`）；
+  补排重排保留 `PaceKnown` 且延迟仍在 pace 通道（`TestPaceReschedulePreservesKnown`）；
+  名册食性缓存按图独立过期、ecology 重载清空（`TestPaceDietCachePerLocTTLAndReloadClear`）；
+  多钩分组评分取最好（`TestPaceScoreForGroups`）；拟饵 rf4 证据票并入
+  `TestBaitPaceScoreEvidence`。
 - 接线测试：scheduleBiteState 落 pace 字段、空轮重排复用因子、
   概率乘点在 groundbaitBiteGate 之后。
 - 既有锁定测试必须保持绿：`bite_floor_test.go`、`gear_physics_test.go`

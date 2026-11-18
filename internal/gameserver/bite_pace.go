@@ -29,6 +29,8 @@ import (
 )
 
 // paceDietTTL 名册食性聚合缓存的存活期，对齐 tunables 热更节奏。
+// 每张地图独立计时：访问新图只刷新自己的时间戳，不复活其他已过期条目
+//（PR #531 审查 P2-4）；fish_ecology 全量重载/失效时整体清空。
 const paceDietTTL = 30 * time.Second
 
 // paceRosterDiet 一个水域名册的食性聚合：拟饵取 diet_json.lure 的最大权重，
@@ -36,6 +38,12 @@ const paceDietTTL = 30 * time.Second
 type paceRosterDiet struct {
 	lureMax float64
 	dietMax map[string]float64
+}
+
+// paceDietCacheEntry 按 statLoc 独立过期的缓存条目。
+type paceDietCacheEntry struct {
+	diet *paceRosterDiet
+	at   time.Time
 }
 
 // fishPaceState 一杆的节奏因子。Known=false 表示 pace 模式未生效或尚未计算
@@ -131,9 +139,10 @@ func (s *Server) paceStandardBiteDelay(sample, weather, speed, pace, ground floa
 
 // paceFloorShrink 打窝压缩落水保护：只缩短不拉长，pace_groundbait_floor 兜底；
 // fixed 指定延迟的管理员口径原样保留（与 biteDelayInWeather 的直通一致），
-// 路亚族固定 1.2 秒不动。
+// 路亚族固定 1.2 秒不动。运行中热关闭 bite_pace_enabled 时立即回到原保护
+//（审查 P2-1：不得只看 st.PaceKnown 残留）。
 func (s *Server) paceFloorShrink(cfg biteDelaySettings, st *FishState, lure bool, floor time.Duration) time.Duration {
-	if st == nil || !st.PaceKnown || cfg.fixed > 0 || lure || st.PaceGround >= 1 {
+	if st == nil || !s.paceEnabled() || !st.PaceKnown || cfg.fixed > 0 || lure || st.PaceGround >= 1 {
 		return floor
 	}
 	shrunk := time.Duration(float64(floor) * st.PaceGround)
@@ -184,15 +193,13 @@ func (s *Server) groundbaitPaceFactor(ctx context.Context, uid int64, loc string
 	return groundbaitClamp(1-gain*S*P, s.tunableF("pace_groundbait_min_factor", 0.35), 1)
 }
 
-// paceRosterDietFor 名册食性聚合（30 秒进程内缓存，对齐 tunables 热更节奏）。
-// 只在 pace 开启且挂拟饵/天然饵判分时调用。
+// paceRosterDietFor 名册食性聚合（30 秒进程内缓存，按 statLoc 独立过期，
+// 对齐 tunables 热更节奏）。只在 pace 开启且挂饵判分时调用。
 func (s *Server) paceRosterDietFor(ctx context.Context, c fishRollContext, statLoc string, roster []*store.FishRosterRow) *paceRosterDiet {
 	s.paceDietMu.Lock()
-	if s.paceDietByLoc != nil && time.Since(s.paceDietAt) < paceDietTTL {
-		if hit, ok := s.paceDietByLoc[statLoc]; ok {
-			s.paceDietMu.Unlock()
-			return hit
-		}
+	if hit, ok := s.paceDietByLoc[statLoc]; ok && time.Since(hit.at) < paceDietTTL {
+		s.paceDietMu.Unlock()
+		return hit.diet
 	}
 	s.paceDietMu.Unlock()
 	out := &paceRosterDiet{dietMax: map[string]float64{}}
@@ -213,19 +220,27 @@ func (s *Server) paceRosterDietFor(ctx context.Context, c fishRollContext, statL
 	}
 	s.paceDietMu.Lock()
 	if s.paceDietByLoc == nil {
-		s.paceDietByLoc = map[string]*paceRosterDiet{}
+		s.paceDietByLoc = map[string]paceDietCacheEntry{}
 	}
-	s.paceDietAt = time.Now()
-	s.paceDietByLoc[statLoc] = out
+	s.paceDietByLoc[statLoc] = paceDietCacheEntry{diet: out, at: time.Now()}
 	s.paceDietMu.Unlock()
 	return out
 }
 
-// baitPaceScore 钩上饵对本水域名册的「对口分」0~1：
+// invalidatePaceDietCache 清空名册食性聚合缓存。fish_ecology 全量重载
+//（reload_tunables）与后台覆盖失效（invalidateFishEcologyCache）时调用，
+// 否则旧聚合会活过 TTL。
+func (s *Server) invalidatePaceDietCache() {
+	s.paceDietMu.Lock()
+	s.paceDietByLoc = nil
+	s.paceDietMu.Unlock()
+}
+
+// baitPaceScore 一组饵对本水域名册的「对口分」0~1：
 // 证据票（companion tier / 本图实证 / rf4 占比）与生态食性票取最大，多饵取最好。
-// 天然饵无任何证据时给 0.30 基线（中性偏慢，不判死）；拟饵在名册内没有任何
-// 攻击拟饵的鱼（lureMax=0）时按 0 处理——这口饵就是钓不到。
-// 名册读不到、饵定义读不到、没挂饵：返回中性 0.5，不因数据缺失改变节奏。
+// 天然饵与拟饵共用同一套证据源（审查 P2-3）；两者无任何证据时都给 0.30 基线
+//（中性偏慢，不判死）。名册读不到、饵定义读不到、没挂饵：返回中性 0.5，
+// 不因数据缺失改变节奏。
 func (s *Server) baitPaceScore(ctx context.Context, c fishRollContext, loc string, baits []string, rigType int64) float64 {
 	if s.DB == nil || loc == "" || len(baits) == 0 {
 		return 0.5
@@ -252,8 +267,15 @@ func (s *Server) baitPaceScore(ctx context.Context, c fishRollContext, loc strin
 		identified = true
 		switch b.category {
 		case 17:
-			// 生态食性 lure 权重 2 左右即顶级掠食（狗鱼 2.07），/2 归一到 0~1。
-			if sc := math.Min(1, diet.lureMax/2); sc > best {
+			// 拟饵：三类证据票（companion/本图/rf4）+ 无证据基线，
+			// 再与生态食性票取最大——lure 权重 2 左右即顶级掠食
+			//（狗鱼 2.07），/2 归一到 0~1。biteGateDietKeys 对拟饵返回
+			// nil，paceNaturalScore 的天然饵食性票不会误入。
+			sc := s.paceNaturalScore(ctx, c, statLoc, roster, b, diet)
+			if lureDiet := math.Min(1, diet.lureMax/2); lureDiet > sc {
+				sc = lureDiet
+			}
+			if sc > best {
 				best = sc
 			}
 		case 27:
@@ -266,6 +288,43 @@ func (s *Server) baitPaceScore(ctx context.Context, c fishRollContext, loc strin
 		return 0.5
 	}
 	return best
+}
+
+// paceScoreForGroups 多钩钓组的整杆分：每钩按各自挂饵独立评分，取最好一钩。
+// 与 rollFishForRig 的「任意已挂饵钩位都可能出鱼」同语义——哪口饵先出鱼，
+// 哪口饵决定节奏（产品决策，见 spec/能力契约「多钩」条）。
+func (s *Server) paceScoreForGroups(ctx context.Context, c fishRollContext, loc string, groups [][]string, rigType int64) float64 {
+	if len(groups) == 0 {
+		return 0.5
+	}
+	best := 0.0
+	for _, baits := range groups {
+		if len(baits) == 0 {
+			continue
+		}
+		if sc := s.baitPaceScore(ctx, c, loc, baits, rigType); sc > best {
+			best = sc
+		}
+	}
+	if best <= 0 {
+		return 0.5
+	}
+	return best
+}
+
+// rodPaceScore 生产路径的整杆分：按 baitedHookSets 的钩位分组（与判鱼/扣饵
+// 同一来源，坏饵与空数量饵不参与），每钩独立评分取最好。
+func (s *Server) rodPaceScore(ctx context.Context, gear string, loc string, rigType int64) (float64, [][]string) {
+	groups := s.baitedHookSets(ctx, gear)
+	if len(groups) == 0 {
+		return 0.5, nil
+	}
+	c := fishRollContext{}
+	gs := make([][]string, 0, len(groups))
+	for _, g := range groups {
+		gs = append(gs, g.baits)
+	}
+	return s.paceScoreForGroups(ctx, c, loc, gs, rigType), gs
 }
 
 // paceNaturalScore 单个天然饵的分：逐名册鱼取三类证据票的最大，
@@ -349,8 +408,7 @@ func (s *Server) computePaceState(sess *Session, st *FishState, force bool) fish
 		uid = sess.Userid
 	}
 	ctx := sess.pushCtx()
-	baits := s.currentBaits(ctx, gear)
-	score := s.baitPaceScore(ctx, fishRollContext{}, loc, baits, rigType)
+	score, groups := s.rodPaceScore(ctx, gear, loc, rigType)
 	factor, prob, lureProb, tier := s.paceTierFor(score)
 	ground := 1.0
 	if !rigTypeLureFamily[rigType] {
@@ -358,20 +416,23 @@ func (s *Server) computePaceState(sess *Session, st *FishState, force bool) fish
 	}
 	pace := fishPaceState{Known: true, Score: score, Factor: factor, Prob: prob, LureProb: lureProb, Ground: ground, Tier: tier}
 	s.log.Info("咬钩节奏",
-		"rod", shortGUID(gear), "鱼种饵", baits, "score", roundTo(score, 3),
+		"rod", shortGUID(gear), "各钩饵", groups, "score", roundTo(score, 3),
 		"tier", paceTierName(tier), "factor", factor, "prob", prob,
 		"lure_prob", lureProb, "ground", roundTo(ground, 3), "rig_type", rigType)
 	return pace
 }
 
 // paceStateSnapshot 读取已落库的节奏因子（调用方不持 st.mu）。
+// Known 必须带回 true：快照会经 storePaceState 写回 st，丢了 Known 会让
+// 补排/嘬饵否决重排/脱钩重排把已算好的因子抹成中性，本次等待退回 legacy
+// 延迟（审查 P2-2）。
 func (s *Server) paceStateSnapshot(st *FishState) fishPaceState {
 	st.mu.Lock()
 	defer st.mu.Unlock()
 	if !st.PaceKnown {
 		return neutralFishPaceState()
 	}
-	return fishPaceState{Score: st.PaceScore, Factor: st.PaceFactor, Prob: st.PaceProb,
+	return fishPaceState{Known: true, Score: st.PaceScore, Factor: st.PaceFactor, Prob: st.PaceProb,
 		LureProb: st.PaceLureProb, Ground: st.PaceGround, Tier: st.PaceTier}
 }
 
@@ -415,4 +476,13 @@ func (st *FishState) paceProbFor() float64 {
 		return st.PaceLureProb
 	}
 	return st.PaceProb
+}
+
+// rodPaceProb 判定用的整杆概率，受当前开关门控：运行中热关闭
+// bite_pace_enabled 后立即回 1（审查 P2-1），残留的 st.PaceKnown 不再生效。
+func (s *Server) rodPaceProb(st *FishState) float64 {
+	if !s.paceEnabled() {
+		return 1
+	}
+	return st.paceProbFor()
 }

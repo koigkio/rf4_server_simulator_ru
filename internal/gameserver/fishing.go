@@ -3095,7 +3095,9 @@ func (s *Server) onRodBiteTimerTicket(uid int64, st *FishState, ticket fishingTi
 	// 窝料死窝闸门：同一格子堆超过 15 份开始压开口率，22 份以上不排咬钩。
 	probability *= s.groundbaitBiteGate(s.dbCtx(), uid, st.Loc, x, z, hasPos, st.Spot, st.RigType)
 	// 饵效控速：单轮判定概率按对口分三档（路亚轮单独一套参数）。
-	probability *= st.paceProbFor()
+	// 受当前开关门控（审查 P2-1）：运行中热关闭后，残留的 st.PaceKnown
+	// 不得继续压低本杆开口率。
+	probability *= s.rodPaceProb(st)
 	if rand.Float64() >= probability {
 		s.log.Info("鱼口未命中，继续等待", "rod", shortGUID(st.GearGuid), "rig_type", st.RigType)
 		s.emptyWeatherBiteLocked(sess, st, now)

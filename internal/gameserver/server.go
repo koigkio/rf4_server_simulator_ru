@@ -87,10 +87,10 @@ type Server struct {
 	fishZoneAt    time.Time
 
 	// 饵效控速：名册级食性聚合缓存（statLoc -> 拟饵/天然饵食性最大权重），
-	// TTL 30 秒对齐 tunables 热更节奏；零值可用，首用时建表。
+	// 每条目独立 30 秒 TTL（对齐 tunables 热更节奏）；reload/invalidate 时
+	// 整体清空。零值可用，首用时建表。
 	paceDietMu    sync.Mutex
-	paceDietByLoc map[string]*paceRosterDiet
-	paceDietAt    time.Time
+	paceDietByLoc map[string]paceDietCacheEntry
 
 	// 运行参数缓存
 	tunMu    sync.Mutex

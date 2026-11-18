@@ -86,6 +86,8 @@ func TestPaceStandardClampAndFloorCap(t *testing.T) {
 
 func TestPaceFloorShrink(t *testing.T) {
 	s, _ := newDetachTestServer(t)
+	// P2-1 之后落水保护受开关门控，本测试验证开启态的压缩数值。
+	setWeatherTestTunable(t, s, "bite_pace_enabled", "1")
 	st := &FishState{PaceKnown: true, PaceGround: 0.38}
 	cfg := biteDelaySettings{}
 	// 6s 基础保护 ×0.38=2.28 → 抬到窝料地板 3s（只对满窝压缩生效）。
@@ -195,8 +197,9 @@ func TestBaitPaceScoreEvidence(t *testing.T) {
 		{"tier1 plus diet vote", "level_900_rules", []string{"rule_other"}, 0.6},
 		// rule_neutral：无证据 → 0.30 基线，名册内 frog 吃虫把食性票抬到封顶 0.6。
 		{"diet vote only", "level_900_rules", []string{"rule_neutral"}, 0.6},
-		// rule_lure：拟饵按名册内最大 diet lure 0.2/2=0.1。
-		{"lure weak", "level_900_rules", []string{"rule_lure"}, 0.1},
+		// rule_lure：拟饵无证据 → 0.30 基线（与天然饵同口径），食性票
+		// 0.2/2=0.1 不覆盖基线。
+		{"lure weak", "level_900_rules", []string{"rule_lure"}, 0.30},
 		{"multi bait best", "level_900_rules", []string{"rule_lure", "rule_worm"}, 1.0},
 		{"unknown loc", "unknown-map", []string{"rule_worm"}, 0.5},
 		{"unknown bait", "level_900_rules", []string{"missing_bait"}, 0.5},
@@ -207,14 +210,19 @@ func TestBaitPaceScoreEvidence(t *testing.T) {
 			t.Fatalf("%s: got %g want %g", tc.name, got, tc.want)
 		}
 	}
+	// 拟饵的证据票：rf4 占比 10% 应把无证据拟饵抬到 0.9（审查 P2-3）。
+	s.rf4ShareMu.Lock()
+	s.rf4ShareCache = map[string]map[string]float64{"c.roach": {"rule_lure": 10}}
+	s.rf4ShareLoaded = true
+	s.rf4ShareMu.Unlock()
+	if got := s.baitPaceScore(ctx, base, "level_900_rules", []string{"rule_lure"}, 1); math.Abs(got-0.9) > 1e-9 {
+		t.Fatalf("lure rf4 share evidence ignored: got %g want 0.9", got)
+	}
 	// 食性票对拟饵的「对口」判定：名册内出现 lure 2.0 的鱼后，拟饵满分。
 	if _, err := s.DB.SQL.Exec(`UPDATE fish_ecology SET diet_json='{"lure":2.0,"fish":1.0}' WHERE fish_key='c.roach'`); err != nil {
 		t.Fatal(err)
 	}
 	s.invalidateFishEcologyCache()
-	s.paceDietMu.Lock()
-	s.paceDietByLoc = nil
-	s.paceDietMu.Unlock()
 	if got := s.baitPaceScore(ctx, base, "level_900_rules", []string{"rule_lure"}, 5); math.Abs(got-1.0) > 1e-9 {
 		t.Fatalf("lure 食性 2.0 应满分，实得 %g", got)
 	}
@@ -358,5 +366,122 @@ func TestFishQueryPaceState(t *testing.T) {
 	p = s.fishQueryPaceState(t.Context(), base, st)
 	if p.Known || p.Factor != 1 || p.Prob != 1 {
 		t.Fatalf("开关关闭应中性：%+v", p)
+	}
+}
+
+// ---- PR #531 审查修复的回归（5 个 P2）----
+
+// P2-1：运行中热关闭 bite_pace_enabled 后，落水保护与判定概率立即回 legacy，
+// 残留的 st.PaceKnown 不得继续生效。
+func TestPaceHotDisableStopsFloorAndProb(t *testing.T) {
+	s, _ := newDetachTestServer(t) // bite_pace_enabled=0
+	st := &FishState{RigType: 12, PaceKnown: true, PaceGround: 0.38, PaceProb: 0.12, PaceLureProb: 0.02}
+	cfg := biteDelaySettings{}
+	if got := s.paceFloorShrink(cfg, st, false, 6*time.Second); got != 6*time.Second {
+		t.Fatalf("disabled pace still shrank floor: got %v want 6s", got)
+	}
+	if got := s.rodPaceProb(st); got != 1 {
+		t.Fatalf("disabled pace still scaled prob: got %g want 1", got)
+	}
+	// 对照：开关开启时同一状态照常生效。
+	setWeatherTestTunable(t, s, "bite_pace_enabled", "1")
+	if got := s.paceFloorShrink(cfg, st, false, 6*time.Second); got != 3*time.Second {
+		t.Fatalf("enabled pace lost floor shrink: got %v want 3s", got)
+	}
+	if got := s.rodPaceProb(st); got != 0.12 {
+		t.Fatalf("enabled pace lost prob: got %g want 0.12", got)
+	}
+}
+
+// P2-2：补排/嘬饵否决/脱钩重排（resetCast=false）复用快照，不得把
+// PaceKnown 抹成 false，也不得按 legacy 延迟重排。
+func TestPaceReschedulePreservesKnown(t *testing.T) {
+	s, _ := seedPaceTest(t)
+	const uid = int64(1000001)
+	addFishingRecoverySession(s, uid, 911)
+	sess := s.liveSessionByUID(uid)
+	st := s.stateFor(uid)
+	st.mu.Lock()
+	st.GearGuid, st.Loc, st.RigType = "", "level_900_rules", 12
+	st.storePaceState(fishPaceState{Known: true, Score: 0.1, Factor: 3, Prob: 0.12, LureProb: 0.02, Ground: 1, Tier: 0})
+	st.mu.Unlock()
+
+	pace := s.computePaceState(sess, st, false)
+	if !pace.Known {
+		t.Fatal("snapshot dropped Known")
+	}
+	s.scheduleBiteForHooked(sess, st)
+	st.mu.Lock()
+	defer st.mu.Unlock()
+	if !st.PaceKnown {
+		t.Fatal("re-schedule lost pace: PaceKnown=false")
+	}
+	wait := time.Until(st.BiteAt).Seconds()
+	if wait < 19.44-1e-9 || wait > 60+1e-9 {
+		t.Fatalf("re-schedule fell back to legacy delay: got %.2fs want [19.44,60]", wait)
+	}
+	stopWeatherDamageTimer(st)
+}
+
+// P2-4：名册食性缓存按 statLoc 独立过期——一张新图写缓存不得复活
+// 其他地图的已过期条目；fish_ecology 重载时整体清空。
+func TestPaceDietCachePerLocTTLAndReloadClear(t *testing.T) {
+	s, _ := seedPaceTest(t)
+	ctx := t.Context()
+	base := fishRollContext{now: time.Now()}
+	roster, err := s.cachedLocRoster(ctx, base, "rules-test")
+	if err != nil || len(roster) == 0 {
+		t.Fatal(err)
+	}
+	fresh := &paceRosterDiet{dietMax: map[string]float64{}}
+	s.paceDietMu.Lock()
+	s.paceDietByLoc = map[string]paceDietCacheEntry{
+		"rules-test": {diet: fresh, at: time.Now()},
+		"other-loc":  {diet: fresh, at: time.Now().Add(-2 * paceDietTTL)},
+	}
+	s.paceDietMu.Unlock()
+	// 新鲜条目直接复用。
+	if got := s.paceRosterDietFor(ctx, base, "rules-test", roster); got != fresh {
+		t.Fatal("fresh entry was rebuilt")
+	}
+	// 过期条目重建，即使另一张图刚刷新过。
+	got := s.paceRosterDietFor(ctx, base, "other-loc", roster)
+	if got == fresh {
+		t.Fatal("expired per-location diet entry was revived by another location's refresh")
+	}
+	// fish_ecology 重载后整体清空。
+	if err := s.reloadFishEcologyCache(ctx); err != nil {
+		t.Fatal(err)
+	}
+	s.paceDietMu.Lock()
+	cleared := s.paceDietByLoc == nil
+	s.paceDietMu.Unlock()
+	if !cleared {
+		t.Fatal("ecology reload did not clear pace diet cache")
+	}
+}
+
+// P2-5：多钩钓组每钩独立评分取最好一钩（与 rollFishForRig「任意已挂饵
+// 钩位都可能出鱼」同语义）；空组中性。
+func TestPaceScoreForGroups(t *testing.T) {
+	s, _ := seedPaceTest(t)
+	ctx := t.Context()
+	base := fishRollContext{now: time.Now()}
+	cases := []struct {
+		name    string
+		groups  [][]string
+		want    float64
+	}{
+		{"no groups", nil, 0.5},
+		{"empty group", [][]string{{}}, 0.5},
+		{"single mid hook", [][]string{{"rule_neutral"}}, 0.6},
+		{"best hook wins", [][]string{{"rule_neutral"}, {"rule_worm"}}, 1.0},
+		{"best hook wins reversed", [][]string{{"rule_worm"}, {"rule_neutral"}}, 1.0},
+		{"both weak", [][]string{{"rule_neutral"}, {"rule_lure"}}, 0.6},
+	}
+	for _, tc := range cases {
+		if got := s.paceScoreForGroups(ctx, base, "level_900_rules", tc.groups, 1); math.Abs(got-tc.want) > 1e-9 {
+			t.Fatalf("%s: got %g want %g", tc.name, got, tc.want)
+		}
 	}
 }
