@@ -380,6 +380,9 @@ func (s *Server) ItemToTree(ctx context.Context, it *store.Item) (*proto.Value, 
 		ensureRodPodSlots(it, fields)
 	}
 	obj := proto.Obj(it.WireClass, uint32(it.TypeID), fields...)
+	if err := s.projectFeedRecipe(ctx, s.DB.SQL, obj, it.GUID); err != nil {
+		return nil, err
+	}
 
 	class := it.WireClass
 	if class == deckClass {
