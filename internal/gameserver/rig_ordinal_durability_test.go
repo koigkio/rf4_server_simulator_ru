@@ -208,35 +208,35 @@ func TestWearPersistsColumnFieldsAndVersion(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	hook, err := srv.CreateItem(ctx, uid, "clas_20163", "backpack", 1)
+	lure, err := srv.CreateItem(ctx, uid, "color_bead_001", "backpack", 1)
 	if err != nil {
 		t.Fatal(err)
 	}
 	lineBefore, _ := db.GetItemByGUID(ctx, line.GUID)
-	hookBefore, _ := db.GetItemByGUID(ctx, hook.GUID)
+	lureBefore, _ := db.GetItemByGUID(ctx, lure.GUID)
 	if err := db.UpsertRigComponentAt(ctx, "rod-wear", catLine, 0, line.GUID, 0); err != nil {
 		t.Fatal(err)
 	}
-	if err := db.UpsertRigComponentAt(ctx, "rod-wear", catHook, 0, hook.GUID, 0); err != nil {
+	if err := db.UpsertRigComponentAt(ctx, "rod-wear", catLure, 0, lure.GUID, 0); err != nil {
 		t.Fatal(err)
 	}
 
 	lineFieldsBefore, _ := FieldsFromJSON(lineBefore.FieldsJSON)
 	lineVerIdx := fieldIdxByCS(lineBefore.WireClass, csCreated)
 	lineVerBefore := u64Of(lineFieldsBefore[lineVerIdx].Num)
-	hookFieldsBefore, _ := FieldsFromJSON(hookBefore.FieldsJSON)
-	hookVerIdx := fieldIdxByCS(hookBefore.WireClass, csCreated)
-	hookVerBefore := u64Of(hookFieldsBefore[hookVerIdx].Num)
+	lureFieldsBefore, _ := FieldsFromJSON(lureBefore.FieldsJSON)
+	lureVerIdx := fieldIdxByCS(lureBefore.WireClass, csCreated)
+	lureVerBefore := u64Of(lureFieldsBefore[lureVerIdx].Num)
 	srv.wearRigForCatchPersisted(ctx, "rod-wear")
 
 	lineAfter, _ := db.GetItemByGUID(ctx, line.GUID)
-	hookAfter, _ := db.GetItemByGUID(ctx, hook.GUID)
-	// 官服只按搏鱼受力时间磨损，主线不再按尾扣耐久（2026-11-19 裁定）。
+	lureAfter, _ := db.GetItemByGUID(ctx, lure.GUID)
+	// 官服只按搏鱼受力时间磨损：主线停扣，仅拟饵保留按尾通道。
 	if lineAfter.Durability != lineBefore.Durability {
 		t.Fatalf("鱼线不应按尾扣耐久: %v -> %v", lineBefore.Durability, lineAfter.Durability)
 	}
-	if math.Abs(hookAfter.Durability-(hookBefore.Durability-wearPerCatch["hook"])) > 1e-9 {
-		t.Fatalf("鱼钩列耐久磨损错误: %v -> %v", hookBefore.Durability, hookAfter.Durability)
+	if math.Abs(lureAfter.Durability-(lureBefore.Durability-wearPerCatch["lure"])) > 1e-9 {
+		t.Fatalf("拟饵列耐久磨损错误: %v -> %v", lureBefore.Durability, lureAfter.Durability)
 	}
 	lineFieldsAfter, _ := FieldsFromJSON(lineAfter.FieldsJSON)
 	gotD := rigTestFieldFloat(t, lineFieldsAfter[fieldIdxByCS(lineAfter.WireClass, csDurability)])
@@ -246,12 +246,12 @@ func TestWearPersistsColumnFieldsAndVersion(t *testing.T) {
 	if gotVer := u64Of(lineFieldsAfter[lineVerIdx].Num); gotVer != lineVerBefore {
 		t.Fatalf("鱼线未磨损，版本戳不应变化: %d -> %d", lineVerBefore, gotVer)
 	}
-	hookFieldsAfter, _ := FieldsFromJSON(hookAfter.FieldsJSON)
-	gotHookD := rigTestFieldFloat(t, hookFieldsAfter[fieldIdxByCS(hookAfter.WireClass, csDurability)])
-	if math.Abs(gotHookD-hookAfter.Durability) > 1e-6 {
-		t.Fatalf("鱼钩 fields_json 耐久未同步: column=%v field=%v", hookAfter.Durability, gotHookD)
+	lureFieldsAfter, _ := FieldsFromJSON(lureAfter.FieldsJSON)
+	gotLureD := rigTestFieldFloat(t, lureFieldsAfter[fieldIdxByCS(lureAfter.WireClass, csDurability)])
+	if math.Abs(gotLureD-lureAfter.Durability) > 1e-6 {
+		t.Fatalf("拟饵 fields_json 耐久未同步: column=%v field=%v", lureAfter.Durability, gotLureD)
 	}
-	if gotVer := u64Of(hookFieldsAfter[hookVerIdx].Num); gotVer <= hookVerBefore {
-		t.Fatalf("鱼钩磨损后版本戳应严格递增: %d -> %d", hookVerBefore, gotVer)
+	if gotVer := u64Of(lureFieldsAfter[lureVerIdx].Num); gotVer <= lureVerBefore {
+		t.Fatalf("拟饵磨损后版本戳应严格递增: %d -> %d", lureVerBefore, gotVer)
 	}
 }
