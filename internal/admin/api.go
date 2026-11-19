@@ -47,6 +47,9 @@ type Server struct {
 
 	// 发布包根目录的「发布说明.md」；为空时按工作目录 / 可执行文件位置查找。
 	releaseNotesPath string
+
+	// 可选图标包按 Server 实例缓存；缺包或坏包保持 404 降级。
+	icons iconArchive
 }
 
 type plog struct{ l logger }
@@ -125,6 +128,8 @@ func NewServer(cfg config.Admin, db *store.DB, log logger, webFS fs.FS) *Server 
 	// 纸地图贴图运行时加载（素材不入仓库，见 paper_maps.go）：
 	// 先于 SPA FileServer 注册，web/ 内已不再内嵌 maps 目录。
 	mux.Handle("GET /maps/", http.HandlerFunc(s.handleMapTextures))
+	// 物品与鱼种图标同理由 ref/ 运行时加载（见 item_icons.go）。
+	mux.Handle("GET /icons/", http.HandlerFunc(s.handleIcons))
 	if webFS != nil {
 		mux.Handle("/", http.FileServer(http.FS(webFS)))
 	}
@@ -343,8 +348,8 @@ func validateEventStageGifts(value string) error {
 		}
 		for stage, gifts := range stages {
 			s, err := strconv.Atoi(stage)
-			if err != nil || s < 1 || s > gameserver.EventStageCount(int64(n)) {
-				return fmt.Errorf("活动分支 %d 的阶段只能是 1~%d", n, gameserver.EventStageCount(int64(n)))
+			if err != nil || s < 0 || s > gameserver.EventStageCount(int64(n)) {
+				return fmt.Errorf("活动分支 %d 的阶段只能是 0~%d（0 表示全部完成）", n, gameserver.EventStageCount(int64(n)))
 			}
 			if len(gifts) == 0 {
 				return fmt.Errorf("阶段奖励 %s/%s 至少要有一件物品", branch, stage)

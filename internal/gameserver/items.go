@@ -40,6 +40,10 @@ var categoryWireClass = map[int64]wireClassEntry{
 	15: {"cjigljdikhe", 138}, // 钢丝/编织前导
 	17: {"ioombppcnlh", 141}, // 拟饵（f0 gpoaffnjbdo=args(60) 出厂钩数组）
 	18: {"bigdipenecj", 124},
+	// 手套：ny_mitts 的六个服装属性对应定义 peomolgjoeh/12017，
+	// 实例为 bdbcnhkogcc/113（同一组六属性 + 物品实例公共字段）。
+	// 协议字段已用 proto.ps1 核对；MMXXVI 领取/穿戴仍需客户端实机回归。
+	21: {"bdbcnhkogcc", 113},
 	22: {"hcahlnccaek", 114},
 	23: {"blpddffbgjg", 115},
 	25: {"nffjdjfkjem", 118},
@@ -249,6 +253,9 @@ func itemStackQtyValue(class string, fields []proto.Field) (uint64, bool) {
 	return u64Of(fields[idx].Num), true
 }
 
+// feedMixWireClass 成品窝料（背包 cat46）实例类。
+const feedMixWireClass = "cilmgoaoofg"
+
 // qtyMirrorIdx 家族类的 UI 计数镜像槽：abmokghdbhf=f0 miecmmbpolk
 // （lillemolakn.medpgjlibog 读），bpmmimcmpof=f1 ljnnpokapig（总数槽），
 // deckldefiap=f2 ljnnpokapig（总数槽），dpghngjmnap/pcngolccead=f0
@@ -259,8 +266,25 @@ func qtyMirrorIdx(class string) int {
 		return fieldIdxByCS(class, "miecmmbpolk")
 	case "bpmmimcmpof", "deckldefiap", "dpghngjmnap", "pcngolccead":
 		return fieldIdxByCS(class, csQty)
+	case feedMixWireClass:
+		// cat46 与上述家族相反：ljnnpokapig(f10) 是权威槽（csQty），
+		// dnmfciolgep(f22) 是 UI 镜像——镜像朝权威对齐，方向别写反。
+		return fieldIdxByCS(class, "dnmfciolgep")
 	}
 	return -1
+}
+
+// ensureFeedMixQty 把成品窝料的数量槽对齐行数量：setItemQty 双写权威槽
+// ljnnpokapig（csQty）与 UI 镜像 dnmfciolgep。只动 wire 不落库——合成路径
+// setStackCountFields 对非 metaQtyFamily 家族只单写 stackQty 槽，镜像槽
+// 落库为 null（存量毒行甚至两槽皆 null），树层补齐即可，存量行自动治愈。
+// f0..f2 成分数组槽的 null 物化不在本函数——那是 #537 projectFeedRecipe
+// 的职责（注册表码 50/52/51），此处不重复。
+func ensureFeedMixQty(it *store.Item, fields []proto.Field) {
+	if it == nil || it.WireClass != feedMixWireClass {
+		return
+	}
+	_ = setItemQty(feedMixWireClass, fields, uint64(it.Qty))
 }
 
 // itemQtyValue 读取实例数量槽；没有数量字段时返回 false。
@@ -376,6 +400,9 @@ func (s *Server) ItemToTree(ctx context.Context, it *store.Item) (*proto.Value, 
 		ensureRodPodSlots(it, fields)
 	}
 	obj := proto.Obj(it.WireClass, uint32(it.TypeID), fields...)
+	if err := s.projectFeedRecipe(ctx, s.DB.SQL, obj, it.GUID); err != nil {
+		return nil, err
+	}
 
 	class := it.WireClass
 	if class == deckClass {
@@ -415,6 +442,7 @@ func (s *Server) ItemToTree(ctx context.Context, it *store.Item) (*proto.Value, 
 			return nil, err
 		}
 	}
+	ensureFeedMixQty(it, obj.Fields)
 	return obj, nil
 }
 
@@ -803,6 +831,10 @@ func (s *Server) rebuildRod(ctx context.Context, it *store.Item, obj *proto.Valu
 			break
 		}
 		sysID, ok := rodPartSystemID(def, attr)
+		old := obj.Fields[i].Val
+		if installed := s.childSystemID(ctx, old); installed != "" {
+			sysID, ok = installed, true
+		}
 		if !ok || sysID == "" {
 			continue
 		}
@@ -815,10 +847,16 @@ func (s *Server) rebuildRod(ctx context.Context, it *store.Item, obj *proto.Valu
 		}
 		// 竿侧受力磨损把子件耐久持久化在 DB 字段树里（applyRodStressWear）：
 		// 现建子件前先把已持久化的耐久合并回来，否则每次快照都会把磨损抹回满值。
-		// 状态位/其余字段仍以现建为准，只合并耐久一项。
-		if old := obj.Fields[i].Val; old != nil && old.Kind == proto.KindObj {
-			if dur := reelChildDurability(old); dur < 1 {
-				setReelChildDurability(child, dur)
+		// 状态位仍按竿槽重建；已安装件保留实例 GUID 和耐久。
+		if old != nil && old.Kind == proto.KindObj {
+			if idx := fieldIdxByCS(old.Class, csGUID); idx >= 0 && idx < old.FieldCount() && old.Fields[idx].Hex != "" {
+				child.Fields[fieldIdxByCS(child.Class, csGUID)].Hex = old.Fields[idx].Hex
+			}
+			if idx := fieldIdxByCS(old.Class, csDurability); idx >= 0 && idx < old.FieldCount() {
+				setReelChildDurability(child, reelChildDurability(old))
+			}
+			if idx := fieldIdxByCS(old.Class, csCreated); idx >= 0 && idx < old.FieldCount() {
+				child.Fields[fieldIdxByCS(child.Class, csCreated)].Num = old.Fields[idx].Num
 			}
 		}
 		obj.Fields[i].Val = child
@@ -862,7 +900,7 @@ func (s *Server) rebuildRod(ctx context.Context, it *store.Item, obj *proto.Valu
 //
 // f5 的 field[2] 是 gcfcdnfmnbh 列表（品类、guid、附加值），客户端工作坊
 // 与装配界面都按它逐行渲染零件。只写 f0..f2 而不登记进 f5 时，零件行为空。
-// 已存在的 guid 不重复添加；非竿或没有 f5 时直接返回。
+// 同品类旧索引由当前部件替换；没有 f5 时直接返回。
 func (s *Server) appendFactoryPartsToRig(ctx context.Context, obj *proto.Value) {
 	if obj == nil || obj.Kind != proto.KindObj || obj.FieldCount() <= 5 {
 		return
@@ -875,15 +913,6 @@ func (s *Server) appendFactoryPartsToRig(ctx context.Context, obj *proto.Value) 
 	if arr == nil {
 		return
 	}
-	seen := map[string]bool{}
-	for _, e := range arr.Items {
-		if e == nil || e.Kind != proto.KindObj || e.FieldCount() < 2 {
-			continue
-		}
-		if g := e.Fields[1].Hex; g != "" {
-			seen[g] = true
-		}
-	}
 	for i := 0; i < 3 && i < obj.FieldCount(); i++ {
 		child := obj.Fields[i].Val
 		if child == nil || child.Kind != proto.KindObj {
@@ -894,7 +923,7 @@ func (s *Server) appendFactoryPartsToRig(ctx context.Context, obj *proto.Value) 
 			continue
 		}
 		g := child.Fields[gidx].Hex
-		if g == "" || seen[g] {
+		if g == "" {
 			continue
 		}
 		var cat uint64
@@ -903,12 +932,21 @@ func (s *Server) appendFactoryPartsToRig(ctx context.Context, obj *proto.Value) 
 				cat = uint64(def.Category)
 			}
 		}
-		arr.Items = append(arr.Items, wiregen.MustMakeObj("gcfcdnfmnbh", map[int]*proto.Value{
+		if cat == 0 {
+			continue
+		}
+		kept := arr.Items[:0]
+		for _, e := range arr.Items {
+			if e != nil && e.Kind == proto.KindObj && e.FieldCount() >= 2 && e.Fields[0].U32() == uint32(cat) {
+				continue
+			}
+			kept = append(kept, e)
+		}
+		arr.Items = append(kept, wiregen.MustMakeObj("gcfcdnfmnbh", map[int]*proto.Value{
 			0: proto.U32(uint32(cat)),
 			1: proto.Guid(g),
 			2: proto.U32(0),
 		}))
-		seen[g] = true
 	}
 }
 

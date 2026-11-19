@@ -14,7 +14,7 @@ button,input,select,textarea{font:inherit;color:var(--text)}button{cursor:pointe
 .view{display:none;animation:fade .2s ease}@keyframes fade{from{opacity:.3;transform:translateY(4px)}to{opacity:1;transform:none}}.view.on{display:block}
 .grid{display:grid;gap:16px}.stats{grid-template-columns:repeat(4,minmax(0,1fr))}.card{background:linear-gradient(160deg,var(--panel),var(--bg2));border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);padding:18px}.stat .k{color:var(--muted);font-size:12px}.stat .v{font-size:30px;font-weight:800;margin:6px 0}.stat .s{font-size:11px;color:var(--accent2)}.section-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:14px}.section-head h2{font-size:16px;margin:0}.section-head small{color:var(--muted)}.toolbar{display:flex;gap:9px;align-items:center;flex-wrap:wrap}.toolbar .grow{flex:1;min-width:190px}.split{display:grid;grid-template-columns:340px minmax(0,1fr);gap:16px;align-items:start}.player-list{max-height:calc(100vh - 170px);overflow:auto}.player-row{display:flex;justify-content:space-between;gap:10px;padding:11px;border-radius:11px;border:1px solid transparent;cursor:pointer}.player-row:hover,.player-row.on{background:#14273b;border-color:#2a4963}.player-row .n{font-weight:700}.player-row .id{font-size:11px;color:var(--muted)}.pill{display:inline-flex;align-items:center;gap:5px;border-radius:999px;padding:3px 8px;background:#1c3148;color:#bcd1e4;font-size:11px}.pill.ok{background:#123a2e;color:#6ff0b7}.pill.bad{background:#441d28;color:#ff91a1}.online-dot{width:9px;height:9px;border-radius:50%;display:inline-block;flex:none}.online-dot.on{background:var(--ok);box-shadow:0 0 8px var(--ok)}.online-dot.off{background:var(--danger);box-shadow:0 0 6px #ff617866}.player-flags{display:flex;align-items:center;gap:8px;flex:none}.legend{display:inline-flex;align-items:center;gap:6px;color:var(--muted);font-size:11px;white-space:nowrap}.empty{padding:42px 16px;text-align:center;color:var(--muted)}
 .player-hero{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;margin-bottom:16px}.player-hero h2{margin:0;font-size:21px}.player-hero .sub{color:var(--muted);font-size:12px}.tabs{display:flex;gap:6px;border-bottom:1px solid var(--line);margin:12px 0 16px;overflow:auto}.tabs button{background:none;border:0;border-bottom:2px solid transparent;color:var(--muted);padding:9px 12px}.tabs button.on{color:#fff;border-color:var(--accent)}.form-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}.field label{display:block;color:var(--muted);font-size:11px;margin:0 0 5px}.field.span2{grid-column:span 2}.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:13px}
-.table-wrap{overflow:auto;border:1px solid var(--line);border-radius:12px}table{width:100%;border-collapse:collapse;font-size:12.5px}th,td{padding:10px 11px;text-align:left;border-bottom:1px solid var(--line);white-space:nowrap}th{position:sticky;top:0;background:#101e2d;color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.04em;z-index:1}tr:last-child td{border-bottom:0}tbody tr:hover{background:#15263a}.mono{font-family:Consolas,monospace}.mini-input{padding:6px 8px;border-radius:7px;min-width:72px}.tag{font-size:10px;padding:2px 6px;border-radius:5px;background:#25405b}.tag.gold{background:#493c1d;color:#ffd479}.tag.blue{background:#183e60;color:#84d5ff}.muted{color:var(--muted)}.right{text-align:right}.danger-text{color:#ff8797}
+.table-wrap{overflow:auto;border:1px solid var(--line);border-radius:12px}table{width:100%;border-collapse:collapse;font-size:12.5px}th,td{padding:10px 11px;text-align:left;border-bottom:1px solid var(--line);white-space:nowrap}th{position:sticky;top:0;background:#101e2d;color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.04em;z-index:1}tr:last-child td{border-bottom:0}tbody tr:hover{background:#15263a}.mono{font-family:Consolas,monospace}.mini-input{padding:6px 8px;border-radius:7px;min-width:72px}.item-cell{display:flex;align-items:center;gap:12px}.fish-icon{width:80px;height:40px;object-fit:contain;flex:0 0 80px;border-radius:8px;cursor:zoom-in;transition:transform .16s ease,box-shadow .16s ease;transform-origin:left center}.fish-icon:hover{transform:scale(1.6);box-shadow:0 14px 34px #000c}.item-icon{width:52px;height:52px;object-fit:contain;border-radius:8px;background:#0b1726;border:1px solid var(--line);padding:3px;flex:0 0 52px;cursor:zoom-in;transition:transform .16s ease,box-shadow .16s ease,border-color .16s ease;transform-origin:left center}.item-icon:hover{transform:scale(2.4);box-shadow:0 14px 34px #000c;border-color:var(--accent)}tbody tr:has(.item-icon:hover){position:relative;z-index:12}.table-wrap:has(.item-icon:hover){overflow:visible}.tag{font-size:10px;padding:2px 6px;border-radius:5px;background:#25405b}.tag.gold{background:#493c1d;color:#ffd479}.tag.blue{background:#183e60;color:#84d5ff}.muted{color:var(--muted)}.right{text-align:right}.danger-text{color:#ff8797}
 .skills{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.skill{border:1px solid var(--line);border-radius:12px;padding:12px;background:#0e1b29}.skill .top{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}.skill .top>div{min-width:0;overflow-wrap:anywhere}.skill .top>.pill{flex:none}.skill .edit .btn{flex:none;white-space:nowrap}.bar{height:7px;background:#08111b;border-radius:8px;overflow:hidden}.bar i{display:block;height:100%;background:linear-gradient(90deg,#32c9a3,#43a9ff)}.skill .edit{display:flex;gap:8px;margin-top:10px;align-items:center}.skill input{min-width:0;padding:7px 9px}.fish-table td{white-space:normal}.switch{appearance:none;width:38px;height:21px;border-radius:20px;background:#26394d;position:relative;cursor:pointer;border:1px solid #38506a;padding:0}.switch:after{content:"";position:absolute;width:15px;height:15px;border-radius:50%;background:#91a6ba;top:2px;left:2px;transition:.18s}.switch:checked{background:#1b725a}.switch:checked:after{left:19px;background:#b9ffe9}
 .modal-bg{position:fixed;inset:0;background:#02070dcc;backdrop-filter:blur(5px);display:none;align-items:center;justify-content:center;padding:20px;z-index:50}.modal-bg.on{display:flex}.modal{background:#101d2b;border:1px solid #2a465f;border-radius:18px;box-shadow:0 28px 90px #000c;width:min(760px,96vw);max-height:90vh;overflow:auto;padding:20px}.modal h3{margin:0 0 4px}.modal .sub{color:var(--muted);font-size:12px;margin-bottom:16px}.results{margin-top:9px;max-height:260px;overflow:auto;border:1px solid var(--line);border-radius:10px}.result{padding:9px 11px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;gap:10px;cursor:pointer}.result:hover{background:#172b40}.result:last-child{border:0}.attach-row{display:grid;grid-template-columns:1fr 90px 38px;gap:8px;margin-bottom:8px}.mail-box{display:grid;grid-template-columns:1fr 340px;gap:16px}.log{max-height:250px;overflow:auto;font:12px/1.6 Consolas,monospace;background:#08121d;border-radius:10px;padding:12px;color:#a9bed3}
 .toast{position:fixed;right:22px;bottom:22px;display:flex;flex-direction:column;gap:8px;z-index:80}.toast div{padding:11px 14px;border-radius:11px;background:#17364b;border:1px solid #2d6680;box-shadow:var(--shadow);animation:in .2s ease}@keyframes in{from{opacity:0;transform:translateX(15px)}to{opacity:1;transform:none}}.toast .bad{background:#481f2a;border-color:#7a3443}.toast .ok{background:#143b31;border-color:#286a58}
@@ -179,8 +179,8 @@ body.notice-on #view-fish.on{height:max(600px,calc(100vh - 204px))}
 
 /* 参数行式布局：左标签+说明，右数值+操作，双列排布 */
 .params-tabs{display:flex;gap:8px;flex-wrap:wrap;margin:2px 0 14px;padding-bottom:12px;border-bottom:1px solid var(--line)}.params-tab{padding:8px 16px;border:1px solid var(--line);background:var(--panel2);color:var(--muted);border-radius:8px;cursor:pointer;font:inherit;font-size:13px;line-height:1.3;transition:background .12s,color .12s,border-color .12s}.params-tab:hover{color:var(--text);border-color:var(--accent)}.params-tab.on{background:rgba(66,184,255,.14);border-color:var(--accent);color:var(--accent);font-weight:600}.params-tab small{display:block;font-weight:400;font-size:11px;opacity:.75;margin-top:1px}.tunable-group+.tunable-group{margin-top:18px}.tunable-group h3{font-size:14px;margin:0 0 2px}.tunable-fields{display:grid;grid-template-columns:1fr 1fr;gap:0 34px}.tunable-field{display:flex;gap:14px;align-items:center;justify-content:space-between;min-width:0;padding:9px 0;border-bottom:1px solid var(--line)}.tunable-field.tunable-wide{grid-column:1/-1}.tunable-field>div:first-child{flex:1;min-width:0}.tunable-field label{display:block;color:var(--text);margin:0;font-weight:600;overflow-wrap:anywhere}.tunable-field .tunable-hint{margin-top:2px}.tunable-field>div:last-child{display:flex;gap:8px;align-items:center;flex:none}.tunable-field.tunable-wide>div:last-child{flex-wrap:wrap;justify-content:flex-end}.tunable-field input{width:132px;min-width:0;flex:none;padding:7px 9px}.tunable-field input[type=number]{-moz-appearance:textfield}.tunable-field input[type=number]::-webkit-outer-spin-button,.tunable-field input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}.tunable-field button{flex:none}.section-head{flex-wrap:wrap}
-.event-gift-card{padding:14px 16px;background:linear-gradient(150deg,#132a3b,#0d1b29);border-color:#2a526c}.event-gift-intro{display:flex;gap:12px;align-items:flex-start;margin:8px 0 14px;padding:11px 12px;border:1px solid #28516a;border-radius:11px;background:#0b1b2a;color:#b7cada;font-size:12px}.event-gift-intro .mark{flex:none;width:23px;height:23px;border-radius:8px;background:#1d688c;color:#c9f1ff;display:grid;place-items:center;font-weight:800}.event-gift-selector{display:grid;grid-template-columns:minmax(0,1fr) 180px auto;gap:10px;align-items:end;padding:12px;border:1px solid #31536b;border-radius:12px;background:#0c1927}.event-gift-selector label{display:block;color:var(--muted);font-size:11px;margin-bottom:5px}.event-gift-selector select{width:100%}.event-gift-selector .state{font-size:12px;color:var(--muted);padding-bottom:10px;white-space:nowrap}.event-gift-plans{display:grid;gap:10px;margin-top:10px}.event-gift-plan{padding:12px;border:1px solid var(--line);border-radius:12px;background:#0c1927}.event-gift-plan-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px}.event-gift-plan-head .event-gift-index{color:var(--muted);font-size:12px;margin-right:auto}.event-gift-items{display:grid;gap:8px}.event-gift-item{display:grid;grid-template-columns:minmax(0,1fr) 100px auto;gap:8px;align-items:center}.event-gift-item .picked{display:flex;align-items:center;gap:8px;min-width:0;padding:7px 9px;border:1px solid var(--line);border-radius:10px;background:#09131f}.event-gift-item .picked b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.event-gift-item .picked span{color:var(--muted);font:11px Consolas,monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.event-gift-item .qty{width:100px}.event-gift-item button{white-space:nowrap}.event-gift-preview{margin-top:12px;padding:10px 12px;border:1px dashed #31536b;border-radius:10px;background:#091521}.event-gift-preview summary{cursor:pointer;color:#b9d4e8;font-size:12px}.event-gift-preview pre{margin:8px 0 0;white-space:pre-wrap;overflow-wrap:anywhere;color:#8fb1c8;font:11px/1.5 Consolas,monospace}.event-gift-empty{padding:24px 12px;border:1px dashed var(--line);border-radius:10px;color:var(--muted);text-align:center}.event-gift-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:12px}.event-gift-actions .hint{color:var(--muted);font-size:11px;margin-left:auto}.event-gift-card .tunable-hint{max-width:900px}.event-gift-picker-groups{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}.event-gift-picker-groups button{border:1px solid var(--line);border-radius:8px;background:#0c1927;color:var(--muted);padding:6px 9px;font-size:12px}.event-gift-picker-groups button.on{border-color:var(--accent);background:#12324b;color:#d9f1ff}.event-gift-picker-results{max-height:360px;overflow:auto}.event-gift-picker-results .result button{width:100%;border:0;background:transparent;color:inherit;text-align:left;padding:0;display:flex;justify-content:space-between;gap:12px;align-items:center}
-@media(max-width:720px){.event-gift-selector{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.event-gift-selector .state{grid-column:1/-1;padding-bottom:0}.event-gift-item{grid-template-columns:minmax(0,1fr) 84px auto}.event-gift-item button{font-size:11px;padding:6px 8px}.event-gift-actions .hint{width:100%;margin-left:0}}
+.event-gift-card{padding:14px 16px;background:linear-gradient(150deg,#132a3b,#0d1b29);border-color:#2a526c}.event-gift-intro{display:flex;gap:12px;align-items:flex-start;margin:8px 0 14px;padding:11px 12px;border:1px solid #28516a;border-radius:11px;background:#0b1b2a;color:#b7cada;font-size:12px}.event-gift-selector{display:grid;grid-template-columns:minmax(0,1fr) 180px;gap:10px;align-items:end;padding:12px;border:1px solid #31536b;border-radius:12px;background:#0c1927}.event-gift-selector label{display:block;color:var(--muted);font-size:11px;margin-bottom:5px}.event-gift-selector select{width:100%}.event-gift-plans{display:grid;gap:10px;margin-top:10px}.event-gift-plan{padding:12px;border:1px solid var(--line);border-radius:12px;background:#0c1927}.event-gift-plan-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px}.event-gift-plan-head .event-gift-index{color:var(--muted);font-size:12px;margin-right:auto}.event-gift-items{display:grid;gap:8px}.event-gift-item{display:grid;grid-template-columns:minmax(0,1fr) 100px auto;gap:8px;align-items:center}.event-gift-item .picked{display:flex;align-items:center;gap:8px;min-width:0;padding:7px 9px;border:1px solid var(--line);border-radius:10px;background:#09131f}.event-gift-item .picked b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.event-gift-item .picked span{color:var(--muted);font:11px Consolas,monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.event-gift-item .qty{width:100px}.event-gift-item button{white-space:nowrap}.event-gift-preview{margin-top:12px;padding:10px 12px;border:1px dashed #31536b;border-radius:10px;background:#091521}.event-gift-preview summary{cursor:pointer;color:#b9d4e8;font-size:12px}.event-gift-preview pre{margin:8px 0 0;white-space:pre-wrap;overflow-wrap:anywhere;color:#8fb1c8;font:11px/1.5 Consolas,monospace}.event-gift-empty{padding:24px 12px;border:1px dashed var(--line);border-radius:10px;color:var(--muted);text-align:center}.event-gift-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:12px}.event-gift-actions .hint{color:var(--muted);font-size:11px;margin-left:auto}.event-gift-card .tunable-hint{max-width:900px}.event-gift-picker-groups{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}.event-gift-picker-groups button{border:1px solid var(--line);border-radius:8px;background:#0c1927;color:var(--muted);padding:6px 9px;font-size:12px}.event-gift-picker-groups button.on{border-color:var(--accent);background:#12324b;color:#d9f1ff}.event-gift-picker-results{max-height:360px;overflow:auto}.event-gift-picker-results .result button{width:100%;border:0;background:transparent;color:inherit;text-align:left;padding:0;display:flex;justify-content:space-between;gap:12px;align-items:center}
+@media(max-width:720px){.event-gift-selector{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.event-gift-item{grid-template-columns:minmax(0,1fr) 84px auto}.event-gift-item button{font-size:11px;padding:6px 8px}.event-gift-actions .hint{width:100%;margin-left:0}}
 .params-tabs{display:flex;gap:8px;flex-wrap:wrap;margin:2px 0 14px;padding-bottom:12px;border-bottom:1px solid var(--line)}.params-tab{padding:8px 16px;border:1px solid var(--line);background:var(--panel2);color:var(--muted);border-radius:8px;cursor:pointer;font:inherit;font-size:13px;line-height:1.3;transition:background .12s,color .12s,border-color .12s}.params-tab:hover{color:var(--text);border-color:var(--accent)}.params-tab.on{background:rgba(66,184,255,.14);border-color:var(--accent);color:var(--accent);font-weight:600}.params-tab small{display:block;font-weight:400;font-size:11px;opacity:.75;margin-top:1px}.tunable-group+.tunable-group{margin-top:18px}.tunable-group h3{font-size:14px;margin:0 0 2px}.tunable-fields{display:grid;grid-template-columns:1fr 1fr;gap:0 34px}.tunable-field{display:flex;gap:14px;align-items:center;justify-content:space-between;min-width:0;padding:9px 0;border-bottom:1px solid var(--line)}.tunable-field.tunable-wide{grid-column:1/-1}.tunable-field>div:first-child{flex:1;min-width:0}.tunable-field label{display:block;color:var(--text);margin:0;font-weight:600;overflow-wrap:anywhere}.tunable-field .tunable-hint{margin-top:2px}.tunable-field>div:last-child{display:flex;gap:8px;align-items:center;flex:none}.tunable-field.tunable-wide>div:last-child{flex-wrap:wrap;justify-content:flex-end}.tunable-field input{width:132px;min-width:0;flex:none;padding:7px 9px}.tunable-field input[type=number]{-moz-appearance:textfield}.tunable-field input[type=number]::-webkit-outer-spin-button,.tunable-field input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}.tunable-field button{flex:none}.section-head{flex-wrap:wrap}
 .grade-ratio-card{grid-column:1/-1;padding:14px 16px;border:1px solid var(--line);border-radius:12px;background:#0b1724}.grade-ratio-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:12px}.grade-ratio-head b{font-size:13px}.grade-ratio-summary{font-size:12px;color:var(--muted);overflow-wrap:anywhere}.grade-ratio-bar{display:flex;height:10px;border-radius:999px;overflow:hidden;background:#08111b;margin:10px 0 14px}.grade-ratio-bar i{display:block;min-width:0;transition:width .16s}.grade-ratio-row{display:grid;grid-template-columns:78px minmax(120px,1fr) 58px;align-items:center;gap:10px;margin:8px 0}.grade-ratio-row input[type=range]{width:100%;padding:0;border:0;box-shadow:none;accent-color:var(--accent)}.grade-ratio-row .share{font-family:Consolas,monospace;font-size:12px;text-align:right;color:var(--text)}.grade-ratio-actions{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;margin-top:12px}@media(max-width:720px){.grade-ratio-row{grid-template-columns:64px minmax(90px,1fr) 52px}.grade-ratio-head{display:block}.grade-ratio-summary{margin-top:6px}}
 #storeSummary{max-width:100%;overflow-wrap:anywhere}
@@ -236,7 +236,7 @@ body.notice-on #view-fish.on{height:max(600px,calc(100vh - 204px))}
       <button data-view="stores" onclick="go('stores')"><span class="ico"><svg viewBox="0 0 24 24"><path d="M21 8v12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V8"/><path d="M2 4h20v4H2z"/><path d="M10 12h4"/></svg></span><span class="txt"><b>商店与库存</b><small>改货架价格和库存</small></span></button>
       <button data-view="fish" onclick="go('fish')"><span class="ico"><svg viewBox="0 0 24 24"><path d="M6.5 12c1.2-3.3 4.3-5.5 7.5-5.5 3.5 0 6 2.5 7 5.5-1 3-3.5 5.5-7 5.5-3.2 0-6.3-2.2-7.5-5.5Z"/><path d="M17.5 11v.01"/><path d="M6.5 12 3 9v6l3.5-3Z"/></svg></span><span class="txt"><b>钓场与鱼口</b><small>玩法开关 · 出什么鱼 · 咬钩快慢</small></span></button>
       <button data-view="hooks" onclick="go('hooks')"><span class="ico"><svg viewBox="0 0 24 24"><path d="M15 3v10a6 6 0 1 1-12 0V9"/><path d="M15 3l3 3-3 3"/></svg></span><span class="txt"><b>钩子手感</b><small>真实型号 · 入口容量 · 咬口概率</small></span></button>
-      <button data-view="bait" onclick="go('bait')"><span class="ico"><svg viewBox="0 0 24 24"><path d="M12 3c3 4 5.5 7.4 5.5 10a5.5 5.5 0 0 1-11 0C6.5 10.4 9 7 12 3Z"/><path d="M9.8 13.5a2.2 2.2 0 0 0 2.2 2.2"/></svg></span><span class="txt"><b>鱼饵偏好</b><small>每种鱼爱吃的饵：规则 + 实证</small></span></button>
+      <button data-view="bait" onclick="go('bait')"><span class="ico"><svg viewBox="0 0 24 24"><path d="M12 3c3 4 5.5 7.4 5.5 10a5.5 5.5 0 0 1-11 0C6.5 10.4 9 7 12 3Z"/><path d="M9.8 13.5a2.2 2.2 0 0 0 2.2 2.2"/></svg></span><span class="txt"><b>鱼饵偏好</b><small>每种鱼爱吃的饵：规则 + 官服占比 + 实证</small></span></button>
       <button data-view="mail" onclick="go('mail')"><span class="ico"><svg viewBox="0 0 24 24"><rect x="2.5" y="5" width="19" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg></span><span class="txt"><b>邮件</b><small>发消息和物品附件</small></span></button>
       <button data-view="params" onclick="go('params')"><span class="ico"><svg viewBox="0 0 24 24"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1.5 14h5M9.5 8h5M17.5 16h5"/></svg></span><span class="txt"><b>游戏参数</b><small>玩法手感 · 经验结算倍率</small></span></button>
       <button data-view="release" onclick="go('release')"><span class="ico"><svg viewBox="0 0 24 24"><path d="M5 3h10l4 4v14H5z"/><path d="M9 9h6M9 13h6M9 17h4"/></svg></span><span class="txt"><b>发布说明</b><small>版本更新 · 修复内容</small></span></button>
@@ -260,7 +260,7 @@ body.notice-on #view-fish.on{height:max(600px,calc(100vh - 204px))}
     <section class="view" id="view-stores"><div class="card"><div class="toolbar"><select id="storeSelect" class="grow" onchange="loadStoreItems()"></select><input id="storeSearch" placeholder="搜索商品 / 名称" onkeydown="if(event.key==='Enter')loadStoreItems()"><button class="btn" onclick="loadStoreItems()">查询</button></div><div id="storeSummary" class="muted" style="margin:12px 0"></div><div class="table-wrap" id="storeTable"></div></div></section>
     <section class="view" id="view-fish"><div class="card" id="fishRulesCard" style="margin-bottom:12px"><div class="rules-strip"><h2>鱼口模式</h2><span id="biteModeInline" style="display:inline-flex;align-items:center;gap:6px;flex-wrap:wrap"><span id="biteModeBody">读取中…</span></span><small class="muted" id="biteModeStatus"></small></div><div class="rules-strip" style="margin-top:8px"><label class="rule-item"><span>硬性鱼口约束</span><input type="checkbox" class="switch" id="biteGateSwitch" disabled onchange="toggleFishRules('gate',this)"></label><label class="rule-item"><span>逐鱼种生态</span><input type="checkbox" class="switch" id="fishEcologySwitch" disabled onchange="toggleFishRules('ecology',this)"></label><label class="rule-item"><span>鱼群随机分布</span><input type="checkbox" class="switch" id="fishDistributionSwitch" disabled onchange="toggleFishRules('distribution',this)"></label><label class="rule-item"><span>鱼类吃饵偏好</span><input type="checkbox" class="switch" id="fishRulesSwitch" disabled onchange="toggleFishRules('bait',this)"></label><label class="rule-item"><span>天气与温度鱼口</span><input type="checkbox" class="switch" id="fishWeatherSwitch" disabled onchange="toggleFishRules('weather',this)"></label><label class="rule-item"><span>欢乐时光</span><input type="checkbox" class="switch" id="happyHourSwitch" disabled onchange="toggleFishRules('happy',this)"></label><small class="muted" id="rulesStatus"></small><button class="btn alt sm" id="rulesHelpBtn" aria-expanded="false" onclick="toggleRulesHelp()">说明 ⌄</button></div><div id="rulesHelp" hidden><p class="muted" style="margin:0 0 8px">各项独立保存；硬性约束、生态、天气、饵料和分布规则默认关闭，欢乐时光默认开启。上方「鱼口模式」一键切换五项组合。</p><div class="rule-help"><b>硬性鱼口约束</b><span id="biteGateMessage" role="status">正在读取开关。</span></div><div class="rule-help"><b>逐鱼种生态</b><span id="fishEcologyMessage" role="status">正在读取开关。</span></div><div class="rule-help"><b>鱼群随机分布</b><span id="fishDistributionMessage" role="status">正在读取开关。</span></div><div class="rule-help"><b>鱼类吃饵偏好</b><span id="fishRulesMessage" role="status">正在读取开关。</span></div><div class="rule-help"><b>天气与温度鱼口</b><span id="fishWeatherMessage" role="status">正在读取开关。</span></div><div class="rule-help"><b>欢乐时光</b><span id="happyHourMessage" role="status">正在读取开关。</span></div></div></div><div class="grid fish-layout" style="grid-template-columns:270px minmax(0,1fr)"><div class="card"><div class="section-head"><h2>水域</h2></div><input id="fishSearch" placeholder="筛选水域" oninput="renderFishAreas()"><div id="fishAreas"></div></div><div class="card" id="fishEditor"><div class="empty">选择水域配置鱼口</div></div></div></section>
     <section class="view" id="view-hooks"><div class="card"><div class="section-head"><div><h2>真实钩子型号档案</h2><small>物理数据来自 item_def；倍率和兜底值只影响咬口，不改钩子拉力</small></div></div><div class="toolbar"><input class="grow" id="hookSearch" placeholder="搜索 item_id / 厂牌，如 triple_20686、simmons" onkeydown="if(event.key==='Enter')loadHookProfiles()"><select id="hookSize"><option value="">全部尺寸</option></select><select id="hookFamily"><option value="">全部钩型族</option><option value="classic">Classic</option><option value="carp">Carp</option><option value="treble">Treble</option><option value="jighead">Jighead</option><option value="offset">Offset</option><option value="marine">Marine</option><option value="other">Other</option></select><button class="btn" onclick="loadHookProfiles()">查询</button></div><p class="muted" style="margin:10px 0">默认倍率 1.0、兜底值 0；修改后写入审计，最多 30 秒由主服热加载。入口容量按真实钩体长度计算。</p><div class="table-wrap" id="hookProfilesTable"><div class="empty">读取中…</div></div></div></section>
-    <section class="view" id="view-bait"><div class="card"><div class="section-head"><div><h2>鱼饵偏好</h2><small id="baitSummary" class="muted">正在读取…</small></div></div><div class="toolbar"><input class="grow" id="baitSearch" placeholder="搜索鱼种 key / 中文名，如 pike、狗鱼" onkeydown="if(event.key==='Enter')loadBaitPrefs()"><input id="baitLoc" placeholder="水域（可选）" onkeydown="if(event.key==='Enter')loadBaitPrefs()"><select id="baitFilter" onchange="loadBaitPrefs()"><option value="">全部鱼种</option><option value="tier3">有 tier3 饵</option><option value="norule">规则表无条目</option><option value="rule">规则表有条目</option></select><button class="btn" onclick="loadBaitPrefs()">查询</button></div><p class="muted" style="margin:10px 0">规则来自编译进服务端的 fishing_bait_rules.txt（严格模式生效）；tier 来自 companion_bait_fish 实证（tier3 权重×8 / tier2 ×4 / 在列 ×2）；「证据」是实证条数。点击行展开全部饵；点右侧「编辑」可改吃/不吃/底钓只吃并配置多组轮换。</p><div class="table-wrap" id="baitTable"></div></div></section>
+    <section class="view" id="view-bait"><div class="card"><div class="section-head"><div><h2>鱼饵偏好</h2><small id="baitSummary" class="muted">正在读取…</small></div></div><div class="toolbar"><input class="grow" id="baitSearch" placeholder="搜索鱼种 key / 中文名，如 pike、狗鱼" onkeydown="if(event.key==='Enter')loadBaitPrefs()"><input id="baitLoc" placeholder="水域（可选）" onkeydown="if(event.key==='Enter')loadBaitPrefs()"><select id="baitFilter" onchange="loadBaitPrefs()"><option value="">全部鱼种</option><option value="tier3">有 tier3 饵</option><option value="norule">规则表无条目</option><option value="rule">规则表有条目</option></select><button class="btn" onclick="loadBaitPrefs()">查询</button></div><p class="muted" style="margin:10px 0">三套证据并列：<b>规则</b>来自编译进服务端的 fishing_bait_rules.txt（严格模式生效）；<b>官服占比</b>来自 rf4records.com 全量渔获纪录（581,304 条，单饵样本 ≥5 才计入，占比 ≥5% 直接满档）；<b>tier</b> 来自 companion_bait_fish 实证（tier3 ×8 / tier2 ×4 / 在列 ×2）。最右「吃不吃」把三者过一遍判鱼逻辑，给出人话结论。点击行展开全部饵；点右侧「编辑」可改吃/不吃/底钓只吃并配置多组轮换。</p><div class="table-wrap" id="baitTable"></div></div></section>
     <section class="view" id="view-mail"><div class="mail-box"><div class="card"><div class="section-head"><h2>撰写邮件</h2><small>队列约 2 秒内由主服投递</small></div><div class="form-grid" style="grid-template-columns:1fr 1fr"><div class="field"><label>收件人 UID</label><input id="mailUid" type="number"></div><div class="field"><label>快捷载入玩家</label><input id="mailPlayerSearch" placeholder="搜索并回车" onkeydown="if(event.key==='Enter')findMailPlayer()"></div></div><div class="field" style="margin-top:12px"><label>邮件正文</label><textarea id="mailText" placeholder="写给玩家的消息…"></textarea></div><div class="section-head" style="margin-top:14px"><h2>附件</h2><button class="btn alt sm" onclick="addAttachment()">+ 添加附件</button></div><div id="attachments"></div><div class="actions"><button class="btn good" onclick="sendMail()">发送邮件</button><button class="btn alt" onclick="previewMail()">预览</button></div></div><div class="card"><div class="section-head"><h2>发送预览</h2></div><div id="mailPreview" class="empty">填写邮件后点击预览</div><div class="section-head" style="margin-top:20px"><h2>常用模板</h2></div><div class="actions"><button class="btn alt sm" onclick="mailTemplate('补偿')">补偿邮件</button><button class="btn alt sm" onclick="mailTemplate('活动奖励')">活动奖励</button><button class="btn alt sm" onclick="mailTemplate('测试')">测试邮件</button></div></div></div></section>
     <section class="view" id="view-params"><div class="card"><div class="section-head"><h2>游戏参数</h2><small>保存后按参数类型生效；部分服务端参数约 30 秒生效，活动奖励必须重启游戏客户端并重新登录</small></div><div class="params-tabs" id="paramsTabs"></div><div id="paramsBody"></div></div></section>
     <section class="view" id="view-release"><div class="card release-card"><div class="section-head"><div><h2>发布说明</h2><p class="muted">读取发布包内的 发布说明.md</p></div><button class="btn alt sm" onclick="loadReleaseNotes()">刷新</button></div><div class="markdown-body release-markdown" id="releaseBody"><div class="empty">读取中…</div></div></div></section>
@@ -344,7 +344,7 @@ async function boot(){
     const initial=location.hash.slice(1);go(titles[initial]?initial:'dashboard',true);if(!REFRESH_TIMER)REFRESH_TIMER=setInterval(()=>{if(!TOKEN)return;if(VIEW==='dashboard')loadDashboard(false).catch(()=>{});else if(VIEW==='players')loadPlayers(true).catch(()=>{})},8000);
   }catch(e){logout()}
 }
-const titles={dashboard:['总览','服务器正常吗 · 谁在玩 · 最近改了什么'],players:['玩家管理','档案 · 资产 · 背包 · 护鱼网 · 技能'],stores:['商店与库存','覆盖货架价格与库存，即时生效'],fish:['钓场与鱼口','玩法开关 · 各水域出什么鱼 · 咬钩快慢'],hooks:['钩子手感','真实型号 · 入口容量 · 咬口概率'],bait:['鱼饵偏好','每种鱼爱吃的饵料：规则表条目 + 饵效证据'],mail:['邮件','给玩家发消息和物品附件'],params:['游戏参数','玩法手感与经验结算倍率，随时可调回默认'],audit:['审计日志','后台每次操作的留痕'],release:['发布说明','发布包内的版本更新 · 修复内容'],about:['关于','项目说明 · README.md']};
+const titles={dashboard:['总览','服务器正常吗 · 谁在玩 · 最近改了什么'],players:['玩家管理','档案 · 资产 · 背包 · 护鱼网 · 技能'],stores:['商店与库存','覆盖货架价格与库存，即时生效'],fish:['钓场与鱼口','玩法开关 · 各水域出什么鱼 · 咬钩快慢'],hooks:['钩子手感','真实型号 · 入口容量 · 咬口概率'],bait:['鱼饵偏好','每种鱼爱吃的饵料：规则表 + 官服占比 + 饵效证据'],mail:['邮件','给玩家发消息和物品附件'],params:['游戏参数','玩法手感与经验结算倍率，随时可调回默认'],audit:['审计日志','后台每次操作的留痕'],release:['发布说明','发布包内的版本更新 · 修复内容'],about:['关于','项目说明 · README.md']};
 function go(name,fromHash=false){
   if(!titles[name])name='dashboard';
   VIEW=name;document.querySelectorAll('.nav button').forEach(b=>b.classList.toggle('on',b.dataset.view===name));
@@ -474,7 +474,7 @@ function eventStageGiftRows(raw){
     if(!stages||typeof stages!=='object'||Array.isArray(stages))continue;
     for(const [stage,gifts] of Object.entries(stages)){
       if(!Array.isArray(gifts))continue;
-      rows.push({branch:Number(branch)||9,stage:Number(stage)||1,gifts:gifts.map(g=>({item:String(g?.item??''),name:String(g?.name??''),qty:Math.max(1,Math.min(99,Number(g?.qty)||1))}))});
+      rows.push({branch:Number(branch)||9,stage:Number(stage),gifts:gifts.map(g=>({item:String(g?.item??''),name:String(g?.name??''),qty:Math.max(1,Math.min(99,Number(g?.qty)||1))}))});
     }
   }
   rows.sort((a,b)=>a.branch-b.branch||a.stage-b.stage);
@@ -495,12 +495,13 @@ function eventGiftDisabledReason(t=lastTunables){
 function eventGiftCanEdit(){return !eventGiftDisabledReason()&&eventGiftConfiguredBranches().includes(EVENT_GIFT_SELECTED.branch)}
 function eventGiftStageCount(branch){return EVENT_BRANCH_LABELS[branch]?([14,18].includes(Number(branch))?10:7):0}
 function eventGiftStageOptions(selected){
-  return Array.from({length:eventGiftStageCount(EVENT_GIFT_SELECTED.branch)},(_,i)=>i+1).map(n=>`<option value="${n}"${Number(selected)===n?' selected':''}>阶段 ${n}</option>`).join('')||'<option value="">暂无可选阶段</option>';
+  const count=eventGiftStageCount(EVENT_GIFT_SELECTED.branch);
+  return count?Array.from({length:count+1},(_,i)=>i).map(n=>`<option value="${n}"${Number(selected)===n?' selected':''}>${n===0?'全部完成额外奖励':`阶段 ${n}`}</option>`).join(''):'<option value="">暂无可选阶段</option>';
 }
 function eventStageGiftSavedSelection(){
   try{
     const v=JSON.parse(localStorage.getItem(EVENT_STAGE_SELECTION_KEY)||'null');
-    if(v&&EVENT_BRANCH_LABELS[v.branch]&&Number(v.stage)>=1&&Number(v.stage)<=eventGiftStageCount(v.branch))return {branch:Number(v.branch),stage:Number(v.stage)};
+    if(v&&EVENT_BRANCH_LABELS[v.branch]&&Number(v.stage)>=0&&Number(v.stage)<=eventGiftStageCount(v.branch))return {branch:Number(v.branch),stage:Number(v.stage)};
   }catch(e){}
   return null;
 }
@@ -540,15 +541,15 @@ async function hydrateEventStageGiftNames(){
 }
 function eventGiftPlanHTML(plan){
   const gifts=plan?.gifts||[];
-  return `<article class="event-gift-plan"><div class="event-gift-plan-head"><span class="event-gift-index">当前阶段奖励</span><span class="pill">${gifts.length?`已选 ${gifts.length} 种物品`:'暂无奖励'}</span></div>
-    ${gifts.length?`<div class="event-gift-items">${gifts.map((gift,j)=>`<div class="event-gift-item" data-item="${esc(gift.item)}" data-name="${esc(gift.name)}"><button class="picked" type="button" onclick="openEventStageGiftPicker(${j})"><b>${esc(eventGiftName(gift))}</b><span>${esc(gift.item||'点击选择物品')}</span></button><input class="qty" type="number" aria-label="物品数量" min="1" max="99" step="1" value="${gift.qty}" oninput="eventStageGiftRead()"><button class="btn alt sm" onclick="removeEventStageGiftItem(${j})">移除物品</button></div>`).join('')}</div>`:'<div class="event-gift-empty">这个阶段没有奖励配置。点击“添加奖励物品”，从商店商品中选择。</div>'}
-    <div class="actions" style="margin-top:9px"><button class="btn alt sm" onclick="addEventStageGiftItem()">＋ 添加奖励物品</button><span class="muted" style="font-size:11px">从当前分类加载完整商品；活动专属商品也可选，预览按物品 ID 去重。</span></div></article>`;
+  return `<article class="event-gift-plan"><div class="event-gift-plan-head"><span class="event-gift-index">${EVENT_GIFT_SELECTED.stage===0?'全部完成额外奖励（奖杯自动发放，无需添加）':'当前阶段奖励'}</span><span class="pill">${gifts.length?`已选 ${gifts.length} 种物品`:'暂无奖励'}</span></div>
+    ${gifts.length?`<div class="event-gift-items">${gifts.map((gift,j)=>`<div class="event-gift-item" data-item="${esc(gift.item)}" data-name="${esc(gift.name)}"><button class="picked" type="button" onclick="openEventStageGiftPicker(${j})"><b>${esc(eventGiftName(gift))}</b><span>${esc(gift.item||'点击选择物品')}</span></button><input class="qty" type="number" aria-label="物品数量" min="1" max="99" step="1" value="${gift.qty}" oninput="eventStageGiftRead()"><button class="btn alt sm" onclick="removeEventStageGiftItem(${j})">移除物品</button></div>`).join('')}</div>`:'<div class="event-gift-empty">此阶段暂无奖励。</div>'}
+    <div class="actions" style="margin-top:9px"><button class="btn alt sm" onclick="addEventStageGiftItem()">＋ 添加奖励物品</button></div></article>`;
 }
 function eventStageGiftJSON(){
   const out={};
   for(const row of EVENT_GIFT_DRAFT){
     if(!row.gifts?.length)continue;
-    const branch=String(Number(row.branch)||9),stage=String(Number(row.stage)||1);
+    const branch=String(Number(row.branch)||9),stage=String(Number(row.stage??1));
     out[branch]??={};
     out[branch][stage]=(row.gifts||[]).map(g=>({item:String(g.item||'').trim(),qty:Math.max(1,Math.min(99,Math.round(Number(g.qty)||1)))}));
   }
@@ -572,7 +573,7 @@ function renderEventStageGifts(){
 function eventStageGiftSwitch(){
   if(!eventGiftCanEdit())return;
   eventStageGiftRead();
-  EVENT_GIFT_SELECTED={branch:Number($('#eventGiftBranch')?.value)||13,stage:Number($('#eventGiftStage')?.value)||1};
+  EVENT_GIFT_SELECTED={branch:Number($('#eventGiftBranch')?.value)||13,stage:Number($('#eventGiftStage')?.value??1)};
   EVENT_GIFT_SELECTED.stage=Math.min(EVENT_GIFT_SELECTED.stage,eventGiftStageCount(EVENT_GIFT_SELECTED.branch));
   $('#eventGiftStage').innerHTML=eventGiftStageOptions(EVENT_GIFT_SELECTED.stage);
   rememberEventStageGiftSelection();
@@ -599,7 +600,7 @@ let EVENT_GIFT_PICK_INDEX=-1,EVENT_GIFT_PICK_GROUP='';
 function openEventStageGiftPicker(i){
   if(!eventGiftCanEdit())return;
   eventStageGiftRead();EVENT_GIFT_PICK_INDEX=i;EVENT_GIFT_PICK_GROUP='';
-  showModal('选择奖励物品','按分类分层加载完整商品；活动专属商品也会显示，即使没有普通商店货架记录。线轴、竿坯和渔轮内部零件会被排除。',`<div id="eventGiftGroups" class="event-gift-picker-groups"><div class="empty">读取商品分类…</div></div><input id="eventGiftSearch" placeholder="搜索当前分类中的商品名称或 ID" oninput="searchEventStageGiftItems()"><div class="results event-gift-picker-results" id="eventGiftResults"><div class="empty">请选择商品分类</div></div>`,'event-gift');
+  showModal('选择奖励物品','按分类查找物品。',`<div id="eventGiftGroups" class="event-gift-picker-groups"><div class="empty">读取商品分类…</div></div><input id="eventGiftSearch" placeholder="搜索当前分类中的商品名称或 ID" oninput="searchEventStageGiftItems()"><div class="results event-gift-picker-results" id="eventGiftResults"><div class="empty">请选择商品分类</div></div>`,'event-gift');
   loadEventStageGiftGroups();
 }
 async function loadEventStageGiftGroups(){
@@ -642,20 +643,63 @@ function eventStageGiftsCard(t){
   EVENT_GIFT_DRAFT=eventStageGiftRows(String(t[EVENT_STAGE_GIFT_KEY]??''));
   const branches=eventGiftConfiguredBranches(t),reason=eventGiftDisabledReason(t);
   const branch=branches.includes(Number(previous?.branch))?Number(previous.branch):(branches[0]||0);
-  EVENT_GIFT_SELECTED={branch,stage:branch===Number(previous?.branch)?Number(previous.stage)||1:1};
+  EVENT_GIFT_SELECTED={branch,stage:branch===Number(previous?.branch)?Number(previous.stage??1):1};
   EVENT_GIFT_SELECTED.stage=Math.min(EVENT_GIFT_SELECTED.stage,eventGiftStageCount(EVENT_GIFT_SELECTED.branch));
   EVENT_GIFT_SELECTED_READY=true;
   rememberEventStageGiftSelection();
-  return `<section class="tunable-group event-gift-card" data-page="event"><div class="section-head"><div><h3>活动阶段奖励</h3><div class="tunable-hint">为已开启活动的分支设置阶段奖励。保存后必须重启游戏客户端并重新登录，活动面板才会显示新奖励。</div></div><span class="pill" id="eventStageGiftCount">当前未配置</span></div>
-    <div class="event-gift-intro"><span class="mark">礼</span><div>每个阶段可配置多种物品。奖励物品从完整静态商品目录按分类选择，活动专属商品即使没有普通商店货架记录也可选择；竿坯、手柄、线轴和渔轮内部零件会自动排除，数量限制为 1~99。切换分支或阶段时只显示当前阶段的配置；没有配置的阶段会显示为空。</div></div>
-    <p class="event-gift-status" id="eventGiftStatus" role="status">${esc(reason||`可编辑 ${branches.length} 个已配置的活动分支；其他分支的已有奖励会保留。`)}</p>
+  return `<section class="tunable-group event-gift-card" data-page="event"><div class="section-head"><div><h3>活动阶段奖励</h3></div><span class="pill" id="eventStageGiftCount">当前未配置</span></div>
+    <p class="event-gift-status" id="eventGiftStatus" role="status"${reason?'':' hidden'}>${esc(reason)}</p>
     <fieldset class="event-gift-editor" aria-label="阶段奖励编辑器" aria-describedby="eventGiftStatus"${reason?' disabled':''}>
-    <div class="event-gift-selector"><div><label for="eventGiftBranch">活动分支</label><select id="eventGiftBranch" onchange="eventStageGiftSwitch()">${eventGiftBranchOptions(EVENT_GIFT_SELECTED.branch)}</select></div><div><label for="eventGiftStage">阶段</label><select id="eventGiftStage" onchange="eventStageGiftSwitch()">${eventGiftStageOptions(EVENT_GIFT_SELECTED.stage)}</select></div><div class="state">仅显示已保存的活动分支</div></div>
+    <div class="event-gift-intro"><div><label for="eventGiftPreset">奖励预设</label><select id="eventGiftPreset" onchange="selectEventRewardPreset()">${eventRewardPresetOptions()}</select> <button id="eventGiftPresetApply" class="btn alt sm" type="button" onclick="applyEventRewardPreset()"${eventRewardPresetAvailable(branches)?'':' disabled'}>填入所选预设</button><p>预设只填入空白阶段。点击“保存全部奖励”生效。</p><p id="eventGiftPresetStatus" role="status"></p></div></div>
+    <div class="event-gift-selector"><div><label for="eventGiftBranch">活动分支</label><select id="eventGiftBranch" onchange="eventStageGiftSwitch()">${eventGiftBranchOptions(EVENT_GIFT_SELECTED.branch)}</select></div><div><label for="eventGiftStage">阶段</label><select id="eventGiftStage" onchange="eventStageGiftSwitch()">${eventGiftStageOptions(EVENT_GIFT_SELECTED.stage)}</select></div></div>
     <div class="event-gift-plans" id="eventStageGiftPlans"></div>
     <div class="event-gift-actions"><button class="btn good sm" onclick="saveEventStageGifts()">保存全部奖励</button><button class="btn alt sm" onclick="clearEventStageGiftsDraft()">清空可选分支奖励</button><span class="hint">保存后必须重启游戏客户端并重新登录。</span></div>
     </fieldset>
     <details class="event-gift-preview"><summary>查看保存格式（只读）</summary><pre id="eventStageGiftJson"></pre></details>
   </section>`;
+}
+const EVENT_REWARD_PRESETS=[
+  {id:'anniversary-2024',name:'七周年（2024）',branches:[11,12]},
+  {id:'anniversary-2025',name:'八周年（2025）',branches:[15,16]},
+  {id:'anniversary-2026',name:'九周年（2026）',branches:[19,20]},
+  {id:'newyear-2025',name:'新年 2025（MMXXV）',branches:[13,14]},
+  {id:'newyear-2026',name:'新年 2026（MMXXVI）',branches:[17,18]}
+];
+let EVENT_GIFT_PRESET_LOADING=false,EVENT_GIFT_PRESET_ID='anniversary-2026';
+function selectedEventRewardPresets(){return EVENT_REWARD_PRESETS.filter(p=>p.branches.length&&(EVENT_GIFT_PRESET_ID==='all'||p.id===EVENT_GIFT_PRESET_ID))}
+function eventRewardPresetAvailable(branches){return selectedEventRewardPresets().some(p=>p.branches.some(b=>branches.includes(b)))}
+function eventRewardPresetOptions(){return [{id:'all',name:'全部预设'},...EVENT_REWARD_PRESETS].map(p=>`<option value="${p.id}"${p.id===EVENT_GIFT_PRESET_ID?' selected':''}>${p.name}</option>`).join('')}
+function selectEventRewardPreset(){
+  EVENT_GIFT_PRESET_ID=$('#eventGiftPreset').value;
+  $('#eventGiftPresetApply').disabled=EVENT_GIFT_PRESET_LOADING||!eventRewardPresetAvailable(eventGiftConfiguredBranches());
+}
+async function applyEventRewardPreset(){
+  if(EVENT_GIFT_PRESET_LOADING||!eventGiftCanEdit()||!eventRewardPresetAvailable(eventGiftConfiguredBranches()))return;
+  const selected=selectedEventRewardPresets().filter(p=>p.branches.some(b=>eventGiftConfiguredBranches().includes(b)));
+  EVENT_GIFT_PRESET_LOADING=true;
+  if($('#eventGiftPresetApply'))$('#eventGiftPresetApply').disabled=true;
+  try{
+    // Resolve all selected files before changing the draft so a failed request leaves it intact.
+    const presets=await Promise.all(selected.map(p=>api(webURL('event-reward-presets/'+p.id+'.json'))));
+    // Fetch may overlap an edit or a switch: read the latest draft and enabled branches.
+    if(!eventGiftCanEdit())return;
+    eventStageGiftRead();
+    const branches=eventGiftConfiguredBranches();
+    let added=0;
+    for(const preset of presets)for(const plan of eventStageGiftRows(JSON.stringify(preset))){
+      if(!branches.includes(plan.branch))continue;
+      if(eventStageGiftFind(plan.branch,plan.stage))continue;
+      EVENT_GIFT_DRAFT.push(plan);added++;
+    }
+    EVENT_GIFT_DRAFT.sort((a,b)=>a.branch-b.branch||a.stage-b.stage);
+    renderEventStageGifts();
+    const status=$('#eventGiftPresetStatus');
+    if(status)status.textContent=added?`已填入 ${added} 项奖励，尚未保存。`:'没有可填入的空白阶段。';
+    hydrateEventStageGiftNames();
+  }catch(e){toast(e.message,'bad')}finally{
+    EVENT_GIFT_PRESET_LOADING=false;
+    if($('#eventGiftPresetApply'))$('#eventGiftPresetApply').disabled=!eventRewardPresetAvailable(eventGiftConfiguredBranches());
+  }
 }
 function clearEventStageGiftsDraft(){
   if(!eventGiftCanEdit())return;
@@ -666,7 +710,7 @@ async function saveEventStageGifts(){
   if(!eventGiftCanEdit())return;
   eventStageGiftRead();
   // loadTunables() 重建参数页 DOM；先保存当前选择，避免保存后回到默认的阶段 1。
-  const savedSelection={branch:Number(EVENT_GIFT_SELECTED.branch)||13,stage:Number(EVENT_GIFT_SELECTED.stage)||1};
+  const savedSelection={branch:Number(EVENT_GIFT_SELECTED.branch)||13,stage:Number(EVENT_GIFT_SELECTED.stage??1)};
   for(const row of EVENT_GIFT_DRAFT){
     const key=`${row.branch}/${row.stage}`;
     if(!row.gifts.length||row.gifts.some(g=>!g.item)){toast(`请补全 ${key} 的物品 ID`,'bad');return}
@@ -699,7 +743,11 @@ async function loadBaitPrefs(){
   BAIT_ROWS=rows;
   BAIT_RULES_ON=d.rules_enabled===true;
   const edited=rows.filter(r=>r.source==='override').length;
-  $('#baitSummary').textContent=`共 ${rows.length} 种鱼 · 规则表 ${d.rule_count} 条 · 已覆盖 ${edited} 种 · 有规则 ${rows.filter(r=>r.has_rule).length} · 无规则 ${rows.filter(r=>!r.has_rule).length}`;
+  const withOfficial=rows.filter(r=>(r.official||[]).length>0).length;
+  const cantBite=rows.filter(r=>(r.bite_ready||0)===0&&(r.bite_fallback||0)>0).length;
+  const blockedAll=rows.filter(r=>(r.bite_ready||0)===0&&(r.bite_fallback||0)===0).length;
+  $('#baitSummary').textContent=`共 ${rows.length} 种鱼 · 规则表 ${d.rule_count} 条 · 已覆盖 ${edited} 种 · 有规则 ${rows.filter(r=>r.has_rule).length} · 无规则 ${rows.filter(r=>!r.has_rule).length} · 官方份额 ${withOfficial} 种`+
+    (cantBite||blockedAll?` · ⚠️ 只保底 ${cantBite} 种 · ⛔ 全不吃 ${blockedAll} 种`:'');
   renderBaitTable();
 }
 function baitTierBadge(t){return t===3?'<span class="pill" style="background:#1f6f52;color:#bff5df">T3</span>':t===2?'<span class="pill" style="background:#2a5c86;color:#cfe9ff">T2</span>':'<span class="pill">T1</span>'}
@@ -714,14 +762,25 @@ function baitRotationHTML(r){
   const mode=rot.mode==='strict'?'严格':'软性';
   return `<div class="muted" style="font-size:12px;margin-top:4px">🔁 轮换 ${rot.active+1}/${rot.total} · 当前：${esc((rot.active_baits||[]).join(' / '))} · ${mode} · 下次 ${esc(next)}</div>`;
 }
+function baitVerdictHTML(r){
+  const v=r.bite_verdict||'';
+  if(!v)return '<span class="muted">—</span>';
+  const ready=r.bite_ready||0, fb=r.bite_fallback||0, blk=r.bite_blocked||0;
+  const tone=ready>0?(blk>0?'#ffd166':'#7ee0b0'):(fb>0?'#ffd166':'#ff8f8f');
+  const icon=ready>0?(blk>0?'⚠️':'✅'):(fb>0?'🟡':'⛔');
+  return `<div style="font-size:12.5px;color:${tone};font-weight:600">${icon} ${esc(v)}</div>`+
+    `<div class="muted" style="font-size:11px;margin-top:2px">首选 ${ready} · 保底 ${fb} · 不吃 ${blk}</div>`;
+}
 function baitRuleHTML(r){
   const allow=r.allow||[];
   const rule=r.has_rule
     ? `<div class="clamp">吃：${esc(allow.join(' / ')||'—')}</div>`+
       ((r.deny&&r.deny.length)?`<div class="muted clamp">不吃：${esc(r.deny.join(' / '))}</div>`:'')+
       ((r.bottom_only&&r.bottom_only.length)?`<div class="muted clamp">底钓只吃：${esc(r.bottom_only.join(' / '))}</div>`:'')+
-      ((r.condition&&r.condition!=='无')?`<div class="muted clamp">前置：${esc(r.condition)}</div>`:'')
-    : '<div class="muted">无规则条目 · 严格模式下仅靠饵效证据放行</div>';
+      ((r.condition&&r.condition!=='无')?`<div class="muted clamp">前置：${esc(r.condition)}</div>`:'')+
+      ((r.official&&r.official.length)?`<div class="muted clamp" style="color:#8fd0ff">官方：${r.official.slice(0,3).map(o=>esc(o.bait_id)+' '+o.pct+'%').join(' / ')}</div>`:'')
+    : '<div class="muted">无规则条目 · 严格模式下仅靠饵效证据放行</div>'+
+      ((r.official&&r.official.length)?`<div class="muted clamp">官方：${r.official.slice(0,3).map(o=>esc(o.bait_id)+' '+o.pct+'%').join(' / ')}</div>`:'');
   const tag=r.source==='override'
     ? (r.enabled?'<span class="tag gold">已覆盖</span>':'<span class="tag">覆盖已停用</span>')
     : '<span class="tag">内置</span>';
@@ -730,8 +789,8 @@ function baitRuleHTML(r){
 function renderBaitTable(){
   const el=$('#baitTable');
   if(!BAIT_ROWS.length){el.innerHTML=baitBanner()+'<div class="empty">没有匹配的鱼种</div>';return}
-  const head='<table><colgroup><col style="width:16%"><col style="width:27%"><col style="width:22%"><col style="width:14%"><col style="width:12%"><col style="width:9%"></colgroup>'+
-    '<thead><tr><th>鱼种</th><th>规则（严格模式）</th><th>偏好口（按类）</th><th>饵效证据</th><th>水域</th><th>水层</th></tr></thead><tbody>';
+  const head='<table><colgroup><col style="width:15%"><col style="width:26%"><col style="width:19%"><col style="width:13%"><col style="width:12%"><col style="width:9%"><col style="width:6%"></colgroup>'+
+    '<thead><tr><th>鱼种</th><th>规则（严格模式）</th><th>偏好口（按类）</th><th>饵效证据</th><th>吃不吃</th><th>水域</th><th>水层</th></tr></thead><tbody>';
   const body=BAIT_ROWS.map(r=>{
     const ev=`<div>${baitTierBadge(3)}${r.tier3} ${baitTierBadge(2)}${r.tier2} <span class="muted">共 ${r.total}</span></div>`+
       `<div class="muted clamp" style="font-size:12px">${esc((r.baits||[]).map(b=>b.bait_id).join('、')||'—')}</div>`;
@@ -759,7 +818,7 @@ function renderBaitTable(){
         <b style="width:40px;text-align:right;font-family:Consolas,monospace;color:${over?'#7ee0b0':'var(--muted)'}">${v.toFixed(2)}</b>
       </div>`;
     };
-    const detail=(!open)?'':`<tr><td colspan="6" style="background:#0b1623;padding:14px 18px">
+    const detail=(!open)?'':`<tr><td colspan="7" style="background:#0b1623;padding:14px 18px">
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px 34px">
         <div>
           <b style="font-size:12px;color:#7a92aa">食性画像（与判鱼 G 层同源 · 黄线=门槛 0.25 / 拟饵 0.30）</b>
@@ -787,7 +846,7 @@ function renderBaitTable(){
     const row=`<tr class="${open?'ba-open':''}" onclick="toggleBaitRow('${esc(r.fish_key)}')" style="cursor:pointer">`+
       `<td><div class="bait-head"><div><b>${esc(r.name_zh)}</b><div class="muted" style="font-size:12px">${esc(r.fish_key)}</div></div>`+
       `<button class="btn alt sm bait-edit" onclick="event.stopPropagation();editBaitRule('${esc(r.fish_key)}')">编辑</button></div></td>`+
-      `<td>${baitRuleHTML(r)}</td><td><div style="display:flex;flex-wrap:wrap;gap:3px;align-items:center">${dietHTML}</div></td><td>${ev}</td>`+
+      `<td>${baitRuleHTML(r)}</td><td><div style="display:flex;flex-wrap:wrap;gap:3px;align-items:center">${dietHTML}</div></td><td>${ev}</td><td>${baitVerdictHTML(r)}</td>`+
       `<td class="muted" style="font-size:12px"><div class="clamp">${esc((r.locs||[]).join('、')||'—')}</div></td>`+
       `<td>${layerHTML}</td></tr>`;
     return row+detail;
@@ -1432,7 +1491,7 @@ function renderItems(){
 }
 function renderItemRows(){
   const q=ITEM_FILTER.toLowerCase();const rows=(PLAYER.items||[]).filter(x=>!q||`${x.item_id} ${x.name} ${x.guid}`.toLowerCase().includes(q));
-  $('#itemRows').innerHTML=rows.map(x=>`<tr><td><b>${esc(x.name||x.item_id)}</b><div class="muted mono">${esc(x.item_id)}</div></td><td>${x.category}</td><td>${esc(x.container)}</td><td>${x.qty}</td><td>${Number(x.durability).toFixed(4)}</td><td class="mono muted">${esc(x.guid.slice(0,12))}…</td><td class="right"><button class="btn bad sm" data-guid="${esc(x.guid)}" onclick="deletePlayerItem(this.dataset.guid)">删除</button></td></tr>`).join('')||`<tr><td colspan="7" class="empty">没有物品${GRANT_ITEM_UI_ENABLED?'，点上方「+ 发放物品」添加':''}</td></tr>`;
+  $('#itemRows').innerHTML=rows.map(x=>`<tr><td><div class="item-cell"><img class="item-icon" src="icons/items/${encodeURIComponent(String(x.item_id||'').toLowerCase())}.webp" onerror="this.style.display='none'"><div><b>${esc(x.name||x.item_id)}</b><div class="muted mono">${esc(x.item_id)}</div></div></div></td><td>${x.category}</td><td>${esc(x.container)}</td><td>${x.qty}</td><td>${Number(x.durability).toFixed(4)}</td><td class="mono muted">${esc(x.guid.slice(0,12))}…</td><td class="right"><button class="btn bad sm" data-guid="${esc(x.guid)}" onclick="deletePlayerItem(this.dataset.guid)">删除</button></td></tr>`).join('')||`<tr><td colspan="7" class="empty">没有物品${GRANT_ITEM_UI_ENABLED?'，点上方「+ 发放物品」添加':''}</td></tr>`;
 }
 async function deletePlayerItem(guid){
   askConfirm('删除物品','把这件物品从该玩家的背包/装备中删除，不可恢复。',async()=>{
@@ -1538,7 +1597,7 @@ async function loadFishRules(){
 function toggleRulesHelp(){const h=$('#rulesHelp'),b=$('#rulesHelpBtn');h.hidden=!h.hidden;b.setAttribute('aria-expanded',String(!h.hidden));b.textContent=h.hidden?'说明 ⌄':'收起 ⌃';}
 // ---- 鱼汛模式二选一（真实 / 旧版全随机）----
 const BITE_MODE_OPTIONS=[
- ['realistic','真实鱼汛','硬性门+生态+天气+吃饵+分布五开：拟饵不喂非掠食鱼、天然饵按双票、钓层/天气/昼夜/区域都参与判鱼'],
+ ['realistic','官方鱼汛','硬性门+生态+天气+吃饵+分布五开：拟饵不喂非掠食鱼、天然饵按双票、钓层/天气/昼夜/区域都参与判鱼；出鱼比例来自 rf4info 公开周档统计'],
  ['legacy','全随机（旧版）','五个开关全关：任何鱼都可能咬任何饵，全图名册纯随机出鱼——改造之前的旧版手感']
 ];
 let BITE_MODE='';
@@ -1554,7 +1613,7 @@ function renderBiteMode(){
   const btns=BITE_MODE_OPTIONS.map(([m,label,hint])=>`<button class="btn sm" style="${BITE_MODE===m?'background:#2f7d4f':''}" onclick="askBiteMode('${m}')" title="${hint}">${label}${BITE_MODE===m?' ✓':''}</button>`).join('');
   $('#biteModeBody').innerHTML=`<span style="display:inline-flex;gap:6px;flex-wrap:wrap;align-items:center">${btns}</span>`;
   const st=$('#biteModeStatus');
-  if(st)st.textContent=BITE_MODE==='mixed'?'开关被手动改过，与预设不一致；点任一模式整体改写':'一键切换五项开关，最多 30 秒生效';
+  if(st)st.textContent=BITE_MODE==='mixed'?'开关被手动改过，与预设不一致；点任一模式整体改写':'一键切换五项开关，最多 30 秒生效；出鱼比例用「rf4info 周档统计」的那份权重';
 }
 async function askBiteMode(mode){
   const opt=BITE_MODE_OPTIONS.find(o=>o[0]===mode);if(!opt)return;
@@ -1628,8 +1687,13 @@ function baitSummaryHTML(key,row){
       <span class="pill" style="background:#1f4f6f;color:#bfe4ff">🔁 轮换</span>
       ${esc(cur)} · ${mode}${next}</div>`;
   }
+  const off=((r&&r.official)||[]).slice(0,3);
+  const offHTML=off.length?`<div class="muted" style="color:#8fd0ff">官服：${off.map(o=>esc(o.bait_id)+' '+o.pct+'%').join(' / ')}</div>`:'';
+  const verdict=(r&&r.bite_verdict)?`<div style="color:${(r.bite_ready||0)>0?'#7ee0b0':'#ffd166'};font-weight:600">${(r.bite_ready||0)>0?'✅':'🟡'} ${esc(r.bite_verdict)}</div>`:'';
   return `<div style="font-size:11px;line-height:1.5;max-width:340px" title="${esc(tip)}">
-    <div class="muted">饵：${esc(allow)}${deny?` <span style="color:#e0a">不吃 ${esc(deny)}</span>`:''} ${noRule}</div>
+    <div class="muted">规则：${esc(allow)}${deny?` <span style="color:#e0a">不吃 ${esc(deny)}</span>`:''} ${noRule}</div>
+    ${offHTML}
+    ${verdict}
     <div class="muted">证据 ${total} 种 · T3 ${tier3}${t3?` · ${esc(t3)}`:''}</div>${rotateHTML}</div>`;
 }
 async function loadFishAreas(){
@@ -1779,7 +1843,7 @@ function syncFishRows(){
 function renderFishRows(){
   if(!FISH_CFG)return;const q=($('#fishFilter')?.value||'').toLowerCase();
   const rows=FISH_CFG.fish.map((f,i)=>({f,i})).filter(x=>!q||`${x.f.fish_key} ${x.f.name_zh}`.toLowerCase().includes(q));
-  $('#fishRows').innerHTML=`<div class="table-wrap"><table class="fish-table"><thead><tr><th>启用</th><th>鱼种</th><th>爱吃的饵（静态规则 / 实证 · 轮换）</th><th>基础权重</th><th>覆盖权重</th><th>来源</th></tr></thead><tbody>${rows.map(({f,i})=>`<tr><td><input class="switch" type="checkbox" id="fe_${i}" ${f.enabled?'checked':''} onchange="syncFishRows()"></td><td><b>${esc(f.name_zh||f.fish_key)}</b><div class="muted mono">${esc(f.fish_key)}</div></td><td>${baitSummaryHTML(f.fish_key,f)}</td><td>${Number(f.base_weight).toFixed(2)}</td><td><input class="mini-input" id="fw_${i}" type="number" min="0" step="0.1" value="${f.weight}" onchange="syncFishRows()"></td><td>${f.has_override?'<span class="tag gold">覆盖</span>':'<span class="tag">静态</span>'}</td></tr>`).join('')||'<tr><td colspan="6" class="empty">没有匹配鱼种</td></tr>'}</tbody></table></div>`;
+  $('#fishRows').innerHTML=`<div class="table-wrap"><table class="fish-table"><thead><tr><th>启用</th><th>鱼种</th><th>爱吃的饵（规则 / 官服占比 / 实证 · 轮换）</th><th>基础权重</th><th>实际权重</th><th>权重来源</th></tr></thead><tbody>${rows.map(({f,i})=>`<tr><td><input class="switch" type="checkbox" id="fe_${i}" ${f.enabled?'checked':''} onchange="syncFishRows()"></td><td><div class="item-cell"><img class="fish-icon" src="icons/fish/${encodeURIComponent(String(f.fish_key||'').toLowerCase().replace(/\./g,'_'))}.png" onerror="this.style.display='none'"><div><b>${esc(f.name_zh||f.fish_key)}</b><div class="muted mono">${esc(f.fish_key)}</div></div></div></td><td>${baitSummaryHTML(f.fish_key,f)}</td><td>${Number(f.base_weight).toFixed(2)}</td><td><input class="mini-input" id="fw_${i}" type="number" min="0" step="0.1" value="${f.weight}" onchange="syncFishRows()"></td><td>${f.weight_source==='official'?'<span class="tag gold" title="rf4info 周档统计（社区渔获/点位 + 官方周榜；W32-W46）">周档统计</span>':(f.weight_source==='manual'?'<span class="tag" title="后台人工覆盖">人工</span>':'<span class="tag">静态</span>')}</td></tr>`).join('')||'<tr><td colspan="6" class="empty">没有匹配鱼种</td></tr>'}</tbody></table></div>`;
   const filtered=q.length>0;
   const on=$('#fishAllOn'),off=$('#fishAllOff');
   if(on)on.textContent=filtered?'启用筛选结果':'全部启用';
@@ -1807,9 +1871,9 @@ async function saveFishConfig(){
   FISH_CFG.setting={...s,bite_probability:p,bite_delay_fixed:fx,bite_delay_scale:sc,bite_delay_max:mx,bite_delay_lure_max:lm};
   await api('/api/fish/config',{method:'POST',body:JSON.stringify({area:FISH_CFG.area,setting:FISH_CFG.setting,fish:FISH_CFG.fish})});toast('已保存，立即生效');await selectFishArea(FISH_AREA,true);
 }
-async function resetFishConfig(){askConfirm('恢复默认鱼口','清除「'+FISH_AREA+'」的全部人工覆盖，回到按鱼库静态权重出鱼。',async()=>{await api('/api/fish/config/reset',{method:'POST',body:JSON.stringify({area:FISH_AREA})});toast('已恢复默认鱼口，见审计日志');await selectFishArea(FISH_AREA)})}
+async function resetFishConfig(){askConfirm('恢复默认鱼口','清除「'+FISH_AREA+'」的全部人工覆盖，回到已配置的周档统计权重；无基线时按鱼库静态权重出鱼。',async()=>{await api('/api/fish/config/reset',{method:'POST',body:JSON.stringify({area:FISH_AREA})});toast('已恢复默认鱼口，见审计日志');await selectFishArea(FISH_AREA)})}
 async function showAddFish(){showModal('添加鱼种到水域','搜索鱼库后添加到当前覆盖列表',`<input id="fishAddSearch" placeholder="中文名或 fish_key" oninput="debounce('fishAdd',searchFishPool)"><div class="results" id="fishAddResults"></div>`);searchFishPool()}
-async function searchFishPool(){const q=$('#fishAddSearch').value.trim();const list=await api('/api/fish/pool?q='+encodeURIComponent(q)+'&limit=80');$('#fishAddResults').innerHTML=list.map(x=>`<div class="result" data-key="${esc(x.fish_key)}" data-name="${esc(x.name_zh)}" onclick="addFishFromPool(this.dataset.key,this.dataset.name)"><div><b>${esc(x.name_zh)}</b><div class="muted mono">${esc(x.fish_key)}</div></div><span class="tag">${fmt(x.min_g)}-${fmt(x.max_g)}g</span></div>`).join('')||'<div class="empty">无结果</div>'}
+async function searchFishPool(){const q=$('#fishAddSearch').value.trim();const list=await api('/api/fish/pool?q='+encodeURIComponent(q)+'&limit=80');$('#fishAddResults').innerHTML=list.map(x=>`<div class="result" data-key="${esc(x.fish_key)}" data-name="${esc(x.name_zh)}" onclick="addFishFromPool(this.dataset.key,this.dataset.name)"><div class="item-cell"><img class="fish-icon" src="icons/fish/${encodeURIComponent(String(x.fish_key||'').toLowerCase().replace(/\./g,'_'))}.png" onerror="this.style.display='none'"><div><b>${esc(x.name_zh)}</b><div class="muted mono">${esc(x.fish_key)}</div></div></div><span class="tag">${fmt(x.min_g)}-${fmt(x.max_g)}g</span></div>`).join('')||'<div class="empty">无结果</div>'}
 function addFishFromPool(key,name){syncFishRows();if(FISH_CFG.fish.some(f=>f.fish_key===key)){closeModal();return toast('该鱼种已在列表','bad')}FISH_CFG.fish.push({fish_key:key,name_zh:name,base_weight:0,weight:1,enabled:true,has_override:true});closeModal();renderFishRows();toast('已加入，记得保存')}
 
 // ---- 区域固定鱼种（fish_zone）：纸地图拖拽编辑 + 本图名册选鱼 ----
@@ -2884,7 +2948,7 @@ async function saveHookProfile(){
 
 let MAIL_ATTACH=[];
 function addAttachment(){showModal('添加邮件附件','搜索物品目录',`<input id="attachSearch" placeholder="物品 ID / 名称" oninput="debounce('attachSearch',searchAttachItems)"><div class="results" id="attachResults"></div>`);searchAttachItems()}
-async function searchAttachItems(){const q=$('#attachSearch').value.trim();const list=await api('/api/catalog/items?q='+encodeURIComponent(q));$('#attachResults').innerHTML=list.map(x=>`<div class="result" data-id="${esc(x.item_id)}" data-name="${esc(x.name)}" onclick="pickAttachment(this.dataset.id,this.dataset.name)"><div><b>${esc(x.name||x.item_id)}</b><div class="muted mono">${esc(x.item_id)}</div></div><span class="tag">cat ${x.category}</span></div>`).join('')||'<div class="empty">无结果</div>'}
+async function searchAttachItems(){const q=$('#attachSearch').value.trim();const list=await api('/api/catalog/items?q='+encodeURIComponent(q));$('#attachResults').innerHTML=list.map(x=>`<div class="result" data-id="${esc(x.item_id)}" data-name="${esc(x.name)}" onclick="pickAttachment(this.dataset.id,this.dataset.name)"><div class="item-cell"><img class="item-icon" src="icons/items/${encodeURIComponent(String(x.item_id||'').toLowerCase())}.webp" onerror="this.style.display='none'"><div><b>${esc(x.name||x.item_id)}</b><div class="muted mono">${esc(x.item_id)}</div></div></div><span class="tag">cat ${x.category}</span></div>`).join('')||'<div class="empty">无结果</div>'}
 function pickAttachment(id,name){if(!MAIL_ATTACH.some(x=>x.item_id===id))MAIL_ATTACH.push({item_id:id,name,qty:1});closeModal();renderAttachments();toast('已添加 '+name)}
 function renderAttachments(){
   $('#attachments').innerHTML=MAIL_ATTACH.map((x,i)=>`<div class="attach-row"><div class="toolbar"><input value="${esc(x.name||x.item_id)}" disabled><div class="muted mono">${esc(x.item_id)}</div></div><input type="number" min="1" value="${x.qty}" onchange="MAIL_ATTACH[${i}].qty=+this.value"><button class="btn bad sm" aria-label="移除附件" onclick="MAIL_ATTACH.splice(${i},1);renderAttachments()">×</button></div>`).join('')||'<div class="muted">无附件</div>';
