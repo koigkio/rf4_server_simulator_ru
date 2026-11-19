@@ -1,4 +1,4 @@
-# 出鱼权重改用官方渔获统计（fish_weight_override）
+# 出鱼权重改用 rf4info 周档统计（fish_weight_override）
 
 Status: done
 
@@ -8,9 +8,9 @@ Status: done
 人工覆盖层。此前这 600 余行是后台一次性批量写入的**手调常数**（权重区间 3–25），与真实渔获结构
 无关，抽查可见明显偏差：
 
-- 廓里湖 top1 是 `riv_rb_trout`（28.4%），而官方纪录里 `n.pike` 占 57.4%；
-- 旧奥斯特罗格湖 top1 是 `s.bream`（18.6%），官方是 `bream` 49.8%；
-- 阿赫图巴河 top1 是 `shemaya`（12.2%），官方是 `sh_barbel` 20.0%。
+- 廓里湖 top1 是 `riv_rb_trout`（28.4%），而周档统计里 `n.pike` 占 57.4%；
+- 旧奥斯特罗格湖 top1 是 `s.bream`（18.6%），周档统计是 `bream` 49.8%；
+- 阿赫图巴河 top1 是 `shemaya`（12.2%），周档统计是 `sh_barbel` 20.0%。
 
 此外该表还混入了**不在该水域名册里**的鱼（17 个水域共 42 行），而 `internal/gameserver/fishing.go`
 对 override 里名册没有的鱼会「追加进候选池并赋权」，等于让白河能钓起鲤鱼湖的鱼。
@@ -21,9 +21,9 @@ Status: done
    - 三张证据表按可信度加权：`catch_records`（渔获）×1.0、`community_spots`（点位）×0.5、
      `official_weekly_records`（官方周榜）×1.0；
    - 每个水域取 `权重 / 该图最大权重 × 100`，保留两位小数，最小钳到 1.0（不置 0，避免鱼「消失」）；
-   - 只写名册内存在的鱼：先按 `loc_wiki_fish` 过滤，再删掉覆盖表里名册外多余行。
+   - 只写名册内存在的鱼：先按 `loc_wiki_fish` 过滤；迁移整表重置周档权重，因此不会残留名册外旧行。
 2. 数据以迁移 `internal/store/migrations/00071_fish_weight_official.sql` 落库，
-   `updated_by='rf4info'`，可重复执行（先 DELETE 同名来源再插入）。
+   `updated_by='rf4info'`；迁移按当前静态名册过滤后整表重置周档权重。
 3. 同步脚本 `tools/build_fish_weights.py`：从 rf4info 周档重新生成上述 SQL 与 CSV，
    便于后续按新周档复核。
 
@@ -71,10 +71,13 @@ python tools/build_fish_weights.py --weeks ./rf4info/public_data/weeks --out ./o
 
 - 权重存的是**相对值**（该图最大值归一为 100），不是绝对概率；判鱼时乘在名册权重上。
 - 每个水域只保留名册内的鱼：`loc_wiki_fish` 是静态名册，override 是动态权重，两者必须一一对应。
-- 名册里有、但窗口内 0 记录的鱼保留 1.0，避免「官方这周没人钓到」直接变成该鱼消失。
-- 不删除任何名册项：官方接口是滚动窗口，用窗口缺失去删静态名册会误删真实存在的鱼。
+- 名册里有、但窗口内 0 记录的鱼保留 1.0，避免「周档这周没人钓到」直接变成该鱼消失。
+- 不删除任何名册项：公开周档是滚动窗口，用窗口缺失去删静态名册会误删真实存在的鱼。
 
 ## Testing Decisions
+
+- 后台仅改咬钩参数时，未变化的周档权重必须保留 `official` 来源；只有实际改动权重/启停的行才转为 `manual`。
+- 「恢复默认鱼口」在有周档基线时恢复基线，在旧库缺基线时才保持静态回退。
 
 - `internal/store/fish_weight_official_test.go`：迁移执行后每图行数等于该图名册数、权重全部 >0、
   每图最大值 ==100、`updated_by` 全部为 `rf4info`。

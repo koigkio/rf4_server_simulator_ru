@@ -93,9 +93,9 @@ def compress(weights):
 
 def build_sql(agg, alias, roster):
     lines = [
-        "-- 18 个水域的鱼种出鱼权重（图内相对值，0-100）。",
+        "-- 18 个水域的 rf4info 周档鱼种出鱼权重（图内相对值，0–100）。",
         "-- 数据来源与时间跨度见 specs/changes/fish-weight-official/spec.md。",
-        "-- 名册内但统计窗口无记录的鱼保留最低 1.0，不置 0。",
+        "-- 名册内但周档窗口无记录的鱼保留最低 1.0，不置 0。",
         "-- 整表重置：本迁移是该表默认内容的唯一真源，人工覆盖在此之后重新设置。",
         "DELETE FROM fish_weight_override;",
         "",
@@ -159,11 +159,11 @@ def main():
     with open(target, "w", encoding="utf-8", newline="\n") as handle:
         handle.write("\n".join(lines) + "\n")
     # 基础权重表与覆盖表同源：迁移 00072 首次建立时把这份统计值原样抄过去，
-    # 之后人工调权重只影响覆盖表，基线仍然是官方统计口径。
+    # 之后人工调权重只影响覆盖表，基线仍然是周档统计口径。
     base_lines = [
-        "-- 官方统计基线（迁移 00072 由 fish_weight_override 首次快照生成，此处给出等价 SQL 便于重建）。",
+        "-- rf4info 周档统计基线（迁移 00072 由 fish_weight_override 首次快照生成，此处给出等价 SQL 便于重建）。",
         "INSERT OR REPLACE INTO fish_weight_base(loc,fish_key,weight,updated_ts,updated_by)",
-        "SELECT loc,fish_key,weight,updated_ts,COALESCE(updated_by,'') FROM fish_weight_override;",
+        "SELECT loc,fish_key,weight,updated_ts,COALESCE(updated_by,'') FROM fish_weight_override WHERE updated_by='rf4info';",
     ]
     base_target = os.path.join(args.out, "00072_fish_weight_base_seed.sql")
     with open(base_target, "w", encoding="utf-8", newline="\n") as handle:
