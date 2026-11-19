@@ -2116,8 +2116,9 @@ func hRodSetClip(ctx *Ctx) ([]byte, bool) {
 			// 客户端贴卡截停读竿树 153.f5：设卡后必须把更新后的竿树推回，
 			// 否则客户端拿着登录时的陈旧卡米数，卡线形同虚设
 			// （2026-11-19 实机实证：卡 8 后抛 11.46 落 11.39m，未截停）。
-			clipRodGUID := row.GUID
-			ctx.AfterResponse(func() { ctx.Sess.Push4_22ItemGUIDs([]string{clipRodGUID}) })
+			// 17/13 不回包（expect=false），sendRequestResult 对该路径不执行
+			// afterResponse 回调——必须直接推，不能走 ctx.AfterResponse。
+			ctx.Sess.Push4_22ItemGUIDs([]string{row.GUID})
 		}
 	}
 	return nil, true
