@@ -1377,10 +1377,10 @@ func (s *Server) gradeRatioModel(l cachedGradeLines, modeMult, scale, capG float
 		3: s.tunableF("grade_pct_trophy", 9),
 		4: s.tunableF("grade_pct_super", 0.5),
 	}
-	usable := make([]gradeRatioBand, 0, len(bands))7    // 档位比例是后台配置的绝对占比：饵效倍率只影响鱼种和体重分布，
-	    // 不得再把“合格”份额挪给“奖杯”，否则实际上星率会高于面板显示值。
-	    _ = modeMult
-	
+	usable := make([]gradeRatioBand, 0, len(bands)) // 档位比例是后台配置的绝对占比：饵效倍率只影响鱼种和体重分布，
+	// 不得再把“合格”份额挪给“奖杯”，否则实际上星率会高于面板显示值。
+	_ = modeMult
+
 	wts := make([]float64, 0, len(bands))
 	total := 0.0
 	for _, b := range bands {
@@ -2943,7 +2943,8 @@ func (s *Server) bumpFishingCounter(uid int64, key string) {
 		ON CONFLICT(uid,key) DO UPDATE SET value=value+1`, uid, key)
 }
 
-// liveSessionByUID 取 uid 的存活会话（重连后新连接）。
+// liveSessionByUID 取 uid 的存活会话（重连后新连接）。			
+
 func (s *Server) liveSessionByUID(uid int64) *Session {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -2967,6 +2968,7 @@ func (s *Server) currentLevel(uid int64) string {
 		if loc, err := s.DB.GetPlayerLocation(s.dbCtx(), uid); err == nil && loc != nil {
 			v := travelLevelKey(loc.LevelKey)
 			s.setLevel(uid, v)
+			
 			return v
 		}
 	}
