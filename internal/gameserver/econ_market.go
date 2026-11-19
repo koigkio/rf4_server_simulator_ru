@@ -2112,6 +2112,12 @@ func hRodSetClip(ctx *Ctx) ([]byte, bool) {
 		_ = srv.DB.UpsertRodSetting(ctx.Sess.pushCtx(), rodGUID, reelClipSettingKey, strconv.FormatInt(clipM, 10))
 		if !srv.rodRigSetClipRow(ctx.Sess.pushCtx(), row, clipM) {
 			ctx.Log.Info("17/13 竿实例无钓组字段，仅记竿设置", "竿", shortGUID(rodGUID))
+		} else {
+			// 客户端贴卡截停读竿树 153.f5：设卡后必须把更新后的竿树推回，
+			// 否则客户端拿着登录时的陈旧卡米数，卡线形同虚设
+			// （2026-11-19 实机实证：卡 8 后抛 11.46 落 11.39m，未截停）。
+			clipRodGUID := row.GUID
+			ctx.AfterResponse(func() { ctx.Sess.Push4_22ItemGUIDs([]string{clipRodGUID}) })
 		}
 	}
 	return nil, true
