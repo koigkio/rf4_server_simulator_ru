@@ -2943,8 +2943,7 @@ func (s *Server) bumpFishingCounter(uid int64, key string) {
 		ON CONFLICT(uid,key) DO UPDATE SET value=value+1`, uid, key)
 }
 
-// liveSessionByUID 取 uid 的存活会话（重连后新连接）。			
-
+// liveSessionByUID 取 uid 的存活会话（重连后新连接）。
 func (s *Server) liveSessionByUID(uid int64) *Session {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -2968,7 +2967,6 @@ func (s *Server) currentLevel(uid int64) string {
 		if loc, err := s.DB.GetPlayerLocation(s.dbCtx(), uid); err == nil && loc != nil {
 			v := travelLevelKey(loc.LevelKey)
 			s.setLevel(uid, v)
-			
 			return v
 		}
 	}
