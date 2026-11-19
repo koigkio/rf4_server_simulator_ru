@@ -1483,7 +1483,7 @@ func (s *Server) rollFishFromDBWithRules(loc, bait string, gearCapKg float64, bo
 			sample := func() float64 {
 				return float64(s.sampleWeightDB(cctx, key, s.baitWeightModeForRoll(key, c.baits, c), scale, capG, c))
 			}
-			w = int64(applyTrophyLuck(sample(), bonus.TrophyLuck, sample))
+			w = int64(s.applyRollTrophyLuck(sample(), bonus.TrophyLuck, sample))
 		}
 		if w == 0 {
 			for i, candidate := range keys {
@@ -1962,7 +1962,7 @@ func (s *Server) rollFishPoolsWithRules(loc string, gearCapKg float64, bonus fis
 		upper = math.Min(upper, capG/scale)
 	}
 	sample := func() float64 { return triangular(minG, maxG, mode, upper) }
-	w := applyTrophyLuck(sample(), bonus.TrophyLuck, sample)
+	w := s.applyRollTrophyLuck(sample(), bonus.TrophyLuck, sample)
 	if w == 0 {
 		return nil
 	}
@@ -2004,6 +2004,15 @@ func applyTrophyLuck(weight, luck float64, sample func() float64) float64 {
 		return math.Max(weight, sample())
 	}
 	return weight
+}
+
+// applyRollTrophyLuck 统一按发鱼模式决定奖杯幸运是否参与；档位比例是总开关，
+// 开启后任何旧加成都不能改写配置的四档份额。
+func (s *Server) applyRollTrophyLuck(weight, luck float64, sample func() float64) float64 {
+	if s.gradeRatioEnabled() {
+		return weight
+	}
+	return applyTrophyLuck(weight, luck, sample)
 }
 
 func triangular(min, max, mode float64, upperBounds ...float64) float64 {

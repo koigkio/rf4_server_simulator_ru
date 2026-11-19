@@ -3,6 +3,7 @@ package gameserver
 import (
 	"math"
 	"testing"
+	"time"
 )
 
 // 饵效倍率不得改变四档比例；面板显示的占比就是实际发鱼的占比。
@@ -28,5 +29,29 @@ func TestGradeRatioSharesIgnoreBaitModeMultiplier(t *testing.T) {
 			math.Abs(weights[3]/total-.001) > 1e-9 {
 			t.Fatalf("mode=%g 改动了四档比例: %v", mode, weights)
 		}
+	}
+}
+
+func TestGradeRatioDisablesTrophyLuckResample(t *testing.T) {
+	srv := &Server{
+		tunCache: map[string]float64{"grade_ratio_enabled": 1},
+		tunAt:    time.Now(),
+	}
+	got := srv.applyRollTrophyLuck(300, 2, func() float64 { return 500 })
+	if got != 300 {
+		t.Fatalf("档位比例开启时 TrophyLuck 不得重采样，实得 %g", got)
+	}
+
+	srv.tunCache["grade_ratio_enabled"] = 0
+	got = srv.applyRollTrophyLuck(300, 2, func() float64 { return 500 })
+	if got != 500 {
+		t.Fatalf("档位比例关闭后应恢复 TrophyLuck 重采样，实得 %g", got)
+	}
+}
+
+func TestGradeRatioRetainedMassIgnoresTrophyLuck(t *testing.T) {
+	law := fishWeightLaw{roundedSurvival: func(int64) float64 { return .4 }}
+	if got := law.retainedMass(1000, 2); got != .4 {
+		t.Fatalf("档位比例查询预估不得按 TrophyLuck 放大，实得 %g", got)
 	}
 }
