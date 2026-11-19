@@ -50,6 +50,59 @@ func TestCatchSkillFloatResidueHidesSkillRow(t *testing.T) {
 	}
 }
 
+// 官服对拍结论：磨损只按搏鱼受力时间结算，不存在"每尾鱼扣一笔"的离散磨损
+// （docs/实测博鱼过程对装备磨损的影响分析.md §一.2）。主线因此不再随每尾渔获
+// 扣耐久；竿本体等其它按尾磨损保持不变。
+func TestCatchSettlementDoesNotWearMainLine(t *testing.T) {
+	srv, db := newRigTestServer(t)
+	ctx := context.Background()
+	const uid = int64(1000001)
+	rod, err := srv.CreateItem(ctx, uid, "feeder_10125_FD360", "backpack", 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	line, err := srv.CreateItem(ctx, uid, "mono_40853", "backpack", 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	sess := newProbeSess(srv)
+	mountGearForTest(t, srv, sess, rod.GUID, line.GUID)
+	lineBefore, err := db.GetItemByGUID(ctx, line.GUID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	rodBefore, err := db.GetItemByGUID(ctx, rod.GUID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	st := srv.stateFor(uid)
+	st.mu.Lock()
+	st.GearGuid = rod.GUID
+	st.Pending = &RolledFish{FishGUID: newFishGUID(), Species: "perch", Grade: 2,
+		WeightG: 642, LengthM: .28, LocLevel: "level_001_lake"}
+	st.Hooked = true
+	st.mu.Unlock()
+	body, handled := srv.fishingEndSettle(&Ctx{Sess: sess, CallID: 1,
+		Main: 14, Sub: 4, ExpectResponse: true, Log: logging.Discard()})
+	if !handled || len(body) == 0 {
+		t.Fatal("结算未正常返回")
+	}
+	lineAfter, err := db.GetItemByGUID(ctx, line.GUID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if lineAfter.Durability != lineBefore.Durability {
+		t.Fatalf("主线不应按尾扣耐久: %v -> %v", lineBefore.Durability, lineAfter.Durability)
+	}
+	rodAfter, err := db.GetItemByGUID(ctx, rod.GUID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !(rodAfter.Durability < rodBefore.Durability) {
+		t.Fatalf("竿本体的按尾磨损应保留: %v -> %v", rodBefore.Durability, rodAfter.Durability)
+	}
+}
+
 func TestCatchSettlementOnceAcrossCallsAndRestart(t *testing.T) {
 	srv, db := newDetachTestServer(t)
 	ctx := context.Background()

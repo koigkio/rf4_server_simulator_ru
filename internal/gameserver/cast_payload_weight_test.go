@@ -162,9 +162,12 @@ func TestRigWearKeyFollowsAssemblyCategory(t *testing.T) {
 			t.Fatalf("slot %d 应映射到 %q，实得 %q", slot, want, got)
 		}
 	}
-	if !(wearPerCatch[wearKey(catLine)] > wearPerCatch[wearKey(catHook)] &&
-		wearPerCatch[wearKey(catHook)] > wearPerCatch[wearKey(catLure)]) {
-		t.Fatal("主线应比鱼钩磨得快，鱼钩应比拟饵磨得快")
+	// 官服只按搏鱼受力时间磨损，主线不再按尾扣耐久（2026-11-19 裁定）。
+	if wearPerCatch[wearKey(catLine)] != 0 {
+		t.Fatal("主线不应再有按尾扣耐久")
+	}
+	if !(wearPerCatch[wearKey(catHook)] > wearPerCatch[wearKey(catLure)]) {
+		t.Fatal("鱼钩应比拟饵磨得快")
 	}
 	if wearPerCatch[wearKey(catBait)] != 0 {
 		t.Fatal("鱼饵是消耗品，不应按耐久磨损")
