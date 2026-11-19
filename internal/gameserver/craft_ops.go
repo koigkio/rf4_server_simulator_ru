@@ -300,6 +300,11 @@ const bundleCategory = 55
 // trophyMountCategory 标本/奖章类（悬挂板、落地架、吊顶，输出均此类别）。
 const trophyMountCategory = 71
 
+// couponChucheloItemID 梦鱼优惠券：标本制作商店的免单券，一次制作消耗一张。
+// 客户端在标本板材料槽里用需求 id mat_coupon_chuchelo + 实例 GUID 表达，
+// 静态配方的 materials_json 全为空，所以扣券只能按槽位判定，不能按需求表。
+const couponChucheloItemID = "coupon_chuchelo"
+
 // ---- 请求解析 ----
 
 // craftSlot 表示 koelkolmmee 槽位：f0 是需求 id，f1 是物品实例 GUID。
@@ -718,6 +723,13 @@ func hCraft(ctx *Ctx) ([]byte, bool) {
 		ctx.Log.Warn("9/1 产出物不可构造", "output", outputID, "err", err)
 		return srv.replyCraftResult(ctx, false, nil, nil, nil)
 	}
+	lureHooks, ordinaryMaterials, err := prepareCraftedLureHooks(producedRow, outputDef, req.Materials)
+	if err != nil {
+		ctx.Log.Warn("9/1 选钩无效", "err", err)
+		return srv.replyCraftResult(ctx, false, nil, nil, nil)
+	}
+	// Selected hooks are transferred, not consumed as ordinary recipe materials.
+	req.Materials = ordinaryMaterials
 
 	// 标本/奖章族（悬挂板 board s/m/l、落地架 stand xl、吊顶 ceil xxl，
 	// 输出均为 cat 71）：客户端材料槽带鱼护 EchoGUID+鱼种（bhfikaplhmh
@@ -768,6 +780,24 @@ func hCraft(ctx *Ctx) ([]byte, bool) {
 	// usedMats 记下本次真的扣掉了哪些原料 item_id（不是槽里的需求 id）。
 	// 自制窝料的产物没有独立 item_id，只能按实例把用料记下来。
 	usedMats := []string{}
+	var pvaFeed *proto.Value
+	var pvaFeedGUID string
+	consumeMaterial := func(row *store.Item, qty int64) (int64, error) {
+		if producedRow.TypeID == 145 && row.TypeID == 120 {
+			if pvaFeedGUID != "" && pvaFeedGUID != row.GUID {
+				return 0, errors.New("PVA 制作必须使用同一份干混合配方")
+			}
+			if pvaFeed == nil {
+				var err error
+				pvaFeed, err = srv.captureFeedRecipeTx(cctx, tx, row)
+				if err != nil {
+					return 0, err
+				}
+				pvaFeedGUID = row.GUID
+			}
+		}
+		return consumeItemQtyTx(cctx, tx, row, qty)
+	}
 	// keepnetTaken 记下本次从鱼护里吃掉的渔获 echo guid。它们不在 item 表里，
 	// 需要单独走 4/21 物品移除信号，客户端才会把鱼护界面里的原鱼撤下。
 	keepnetTaken := []string{}
@@ -823,7 +853,7 @@ func hCraft(ctx *Ctx) ([]byte, bool) {
 					if have := stackCountTx(cctx, tx, it); have < take {
 						take = have
 					}
-					got, cerr := consumeItemQtyTx(cctx, tx, it, take)
+					got, cerr := consumeMaterial(it, take)
 					if cerr != nil {
 						return fail("扣材料失败", "item", accept, "err", cerr)
 					}
@@ -895,7 +925,7 @@ func hCraft(ctx *Ctx) ([]byte, bool) {
 			need := per * times
 			consumed := false
 			if row := byGUID[slot.GUID]; row != nil && row.Qty > 0 {
-				got, cerr := consumeItemQtyTx(cctx, tx, row, need)
+				got, cerr := consumeMaterial(row, need)
 				if cerr != nil {
 					return fail("扣指定材料失败", "guid", slot.GUID, "err", cerr)
 				}
@@ -940,7 +970,7 @@ func hCraft(ctx *Ctx) ([]byte, bool) {
 					if !match {
 						continue
 					}
-					got, cerr := consumeItemQtyTx(cctx, tx, it, remaining)
+					got, cerr := consumeMaterial(it, remaining)
 					if cerr != nil {
 						return fail("按需求扣材料失败", "item", it.ItemID, "err", cerr)
 					}
@@ -1055,6 +1085,9 @@ func hCraft(ctx *Ctx) ([]byte, bool) {
 	if err := setItemName(producedRow, req.Name); err != nil {
 		return fail("自定义名称写入失败", "err", err)
 	}
+	if err := srv.savePVARecipeTx(cctx, tx, producedRow, pvaFeed, usedMats); err != nil {
+		return fail("PVA 配方保存失败", "err", err)
+	}
 
 	// 标本挂鱼（事务内）：定位→嵌鱼→消耗一体，任何一步失败整体回滚。
 	if isTrophyMount {
@@ -1071,6 +1104,14 @@ func hCraft(ctx *Ctx) ([]byte, bool) {
 		if err := srv.consumeMountedFishTx(cctx, tx, uid, mf.EchoGUID); err != nil {
 			return fail("标本消耗渔获失败", "guid", shortGUID(mf.EchoGUID), "err", err)
 		}
+		couponGUID, cerr := srv.consumeCouponForTrophyTx(cctx, tx, uid, req.Materials)
+		if cerr != nil {
+			return fail("标本券扣除失败", "err", cerr)
+		}
+		if couponGUID != "" && !containsGUID(touched, couponGUID) {
+			touched = append(touched, couponGUID)
+			ctx.Log.Info("9/1 标本券已扣除", "guid", shortGUID(couponGUID), "recipe", recipe.RecipeID)
+		}
 		mounted = mf
 		ctx.Log.Info("9/1 标本挂鱼", "species", mf.Species, "board", shortGUID(producedRow.GUID))
 	}
@@ -1079,6 +1120,14 @@ func hCraft(ctx *Ctx) ([]byte, bool) {
 		if err := srv.materializeCraftedLeaderTx(cctx, tx, producedRow, leaderMaterials); err != nil {
 			return fail("引线成品物化失败", "err", err)
 		}
+	}
+	var craftedHookGUIDs []string
+	if lureHooks != nil {
+		craftedHookGUIDs, err = srv.materializeCraftedLureTx(cctx, tx, producedRow, lureHooks)
+		if err != nil {
+			return fail("拟饵选钩装配失败", "err", err)
+		}
+		touched = append(touched, craftedHookGUIDs...)
 	}
 
 	// 本次产出量：可计件产物在 prepareNewItem 已按定义单位量×份数折算；
@@ -1198,7 +1247,7 @@ func (s *Server) alignItemRowQty(ctx context.Context, row *store.Item) {
 	if def, err := s.DB.GetItemDef(ctx, row.NumericID); err == nil && def != nil &&
 		countableCategories[def.Category] {
 		if fields, ferr := FieldsFromJSON(row.FieldsJSON); ferr == nil {
-			if q := fieldIdxByCS(row.WireClass, csQty); q >= 0 && q < len(fields) && fields[q].Num != nil {
+			if q := stackQtyFieldIdx(row.WireClass); q >= 0 && q < len(fields) && fields[q].Num != nil {
 				if v := int64(u64Of(fields[q].Num)); v > count {
 					count = v
 				}
@@ -1384,7 +1433,7 @@ func (s *Server) consumeItemQty(ctx context.Context, row *store.Item, n int64) i
 	left := have - take
 	if fields, err := FieldsFromJSON(row.FieldsJSON); err == nil && len(fields) > 0 {
 		// set_item_fields 路径：改 ljnnpokapig + qty 镜像列 + 抬版本戳
-		if q := fieldIdxByCS(row.WireClass, csQty); q >= 0 && q < len(fields) {
+		if q := stackQtyFieldIdx(row.WireClass); q >= 0 && q < len(fields) {
 			fields[q].Num = ptrU64(uint64(left))
 		}
 		bumpCreatedTicks(fields, row.WireClass)
@@ -1710,6 +1759,49 @@ func (s *Server) consumeMountedFishTx(ctx context.Context, tx *sql.Tx, uid int64
 	}
 	_, err = tx.ExecContext(ctx, `DELETE FROM rig_component WHERE guid=?`, guid)
 	return err
+}
+
+// isCouponMaterialSlot 判定材料槽是否指向梦鱼优惠券。客户端用需求 id
+// mat_coupon_chuchelo 表达，f2 鱼种位回填 coupon_chuchelo；两种写法都认。
+func isCouponMaterialSlot(sl craftSlot) bool {
+	return sl.ItemID == couponChucheloItemID ||
+		sl.ItemID == "mat_"+couponChucheloItemID ||
+		sl.Species == couponChucheloItemID
+}
+
+// consumeCouponForTrophyTx 事务内按次扣一张梦鱼优惠券，返回被扣券的 GUID。
+//
+// 券在标本板材料里是「必要:否」的可选材料：槽位缺失、券已被扣空、或玩家
+// 根本没带券，都不阻断制作（免费标本板制作本来就不依赖券）。但槽位明确
+// 带了券且券还在背包时**必须**扣掉：标本配方的 materials_json 为空，hCraft
+// 会走 len(demands)==0 分支跳过全部材料消费，不能指望那条路径。
+//
+// 返回值由调用方放进 touched：券还有余额时 803.f6 会带出新数量，扣空时
+// item 行已删，803.f8 会带上该 GUID 让客户端把券从背包撤下。
+func (s *Server) consumeCouponForTrophyTx(ctx context.Context, tx *sql.Tx, uid int64, slots []craftSlot) (string, error) {
+	for _, sl := range slots {
+		if sl.GUID == "" || !isCouponMaterialSlot(sl) {
+			continue
+		}
+		row, err := getOwnedItemTx(ctx, tx, uid, sl.GUID)
+		if errors.Is(err, sql.ErrNoRows) {
+			continue // 可选材料：券已不存在不阻断制作
+		}
+		if err != nil {
+			return "", err
+		}
+		if row.ItemID != couponChucheloItemID {
+			continue // 同 GUID 落在别的物品上，说明槽位引用错位，忽略
+		}
+		n, cerr := consumeItemQtyTx(ctx, tx, row, 1)
+		if cerr != nil {
+			return "", cerr
+		}
+		if n > 0 {
+			return row.GUID, nil
+		}
+	}
+	return "", nil
 }
 
 // ---- 9/4 制作询价 ----
@@ -2058,7 +2150,7 @@ func (s *Server) craftProducedTree(ctx context.Context, row *store.Item, produce
 	if err != nil {
 		return nil, err
 	}
-	idx := fieldIdxByCS(row.WireClass, csQty)
+	idx := stackQtyFieldIdx(row.WireClass)
 	if idx < 0 || idx >= len(fields) {
 		return nil, fmt.Errorf("物品 %s 没有数量字段", row.ItemID)
 	}

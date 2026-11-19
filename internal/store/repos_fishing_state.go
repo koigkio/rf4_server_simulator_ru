@@ -43,6 +43,7 @@ type FishingFish struct {
 	QualBaitSizeMM   float64 `json:"qual_bait_size_mm,omitempty"`
 	CastM            float64 `json:"cast_m,omitempty"`
 	IsNight          bool    `json:"is_night,omitempty"`
+	BiteUnix         int64   `json:"bite_unix,omitempty"`
 	DepthCM          int64   `json:"depth_cm,omitempty"`
 	OnBoat           bool    `json:"on_boat,omitempty"`
 	Drift            bool    `json:"drift,omitempty"`

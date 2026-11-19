@@ -185,6 +185,7 @@ func rolledFishToStore(f *RolledFish) *store.FishingFish {
 		QualBaitSizeMM:   f.QualBait.SizeMM,
 		CastM:            f.CastM,
 		IsNight:          f.IsNight,
+		BiteUnix:         f.BiteUnix,
 		DepthCM:          f.DepthCM,
 		OnBoat:           f.OnBoat,
 		Drift:            f.Drift,
@@ -224,11 +225,12 @@ func rolledFishFromStore(f *store.FishingFish) *RolledFish {
 			LenCM:    f.QualBaitLenCM,
 			SizeMM:   f.QualBaitSizeMM,
 		},
-		CastM:   f.CastM,
-		IsNight: f.IsNight,
-		DepthCM: f.DepthCM,
-		OnBoat:  f.OnBoat,
-		Drift:   f.Drift,
+		CastM:    f.CastM,
+		IsNight:  f.IsNight,
+		BiteUnix: f.BiteUnix,
+		DepthCM:  f.DepthCM,
+		OnBoat:   f.OnBoat,
+		Drift:    f.Drift,
 	}
 }
 
@@ -243,6 +245,9 @@ func (s *Server) resumeFishingState(st *FishState) {
 	if sess == nil {
 		return
 	}
+	// 饵效控速惰性补算：恢复的杆没有节奏因子（仅进程内），补一次防止
+	// 重启后差饵按无节奏控制判鱼。
+	s.ensurePaceState(sess, st)
 
 	st.mu.Lock()
 	resumed := st.persist.sessionID != sess.ID

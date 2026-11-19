@@ -84,6 +84,9 @@
 - [搏鱼脱钩根因与修复整体方案（2026-11-13）](搏鱼脱钩根因与修复整体方案-2026-11-13.md)：
   海鱼静态参数缺口的根因定量与落表方案；结论已正式化为
   specs/changes/fight-statics-official-tables/spec.md。
+- [路亚脱钩率归因收敛：咬饵≠咬钩（2026-11-16）](路亚脱钩率分析-2026-11-16.md)：
+  客户端两阶段模型（f0=1 叼住吐出 / f0=2 真脱钩）；结论已正式化为
+  specs/changes/lure-f0-1-silent-spit-out/spec.md。
 
 ## 工程约定
 
@@ -92,6 +95,7 @@
 - [工程工作流](agents/workflow.md)：快速路径与约束路径的分级、门禁级别。
 - [变更记录约定](agents/issue-tracker.md)：`specs/changes` 目录与状态流转。
 - [档案与技能树统一显示可用技能点](../specs/changes/issue-401-skill-points/spec.md)：Issue #401 的修复范围与验证状态。
+- [商店扣款前校验物品可下发性](../specs/changes/store-goods-wire-preflight/spec.md)：吸引成分购买可见性与异常商品拒购边界。
 - [领域文档约定](agents/domain.md)：文档地图、证据等级、对账表。
 - [ADR 0001](adr/0001-engineering-constraints.md)：为什么采用按风险分级的约束体系。
 

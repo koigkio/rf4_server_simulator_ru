@@ -669,7 +669,14 @@ func (s *Server) consumeBaitEvent(ctx context.Context, uid int64, rod, event str
 			out.Updated = append(out.Updated, guid)
 			continue
 		}
-		if !cast && def.Category == 27 {
+		_, rigType, _ := rigIdentity(protoFieldAt(fields, parent.WireClass, csRigObject))
+		refill := cast || def.ItemID == "fish_pieces" && hookPositionsIn(rigType, originalSlots) <= 1
+		if refill {
+			if err := rememberBaitRefillTx(ctx, tx, parent, row, originalSlots); err != nil {
+				return out, err
+			}
+		}
+		if !refill && !cast && def.Category == 27 {
 			if key, _, ok := rigCompKeyForGUID(originalSlots, guid); ok {
 				ordinal, value := rigCompOrdinal(key), def.ItemID
 				var hook string
@@ -826,7 +833,10 @@ func (s *Server) consumeCastBait(sess *Session, st *FishState) error {
 
 // reloadBaitForCast 只在下一次抛竿前补同种钩饵，不提前消耗搏鱼中的备用饵。
 func (s *Server) reloadBaitForCast(ctx context.Context, uid int64, rod string) (baitChange, error) {
-	var out baitChange
+	out, err := s.reloadSlotBait(ctx, uid, rod)
+	if err != nil {
+		return baitChange{}, err
+	}
 	parent, err := s.DB.GetItemByGUID(ctx, rod)
 	if err != nil {
 		return out, err
@@ -1010,12 +1020,7 @@ func (s *Server) orderBaitsByHook(ctx context.Context, uid int64, rod string) er
 	if err := updateItemFieldsTx(ctx, s.DB, tx, parent, fields); err != nil {
 		return err
 	}
-	components := make([]store.RigComponent, 0, len(comps))
-	for _, comp := range comps {
-		components = append(components, store.RigComponent{
-			Slot: comp.Category, Ordinal: comp.Ordinal, GUID: comp.GUID, Extra: comp.Extra,
-		})
-	}
+	components := rigProjection(parent.WireClass, fields, fields[idx].Val)
 	if err := s.DB.ReplaceRigComponentsTx(ctx, tx, rod, components); err != nil {
 		return err
 	}
