@@ -20,11 +20,13 @@ Status: done
 1. 用社区公开抓取库 `ghoomt03-sketch/rf4info` 的 15 个周档（2026-W32 ~ W46）重建每图每鱼的相对权重：
    - 三张证据表按可信度加权：`catch_records`（渔获）×1.0、`community_spots`（点位）×0.5、
      `official_weekly_records`（官方周榜）×1.0；
-   - 每个水域取 `权重 / 该图最大权重 × 100`，保留两位小数，最小钳到 1.0（不置 0，避免鱼「消失」）；
+   - 按图做幂压缩 `w ** gamma`，逐图求解使第一名占比 ≤ 20%、前三名合计 ≤ 52%；本来就分散的图
+     取 `gamma=0.95`，保留 5% 压缩以统一图间口径；
+   - 对压缩后权重取 `权重 / 该图最大权重 × 100`，保留两位小数，最小钳到 1.0（不置 0，避免鱼「消失」）；
    - 只写名册内存在的鱼：先按 `loc_wiki_fish` 过滤；迁移整表重置周档权重，因此不会残留名册外旧行。
 2. 数据以迁移 `internal/store/migrations/00071_fish_weight_official.sql` 落库，
    `updated_by='rf4info'`；迁移按当前静态名册过滤后整表重置周档权重。
-3. 同步脚本 `tools/build_fish_weights.py`：从 rf4info 周档重新生成上述 SQL 与 CSV，
+3. 同步脚本 `tools/build_fish_weights.py`：从 rf4info 周档重新生成上述迁移 SQL 与基础权重种子 SQL，
    便于后续按新周档复核。
 
 ## 数据来源与时间跨度（可追溯）
@@ -57,8 +59,8 @@ W32–W42 合计仅 7,783 条（3.5%），抓取器 2026-10 底才稳定，因�
 # 1. 下载周档（仓库 public_data/weeks/）
 gh repo clone ghoomt03-sketch/rf4info
 # 2. 合并三表并生成 SQL
-python tools/build_fish_weights.py --weeks ./rf4info/public_data/weeks --out ./out
-# 3. 生成的 out/fish_weights.sqlite.sql 即迁移内容，核对后放入 migrations/
+python tools/build_fish_weights.py --weeks ./rf4info/public_data/weeks --db ./data/rf4server.db --out ./out
+# 3. 生成的 out/00071_fish_weight_official.sql 即迁移内容，核对后放入 migrations/
 ```
 
 ## User Stories
@@ -70,6 +72,7 @@ python tools/build_fish_weights.py --weeks ./rf4info/public_data/weeks --out ./o
 ## Implementation Decisions
 
 - 权重存的是**相对值**（该图最大值归一为 100），不是绝对概率；判鱼时乘在名册权重上。
+- 猎获条数带打法/上传/时间窗偏置，不能直接当水体结构；先做保序幂压缩再归一，避免热门鱼挤掉整图多样性。
 - 每个水域只保留名册内的鱼：`loc_wiki_fish` 是静态名册，override 是动态权重，两者必须一一对应。
 - 名册里有、但窗口内 0 记录的鱼保留 1.0，避免「周档这周没人钓到」直接变成该鱼消失。
 - 不删除任何名册项：公开周档是滚动窗口，用窗口缺失去删静态名册会误删真实存在的鱼。
@@ -80,7 +83,7 @@ python tools/build_fish_weights.py --weeks ./rf4info/public_data/weeks --out ./o
 - 「恢复默认鱼口」在有周档基线时恢复基线，在旧库缺基线时才保持静态回退。
 
 - `internal/store/fish_weight_official_test.go`：迁移执行后每图行数等于该图名册数、权重全部 >0、
-  每图最大值 ==100、`updated_by` 全部为 `rf4info`。
+  每图最大值 ==100、`updated_by` 全部为 `rf4info`；每图第一名占比 ≤20%、前三名合计 ≤52%。
 - 迁移可重复执行：连续两次应用不报错、行数不变。
 - 名册外多余行检查：`SELECT COUNT(*) FROM fish_weight_override o LEFT JOIN loc_wiki_fish w
   ON w.loc=o.loc AND w.fish_key=o.fish_key WHERE w.fish_key IS NULL` 必须为 0。
