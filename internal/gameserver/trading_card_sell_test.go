@@ -1,6 +1,7 @@
 package gameserver
 
 import (
+	"bytes"
 	"testing"
 	"time"
 
@@ -34,15 +35,14 @@ func TestTradingCardSell(t *testing.T) {
 	sess, peer := newTunnelProbe(t, s)
 	sess.Userid, sess.Token = 7, "album-test"
 	ctx.Sess = sess
-	result := s.dispatch.executeRequest(ctx, true)
-	if !result.hasResponse || result.failed {
-		t.Fatalf("sell response: %+v", result)
+
+	// 走真实 dispatch，确保响应先于 2/1 推送，并由请求回执中间件记录原请求。
+	s.dispatchRequest(ctx)
+	response := awaitPushEnvelope(t, peer)
+	if response.Marker != -2 || response.CallID != 601 {
+		t.Fatalf("出售应先回 27/1 响应，实得 marker=%d call=%d", response.Marker, response.CallID)
 	}
-	if len(ctx.afterResponse) != 1 {
-		t.Fatalf("出售后只应安排余额同步，回调数=%d", len(ctx.afterResponse))
-	}
-	body := result.body
-	v, _, err := proto.DecodeValue(body, 0, s.Table())
+	v, _, err := proto.DecodeValue(response.Body, 0, s.Table())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -59,12 +59,10 @@ func TestTradingCardSell(t *testing.T) {
 	if removed.Kind != proto.KindGuidArr || len(removed.Items) != 1 || removed.Items[0].Hex != card.GUID {
 		t.Fatalf("27/1 f2 应只含成交卡: %+v", removed)
 	}
-	ctx.afterResponse[0]()
 	walletPush := awaitPushEnvelope(t, peer)
-	if walletPush.Main != 2 || walletPush.Sub != 1 {
-		t.Fatalf("出售后唯一推送=%d/%d，期望 2/1", walletPush.Main, walletPush.Sub)
+	if walletPush.Marker != -1 || walletPush.Main != 2 || walletPush.Sub != 1 {
+		t.Fatalf("出售后唯一推送=%d/%d，期望推送 2/1", walletPush.Main, walletPush.Sub)
 	}
-	assertNoPush(t, peer, 100*time.Millisecond, "出售后不应追加库存删除或全量卡片同步")
 	var silver int64
 	if err := db.SQL.QueryRow(`SELECT silver FROM profile WHERE uid=7`).Scan(&silver); err != nil {
 		t.Fatal(err)
@@ -76,16 +74,20 @@ func TestTradingCardSell(t *testing.T) {
 	if _, err := db.GetItemByGUID(c, card.GUID); err == nil {
 		t.Fatal("出售后卡应被删除")
 	}
-	// 回执幂等：同 call 重放返回缓存 ACK，不重复入账
-	replay := tradingAlbumRequest(t, s, 1, 601,
-		proto.GuidArr([]string{card.GUID}), proto.U64(12000))
-	replayResult := s.dispatch.executeRequest(replay, true)
-	if !replayResult.hasResponse || replayResult.failed || len(replayResult.body) == 0 {
-		t.Fatalf("sell replay: %+v", replayResult)
+
+	// 回执幂等：复用首次请求 body 和 call_id，必须命中真正的回执重放路径。
+	replay := &Ctx{Sess: sess, Main: 27, Sub: 1, CallID: 601, Body: ctx.Body, Tree: ctx.Tree,
+		DecodeOK: true, ExpectResponse: true, Log: ctx.Log}
+	s.dispatchRequest(replay)
+	replayResponse := awaitPushEnvelope(t, peer)
+	if replayResponse.Marker != -2 || replayResponse.CallID != 601 {
+		t.Fatalf("回执重放应返回成功响应，实得 marker=%d call=%d", replayResponse.Marker, replayResponse.CallID)
 	}
-	if len(replay.afterResponse) != 0 {
-		t.Fatalf("回执重放不应重复安排同步，回调数=%d", len(replay.afterResponse))
+	if !bytes.Equal(replayResponse.Body, response.Body) {
+		t.Fatalf("回执重放响应与原响应不一致")
 	}
+	// 从首次出售起覆盖旧逻辑的 600ms 第二次全量同步窗口；回执重放也不得新增推送。
+	assertNoPush(t, peer, 700*time.Millisecond, "出售或回执重放不应追加库存删除或全量卡片同步")
 	if err := db.SQL.QueryRow(`SELECT silver FROM profile WHERE uid=7`).Scan(&silver); err != nil {
 		t.Fatal(err)
 	}
