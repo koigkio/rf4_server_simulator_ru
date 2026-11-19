@@ -1377,13 +1377,10 @@ func (s *Server) gradeRatioModel(l cachedGradeLines, modeMult, scale, capG float
 		3: s.tunableF("grade_pct_trophy", 9),
 		4: s.tunableF("grade_pct_super", 0.5),
 	}
-	// 饵效命中：把一部分"合格"份额挪给奖杯，模拟大饵更招大鱼。
-	if modeMult > 1.0 {
-		shift := math.Min(w[2]*0.5, w[2]*(modeMult-1)*0.5)
-		w[2] -= shift
-		w[3] += shift
-	}
-	usable := make([]gradeRatioBand, 0, len(bands))
+	usable := make([]gradeRatioBand, 0, len(bands))7    // 档位比例是后台配置的绝对占比：饵效倍率只影响鱼种和体重分布，
+	    // 不得再把“合格”份额挪给“奖杯”，否则实际上星率会高于面板显示值。
+	    _ = modeMult
+	
 	wts := make([]float64, 0, len(bands))
 	total := 0.0
 	for _, b := range bands {
