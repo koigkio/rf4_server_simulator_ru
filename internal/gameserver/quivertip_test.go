@@ -9,6 +9,16 @@ import (
 )
 
 func TestSetQuivertipRefreshesEquippedRod(t *testing.T) {
+	t.Run("Feeder", func(t *testing.T) {
+		testEquippedRodTipSequence(t, "feeder_10125_FD360", []string{"kam_quiv_0.5", "kam_quiv_1.0", "kam_quiv_1.5"})
+	})
+	t.Run("Picker", func(t *testing.T) {
+		testEquippedRodTipSequence(t, "picker_10251_f98mh", []string{"kgf_quiv_pkr_0.25", "kgf_quiv_pkr_0.5", "kgf_quiv_pkr_0.75", "kgf_quiv_pkr_1.0", "kgf_quiv_pkr_0.25"})
+	})
+}
+
+func testEquippedRodTipSequence(t *testing.T, model string, tips []string) {
+	t.Helper()
 	srv, db := newRigTestServer(t)
 	sess, gc := newTunnelProbe(t, srv)
 	ctx := context.Background()
@@ -20,8 +30,8 @@ func TestSetQuivertipRefreshesEquippedRod(t *testing.T) {
 		}
 		return row.GUID
 	}
-	rod := create("feeder_10125_FD360")
-	other := create("feeder_10125_FD360")
+	rod := create(model)
+	other := create(model)
 	reel := create("bclp_5004")
 	mountGearForTest(t, srv, sess, rod, reel)
 	mountGearForTest(t, srv, sess, rod, create("c_hook_20712"))
@@ -64,7 +74,6 @@ func TestSetQuivertipRefreshesEquippedRod(t *testing.T) {
 		}
 		return u64Of(v.Field(16).Num)
 	}
-	tips := []string{"kam_quiv_0.5", "kam_quiv_1.0", "kam_quiv_1.5"}
 	version := u64Of(before.Field(16).Num)
 	for _, tip := range tips {
 		c := &Ctx{Sess: sess, Main: 17, Sub: 5, Tree: rigRequestTree(t, proto.U32(0), proto.Guid(rod), proto.StrVal(tip)), ExpectResponse: true, DecodeOK: true, Log: sess.log}
@@ -97,10 +106,10 @@ func TestSetQuivertipRefreshesEquippedRod(t *testing.T) {
 		}
 	}
 	final := detail(rod)
-	if tip := final.Field(8).Str; tip == nil || *tip != tips[2] || !reflect.DeepEqual(final.Field(5).Val, before.Field(5).Val) || final.Field(4).Hex != reel {
+	if tip := final.Field(8).Str; tip == nil || *tip != tips[len(tips)-1] || !reflect.DeepEqual(final.Field(5).Val, before.Field(5).Val) || final.Field(4).Hex != reel {
 		t.Fatal("新会话 4/5 未保留最后选择或装配")
 	}
-	if setting, err := db.GetRodSetting(ctx, rod, "quivertip"); err != nil || setting != tips[2] {
+	if setting, err := db.GetRodSetting(ctx, rod, "quivertip"); err != nil || setting != tips[len(tips)-1] {
 		t.Fatalf("最终设置=%q err=%v", setting, err)
 	}
 	if !reflect.DeepEqual(detail(other), untouched) {
