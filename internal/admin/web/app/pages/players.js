@@ -56,7 +56,8 @@ function playerDetail(p, tab) {
   let tabDirty = () => false;
   const pane = h('div');
   const show = async (t) => {
-    if (t !== current && tabDirty()) {
+    if (t === current && pane.childNodes.length) return false;
+    if (tabDirty()) {
       const ok = await confirmDialog({ title: '有修改还没保存', desc: '切换标签会放弃这些修改。', confirm: '放弃并切换' });
       if (!ok) return false;
     }
@@ -211,10 +212,11 @@ function addFish(p, reload) {
 }
 
 // ---------- 图鉴补录 ----------
-function records(p) {
+function records(p, reload, setDirty) {
   const box = h('div', {}, loading(5));
   let data = null, level = '', q = '';
   const changes = new Map();
+  setDirty(() => changes.size > 0);
   const saveBtn = btn('保存补录', async () => {
     saveBtn.disabled = true;
     try {
@@ -258,23 +260,25 @@ function records(p) {
 }
 
 // ---------- 技能 ----------
-function skills(p, reload) {
+function skills(p, reload, setDirty) {
   const list = p.skills || [];
   const avail = Number(p.available_points ?? 0);
-  const points = h('input', { class: 'input num', style: { width: '100px' }, value: avail });
+  const unsaved = new Set();
+  setDirty(() => unsaved.size > 0);
+  const points = h('input', { class: 'input num', style: { width: '100px' }, value: avail, oninput: () => { unsaved.add('points'); } });
   return h('div', { class: 'stack' },
     h('div', { class: 'card', style: { padding: '14px 16px', background: 'var(--surface-2)' } }, h('div', { class: 'row' },
       h('div', { class: 'grow' }, h('b', { text: '未分配的技能点' }), h('div', { class: 'muted small', text: `等级累计获得 ${p.skill_total ?? 0} 点，已经用掉 ${p.skill_spent ?? 0} 点。` })),
       points, btn('保存', async () => {
-        try { await post('/api/players/skills/points', { uid: p.uid, points: Math.max(0, Math.floor(+points.value || 0)) }); toast('已保存'); setTimeout(reload, 400); } catch (e) { toast(errText(e), 'bad'); }
+        try { await post('/api/players/skills/points', { uid: p.uid, points: Math.max(0, Math.floor(+points.value || 0)) }); unsaved.delete('points'); toast('已保存'); } catch (e) { toast(errText(e), 'bad'); }
       }, 'primary sm'))),
     h('p', { class: 'muted small', text: '下面是每种钓法的熟练度（0–100%）。' }),
     h('div', { class: 'grid-2' }, list.map((s) => {
       const v = Number(s.points) || 0;
       const out = h('output', { text: v.toFixed(1) + '%' });
-      const range = h('input', { type: 'range', min: 0, max: 100, step: 0.1, value: v, oninput: (e) => { out.textContent = Number(e.target.value).toFixed(1) + '%'; save.hidden = false; } });
+      const range = h('input', { type: 'range', min: 0, max: 100, step: 0.1, value: v, oninput: (e) => { out.textContent = Number(e.target.value).toFixed(1) + '%'; save.hidden = false; unsaved.add(s.skill_id); } });
       const save = btn('保存', async () => {
-        try { await post('/api/players/skills/update', { uid: p.uid, skill_id: s.skill_id, points: +range.value }); toast(`已保存「${s.name}」`); save.hidden = true; } catch (e) { toast(errText(e), 'bad'); }
+        try { await post('/api/players/skills/update', { uid: p.uid, skill_id: s.skill_id, points: +range.value }); unsaved.delete(s.skill_id); toast(`已保存「${s.name}」`); save.hidden = true; } catch (e) { toast(errText(e), 'bad'); }
       }, 'primary sm', { hidden: true });
       return h('div', { class: 'card', style: { padding: '12px 14px', background: 'var(--surface-2)' } },
         h('div', { class: 'row', style: { justifyContent: 'space-between' } }, h('b', { text: s.name }), save),
@@ -282,7 +286,7 @@ function skills(p, reload) {
     })),
     h('div', {}, btn('全部清零', async () => {
       if (!(await confirmDialog({ title: '把所有熟练度清零？', desc: '所有钓法的熟练度都会变成 0%，不能恢复。', confirm: '清零', danger: true }))) return;
-      try { for (const s of list) await post('/api/players/skills/update', { uid: p.uid, skill_id: s.skill_id, points: 0 }); toast('已清零'); reload(); } catch (e) { toast(errText(e), 'bad'); }
+      try { for (const s of list) await post('/api/players/skills/update', { uid: p.uid, skill_id: s.skill_id, points: 0 }); unsaved.clear(); toast('已清零'); reload(); } catch (e) { toast(errText(e), 'bad'); }
     }, 'danger sm')));
 }
 

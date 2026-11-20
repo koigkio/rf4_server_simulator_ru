@@ -70,6 +70,7 @@ export function updateBanner(u) {
   const dismiss = u.forced ? null : h('button', {
     class: 'btn ghost sm', text: '跳过这个版本', onclick: async () => {
       try {
+        // launcher owns update dismiss at the root API even when admin is mounted under /admin/.
         const r = await fetch('/api/update/dismiss', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ version: u.latest_version }) });
         if (!r.ok) throw new Error('HTTP ' + r.status);
         slot.replaceChildren();
