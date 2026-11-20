@@ -23,7 +23,8 @@ func mustOverride(fishZh string) store.FishBaitOverride {
 }
 
 func readWebIndex() ([]byte, error) {
-	return fs.ReadFile(WebFS(), "index.html")
+	// 旧单页保留为 legacy.html 供本契约断言；新版后台在 web/app/ 下。
+	return fs.ReadFile(WebFS(), "legacy.html")
 }
 
 // 鱼饵偏好页配置的轮换，必须在钓场鱼口页（/api/fish/config）同步可见：
