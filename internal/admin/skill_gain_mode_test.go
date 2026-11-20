@@ -83,4 +83,9 @@ func TestSkillGainModeSetIsAtomicAndPreservesCustomValues(t *testing.T) {
 	if code := postMode("bogus"); code != http.StatusBadRequest {
 		t.Fatalf("invalid mode code=%d, want 400", code)
 	}
+	for _, value := range []string{"101", "-1", "NaN"} {
+		if code := call(http.MethodPost, "/api/tunables", auth.Token, `{"key":"skill_gain_pct_1","value":"`+value+`"}`).Code; code != http.StatusBadRequest {
+			t.Fatalf("skill_gain_pct value %q code=%d, want 400", value, code)
+		}
+	}
 }
