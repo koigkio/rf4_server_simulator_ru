@@ -62,7 +62,7 @@ code,.mono{font-family:var(--mono);font-size:.92em}
 .page-head h1{font-size:21px}
 .page-head p{color:var(--muted);font-size:13px;margin-top:3px;max-width:720px}
 .page-head .actions{margin-left:auto;display:flex;gap:8px;align-items:center}
-.notice-bar{display:flex;align-items:center;justify-content:center;gap:10px;height:34px;padding:0 44px 0 16px;background:#13202a;border-bottom:1px solid #24414f;color:#bcdbe6;font-size:12.5px;position:relative}
+.notice-bar{display:flex;align-items:center;justify-content:center;gap:10px;min-height:34px;height:auto;padding:8px 44px 8px 16px;background:#13202a;border-bottom:1px solid #24414f;color:#bcdbe6;font-size:12.5px;line-height:1.45;position:relative}
 .notice-bar b{color:#fff;font-weight:600}
 .notice-bar button{position:absolute;right:8px;top:50%;transform:translateY(-50%);width:26px;height:26px;border:0;border-radius:6px;background:none;color:var(--muted)}
 .notice-bar button:hover{background:#ffffff12;color:#fff}

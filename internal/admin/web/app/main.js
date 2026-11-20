@@ -86,7 +86,7 @@ export function updateBanner(u) {
 function noticeBar() {
   const K = [114, 70, 52, 35, 50, 48, 50, 54];
   const C = ['lNqYypOJ1a3co7Gu2oSL087G', '0pmi3466lvuoy7K11KrYoKCV', '17+k0sn90J6n2IaPldKczI68', '2obar6yR2pKZ39jR25++1amt', 'lv6ecmPUiJKU87XEjJTdiuh1', 'AxoAAwEDRnbXo7MCAANGcAQb', 'AADRtvN3BREKAQcER38CwLKx', 'AwdBcgIVBwcGAA=='];
-  const KEY = 'rf4.n0t1ce.v1';
+  const KEY = 'rf4.n0t1ce.v2';
   try { if (localStorage.getItem(KEY) === '1') return null; } catch (e) {}
   let txt = '';
   try {

@@ -1,4 +1,4 @@
-import { h, api, apiList, fmt, relTime, timeText, icon, navigate, section, badge, empty, pageHead, btn } from '../core.js';
+import { h, api, apiList, fmt, relTime, timeText, icon, navigate, section, badge, empty, pageHead, btn, render, setPageCleanup } from '../core.js';
 import { auditLabel } from '../labels.js';
 import { updateBanner } from '../main.js';
 
@@ -20,6 +20,8 @@ export default async function dashboard() {
     api('/api/fish/bite_mode').catch(() => ({})),
   ]);
   updateBanner(d.update);
+  const timer = setInterval(() => { if (!document.hidden) render(); }, 8000);
+  setPageCleanup(() => clearInterval(timer));
   const stats = [
     ['当前在线', d.sessions, '正在游戏的连接'],
     ['角色', d.players, '已创建的角色'],
@@ -30,7 +32,7 @@ export default async function dashboard() {
   const ruleOn = (k) => (tuns[k] === undefined ? k === 'happy_hour_enabled' : tuns[k] === '1');
 
   return h('div', { class: 'page' },
-    pageHead('总览', '服务器现在的情况，以及常用功能的入口。'),
+    pageHead('总览', '服务器现在的情况，以及常用功能的入口。', btn('刷新', () => render(), 'sm', { icon: 'refresh' })),
     h('div', { class: 'grid-4', style: { marginBottom: '16px' } },
       stats.map(([k, v, s]) => h('div', { class: 'card stat' }, h('div', { class: 'k', text: k }), h('div', { class: 'v', text: fmt(v) }), h('div', { class: 's', text: s })))),
     h('div', { class: 'grid-2', style: { gridTemplateColumns: 'minmax(0,1.4fr) minmax(0,1fr)', alignItems: 'start' } },

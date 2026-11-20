@@ -33,6 +33,9 @@ endif
 test: vet doccheck
 	$(GO) test ./...
 
+ui-test:
+	node --test internal/admin/*_ui_test.cjs
+
 vet:
 	$(GO) vet ./...
 

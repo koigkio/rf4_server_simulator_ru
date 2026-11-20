@@ -280,7 +280,7 @@ const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&
 const fmt=n=>Number(n||0).toLocaleString('zh-CN');
 const timeText=ts=>ts?new Date(Number(ts)*1000).toLocaleString('zh-CN'):'-';
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
-const API_ROOT=location.pathname.replace(/\/+$/,'').endsWith('/admin')?'/admin/api':'/api';
+const API_ROOT=location.pathname.replace(/\/[^/]*$/,'').replace(/\/+$/,'').endsWith('/admin')?'/admin/api':'/api';
 function apiURL(path){return (path==='/api'||path.startsWith('/api/'))?API_ROOT+path.slice(4):path}
 async function api(path,opt={}){
   const r=await fetch(apiURL(path),{...opt,headers:{'Content-Type':'application/json','Authorization':'Bearer '+TOKEN,...(opt.headers||{})}});
@@ -2978,7 +2978,7 @@ if(TOKEN)boot();else logout();
   var bar=document.getElementById('noticeBar');if(!bar)return;
   var K=[114,70,52,35,50,48,50,54];
   var C=["lNqYypOJ1a3co7Gu2oSL087G","0pmi3466lvuoy7K11KrYoKCV","17+k0sn90J6n2IaPldKczI68","2obar6yR2pKZ39jR25++1amt","lv6ecmPUiJKU87XEjJTdiuh1","AxoAAwEDRnbXo7MCAANGcAQb","AADRtvN3BREKAQcER38CwLKx","AwdBcgIVBwcGAA=="];
-  var KEY='rf4.n0t1ce.v1';
+  var KEY='rf4.n0t1ce.v2';
   var closed=false;
   try{closed=localStorage.getItem(KEY)==='1'}catch(e){}
   if(closed)return;

@@ -1,7 +1,7 @@
 // 玩家：左边找人，右边看和改这个人的一切。
 import {
   h, api, apiList, post, icon, toast, errText, pageHead, section, callout, badge, empty, btn, loading, Form, savebar, setLeaveGuard,
-  tabs, searchBox, debounce, confirmDialog, dialog, fmt, timeText, relTime, navigate, segmented, hideSavebar,
+  tabs, searchBox, debounce, confirmDialog, dialog, fmt, timeText, relTime, navigate, segmented, hideSavebar, setPageCleanup,
 } from '../core.js';
 import { itemIcon } from '../widgets.js';
 
@@ -15,7 +15,7 @@ export default async function players(params) {
   const listBox = h('div', { class: 'list' }, loading(4));
   const detail = h('div', {});
   const root = h('div', { class: 'page' },
-    pageHead('玩家', '查看和修改角色的等级、货币、背包、护鱼网、图鉴和技能。'),
+    pageHead('玩家', '查看和修改角色的等级、货币、背包、护鱼网、图鉴和技能。', btn('刷新', () => loadList(), 'sm', { icon: 'refresh' })),
     h('div', { class: 'master-detail' },
       h('div', { class: 'card master' },
         h('div', { style: { padding: '12px' } }, searchBox('搜索昵称或 UID', debounce((v) => { QUERY = v; loadList(); }, 250), QUERY)),
@@ -35,6 +35,8 @@ export default async function players(params) {
     } catch (e) { listBox.replaceChildren(empty('读取失败', errText(e))); return []; }
   }
   const loaded = await loadList();
+  const timer = setInterval(() => { if (!document.hidden) loadList(); }, 8000);
+  setPageCleanup(() => clearInterval(timer));
   if (!uidParam) {
     if (loaded.length) { setTimeout(() => navigate('players', loaded[0].uid), 0); }
     detail.replaceChildren(h('div', { class: 'card' }, empty('选择一个玩家', '在左边的列表里点一个玩家。')));
@@ -51,13 +53,19 @@ export default async function players(params) {
 function playerDetail(p, tab) {
   const reload = () => navigate('players', p.uid, current);
   let current = tab;
+  let tabDirty = () => false;
   const pane = h('div');
-  const show = (t) => {
+  const show = async (t) => {
+    if (t !== current && tabDirty()) {
+      const ok = await confirmDialog({ title: '有修改还没保存', desc: '切换标签会放弃这些修改。', confirm: '放弃并切换' });
+      if (!ok) return false;
+    }
     current = t;
+    tabDirty = () => false;
     history.replaceState(null, '', '#players/' + p.uid + '/' + t);
     hideSavebar(); setLeaveGuard(null);
     const builders = { profile, items, keepnet, records, skills, mail };
-    pane.replaceChildren(builders[t](p, reload));
+    pane.replaceChildren(builders[t](p, reload, (fn) => { tabDirty = fn; }));
   };
   const head = h('div', { class: 'row', style: { alignItems: 'flex-start', marginBottom: '6px' } },
     h('div', { class: 'avatar', style: { width: '44px', height: '44px', fontSize: '18px' }, text: (p.name || '?').slice(0, 1) }),
@@ -83,7 +91,7 @@ function playerDetail(p, tab) {
 }
 
 // ---------- 概况 ----------
-function profile(p, reload) {
+function profile(p, reload, setDirty) {
   const form = new Form();
   savebar(form, {
     onSave: async (v) => {
@@ -101,6 +109,7 @@ function profile(p, reload) {
     },
   });
   setLeaveGuard(() => form.isDirty());
+  setDirty(() => form.isDirty());
   // 会员：分段选择 + 到期时间
   const memberField = form.field({ key: 'membership', label: '会员', kind: 'string' }, String(p.membership || 0));
   memberField.input = h('input', { type: 'hidden', value: memberField.original });
@@ -181,8 +190,8 @@ function addFish(p, reload) {
     const q = speciesInput.value.trim();
     if (!q) { results.replaceChildren(); return; }
     const list = await apiList('/api/fish/pool?limit=30&q=' + encodeURIComponent(q)).catch(() => []);
-    results.replaceChildren(h('div', { class: 'list' }, list.map((f) => h('div', { class: 'list-item clickable', onclick: () => { speciesInput.value = f.fish_key; hint.textContent = `${f.name_zh}，常见 ${fmt(f.min_g)}–${fmt(f.max_g)} g`; results.replaceChildren(); } },
-      h('div', { class: 'grow' }, h('div', { class: 'title', text: f.name_zh }), h('div', { class: 'sub mono', text: f.fish_key })), h('span', { class: 'muted small', text: `${fmt(f.min_g)}–${fmt(f.max_g)} g` })))));
+    results.replaceChildren(list.length ? h('div', { class: 'list' }, list.map((f) => h('div', { class: 'list-item clickable', onclick: () => { speciesInput.value = f.fish_key; hint.textContent = `${f.name_zh}，常见 ${fmt(f.min_g)}–${fmt(f.max_g)} g`; results.replaceChildren(); } },
+      h('div', { class: 'grow' }, h('div', { class: 'title', text: f.name_zh }), h('div', { class: 'sub mono', text: f.fish_key })), h('span', { class: 'muted small', text: `${fmt(f.min_g)}–${fmt(f.max_g)} g` })))) : empty('没有找到', '换个鱼名或 ID 试试。'));
   }, 250));
   dialog({
     title: '放入护鱼网', size: 'lg',
