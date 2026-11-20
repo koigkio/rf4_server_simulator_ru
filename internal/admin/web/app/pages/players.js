@@ -216,6 +216,7 @@ function records(p, reload, setDirty) {
   const box = h('div', {}, loading(5));
   let data = null, level = '', q = '';
   const changes = new Map();
+  setLeaveGuard(() => changes.size > 0);
   setDirty(() => changes.size > 0);
   const saveBtn = btn('保存补录', async () => {
     saveBtn.disabled = true;
@@ -264,6 +265,7 @@ function skills(p, reload, setDirty) {
   const list = p.skills || [];
   const avail = Number(p.available_points ?? 0);
   const unsaved = new Set();
+  setLeaveGuard(() => unsaved.size > 0);
   setDirty(() => unsaved.size > 0);
   const points = h('input', { class: 'input num', style: { width: '100px' }, value: avail, oninput: () => { unsaved.add('points'); } });
   return h('div', { class: 'stack' },
