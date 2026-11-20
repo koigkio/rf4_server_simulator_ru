@@ -7,7 +7,6 @@ const KINDS = [
   ['player', '玩家', /^(player_update|grant_item|item_delete|keepnet_|skill_|kick|ban|mail_)/],
   ['play', '钓鱼玩法', /^(tunable|fish_|bite_mode|spawn_mode|hook_profile|bait_rule)/],
   ['shop', '商店', /^shop_/],
-  ['ai', 'AI', /^ai_/],
   ['login', '登录', /^login$/],
 ];
 
