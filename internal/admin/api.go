@@ -463,6 +463,13 @@ func (s *Server) handleTunableSet(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
+	if strings.HasPrefix(req.Key, "skill_gain_pct_") {
+		v, err := strconv.ParseFloat(strings.TrimSpace(req.Value), 64)
+		if err != nil || math.IsNaN(v) || math.IsInf(v, 0) || v < 0 || v > 100 {
+			httpError(w, 400, "技能升级概率必须在 0 ~ 100 之间（0=原版）")
+			return
+		}
+	}
 	if strings.HasPrefix(req.Key, "two_stage_daily_") || strings.HasPrefix(req.Key, "two_stage_baited_") {
 		v, err := strconv.ParseFloat(req.Value, 64)
 		if err != nil || math.IsNaN(v) || math.IsInf(v, 0) || v < 0 {
