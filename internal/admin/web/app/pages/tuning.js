@@ -66,7 +66,7 @@ const G = {
     ],
   },
   reward: {
-    title: '经验与奖励', desc: '修改后只影响之后钓到的鱼。',
+    title: '经验与奖励', desc: '经验、掉落、礼包和技能熟练度。',
     main: [
       ['xp_gain', '经验倍率', '1.5 表示多拿 50% 经验。', 1, 'float', '倍'],
       ['release_xp_ratio', '放生拿多少经验', '放生时获得收进护鱼网经验的几成。0.5 = 一半。', 0.5, 'float', '', 0, 1],
@@ -94,7 +94,50 @@ const G = {
   },
 };
 const CATS = [['bite', '咬钩'], ['bait', '饵料与对口'], ['fish', '鱼'], ['wear', '装备磨损'], ['reward', '经验与奖励'], ['chat', '聊天提示'], ['event', '限时活动']];
+const SKILL_GAIN_KEYS = [
+  ['skill_gain_pct_1', '浮子钓鱼', '手竿、博洛尼亚竿等浮钓熟练度。'],
+  ['skill_gain_pct_2', '纺车钓鱼', '纺车竿与枪柄竿共用的路亚熟练度。'],
+  ['skill_gain_pct_3', '底钓', '喂食器、鲤鱼竿等底钓熟练度。'],
+  ['skill_gain_pct_11', '海洋钓鱼', '船钓、海钓熟练度。'],
+  ['skill_gain_pct_4', '饵料制作', '挖饵和制作鱼饵共用熟练度。'],
+  ['skill_gain_pct_5', '配置诱饵', '混合诱饵/窝料制作熟练度。'],
+  ['skill_gain_pct_6', '烹饪', '烹饪制作熟练度。'],
+  ['skill_gain_pct_8', '制作拟饵', '路亚手工制作熟练度。'],
+];
+const SKILL_GAIN_MODES = [['native', '原版概率'], ['fixed100', '百分百'], ['custom', '自定义']];
 let CAT = 'bite';
+
+function skillGainModeOf(t) {
+  const saved = String(t.skill_gain_mode ?? '');
+  if (SKILL_GAIN_MODES.some(([mode]) => mode === saved)) return saved;
+  const values = SKILL_GAIN_KEYS.map(([key]) => Number(t[key] ?? 0) || 0);
+  if (values.every((v) => v === 0)) return 'native';
+  if (values.every((v) => v === 100)) return 'fixed100';
+  return 'custom';
+}
+
+function skillGainSection(form, t, val) {
+  const mode = skillGainModeOf(t);
+  const pick = async (next) => {
+    if (next === mode) return;
+    if (form.isDirty() && !(await confirmDialog({ title: '有修改还没保存', desc: '切换技能概率模式会放弃当前未保存的数值。', confirm: '放弃并切换' }))) return;
+    try {
+      await post('/api/skill_gain_mode', { mode: next });
+      toast('技能升级概率已切换，约 30 秒内生效');
+      render();
+    } catch (e) { toast(errText(e), 'bad'); }
+  };
+  const buttons = h('div', { class: 'seg', role: 'radiogroup', 'aria-label': '技能升级概率模式' }, SKILL_GAIN_MODES.map(([key, label]) => h('button', {
+    type: 'button', role: 'radio', 'aria-checked': String(key === mode), class: key === mode ? 'on' : '', onclick: () => pick(key),
+  }, label)));
+  const fields = mode === 'custom' ? h('div', { class: 'stack', style: { marginTop: '14px' } }, SKILL_GAIN_KEYS.map(([key, label, help]) =>
+    form.row({ key, label, help, kind: 'float', min: 0, max: 100, unit: '%', def: 0 }, val(key, 0)))) : null;
+  return section({
+    title: '技能升级概率', desc: '一键切换全部技能：原版概率、全部百分百，或逐项自定义。0=原版公式，100=必定增长。',
+    actions: buttons,
+    body: h('div', {}, h('p', { class: 'muted small', text: '百分百模式会让每次符合条件的钓获、挖饵或制作都获得熟练度；固定百分比模式不叠加欢乐时光对原版概率的修正。' }), fields),
+  });
+}
 
 export default async function tuning(params) {
   if (params[0] && CATS.some(([k]) => k === params[0])) CAT = params[0];
@@ -129,7 +172,8 @@ export default async function tuning(params) {
         title: g.title, desc: g.desc,
         body: h('div', {}, rows(g.main), g.adv ? h('details', { class: 'advanced' }, h('summary', {}, '进阶 ', h('small', { text: `（${g.adv.length} 项，一般不用改）` })), h('div', {}, rows(g.adv))) : null),
       }),
-      (g.groups || []).map(([title, desc, list]) => section({ title, desc, body: h('div', {}, rows(list)) })));
+      (g.groups || []).map(([title, desc, list]) => section({ title, desc, body: h('div', {}, rows(list)) })),
+      CAT === 'reward' ? skillGainSection(form, t, val) : null);
   }
   return h('div', { class: 'page' },
     pageHead('数值调整', '微调钓鱼手感、经验和奖励。每一项都标了默认值，改坏了可以对照改回来。'),

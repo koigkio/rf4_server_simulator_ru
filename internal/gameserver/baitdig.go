@@ -305,8 +305,8 @@ func (s *Server) tryBaitDig(ctx *Ctx) ([]byte, bool) {
 	// 挖饵默认是固定收益；后台填了 1~100 的固定概率后，改为每次挖饵按该概率判定。
 	if mastery < baitMasteryCap {
 		grant := true
-		if chance, fixed := s.skillProficiencyFixedChance(captureBaitSkillID); fixed {
-			grant = s.rollSkillFloat() < chance
+		if hit, fixed := s.skillProficiencyFixedHit(captureBaitSkillID); fixed {
+			grant = hit
 		}
 		if grant {
 			masteryStep := math.Min(baitMasteryStep, baitMasteryCap-mastery)

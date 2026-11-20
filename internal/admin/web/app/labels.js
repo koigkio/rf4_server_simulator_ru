@@ -5,6 +5,6 @@ export const AUDIT_LABELS = {
   skill_points: '修改技能点', skill_proficiency: '修改技能熟练度', kick: '踢下线', ban: '封禁',
   shop_override: '修改商品', shop_override_reset: '商品恢复默认', fish_config: '修改水域鱼种', fish_config_reset: '水域恢复默认',
   fish_zone_save: '保存鱼群区域', fish_zone_delete: '删除鱼群区域', bite_mode: '切换玩法风格', spawn_mode: '切换出鱼方式',
-  hook_profile: '调整鱼钩', bait_rule_save: '修改鱼饵偏好', bait_rule_reset: '鱼饵偏好恢复默认',
+  hook_profile: '调整鱼钩', bait_rule_save: '修改鱼饵偏好', bait_rule_reset: '鱼饵偏好恢复默认', skill_gain_mode: '切换技能升级概率',
 };
 export const auditLabel = (a) => AUDIT_LABELS[a] || a || '—';

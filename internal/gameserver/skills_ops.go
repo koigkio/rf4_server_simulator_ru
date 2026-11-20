@@ -120,6 +120,15 @@ func (s *Server) skillProficiencyFixedChance(cat int64) (float64, bool) {
 	return pct / 100, true
 }
 
+// skillProficiencyFixedHit 对固定概率模式做一次随机判定；fixed=false 表示该大类走原版公式。
+func (s *Server) skillProficiencyFixedHit(cat int64) (hit bool, fixed bool) {
+	chance, fixed := s.skillProficiencyFixedChance(cat)
+	if !fixed {
+		return false, false
+	}
+	return s.rollSkillFloat() < chance, true
+}
+
 // skillProficiencyGainChance 返回本次判定使用的概率：
 // 配置了固定百分比就直接覆盖原版公式，否则使用原版随熟练度衰减的概率。
 func (s *Server) skillProficiencyGainChance(cat int64, current float64) (float64, bool) {
@@ -143,6 +152,16 @@ func (s *Server) skillProficiencyGainForRoll(cat int64, current, gainRoll, amoun
 		return 0.2
 	}
 	return 0.1
+}
+
+// proficiencyGainForCatch 是钓获结算的熟练度判定入口。
+// 固定百分比直接覆盖原版概率，且不叠加欢乐时光对原版概率的修正。
+func (s *Server) proficiencyGainForCatch(cat int64, current float64, happy bool) float64 {
+	gainRoll := s.rollSkillFloat()
+	if _, fixed := s.skillProficiencyFixedChance(cat); !fixed {
+		gainRoll = happyHourProficiencyRoll(current, gainRoll, happy)
+	}
+	return s.skillProficiencyGainForRoll(cat, current, gainRoll, s.rollSkillFloat())
 }
 
 // awardFishingProficiency 按实际钓组大类增加熟练度。
