@@ -409,14 +409,47 @@ func dielCurveWeights(raw string) []float64 {
 // 峰值段 1.0、次优段按观测比例衰减、非活跃段最低 0.08（接近不出但不置零）。
 func fishDielWeight(profile fishEcologyProfile, hour int64) float64 {
 	bit := int(fishActivityForHour(hour))
+	weight := 1.0
 	if curve := dielCurveWeights(profile.DielCurve); curve != nil {
-		return clampFloat(curve[bit], fishDielCurveMin, 1)
+		weight = clampFloat(curve[bit], fishDielCurveMin, 1)
+	} else if profile.DielMask&(1<<uint(bit)) == 0 {
+		weight = .35
 	}
-	if profile.DielMask&(1<<uint(bit)) != 0 {
-		return 1
+	// 图鉴评为低活跃的那半天（白天或夜里）设硬上限：社区渔获时刻样本少时，
+	// 夜行鱼的曲线会被平均抬高，白天仍能出鱼，与「低活跃＝基本不咬」冲突。
+	if half := dielHalf(bit); half != "" && fishDielBlockedFor(profile.FishKey, half) {
+		weight = math.Min(weight, fishDielBlockedCap)
 	}
-	return .35
+	// 少数夜行鱼种在图鉴里没有条目，但白天基本不咬，单独兜住昼段。
+	if bit == 2 && strictNocturnalFish[profile.FishKey] {
+		weight = math.Min(weight, fishDielNocturnalDayCap)
+	}
+	return weight
 }
+
+// dielHalf 把时间段映射成半天：夜段（0）算 night，其余三段算 day。
+func dielHalf(bit int) string {
+	if bit == 0 {
+		return "night"
+	}
+	if bit >= 1 && bit <= 3 {
+		return "day"
+	}
+	return ""
+}
+
+// strictNocturnalFish 是白天基本不咬的夜行鱼种（与分布层的夜行名单不同：
+// 梅花鲈这类「白天也出、夜里更多」的鱼不在此列）。
+var strictNocturnalFish = map[string]bool{
+	"eel": true, "burbot": true, "w_catfish": true, "w_catfish_a": true,
+	"bullhead_syb": true, "ch_catfish": true, "fhcatfish": true,
+}
+
+// fishDielNocturnalDayCap 是夜行鱼昼段权重的硬上限。
+const fishDielNocturnalDayCap = 0.05
+
+// fishDielBlockedCap 是图鉴评为低活跃的那半天的权重上限（接近不咬）。
+const fishDielBlockedCap = 0.05
 
 func fishEcologyJSONMap(raw string) map[string]float64 {
 	var m map[string]float64
