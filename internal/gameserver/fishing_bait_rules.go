@@ -65,6 +65,13 @@ func lookupFishBaitRule(fishZh string) (fishBaitRule, bool) {
 
 const maxBaitPreference = 1.5 * 1.15
 
+// legalAlternativeShare 是「规则没列、但同属虫/煮饵/颗粒这类同食性饵」的
+// 相对权重（乘在 maxBaitPreference 上）。这个值同时决定了饵兴趣值
+// interest = share（见 happy_hour.go 的低兴趣上限 0.1）：0.05 时兴趣 0.05，
+// 技能最高只能把它顶到 0.1，正好保住「低兴趣饵靠技能翻倍」这条设计。
+// 提高它会让兴趣直接贴到 0.1 上限、技能失效，所以集中度问题不从这里改。
+const legalAlternativeShare = 0.05
+
 func ruleName(s string) string {
 	return strings.Map(func(r rune) rune {
 		switch r {
@@ -545,7 +552,7 @@ func (s *Server) filterFishBaitSet(loc string, ids []string, keys []string, weig
 	}
 	outKeys := make([]string, 0, len(keys))
 	outWeights := make([]float64, 0, len(keys))
-	period := (now.Unix() - worldDayEpochUnix) / (4 * realSecPerGameHour)
+	period := (now.Unix() - worldDayEpochUnix) / (distributionPeriodRealHours * 3600)
 	// 阈值与总开关按一次判鱼读取，循环内不再重复取 tunable。
 	// bait_share_strong/medium/tail 任一 <=0 时回到旧行为（>0 即满分）。
 	strong := s.tunableF("bait_share_strong", 5)
@@ -629,7 +636,7 @@ func (s *Server) filterFishBaitSet(loc string, ids []string, keys []string, weig
 			} else if grading && share >= tail {
 				score = maxBaitPreference * 0.18
 			} else if b.legalAlternative(r) {
-				score = maxBaitPreference * 0.05
+				score = maxBaitPreference * legalAlternativeShare
 			}
 			if activeGroup != nil {
 				score *= rotationScoreMultiplier(activeGroup, b)
