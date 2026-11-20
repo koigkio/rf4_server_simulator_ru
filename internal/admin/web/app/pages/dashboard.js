@@ -1,4 +1,4 @@
-import { h, api, fmt, relTime, timeText, icon, navigate, section, badge, empty, pageHead, btn } from '../core.js';
+import { h, api, apiList, fmt, relTime, timeText, icon, navigate, section, badge, empty, pageHead, btn } from '../core.js';
 import { auditLabel } from '../labels.js';
 import { updateBanner } from '../main.js';
 
@@ -16,7 +16,7 @@ const RULES = [
 
 export default async function dashboard() {
   const [d, audits, tuns, mode] = await Promise.all([
-    api('/api/dashboard'), api('/api/audit?limit=8').catch(() => []), api('/api/tunables').catch(() => ({})),
+    api('/api/dashboard'), apiList('/api/audit?limit=8').catch(() => []), api('/api/tunables').catch(() => ({})),
     api('/api/fish/bite_mode').catch(() => ({})),
   ]);
   updateBanner(d.update);

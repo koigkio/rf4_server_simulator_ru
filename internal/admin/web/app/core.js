@@ -110,6 +110,12 @@ export async function api(path, opt = {}) {
 }
 export const post = (path, body) => api(path, { method: 'POST', body: JSON.stringify(body ?? {}) });
 
+// 列表接口统一兜底：后端历史版本可能把空切片编码成 null。
+export async function apiList(path, opt = {}) {
+  const value = await api(path, opt);
+  return Array.isArray(value) ? value : [];
+}
+
 // ---------- 格式化 ----------
 export const fmt = (n) => (n === null || n === undefined || n === '' ? '—' : Number(n).toLocaleString('zh-CN'));
 export function timeText(ts) {

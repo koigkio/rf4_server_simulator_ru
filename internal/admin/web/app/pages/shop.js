@@ -1,5 +1,5 @@
 // 商店：直接在表格里改价格和库存，底部统一保存。
-import { h, api, post, toast, errText, pageHead, badge, btn, empty, loading, Form, savebar, setLeaveGuard, searchBox, debounce, confirmDialog, fmt, navigate, render, toggleEl } from '../core.js';
+import { h, api, apiList, post, toast, errText, pageHead, badge, btn, empty, loading, Form, savebar, setLeaveGuard, searchBox, debounce, confirmDialog, fmt, navigate, render, toggleEl } from '../core.js';
 import { itemIcon } from '../widgets.js';
 
 const money = (c) => (Number(c || 0) / 100).toFixed(2).replace(/\.00$/, '');
@@ -18,7 +18,7 @@ const storeKind = (id) => (STORE_KIND.find(([re]) => re.test(id)) || [null, ''])
 let MAP = '';
 
 export default async function shop(params) {
-  const [stores, areas] = await Promise.all([api('/api/stores'), api('/api/fish/areas').catch(() => [])]);
+  const [stores, areas] = await Promise.all([apiList('/api/stores'), api('/api/fish/areas').catch(() => [])]);
   const mapName = Object.fromEntries((Array.isArray(areas) ? areas : areas.areas || []).map((a) => [a.level, a.loc]));
   const storeId = params[0] && stores.some((s) => s.store_id === params[0]) ? params[0] : (stores[0] && stores[0].store_id);
   const cur = stores.find((s) => s.store_id === storeId);
@@ -86,7 +86,7 @@ export default async function shop(params) {
   };
   async function load() {
     try {
-      items = await api('/api/stores/items?limit=1000&store_id=' + encodeURIComponent(storeId) + '&q=' + encodeURIComponent(Q));
+      items = await apiList('/api/stores/items?limit=1000&store_id=' + encodeURIComponent(storeId) + '&q=' + encodeURIComponent(Q));
       draw();
     } catch (e) { tbody.replaceChildren(h('tr', {}, h('td', { colspan: 5 }, empty('读取失败', errText(e))))); }
   }

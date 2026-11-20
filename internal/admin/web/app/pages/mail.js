@@ -1,5 +1,5 @@
 // 发邮件：选人 → 写内容 → 加附件 → 发送。右边实时预览玩家看到的样子。
-import { h, api, post, toast, errText, pageHead, section, btn, empty, debounce, searchBox, icon, badge, setLeaveGuard, confirmDialog } from '../core.js';
+import { h, api, apiList, post, toast, errText, pageHead, section, btn, empty, debounce, searchBox, icon, badge, setLeaveGuard, confirmDialog } from '../core.js';
 import { itemIcon, pickItem } from '../widgets.js';
 
 const TEMPLATES = [
@@ -30,7 +30,7 @@ export default async function mail(params) {
     const results = h('div', { class: 'card', hidden: true, style: { marginTop: '6px', maxHeight: '240px', overflow: 'auto' } });
     const search = searchBox('输入玩家昵称或 UID', debounce(async (q) => {
       if (!q.trim()) { results.hidden = true; return; }
-      const list = await api('/api/players?q=' + encodeURIComponent(q.trim())).catch(() => []);
+      const list = await apiList('/api/players?q=' + encodeURIComponent(q.trim())).catch(() => []);
       results.hidden = false;
       results.replaceChildren(list.length ? h('div', { class: 'list' }, list.slice(0, 20).map((p) => h('div', {
         class: 'list-item clickable', onclick: () => { to = { uid: p.uid, name: p.name, level: p.level }; drawTo(); preview(); },

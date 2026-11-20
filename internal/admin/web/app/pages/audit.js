@@ -1,5 +1,5 @@
 // 操作记录：后台每一次修改，可按类型筛选。
-import { h, api, pageHead, badge, empty, searchBox, timeText, relTime } from '../core.js';
+import { h, apiList, pageHead, badge, empty, searchBox, timeText, relTime } from '../core.js';
 import { auditLabel, AUDIT_LABELS } from '../labels.js';
 
 const KINDS = [
@@ -11,7 +11,7 @@ const KINDS = [
 ];
 
 export default async function audit() {
-  const list = await api('/api/audit?limit=200');
+  const list = await apiList('/api/audit?limit=200');
   let kind = 'all', q = '';
   const tbody = h('tbody');
   const count = h('span', { class: 'muted small' });

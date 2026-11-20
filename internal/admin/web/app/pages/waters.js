@@ -1,7 +1,7 @@
 // 水域与鱼种：每个水域出哪些鱼、各占多少、咬钩快慢。
 import { zonesEditor } from './zones.js';
 import {
-  h, api, post, toast, errText, pageHead, section, callout, badge, btn, empty, loading, searchBox, debounce, dialog,
+  h, api, apiList, post, toast, errText, pageHead, section, callout, badge, btn, empty, loading, searchBox, debounce, dialog,
   confirmDialog, navigate, Form, savebar, setLeaveGuard, render, tabs, webURL, fmt,
 } from '../core.js';
 
@@ -145,7 +145,7 @@ function fishView(cfg, baitByKey = {}) {
 function addFish(fish, done) {
   const results = h('div', { class: 'card', style: { maxHeight: '400px', overflow: 'auto' } }, empty('输入鱼名开始搜索'));
   const search = debounce(async (q) => {
-    const list = await api('/api/fish/pool?limit=80&q=' + encodeURIComponent(q)).catch(() => []);
+    const list = await apiList('/api/fish/pool?limit=80&q=' + encodeURIComponent(q)).catch(() => []);
     results.replaceChildren(list.length ? h('div', { class: 'list' }, list.map((x) => {
       const has = fish.some((f) => f.fish_key === x.fish_key);
       return h('div', { class: 'list-item' + (has ? '' : ' clickable'), style: { opacity: has ? 0.5 : 1 }, onclick: has ? null : () => {

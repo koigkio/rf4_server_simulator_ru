@@ -1,6 +1,6 @@
 // 玩家：左边找人，右边看和改这个人的一切。
 import {
-  h, api, post, icon, toast, errText, pageHead, section, callout, badge, empty, btn, loading, Form, savebar, setLeaveGuard,
+  h, api, apiList, post, icon, toast, errText, pageHead, section, callout, badge, empty, btn, loading, Form, savebar, setLeaveGuard,
   tabs, searchBox, debounce, confirmDialog, dialog, fmt, timeText, relTime, navigate, segmented, hideSavebar,
 } from '../core.js';
 import { itemIcon } from '../widgets.js';
@@ -24,7 +24,7 @@ export default async function players(params) {
   let list = [];
   async function loadList() {
     try {
-      list = await api('/api/players?q=' + encodeURIComponent(QUERY));
+      list = await apiList('/api/players?q=' + encodeURIComponent(QUERY));
       listBox.replaceChildren(...(list.length ? list.map((p) => h('div', {
         class: 'list-item clickable' + (String(p.uid) === String(uidParam) ? ' on' : ''),
         onclick: () => navigate('players', p.uid),
@@ -180,7 +180,7 @@ function addFish(p, reload) {
   speciesInput.addEventListener('input', debounce(async () => {
     const q = speciesInput.value.trim();
     if (!q) { results.replaceChildren(); return; }
-    const list = await api('/api/fish/pool?limit=30&q=' + encodeURIComponent(q)).catch(() => []);
+    const list = await apiList('/api/fish/pool?limit=30&q=' + encodeURIComponent(q)).catch(() => []);
     results.replaceChildren(h('div', { class: 'list' }, list.map((f) => h('div', { class: 'list-item clickable', onclick: () => { speciesInput.value = f.fish_key; hint.textContent = `${f.name_zh}，常见 ${fmt(f.min_g)}–${fmt(f.max_g)} g`; results.replaceChildren(); } },
       h('div', { class: 'grow' }, h('div', { class: 'title', text: f.name_zh }), h('div', { class: 'sub mono', text: f.fish_key })), h('span', { class: 'muted small', text: `${fmt(f.min_g)}–${fmt(f.max_g)} g` })))));
   }, 250));

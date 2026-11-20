@@ -3,7 +3,7 @@
 // 坐标换算与 docs/fish-query-coordinates.md 同源：
 //   图像像素 = (世界 - 原点) × scale + offset（Z 轴从图片底部往上量，需要翻转）
 //   网格 = floor(世界 / 40)；游戏里看到的坐标 = (世界 - 显示原点) / 5
-import { h, api, post, toast, errText, badge, btn, empty, svg, confirmDialog, callout, setLeaveGuard, segmented, toggleEl, webURL } from '../core.js';
+import { h, api, apiList, post, toast, errText, badge, btn, empty, svg, confirmDialog, callout, setLeaveGuard, segmented, toggleEl, webURL } from '../core.js';
 
 const CELL = 40;
 const SIZE = 2048;
@@ -485,7 +485,7 @@ export function zonesEditor({ area, zones, roster }) {
       let items;
       if (allPool) {
         if (!q.trim()) { results.replaceChildren(h('div', { class: 'muted small', style: { padding: '6px 0' }, text: '输入鱼名，搜索全部鱼种。' })); return; }
-        const list = await api('/api/fish/pool?limit=30&q=' + encodeURIComponent(q.trim())).catch(() => []);
+        const list = await apiList('/api/fish/pool?limit=30&q=' + encodeURIComponent(q.trim())).catch(() => []);
         if (my !== seq) return;
         items = list.map((x) => ({ key: x.fish_key, name: x.name_zh || x.fish_key, w: 1 }));
       } else {

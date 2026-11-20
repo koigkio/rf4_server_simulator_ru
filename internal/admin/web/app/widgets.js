@@ -1,5 +1,5 @@
 // 跨页面复用的业务组件
-import { h, api, dialog, debounce, icon, webURL, empty, loading, errText } from './core.js';
+import { h, api, apiList, dialog, debounce, icon, webURL, empty, loading, errText } from './core.js';
 
 export function itemIcon(id, size = 36) {
   const img = h('img', {
@@ -26,7 +26,7 @@ export function pickItem({ title = '选择物品', completeOnly = false, onPick 
       const qs = new URLSearchParams({ q, limit: '80' });
       if (completeOnly) qs.set('complete_only', '1');
       if (group.value) qs.set('group', group.value);
-      const list = await api('/api/catalog/items?' + qs);
+      const list = await apiList('/api/catalog/items?' + qs);
       if (my !== seq) return;
       results.replaceChildren(list.length ? h('div', { class: 'list' }, list.map((x) => h('div', {
         class: 'list-item clickable', onclick: () => { close(); onPick({ item_id: x.item_id, name: x.name || x.item_id }); },

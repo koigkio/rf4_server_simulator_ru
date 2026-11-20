@@ -620,7 +620,7 @@ func (s *Server) handlePlayers(w http.ResponseWriter, r *http.Request) {
 	q := strings.TrimSpace(r.URL.Query().Get("q"))
 	ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
 	defer cancel()
-	var rows []playerRow
+	rows := make([]playerRow, 0)
 	var err error
 	if q == "" {
 		err = queryPlayers(ctx, s.db, &rows,
@@ -984,6 +984,9 @@ func (s *Server) handleAudit(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		httpError(w, 500, err.Error())
 		return
+	}
+	if entries == nil {
+		entries = make([]*store.AuditEntry, 0)
 	}
 	writeJSON(w, entries)
 }
