@@ -459,6 +459,14 @@ const TUNABLE_DEFS=[
   ['card_drop_star','星鱼掉卡率',0.5,'0~1。默认 0.5 = 50%'],
   ['card_drop_blue','蓝冠鱼掉卡率',0.8,'0~1。默认 0.8 = 80%'],
   ['card_drop_rare_scale','稀有鱼掉卡系数',0.25,'0~1。稀有、超稀有鱼统一乘此系数，默认 0.25'],
+  ['skill_gain_pct_1','浮子钓鱼 · 升级概率(%)',0,'0=原版概率；1~100=每次判定直接按该百分比覆盖原版，100=必定增长。改后最多 30 秒生效'],
+  ['skill_gain_pct_2','纺车钓法 · 升级概率(%)',0,'0=原版概率；1~100=每次判定直接按该百分比覆盖原版，100=必定增长。改后最多 30 秒生效'],
+  ['skill_gain_pct_3','水底钓鱼 · 升级概率(%)',0,'0=原版概率；1~100=每次判定直接按该百分比覆盖原版，100=必定增长。改后最多 30 秒生效'],
+  ['skill_gain_pct_11','海洋钓鱼 · 升级概率(%)',0,'0=原版概率；1~100=每次判定直接按该百分比覆盖原版，100=必定增长。改后最多 30 秒生效'],
+  ['skill_gain_pct_4','捕获鱼饵 · 升级概率(%)',0,'0=原版概率；1~100=每次挖饵/制作按该百分比判定，100=必定增长。改后最多 30 秒生效'],
+  ['skill_gain_pct_6','烹调术 · 升级概率(%)',0,'0=原版概率；1~100=每次制作按该百分比判定，100=必定增长。改后最多 30 秒生效'],
+  ['skill_gain_pct_5','配置诱饵 · 升级概率(%)',0,'0=原版概率；1~100=每次制作按该百分比判定，100=必定增长。改后最多 30 秒生效'],
+  ['skill_gain_pct_8','制作拟饵 · 升级概率(%)',0,'0=原版概率；1~100=每次制作按该百分比判定，100=必定增长。改后最多 30 秒生效'],
   ['event_newyear_enabled','新年任务',1,'出厂默认开启；开启后下发活动分支；开启会自动关闭周年活动'],
   ['event_anniversary_enabled','周年纪念任务',0,'开启后下发周年活动分支；开启会自动关闭新年活动；关闭后只保留永久资格'],
   ['event_branches','活动分支',EVENT_BRANCHES_DEFAULT,'逗号分隔的分支 ID（9~20）；留空表示不下发任何活动分支'],
@@ -1163,6 +1171,44 @@ async function askSpawnMode(mode){
   try{await saveSpawnMode(mode)}catch(e){toast(e.message,'bad')}
  });
 }
+const SKILL_GAIN_KEYS=['skill_gain_pct_1','skill_gain_pct_2','skill_gain_pct_3','skill_gain_pct_11','skill_gain_pct_4','skill_gain_pct_6','skill_gain_pct_5','skill_gain_pct_8'];
+const SKILL_GAIN_MODES=[['native','原版概率'],['fixed100','百分百'],['custom','自定义']];
+function skillGainModeOf(t){
+ const mode=String(t.skill_gain_mode??'');
+ if(SKILL_GAIN_MODES.some(([m])=>m===mode))return mode;
+ const vals=SKILL_GAIN_KEYS.map(k=>parseFloat(String(t[k]??'0'))||0);
+ if(vals.every(v=>v===0))return 'native';
+ if(vals.every(v=>v===100))return 'fixed100';
+ return 'custom';
+}
+function skillGainField(t,key){
+ const [,label,def,hint]=TUNABLE_DEFS.find(x=>x[0]===key);
+ const val=String(t[key]??'');
+ return `<div class="tunable-field"><div><label for="tun_${key}">${esc(label)}</label><div class="tunable-hint">${esc(hint)}</div></div><div><input type="number" min="0" max="100" step="1" id="tun_${key}" value="${esc(val)}" placeholder="1~100"><button class="btn alt sm" onclick="saveTunable('${key}')">保存</button><button class="btn alt sm" onclick="resetTunable('${key}',0)">恢复 0</button></div></div>`;
+}
+function skillGainControl(t){
+ const mode=skillGainModeOf(t);
+ const btns=SKILL_GAIN_MODES.map(([m,label])=>`<button class="btn sm" style="min-width:180px;${mode===m?'background:#2f7d4f;border-color:#2f7d4f':'background:#2f6fae;border-color:#2f6fae'}" onclick="setSkillGainMode('${m}')">${label}${mode===m?'：当前':''}</button>`).join('');
+ const note=mode==='custom'?'<div class="tunable-hint" style="margin-top:8px">自定义：每个技能填 0~100；0=原版，1~100=直接按百分比判定，100=必定增长。</div>':'';
+ const fields=mode==='custom'?'<div class="tunable-fields">'+SKILL_GAIN_KEYS.map(key=>skillGainField(t,key)).join('')+'</div>':'';
+ return `<section class="tunable-group" data-page="reward"><h3>技能升级概率<small style="font-weight:400;margin-left:8px;color:var(--muted)">原版概率 · 百分百 · 自定义</small></h3><div class="tunable-fields"><div class="tunable-field tunable-wide"><div><label>技能升级概率</label><div class="tunable-hint">三种模式互斥，点击即整体切换：原版=全部回到 0；百分百=全部设为 100；自定义=逐个技能设置。改后最多 30 秒生效。</div></div><div style="display:flex;gap:8px;flex-wrap:wrap">${btns}</div>${note}</div></div>${fields}</section>`;
+}
+async function setSkillGainMode(mode){
+ const opt=SKILL_GAIN_MODES.find(o=>o[0]===mode);
+ if(!opt)return;
+ if(skillGainModeOf(lastTunables)===mode&&mode!=='custom'){toast('当前已是「'+opt[1]+'」模式');return}
+ try{
+  if(mode!=='custom'){
+   const val=mode==='fixed100'?'100':'0';
+   for(const key of SKILL_GAIN_KEYS){
+    await api('/api/tunables',{method:'POST',body:JSON.stringify({key,value:val})});
+   }
+  }
+  await api('/api/tunables',{method:'POST',body:JSON.stringify({key:'skill_gain_mode',value:mode})});
+  toast('已切换为「'+opt[1]+'」；最多 30 秒生效');
+  await loadTunables();
+ }catch(e){toast(e.message,'bad')}
+}
 let lastTunables={};
 async function loadTunables(){
  const t=await api('/api/tunables');
@@ -1221,7 +1267,7 @@ async function loadTunables(){
     ['负载上报节拍','14/8 负载上报折算受力秒的口径；改后最多 30 秒生效',['reel_load_tick_seconds','reel_load_max_tick_seconds']],
     ['角色状态条','精力/饱食/生命条的后台开关；改后最多 30 秒生效，正在垂钓的会话下一拍生效',['condition_health_enabled','condition_fishing_pause_enabled']],
   ]},
-  {id:'reward',tab:'收益与通知',sub:'经验 · 掉卡 · 礼包 · 档位 · 聊天',groups:[
+  {id:'reward',tab:'收益与通知',sub:'经验 · 技能 · 掉卡 · 礼包 · 档位 · 聊天',groups:[
     ['经验与结算','改后只对新结算的鱼生效，已入护的不重算',['xp_gain','release_xp_ratio']],
     ['钓获掉卡','本地自定概率；最多 30 秒生效，重连或重复结算不补抽',['card_drop_normal','card_drop_star','card_drop_blue','card_drop_rare_scale']],
     ['钓获礼包','钓上鱼当场开箱，奖励直接进背包并播报',['loot_box_enabled','loot_box_chance','loot_box_trophy_guarantee']],
@@ -1240,6 +1286,7 @@ async function loadTunables(){
  $('#paramsBody').innerHTML=PAGES.map(p=>
    p.groups.map(g=>group(g[0],g[1],g[2],p.id)).join('')
    + (p.spawnCard ? `<section class="tunable-group" data-page="${p.id}"><h3>发鱼模式<small style="font-weight:400;margin-left:8px;color:var(--muted)">档位比例 · 鱼猎四阶段 · 两档制（底浮）三选一；选中哪种就显示哪组的权重设置</small></h3><div class="tunable-fields">${spawnModeControl(t)}</div></section>` : '')
+   + (p.id==='reward' ? skillGainControl(t) : '')
    + (p.id==='event' ? eventStageGiftsCard(t) : '')
  ).join('');
  // 首屏按当前页做一次显隐（分组是全量渲染的）
