@@ -446,6 +446,10 @@ func (s *Server) loadFishNames(ctx context.Context) (map[string]string, bool) {
 				names[key] = name
 				continue
 			}
+			if _, known := lookupStrictFishBaitRule(name); known {
+				names[key] = name
+				continue
+			}
 			// 后台新增规则覆盖的鱼种同样参与严格模式判鱼。
 			if _, ok := overrides[ruleName(name)]; ok {
 				names[key] = name
@@ -539,6 +543,7 @@ func (s *Server) filterFishBaitSet(loc string, ids []string, keys []string, weig
 	if !namesOK {
 		return nil, nil
 	}
+	strictExact := s.tunableF("bait_exact_only", 0) > 0
 	evidence := make([]map[string]int64, len(baits))
 	localEvidence := make([]map[string]bool, len(baits))
 	for i, b := range baits {
@@ -556,6 +561,17 @@ func (s *Server) filterFishBaitSet(loc string, ids []string, keys []string, weig
 	grading := strong > 0 && medium > 0 && tail > 0
 	for i, key := range keys {
 		if weights[i] <= 0 {
+			continue
+		}
+		if strictExact {
+			r, ok := lookupStrictFishBaitRule(names[key])
+			if !ok || !ruleConditionAllows(r, c) {
+				continue
+			}
+			if best, ok := strictBaitScore(r, baits, c, loc, key, period); ok {
+				outKeys = append(outKeys, key)
+				outWeights = append(outWeights, weights[i]*best)
+			}
 			continue
 		}
 		r, rot := s.resolveBaitRule(ctx, names[key])
