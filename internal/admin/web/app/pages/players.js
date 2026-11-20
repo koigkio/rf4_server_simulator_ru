@@ -1,7 +1,7 @@
 // 玩家：左边找人，右边看和改这个人的一切。
 import {
   h, api, apiList, post, icon, toast, errText, pageHead, section, callout, badge, empty, btn, loading, Form, savebar, setLeaveGuard,
-  tabs, searchBox, debounce, confirmDialog, dialog, fmt, timeText, relTime, navigate, segmented, hideSavebar, setPageCleanup,
+  tabs, searchBox, debounce, confirmDialog, dialog, fmt, timeText, relTime, navigate, segmented, hideSavebar, setPageCleanup, replaceHash,
 } from '../core.js';
 import { itemIcon } from '../widgets.js';
 
@@ -63,7 +63,7 @@ function playerDetail(p, tab) {
     }
     current = t;
     tabDirty = () => false;
-    history.replaceState(null, '', '#players/' + p.uid + '/' + t);
+    replaceHash('#players/' + p.uid + '/' + t);
     hideSavebar(); setLeaveGuard(null);
     const builders = { profile, items, keepnet, records, skills, mail };
     pane.replaceChildren(builders[t](p, reload, (fn) => { tabDirty = fn; }));

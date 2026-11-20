@@ -473,6 +473,10 @@ export function navigate(name, ...params) {
   const hash = '#' + [name, ...params.map(encodeURIComponent)].join('/');
   if (location.hash === hash) render(); else location.hash = hash;
 }
+export function replaceHash(hash) {
+  history.replaceState(null, '', hash);
+  lastHash = location.hash;
+}
 export async function render() {
   const { name, params } = parseHash();
   const def = routes.get(name) || routes.get('dashboard');

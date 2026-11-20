@@ -1,5 +1,5 @@
 // 数值调整：所有可调数字按主题分组。开关类玩法在「玩法规则」页。
-import { h, api, post, toast, errText, pageHead, section, callout, badge, btn, Form, savebar, setLeaveGuard, render, confirmDialog, segmented, empty, icon } from '../core.js';
+import { h, api, post, toast, errText, pageHead, section, callout, badge, btn, Form, savebar, setLeaveGuard, replaceHash, render, confirmDialog, segmented, empty, icon } from '../core.js';
 import { itemIcon, pickItem } from '../widgets.js';
 
 // [key, 标签, 说明, 默认值, 类型, 单位, 最小, 最大]
@@ -116,7 +116,7 @@ export default async function tuning(params) {
     onclick: async () => {
       if (k === CAT) return;
       if (form.isDirty() && !(await confirmDialog({ title: '有修改还没保存', desc: '切换分类会放弃这些修改。', confirm: '放弃并切换' }))) return;
-      CAT = k; history.replaceState(null, '', '#tuning/' + k); render();
+      CAT = k; replaceHash('#tuning/' + k); render();
     },
   }, l)));
 
