@@ -558,10 +558,21 @@ func (st *FishState) paceProbFor() float64 {
 	return st.PaceProb
 }
 
+// refreshLurePaceTierLocked 把 fire 时的当前动作档位写回状态。调用方需持有
+// st.mu。排 timer 后动作可能先降档；空轮重排后若动作再恢复，重排判断必须拿
+// 实际生效过的档位比较，不能继续拿排 timer 时的旧好档。
+func (s *Server) refreshLurePaceTierLocked(st *FishState) (int, float64) {
+	_, _, _, tier := s.paceTierFor(paceLureCombinedScore(st.PaceScore, st.LureType, st.LureAction))
+	prob := s.paceLureProbForTier(tier)
+	st.PaceTier, st.PaceLureProb = tier, prob
+	return tier, prob
+}
+
 // rodPaceProb 判定用的整杆概率，受当前开关门控：运行中热关闭
 // bite_pace_enabled 后立即回 1（审查 P2-1），残留的 st.PaceKnown 不再生效。
 // 路亚族 fire 时动态取复合档位（饵分快照 × 当前动作）的开口率：装排后动作
-// 变差的轮次按低概率空掷，随后空轮重排按差档长窗重排。
+// 变差的轮次按低概率空掷，随后空轮重排按差档长窗重排；同时刷新 PaceTier，
+// 让之后动作改善的重排基于本轮实际档位。
 func (s *Server) rodPaceProb(st *FishState) float64 {
 	if !s.paceEnabled() {
 		return 1
@@ -570,8 +581,8 @@ func (s *Server) rodPaceProb(st *FishState) float64 {
 		if !st.PaceKnown {
 			return 1
 		}
-		_, _, _, tier := s.paceTierFor(paceLureCombinedScore(st.PaceScore, st.LureType, st.LureAction))
-		return s.paceLureProbForTier(tier)
+		_, prob := s.refreshLurePaceTierLocked(st)
+		return prob
 	}
 	return st.paceProbFor()
 }

@@ -710,3 +710,49 @@ func TestPaceLureActionRearm(t *testing.T) {
 	st.mu.Unlock()
 	stopWeatherDamageTimer(st)
 }
+
+// fire 时动作可能已从排 timer 时的档位下降；动态开口率必须把实际档位写回
+// st.PaceTier，否则后续“动作改善”会拿旧好档比较，误判为没有升高而不重排。
+func TestPaceLureFireRefreshAllowsLaterRearm(t *testing.T) {
+	s, _ := seedPaceTest(t)
+	const uid = int64(1000002)
+	addFishingRecoverySession(s, uid, 914)
+	sess := s.liveSessionByUID(uid)
+	st := s.stateFor(uid)
+	st.mu.Lock()
+	st.Loc, st.RigType = "level_900_rules", 5
+	st.PaceScore, st.LureType, st.LureAction = 1.0, "jerkbait", "steady"
+	st.CastActive, st.InWater = true, true
+	st.storePaceState(fishPaceState{Known: true, Score: 1.0, Factor: 1.0, Prob: 1, LureProb: 1, Ground: 1, Tier: 2})
+	s.armBiteTimerLocked(uid, st, time.Now().Add(30*time.Second))
+	st.mu.Unlock()
+
+	// 定时器到点时，当前动作只到中档；开口率判定应同步把档位改为中档。
+	if got := s.rodPaceProb(st); got != .5 {
+		t.Fatalf("中档动作开口率应 0.5：got %g", got)
+	}
+	st.mu.Lock()
+	fireTier := st.PaceTier
+	st.mu.Unlock()
+	if fireTier != 1 {
+		t.Fatalf("fire 后档位应刷新为中档：got %d", fireTier)
+	}
+
+	// 随后做出对口动作，应按升档重排进好档短窗；旧实现仍拿初始好档比较会漏掉。
+	st.mu.Lock()
+	st.LureAction = "jerk"
+	st.mu.Unlock()
+	s.paceLureActionRearm(sess, st)
+	st.mu.Lock()
+	wait := time.Until(st.BiteAt).Seconds()
+	tier := st.PaceTier
+	st.cancelBiteTimerLocked()
+	st.mu.Unlock()
+	stopWeatherDamageTimer(st)
+	if tier != 2 {
+		t.Fatalf("动作改善后档位应=2：got %d", tier)
+	}
+	if wait < 1.4 || wait > 6.2 {
+		t.Fatalf("动作改善后应重排进 1.5~6s 短窗：got %.2fs", wait)
+	}
+}

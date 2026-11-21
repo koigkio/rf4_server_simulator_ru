@@ -24,6 +24,7 @@ func TestMeanBiteDelay(t *testing.T) {
 		{"lure-weather-skill", biteDelaySettings{scale: 1}, true, 2, .5, 1.5, 6, 0, 3.75},
 		{"lure-final-floor", biteDelaySettings{scale: .01}, true, 1, 1, 1.5, 6, 0, .8},
 		{"lure-mid-window", biteDelaySettings{scale: 1}, true, 1, 1, 10, 60, 0, 35},
+		{"lure-equal-window", biteDelaySettings{scale: 1}, true, 1, 1, 10, 10, 0, 10},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			if got := meanBiteDelay(tc.cfg, tc.lure, tc.weather, tc.speed, tc.lmin, tc.lmax, tc.lureCap); math.Abs(got-tc.want) > 1e-10 {

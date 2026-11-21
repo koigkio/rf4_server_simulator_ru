@@ -116,6 +116,8 @@ pace 开启时，路亚族的档位由**复合分**决定（乘法复合，用�
   `PaceKnown=false` 中性、热关闭回 1。
 - `TestPaceLureActionRearm`：改善重排进短窗、降档不重排、Pending 守卫、
   热关闭不重排。
+- `TestPaceLureFireRefreshAllowsLaterRearm`：fire 时当前动作已降档，需把实际
+  档位写回后再判断后续动作改善，避免拿排 timer 时的旧好档漏掉重排。
 - `TestPaceDelayBoundsAndLureUnchanged` 改写：pace off 逐位 legacy；
   pace on 好/中/差窗越界断言；`bite_delay_lure_max` 只封好档、中档绕过。
 - `TestMeanBiteDelay` 扩展 `lure-mid-window` 用例；`TestFishQueryDelayUsesWaterOverride`
