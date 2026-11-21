@@ -490,16 +490,21 @@ func (s *Server) biteDelayInWeather(st *FishState, weather fishingWeather, now t
 		return math.Max(0.05, cfg.fixed)
 	}
 	weatherDelay := s.weatherBiteDelayFactor(st, weather, now)
-	// 饵效控速（bite_pace_enabled）只替换非路亚族的采样后处理：乘对口分档位
-	// 因子与打窝压缩，按钓组族 clamp（底/浮 6~60s、海底钓 3~30s）。路亚窗口
-	// 与落水保护不动，节奏改走单轮判定概率（st.PaceLureProb）。
+	// 饵效控速（bite_pace_enabled）只替换非路亚族的采样后处理：乘本杆乘数快照
+	//（st.PaceFactor）与打窝压缩，按档位等待区间 clamp（好饵默认 6~60s、差饵
+	// 20~60s，海底钓族用海钓窗 3~30s）。路亚窗口默认对齐原版 1.5~6s，可在原版
+	// 窗内收窄（paceLureWindow），节奏改走单轮判定概率（st.PaceLureProb）。
 	// 调用方需持有 st.mu（查鱼路径的 st 为本地对象，无并发）。
 	if st != nil && st.PaceKnown && s.paceEnabled() && !rigTypeLureFamily[st.RigType] {
 		return s.paceStandardBiteDelay(officialPushDelay(), weatherDelay, bonus.BiteSpeed,
-			st.PaceFactor, st.PaceGround, marineRigType(st.RigType), cfg.scale)
+			st.PaceFactor, st.PaceTier, st.PaceGround, marineRigType(st.RigType), cfg.scale)
 	}
 	if st != nil && rigTypeLureFamily[st.RigType] {
-		d := (1.5 + rand.Float64()*(6.0-1.5)) * weatherDelay
+		lmin, lmax := 1.5, 6.0
+		if st.PaceKnown && s.paceEnabled() {
+			lmin, lmax = s.paceLureWindow(cfg.lureMax)
+		}
+		d := (lmin + rand.Float64()*(lmax-lmin)) * weatherDelay
 		return lureBiteDelay(d, bonus.BiteSpeed, cfg.lureMax, cfg.scale)
 	}
 	d := officialPushDelay() * weatherDelay

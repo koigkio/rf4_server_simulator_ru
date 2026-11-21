@@ -13,17 +13,20 @@ func TestMeanBiteDelay(t *testing.T) {
 		cfg                  biteDelaySettings
 		lure                 bool
 		weather, speed, want float64
+		lmin, lmax           float64
 	}{
-		{"fixed", biteDelaySettings{fixed: 2}, false, 100, .1, 2},
-		{"fixed-floor", biteDelaySettings{fixed: .001}, true, 100, .1, .05},
-		{"ordinary-cap-before-scale", biteDelaySettings{maxDelay: 5, scale: .5}, false, 1, 1, 2.5},
-		{"lure-uniform", biteDelaySettings{scale: 1}, true, 1, 1, 3.75},
-		{"lure-cap", biteDelaySettings{scale: 1, lureMax: 3}, true, 1, 1, 2.75},
-		{"lure-weather-skill", biteDelaySettings{scale: 1}, true, 2, .5, 3.75},
-		{"lure-final-floor", biteDelaySettings{scale: .01}, true, 1, 1, .8},
+		{"fixed", biteDelaySettings{fixed: 2}, false, 100, .1, 2, 1.5, 6},
+		{"fixed-floor", biteDelaySettings{fixed: .001}, true, 100, .1, .05, 1.5, 6},
+		{"ordinary-cap-before-scale", biteDelaySettings{maxDelay: 5, scale: .5}, false, 1, 1, 2.5, 1.5, 6},
+		{"lure-uniform", biteDelaySettings{scale: 1}, true, 1, 1, 3.75, 1.5, 6},
+		{"lure-cap", biteDelaySettings{scale: 1, lureMax: 3}, true, 1, 1, 2.75, 1.5, 6},
+		{"lure-weather-skill", biteDelaySettings{scale: 1}, true, 2, .5, 3.75, 1.5, 6},
+		{"lure-final-floor", biteDelaySettings{scale: .01}, true, 1, 1, .8, 1.5, 6},
+		{"lure-pace-window", biteDelaySettings{scale: 1, lureMax: 6}, true, 1, 1, 4.25, 2.5, 6},
+		{"lure-equal-window", biteDelaySettings{scale: 1, lureMax: 6}, true, 1, 1, 5, 5, 5},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			if got := meanBiteDelay(tc.cfg, tc.lure, tc.weather, tc.speed); math.Abs(got-tc.want) > 1e-10 {
+			if got := meanBiteDelay(tc.cfg, tc.lure, tc.weather, tc.speed, tc.lmin, tc.lmax); math.Abs(got-tc.want) > 1e-10 {
 				t.Fatalf("mean=%g want=%g", got, tc.want)
 			}
 		})
@@ -35,7 +38,7 @@ func TestMeanBiteDelay(t *testing.T) {
 		want += standardBiteDelay(x*1.1, .9, 20, .7)
 	}
 	want /= float64(len(officialPushDelayEligible))
-	if got := meanBiteDelay(cfg, false, 1.1, .9); math.Abs(got-want) > 1e-10 {
+	if got := meanBiteDelay(cfg, false, 1.1, .9, 1.5, 6); math.Abs(got-want) > 1e-10 {
 		t.Fatalf("%g != %g", got, want)
 	}
 }

@@ -227,17 +227,23 @@ func (s *Server) QueryFish(ctx context.Context, req FishQueryRequest) (*FishQuer
 		plan := FishQueryPlan{Map: loc.id, MapName: loc.name, Scene: loc.scene, Bait: bait.id, BaitName: bait.name, EquivalentBaits: bait.equivalents, RigType: rig, RigName: rigNameForType(rig), DepthCM: depth, LureLayer: layer, Action: action, OnBoat: c.onBoat, At: at.UTC().Format(time.RFC3339), GameHour: hour, GameMinute: minute, WaitSeconds: int64(at.Sub(started).Seconds()), X: point.x, Z: point.z, Zone: point.zone, CoordinateKind: point.kind, Region: region, References: loc.references, Chance: c.query.chance, FishShare: c.query.fishShare, Selection: c.query.selection, Acceptance: c.query.acceptance, GradeShare: c.query.gradeShare, BaitTier: s.cachedBaitTiers(ctx, base, bait.id)[req.Fish], WeightMode: s.baitWeightModeForRoll(req.Fish, []string{bait.id}, base), CapKg: capKg, Weather: map[string]any{"known": w.known, "kind": w.kind, "air_temp": roundTo(w.airTemp, 1), "wind": roundTo(w.wind, 2)}}
 		// Candidate bait, not the selected rod's currently equipped bait.
 		state := &FishState{Loc: loc.scene, Bait: bait.id, RigType: rig, DepthCM: depth, LureLayer: layer, LureAction: action, Bonus: bonus}
-		// 饵效控速：候选饵的对口分决定单轮判定概率（乘进 Chance）与
-		// 底层杆（非路亚族）的平均间隔；路亚窗口在 pace 模式下不动。
+		// 饵效控速：候选饵的对口分决定单轮判定概率（乘进 Chance）与平均间隔；
+		// 路亚窗口在 pace 模式下可在原版窗内收窄，与生产路径共用 paceLureWindow。
 		pace := s.fishQueryPaceState(ctx, base, state)
 		if pace.Known {
 			plan.Chance = clampFloat(plan.Chance*pace.probForRig(rig), 0, 1)
 		}
 		delay := s.fishQueryMeanDelay(state, w, at)
-		if pace.Known && !rigTypeLureFamily[rig] {
+		if pace.Known {
 			if cfg := s.effectiveBiteDelaySettings(state); cfg.fixed <= 0 {
-				delay = s.meanPaceStandardDelay(cfg, s.weatherBiteDelayFactor(state, w, at),
-					bonus.BiteSpeed, pace.Factor, pace.Ground, marineRigType(rig))
+				if rigTypeLureFamily[rig] {
+					lmin, lmax := s.paceLureWindow(cfg.lureMax)
+					delay = meanBiteDelay(cfg, true, s.weatherBiteDelayFactor(state, w, at),
+						bonus.BiteSpeed, lmin, lmax)
+				} else {
+					delay = s.meanPaceStandardDelay(cfg, s.weatherBiteDelayFactor(state, w, at),
+						bonus.BiteSpeed, pace.Factor, pace.Tier, pace.Ground, marineRigType(rig))
+				}
 			}
 		}
 		plan.setTheoreticalRate(delay)

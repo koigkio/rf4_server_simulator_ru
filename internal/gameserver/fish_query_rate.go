@@ -9,7 +9,9 @@ import (
 
 // meanBiteDelay averages the production delay AFTER applying its clamps.
 // It does not sample RNG or include client wait, occupied rods or landing time.
-func meanBiteDelay(cfg biteDelaySettings, lure bool, weather, speed float64) float64 {
+// lureMin/lureMax 为路亚轮的均匀采样窗（legacy [1.5,6]；pace 模式由
+// paceLureWindow 给出，与生产同源）。
+func meanBiteDelay(cfg biteDelaySettings, lure bool, weather, speed, lureMin, lureMax float64) float64 {
 	if cfg.fixed > 0 {
 		return math.Max(.05, cfg.fixed)
 	}
@@ -31,12 +33,18 @@ func meanBiteDelay(cfg biteDelaySettings, lure bool, weather, speed float64) flo
 		}
 		return sum
 	}
-	// Uniform [1.5,6], transformed by piecewise-linear clamps. Integration at
+	if lureMax < lureMin {
+		lureMin, lureMax = lureMax, lureMin
+	}
+	if lureMax == lureMin {
+		return lureBiteDelay(lureMin*weather, speed, cfg.lureMax, cfg.scale)
+	}
+	// Uniform [lureMin,lureMax], transformed by piecewise-linear clamps. Integration at
 	// each segment midpoint is exact; averaging the raw window is not.
-	points := []float64{1.5, 6}
+	points := []float64{lureMin, lureMax}
 	k := weather * speed
 	for _, x := range []float64{.8 / k, cfg.lureMax / k, .8 / (k * cfg.scale)} {
-		if x > 1.5 && x < 6 {
+		if x > lureMin && x < lureMax {
 			points = append(points, x)
 		}
 	}
@@ -46,15 +54,15 @@ func meanBiteDelay(cfg biteDelaySettings, lure bool, weather, speed float64) flo
 		a, b := points[i-1], points[i]
 		sum += (b - a) * lureBiteDelay((a+b)/2*weather, speed, cfg.lureMax, cfg.scale)
 	}
-	return sum / 4.5
+	return sum / (lureMax - lureMin)
 }
 
 func (s *Server) fishQueryMeanDelay(st *FishState, weather fishingWeather, at time.Time) float64 {
 	cfg := s.effectiveBiteDelaySettings(st)
 	if cfg.fixed > 0 {
-		return meanBiteDelay(cfg, false, 1, 1)
+		return meanBiteDelay(cfg, false, 1, 1, 1.5, 6)
 	}
-	return meanBiteDelay(cfg, rigTypeLureFamily[st.RigType], s.weatherBiteDelayFactor(st, weather, at), st.Bonus.BiteSpeed)
+	return meanBiteDelay(cfg, rigTypeLureFamily[st.RigType], s.weatherBiteDelayFactor(st, weather, at), st.Bonus.BiteSpeed, 1.5, 6)
 }
 
 // fishQueryPaceState 查鱼助手的节奏因子：按候选饵算对口分（查询假设无窝料，
