@@ -183,7 +183,7 @@ func TestRf4ShareQueryErrorClearsStaleSnapshot(t *testing.T) {
 	}
 	s.rf4ShareMu.RLock()
 	defer s.rf4ShareMu.RUnlock()
-	if len(s.rf4ShareCache) != 0 || len(s.rf4LureShare) != 0 {
-		t.Fatalf("stale snapshots not cleared: bait=%v lure=%v", s.rf4ShareCache, s.rf4LureShare)
+	if len(s.rf4ShareCache) != 0 || len(s.rf4LureShare) != 0 || len(s.rf4FishTotal) != 0 {
+		t.Fatalf("stale snapshots not cleared: bait=%v lure=%v total=%v", s.rf4ShareCache, s.rf4LureShare, s.rf4FishTotal)
 	}
 }

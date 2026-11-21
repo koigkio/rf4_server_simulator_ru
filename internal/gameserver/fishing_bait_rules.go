@@ -970,6 +970,7 @@ func (s *Server) clearRf4ShareAfterError() {
 	s.rf4ShareMu.Lock()
 	s.rf4ShareCache = map[string]map[string]float64{}
 	s.rf4LureShare = map[string]float64{}
+	s.rf4FishTotal = map[string]float64{}
 	s.rf4ShareLoaded = true
 	s.rf4ShareAt = time.Now()
 	s.rf4ShareMu.Unlock()
