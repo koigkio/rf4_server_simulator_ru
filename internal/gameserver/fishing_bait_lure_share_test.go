@@ -187,3 +187,56 @@ func TestRf4ShareQueryErrorClearsStaleSnapshot(t *testing.T) {
 		t.Fatalf("stale snapshots not cleared: bait=%v lure=%v total=%v", s.rf4ShareCache, s.rf4LureShare, s.rf4FishTotal)
 	}
 }
+
+// TestRf4ShareSQLAggregationDenominators 用真实的 rf4records_catch 聚合锁定两个分母口径：
+// 饵级占比的分母只算已映射纪录（饵必须能归到具体 item_id），鱼种级拟饵占比的
+// 分母算该鱼全部有效渔获（未映射饵按非拟饵计）。两条 SQL 必须来自同一份快照。
+func TestRf4ShareSQLAggregationDenominators(t *testing.T) {
+	s, db := seedBaitRuleTest(t)
+	seq := 0
+	ins := func(fish, bait string, n int) {
+		t.Helper()
+		for i := 0; i < n; i++ {
+			seq++
+			if _, err := db.SQL.Exec(`INSERT INTO rf4records_catch(fish_name_en,fish_key,bait_name,bait_id,weight_g,waterbody,region,categories,trophy_class,catch_date,fetched_at) VALUES('x',?,'n',?,?,'','','','','',1)`,
+				fish, bait, seq); err != nil {
+				t.Fatal(err)
+			}
+		}
+	}
+	// c.roach：拟饵 6 条 + 天然饵 4 条 + 未映射 5 条 → 已映射 10 条、全部渔获 15 条。
+	ins("c.roach", "rule_lure", 6)
+	ins("c.roach", "rule_worm", 4)
+	ins("c.roach", "", 5)
+	// frog：只有天然饵 3 条，没有任何拟饵纪录。
+	ins("frog", "rule_worm", 3)
+	// ghost：只有未映射纪录，一条已映射都没有 → 占比按未知处理。
+	ins("ghost", "", 4)
+	s.loadRf4Share()
+
+	ctx := context.Background()
+	if got := s.rf4BaitShare(ctx, "c.roach", "rule_lure"); math.Abs(got-60) > 1e-9 {
+		t.Fatalf("bait share=%g want 60 (6/10 已映射)", got)
+	}
+	// 样本低于 bait_share_min_count(5) 的饵不进饵级表，但仍计入分母。
+	if got := s.rf4BaitShare(ctx, "c.roach", "rule_worm"); got != -1 {
+		t.Fatalf("below min count entered bait share: %g", got)
+	}
+	s.rf4ShareMu.RLock()
+	total := s.rf4FishTotal["c.roach"]
+	s.rf4ShareMu.RUnlock()
+	if total != 10 {
+		t.Fatalf("fish total=%g want 10 (已映射分母)", total)
+	}
+	// 鱼种级拟饵占比是 6/15=40%，不是 6/10=60%：未映射饵按非拟饵计入分母。
+	if got := s.rf4LureShareOf("c.roach"); math.Abs(got-40) > 1e-9 {
+		t.Fatalf("lure share=%g want 40 (6/15 全部渔获)", got)
+	}
+	if got := s.rf4LureShareOf("frog"); got != 0 {
+		t.Fatalf("no-lure fish share=%g want 0", got)
+	}
+	// 没有已映射纪录的鱼不进表：没有可归类的饵就不该硬判 0%。
+	if got := s.rf4LureShareOf("ghost"); got != -1 {
+		t.Fatalf("unmapped-only fish share=%g want -1 (未知)", got)
+	}
+}
