@@ -114,6 +114,9 @@ func TestPaceLureWindowNarrowOnly(t *testing.T) {
 	if lmin, lmax = s.paceLureWindow(6); lmin != 1.5 || lmax != 6 {
 		t.Fatalf("放宽应被忽略，实得 [%g,%g]", lmin, lmax)
 	}
+	if lmin, lmax = s.paceLureWindow(30); lmin != 1.5 || lmax != 6 {
+		t.Fatalf("bite_delay_lure_max 也不得放大窗口，实得 [%g,%g]", lmin, lmax)
+	}
 	setWeatherTestTunable(t, s, "pace_lure_min", "2.5")
 	setWeatherTestTunable(t, s, "pace_lure_max", "5")
 	if lmin, lmax = s.paceLureWindow(6); lmin != 2.5 || lmax != 5 {

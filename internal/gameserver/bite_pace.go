@@ -119,10 +119,11 @@ func paceStandardClamp(d, floorS, capS, scale float64) float64 {
 // 「鱼不晚于收线窗口到达」的既有契约（bite-bait-and-spawn §路亚；放宽修约
 // 另行走 lure-action-pace）。生产延迟与查鱼助手均值共用本函数，两端口径一致。
 func (s *Server) paceLureWindow(lureMax float64) (lmin, lmax float64) {
+	limit := math.Min(6, lureMax)
 	lmin = math.Max(1.5, s.tunableF("pace_lure_min", 1.5))
-	lmax = math.Min(s.tunableF("pace_lure_max", 6), lureMax)
-	if lmin > lureMax {
-		lmin = lureMax
+	lmax = math.Min(s.tunableF("pace_lure_max", 6), limit)
+	if lmin > limit {
+		lmin = limit
 	}
 	if lmax < lmin {
 		// 收窄语义下 min/max 矛盾（min 被封顶后仍大于 max）时塌缩到上限单点，

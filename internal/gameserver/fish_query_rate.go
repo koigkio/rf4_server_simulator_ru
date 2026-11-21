@@ -33,6 +33,12 @@ func meanBiteDelay(cfg biteDelaySettings, lure bool, weather, speed, lureMin, lu
 		}
 		return sum
 	}
+	if lureMax < lureMin {
+		lureMin, lureMax = lureMax, lureMin
+	}
+	if lureMax == lureMin {
+		return lureBiteDelay(lureMin*weather, speed, cfg.lureMax, cfg.scale)
+	}
 	// Uniform [lureMin,lureMax], transformed by piecewise-linear clamps. Integration at
 	// each segment midpoint is exact; averaging the raw window is not.
 	points := []float64{lureMin, lureMax}
