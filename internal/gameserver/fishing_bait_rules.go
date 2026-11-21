@@ -981,18 +981,28 @@ func (s *Server) loadRf4Share() {
 	ctx := s.dbCtx()
 	// 分母（每条鱼的有效纪录总数）单独算一次：HAVING 过滤后窗口函数只剩
 	// 幸存行，占比会被动重新归一化。
+	//
+	// 两个分母口径刻意不同：
+	//   - 饵级占比（rf4ShareCache）的分母只算 bait_id 已映射的纪录：饵必须能
+	//     归到具体 item_id 才能算占比，未映射饵无法归组。
+	//   - 鱼种级拟饵占比（rf4LureShare）的分母算该鱼全部有效渔获：它回答的是
+	//     「这条鱼被钓上来时有多少比例是拟饵」，未映射饵按非拟饵计。只用已映射
+	//     纪录会被饵映射覆盖率放大，天然饵占比高的鱼（鲢/鳙/草鱼）会被误判成
+	//     路亚鱼种。
 	minCnt := int(s.tunableF("bait_share_min_count", 5))
 	if minCnt < 1 {
 		minCnt = 1
 	}
 	totals := map[string]float64{}
 	lureTotals := map[string]float64{}
+	allTotals := map[string]float64{}
 	trows, err := s.DB.SQL.QueryContext(ctx, `
 		SELECT r.fish_key, count(*),
+		       sum(CASE WHEN r.bait_id <> '' THEN 1 ELSE 0 END),
 		       sum(CASE WHEN d.category = 17 THEN 1 ELSE 0 END)
 		FROM rf4records_catch r
 		LEFT JOIN item_def d ON d.item_id = r.bait_id
-		WHERE r.fish_key<>'' AND r.bait_id<>''
+		WHERE r.fish_key<>''
 		GROUP BY r.fish_key`)
 	if err != nil {
 		s.clearRf4ShareAfterError()
@@ -1000,13 +1010,14 @@ func (s *Server) loadRf4Share() {
 	}
 	for trows.Next() {
 		var fk string
-		var n, lures float64
-		if err := trows.Scan(&fk, &n, &lures); err != nil {
+		var all, mapped, lures float64
+		if err := trows.Scan(&fk, &all, &mapped, &lures); err != nil {
 			_ = trows.Close()
 			s.clearRf4ShareAfterError()
 			return
 		}
-		totals[fk] = n
+		allTotals[fk] = all
+		totals[fk] = mapped
 		lureTotals[fk] = lures
 	}
 	if err := trows.Err(); err != nil {
@@ -1055,10 +1066,12 @@ func (s *Server) loadRf4Share() {
 		s.clearRf4ShareAfterError()
 		return
 	}
-	lureShare := make(map[string]float64, len(totals))
-	for fk, tot := range totals {
-		if tot > 0 {
-			lureShare[fk] = 100 * lureTotals[fk] / tot
+	lureShare := make(map[string]float64, len(allTotals))
+	for fk, all := range allTotals {
+		// 一条已映射纪录都没有的鱼：没有任何能被归类的饵，占比无从估计，
+		// 不进表、按未知处理，不把拟饵门误用到它身上。
+		if all > 0 && totals[fk] > 0 {
+			lureShare[fk] = 100 * lureTotals[fk] / all
 		}
 	}
 	s.rf4ShareMu.Lock()
