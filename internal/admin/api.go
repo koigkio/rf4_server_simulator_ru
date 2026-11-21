@@ -76,6 +76,7 @@ func NewServer(cfg config.Admin, db *store.DB, log logger, webFS fs.FS) *Server 
 	mux.HandleFunc("GET /api/dashboard", auth(s.handleDashboard))
 	mux.HandleFunc("GET /api/tunables", auth(s.handleTunableList))
 	mux.HandleFunc("POST /api/tunables", auth(s.handleTunableSet))
+	mux.HandleFunc("POST /api/skill_gain_mode", auth(s.handleSkillGainModeSet))
 	mux.HandleFunc("POST /api/fish_tv_test", auth(s.handleFishTVTest))
 	mux.HandleFunc("GET /api/players", auth(s.handlePlayers))
 	mux.HandleFunc("GET /api/players/detail", auth(s.handlePlayerDetail))
@@ -463,6 +464,13 @@ func (s *Server) handleTunableSet(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
+	if strings.HasPrefix(req.Key, "skill_gain_pct_") {
+		v, err := strconv.ParseFloat(strings.TrimSpace(req.Value), 64)
+		if err != nil || math.IsNaN(v) || math.IsInf(v, 0) || v < 0 || v > 100 {
+			httpError(w, 400, "技能升级概率必须在 0 ~ 100 之间（0=原版）")
+			return
+		}
+	}
 	if strings.HasPrefix(req.Key, "two_stage_daily_") || strings.HasPrefix(req.Key, "two_stage_baited_") {
 		v, err := strconv.ParseFloat(req.Value, 64)
 		if err != nil || math.IsNaN(v) || math.IsInf(v, 0) || v < 0 {
@@ -601,6 +609,30 @@ func (s *Server) handleSpawnModeSet(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, map[string]any{"ok": true, "mode": req.Mode})
 }
 
+// handleSkillGainModeSet 原子切换八类技能的升级概率模式。
+func (s *Server) handleSkillGainModeSet(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		Mode string `json:"mode"`
+	}
+	if err := readJSON(r, &req); err != nil {
+		httpError(w, 400, "参数错误")
+		return
+	}
+	switch req.Mode {
+	case "native", "fixed100", "custom":
+	default:
+		httpError(w, 400, "技能升级概率模式只能是 native、fixed100 或 custom")
+		return
+	}
+	if err := s.db.SkillGainModeSet(r.Context(), req.Mode, adminOf(r)); err != nil {
+		httpError(w, 500, err.Error())
+		return
+	}
+	_ = s.db.AuditLogWrite(r.Context(), adminOf(r), "skill_gain_mode", "mode", req.Mode)
+	_ = s.db.QueuePush(r.Context(), mustJSON(map[string]any{"op": "reload_tunables"}))
+	writeJSON(w, map[string]any{"ok": true, "mode": req.Mode})
+}
+
 // ---- 玩家管理 ----
 
 type playerRow struct {
@@ -620,7 +652,7 @@ func (s *Server) handlePlayers(w http.ResponseWriter, r *http.Request) {
 	q := strings.TrimSpace(r.URL.Query().Get("q"))
 	ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
 	defer cancel()
-	var rows []playerRow
+	rows := make([]playerRow, 0)
 	var err error
 	if q == "" {
 		err = queryPlayers(ctx, s.db, &rows,
@@ -984,6 +1016,9 @@ func (s *Server) handleAudit(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		httpError(w, 500, err.Error())
 		return
+	}
+	if entries == nil {
+		entries = make([]*store.AuditEntry, 0)
 	}
 	writeJSON(w, entries)
 }
