@@ -636,23 +636,27 @@ func (s *Server) filterFishBaitSet(loc string, ids []string, keys []string, weig
 			// 注意必须 continue，只把 full 置 false 没用：后面还有
 			// share>=medium / companion 兜底几档会把它重新拉回池子里。
 			lureFactor := 1.0
-			// 该饵在官方纪录里对这条鱼已经有强证据（≥5%）时不看鱼种级占比：
-			// 具体到饵的证据永远优先于「这条鱼总体吃不吃拟饵」。
-			if b.category == 17 && share < strong {
+			// 拟饵门属于食性分级路径；三项阈值任一关闭时整体回到旧行为。
+			if grading && b.category == 17 {
 				// 双壳类与螯虾不吃移动的拟饵：官方纪录里它们确实有少量
 				// 拟饵渔获（多为微铅钩挂底误捕），直接放进判鱼池会让
-				// 亮片整天刷出河蚌、贻贝、螯虾。只排这三类，帝王蟹、
+				// 亮片整天刷出河蚌、贻贝、螯虾。硬排除必须先于具体饵证据，
+				// 不能被某个饵的 ≥5% 占比绕过。只排这三类，帝王蟹、
 				// 鱿鱼这类确实靠铁板/鱿鱼钩上的不排。
 				switch key {
 				case "freshwater_mussel", "dreissena", "crawfish":
 					continue
 				}
-				if ls := s.rf4LureShareOf(key); ls >= 0 {
-					switch {
-					case ls < 1:
-						continue
-					case ls < 5:
-						lureFactor = 0.25
+				// 该饵在官方纪录里对这条鱼已经有强证据（≥5%）时不看鱼种级占比：
+				// 具体到饵的证据优先于「这条鱼总体吃不吃拟饵」。
+				if share < strong {
+					if ls := s.rf4LureShareOf(key); ls >= 0 {
+						switch {
+						case ls < 1:
+							continue
+						case ls < 5:
+							lureFactor = 0.25
+						}
 					}
 				}
 			}
@@ -879,16 +883,19 @@ func fishingBaitInterest(interest float64, bonus fishingSkillBonus) float64 {
 	return math.Min(limit, interest*multiplier)
 }
 
+// rf4ShareTTL 是 rf4records 占比快照的有效期；判鱼读取与后台聚合共用。
+const rf4ShareTTL = 30 * time.Minute
+
 // rf4BaitShare 返回饵在 rf4records_catch 里对某鱼的实测渔获占比（百分比 0~100）。
-// 无数据（表空/该鱼无纪录/未映射）返回 -1。缓存异步预热 TTL 30 分钟，
-// 判鱼路径零阻塞；表未迁移或查询失败时保持 -1，分级退回 companion 兜底。
+// 无数据（表空/该鱼无纪录/未映射/缓存过期/查询失败）返回 -1。缓存异步预热，
+// 判鱼路径零阻塞；查询失败时清空旧快照，分级退回 companion 兜底。
 func (s *Server) rf4BaitShare(ctx context.Context, fishKey, baitID string) float64 {
 	if s.DB == nil || fishKey == "" || baitID == "" {
 		return -1
 	}
 	now := time.Now()
 	s.rf4ShareMu.RLock()
-	ready := s.rf4ShareLoaded && now.Sub(s.rf4ShareAt) <= 30*time.Minute
+	ready := s.rf4ShareLoaded && now.Sub(s.rf4ShareAt) <= rf4ShareTTL
 	m := s.rf4ShareCache[fishKey]
 	s.rf4ShareMu.RUnlock()
 	// 只在未就绪时触发加载；ready 但 m==nil 表示该鱼确实没有 rf4 纪录，
@@ -909,19 +916,37 @@ func (s *Server) rf4BaitShare(ctx context.Context, fishKey, baitID string) float
 }
 
 // rf4LureShareOf 返回该鱼在官方纪录里拟饵（category 17）占全部渔获的百分比。
-// 表未就绪/无纪录时返回 -1，调用方按「未知」处理而不是当成 0。
+// 表未就绪、缓存过期、查询失败或无纪录时返回 -1，调用方按「未知」处理。
 func (s *Server) rf4LureShareOf(fishKey string) float64 {
 	if s.DB == nil || fishKey == "" {
 		return -1
 	}
+	now := time.Now()
 	s.rf4ShareMu.RLock()
-	ready := s.rf4ShareLoaded
+	ready := s.rf4ShareLoaded && now.Sub(s.rf4ShareAt) <= rf4ShareTTL
 	v, ok := s.rf4LureShare[fishKey]
 	s.rf4ShareMu.RUnlock()
-	if !ready || !ok {
+	if !ready {
+		if s.rf4ShareLoading.CompareAndSwap(false, true) {
+			go s.loadRf4Share()
+		}
+		return -1
+	}
+	if !ok {
 		return -1
 	}
 	return v
+}
+
+// clearRf4ShareAfterError 清空两张快照并把 loaded 置位，避免查询失败后继续
+// 使用旧占比，也避免下一次判鱼立刻重复触发全表聚合。TTL 到期后会再试。
+func (s *Server) clearRf4ShareAfterError() {
+	s.rf4ShareMu.Lock()
+	s.rf4ShareCache = map[string]map[string]float64{}
+	s.rf4LureShare = map[string]float64{}
+	s.rf4ShareLoaded = true
+	s.rf4ShareAt = time.Now()
+	s.rf4ShareMu.Unlock()
 }
 
 func (s *Server) loadRf4Share() {
@@ -943,26 +968,29 @@ func (s *Server) loadRf4Share() {
 		WHERE r.fish_key<>'' AND r.bait_id<>''
 		GROUP BY r.fish_key`)
 	if err != nil {
-		s.rf4ShareMu.Lock()
-		// 首次查询失败也置 loaded，避免每次判鱼都重试全表聚合；
-		// TTL 到期后会再试（表未迁移/暂时读不到时退回 companion 兜底）。
-		if !s.rf4ShareLoaded {
-			s.rf4ShareCache = map[string]map[string]float64{}
-			s.rf4ShareLoaded = true
-		}
-		s.rf4ShareAt = time.Now()
-		s.rf4ShareMu.Unlock()
+		s.clearRf4ShareAfterError()
 		return
 	}
 	for trows.Next() {
 		var fk string
 		var n, lures float64
-		if trows.Scan(&fk, &n, &lures) == nil {
-			totals[fk] = n
-			lureTotals[fk] = lures
+		if err := trows.Scan(&fk, &n, &lures); err != nil {
+			_ = trows.Close()
+			s.clearRf4ShareAfterError()
+			return
 		}
+		totals[fk] = n
+		lureTotals[fk] = lures
 	}
-	_ = trows.Close()
+	if err := trows.Err(); err != nil {
+		_ = trows.Close()
+		s.clearRf4ShareAfterError()
+		return
+	}
+	if err := trows.Close(); err != nil {
+		s.clearRf4ShareAfterError()
+		return
+	}
 	// HAVING count(*)>=5：证据小于 5 条的样本不进占比表。否则「1 条纪录 /
 	// 2 条总数」= 50% 直接满足 bait_share_strong(5)，会把噪声当强证据。
 	rows, err := s.DB.SQL.QueryContext(ctx, `
@@ -970,36 +998,34 @@ func (s *Server) loadRf4Share() {
 		WHERE fish_key<>'' AND bait_id<>''
 		GROUP BY fish_key, bait_id HAVING count(*)>=?`, minCnt)
 	if err != nil {
-		s.rf4ShareMu.Lock()
-		if !s.rf4ShareLoaded {
-			s.rf4ShareCache = map[string]map[string]float64{}
-			s.rf4ShareLoaded = true
-		}
-		s.rf4ShareAt = time.Now()
-		s.rf4ShareMu.Unlock()
+		s.clearRf4ShareAfterError()
 		return
 	}
 	cache := map[string]map[string]float64{}
 	for rows.Next() {
 		var fk, bid string
 		var cnt float64
-		if rows.Scan(&fk, &bid, &cnt) == nil {
-			tot := totals[fk]
-			if tot <= 0 {
-				continue
-			}
-			if cache[fk] == nil {
-				cache[fk] = map[string]float64{}
-			}
-			cache[fk][bid] = 100 * cnt / tot
+		if err := rows.Scan(&fk, &bid, &cnt); err != nil {
+			_ = rows.Close()
+			s.clearRf4ShareAfterError()
+			return
 		}
+		tot := totals[fk]
+		if tot <= 0 {
+			continue
+		}
+		if cache[fk] == nil {
+			cache[fk] = map[string]float64{}
+		}
+		cache[fk][bid] = 100 * cnt / tot
 	}
-	err = rows.Err()
-	_ = rows.Close()
-	s.rf4ShareMu.Lock()
-	defer s.rf4ShareMu.Unlock()
-	if err != nil {
-		s.rf4ShareAt = time.Now()
+	if err := rows.Err(); err != nil {
+		_ = rows.Close()
+		s.clearRf4ShareAfterError()
+		return
+	}
+	if err := rows.Close(); err != nil {
+		s.clearRf4ShareAfterError()
 		return
 	}
 	lureShare := make(map[string]float64, len(totals))
@@ -1008,8 +1034,10 @@ func (s *Server) loadRf4Share() {
 			lureShare[fk] = 100 * lureTotals[fk] / tot
 		}
 	}
+	s.rf4ShareMu.Lock()
 	s.rf4ShareCache = cache
 	s.rf4LureShare = lureShare
 	s.rf4ShareLoaded = true
 	s.rf4ShareAt = time.Now()
+	s.rf4ShareMu.Unlock()
 }
