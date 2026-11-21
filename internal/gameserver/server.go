@@ -84,6 +84,9 @@ type Server struct {
 	rf4ShareAt      time.Time
 	rf4ShareLoaded  bool
 	rf4ShareLoading atomic.Bool
+	// rf4FishTotal 保存每条鱼在 rf4records_catch 里的有效纪录总数，
+	// 与 rf4ShareCache 同锁同 TTL，用于判断证据量是否足够做判鱼筛选。
+	rf4FishTotal map[string]float64
 
 	// 区域固定鱼种名册缓存（后台可写，TTL 30 秒对齐 tunables 热更节奏）
 	fishZoneMu    sync.RWMutex

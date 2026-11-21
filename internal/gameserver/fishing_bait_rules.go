@@ -65,6 +65,11 @@ func lookupFishBaitRule(fishZh string) (fishBaitRule, bool) {
 
 const maxBaitPreference = 1.5 * 1.15
 
+// 长尾闸只在官方样本足够时启用。这个门槛刻意保持代码常量而非 tunable：
+// 它表示“是否具备统计意义”，不是玩法手感旋钮；本次只复用已有 bait_share_*
+// 开关，不新增管理端参数。需要整体回退时把任一 bait_share_* 设为 <=0。
+const baitTailMinFishSamples = 100
+
 // legalAlternativeShare 是「规则没列、但同属虫/煮饵/颗粒这类同食性饵」的
 // 相对权重（乘在 maxBaitPreference 上）。这个值同时决定了饵兴趣值
 // interest = share（见 happy_hour.go 的低兴趣上限 0.1）：0.05 时兴趣 0.05，
@@ -611,8 +616,21 @@ func (s *Server) filterFishBaitSet(loc string, ids []string, keys []string, weig
 			// 食性证据分级（specs/changes/bait-evidence-threshold）：rf4records 实测占比
 			// 优先，companion tier/evidence 兜底；四档放行。
 			share := -1.0
+			var total float64
+			shareKnown := false
 			if grading {
-				share = s.rf4BaitShare(ctx, key, b.id)
+				// 占比与分母必须来自同一个缓存快照。未知（首次加载/TTL 刷新中）
+				// 不能配合旧 total 触发长尾闸，否则刷新窗口会误清空非点名饵。
+				share, total, shareKnown = s.rf4BaitSample(ctx, key, b.id)
+			}
+			// 长尾闸：官方纪录里这条鱼有过这款饵、但占比低于 tail，或样本不足
+			// （share<0 表示不足 bait_share_min_count 条），说明只是偶发或误捕。
+			// 这类饵不能再靠 companion 证据或本图历史记录兜底进池，否则一款与
+			// 食性无关的饵会把整图不相关的鱼刷出来（土豆刷出葛氏鲈塘鳢等）。
+			// 规则里明确点名的饵和当前轮换组不受影响，避免误删真实主推饵。
+			if grading && shareKnown && share < tail &&
+				!baitExemptFromTailGate(r, b, activeGroup) && total >= baitTailMinFishSamples {
+				continue
 			}
 			score := 0.0
 			variation := fishVariation(fmt.Sprintf("%s/%s/%s/%d", loc, key, b.id, period))
@@ -890,13 +908,21 @@ const rf4ShareTTL = 30 * time.Minute
 // 无数据（表空/该鱼无纪录/未映射/缓存过期/查询失败）返回 -1。缓存异步预热，
 // 判鱼路径零阻塞；查询失败时清空旧快照，分级退回 companion 兜底。
 func (s *Server) rf4BaitShare(ctx context.Context, fishKey, baitID string) float64 {
+	share, _, _ := s.rf4BaitSample(ctx, fishKey, baitID)
+	return share
+}
+
+// rf4BaitSample 返回同一份缓存快照里的饵占比、该鱼总纪录数和数据是否可用。
+// known=false 只表示缓存未就绪/已过期且正在加载，不得把它当成 0 或长尾样本。
+func (s *Server) rf4BaitSample(ctx context.Context, fishKey, baitID string) (share, total float64, known bool) {
 	if s.DB == nil || fishKey == "" || baitID == "" {
-		return -1
+		return -1, 0, false
 	}
 	now := time.Now()
 	s.rf4ShareMu.RLock()
 	ready := s.rf4ShareLoaded && now.Sub(s.rf4ShareAt) <= rf4ShareTTL
 	m := s.rf4ShareCache[fishKey]
+	total = s.rf4FishTotal[fishKey]
 	s.rf4ShareMu.RUnlock()
 	// 只在未就绪时触发加载；ready 但 m==nil 表示该鱼确实没有 rf4 纪录，
 	// 不能每次判鱼都重新聚合 47.9 万行（评审 P1）。
@@ -904,15 +930,15 @@ func (s *Server) rf4BaitShare(ctx context.Context, fishKey, baitID string) float
 		if s.rf4ShareLoading.CompareAndSwap(false, true) {
 			go s.loadRf4Share()
 		}
-		return -1
+		return -1, 0, false
 	}
 	if m == nil {
-		return -1
+		return -1, total, true
 	}
 	if v, ok := m[baitID]; ok {
-		return v
+		return v, total, true
 	}
-	return -1
+	return -1, total, true
 }
 
 // rf4LureShareOf 返回该鱼在官方纪录里拟饵（category 17）占全部渔获的百分比。
@@ -1039,5 +1065,47 @@ func (s *Server) loadRf4Share() {
 	s.rf4LureShare = lureShare
 	s.rf4ShareLoaded = true
 	s.rf4ShareAt = time.Now()
+	s.rf4FishTotal = totals
 	s.rf4ShareMu.Unlock()
+}
+
+// baitNamedByRule 判断规则是否明确点名了这款饵。类别词（含所有“类”表达）
+// 只说明食性范围，不能冒充具体饵名作为长尾闸豁免。
+func baitNamedByRule(r fishBaitRule, b ruleBait) bool {
+	for _, t := range r.allow {
+		if baitRuleTermIsCategory(t) {
+			continue
+		}
+		if b.matches(t) {
+			return true
+		}
+	}
+	return false
+}
+
+// baitExemptFromTailGate 只豁免规则明确点名的饵，以及后台显式配置的当前
+// 轮换组。当前组即使不在静态 allow 中也是本轮主推饵（见 baitAllowedByRule）。
+func baitExemptFromTailGate(r fishBaitRule, b ruleBait, activeGroup []string) bool {
+	return baitNamedByRule(r, b) || b.matchesAny(activeGroup)
+}
+
+// baitRuleTermIsCategory 统一识别规则里的类别/通配词。凡是带“类”的表达都
+// 不是具体饵名；“拟饵/饵鱼/蠕虫/昆虫/亮片/软饵”等不带“类”的类别词也在此
+// 集中列出，避免每新增一种通配写法就漏掉长尾闸豁免。
+func baitRuleTermIsCategory(term string) bool {
+	t := ruleName(term)
+	if t == "" {
+		return false
+	}
+	if strings.Contains(t, "类") || strings.HasPrefix(t, "各类") {
+		return true
+	}
+	switch t {
+	case "拟饵", "饵鱼", "活饵", "蠕虫", "昆虫", "昆虫幼虫",
+		"鱼肉类", "亮片", "亮片系列", "亮片系列饵", "旋转饵", "旋转亮片路亚",
+		"软饵", "拟真软饵", "天然饵", "虫饵", "素饵", "荤饵", "肉饵", "谷物饵":
+		return true
+	default:
+		return false
+	}
 }
