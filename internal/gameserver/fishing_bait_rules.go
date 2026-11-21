@@ -614,6 +614,14 @@ func (s *Server) filterFishBaitSet(loc string, ids []string, keys []string, weig
 			if grading {
 				share = s.rf4BaitShare(ctx, key, b.id)
 			}
+			// 长尾闸：官方纪录里这条鱼有过这款饵、但占比低于 tail，或样本不足
+			// （share<0 表示不足 bait_share_min_count 条），说明只是偶发或误捕。
+			// 这类饵不能再靠 companion 证据或本图历史记录兜底进池，否则一款与
+			// 食性无关的饵会把整图不相关的鱼刷出来（土豆刷出葛氏鲈塘鳢等）。
+			// 规则里明确点名的饵不受影响，避免误删真实的次要饵。
+			if grading && share < tail && !baitNamedByRule(r, b) && s.rf4FishTotalOf(key) >= 100 {
+				continue
+			}
 			score := 0.0
 			variation := fishVariation(fmt.Sprintf("%s/%s/%s/%d", loc, key, b.id, period))
 			// evidence[j] 实为 companion tier map（1=在榜 2=热门 3=top 档），非计数。
@@ -947,4 +955,30 @@ func (s *Server) loadRf4Share() {
 	s.rf4ShareCache = cache
 	s.rf4ShareLoaded = true
 	s.rf4ShareAt = time.Now()
+	s.rf4FishTotal = totals
+}
+
+// rf4FishTotalOf 返回该鱼在 rf4records_catch 里的有效纪录总数；表未就绪返回 0。
+func (s *Server) rf4FishTotalOf(fishKey string) float64 {
+	if fishKey == "" {
+		return 0
+	}
+	s.rf4ShareMu.RLock()
+	n := s.rf4FishTotal[fishKey]
+	s.rf4ShareMu.RUnlock()
+	return n
+}
+
+// baitNamedByRule 判断规则是否明确点名了这款饵。只靠「各类饵」通配匹配上的
+// 不算点名——通配代表“什么都能吃”，不能作为排除长尾闸的依据。
+func baitNamedByRule(r fishBaitRule, b ruleBait) bool {
+	for _, t := range r.allow {
+		if t == "各类饵" {
+			continue
+		}
+		if b.matches(t) {
+			return true
+		}
+	}
+	return false
 }
