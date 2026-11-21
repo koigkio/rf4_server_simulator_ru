@@ -190,7 +190,7 @@ func TestRf4ShareQueryErrorClearsStaleSnapshot(t *testing.T) {
 
 // TestRf4ShareSQLAggregationDenominators 用真实的 rf4records_catch 聚合锁定两个分母口径：
 // 饵级占比的分母只算已映射纪录（饵必须能归到具体 item_id），鱼种级拟饵占比的
-// 分母算该鱼全部有效渔获（未映射饵按非拟饵计）。两条 SQL 必须来自同一份快照。
+// 分母算该鱼全部有效渔获（未映射饵按非拟饵计）。鱼种级分子与分母必须由同一条聚合 SQL 算出。
 func TestRf4ShareSQLAggregationDenominators(t *testing.T) {
 	s, db := seedBaitRuleTest(t)
 	seq := 0
