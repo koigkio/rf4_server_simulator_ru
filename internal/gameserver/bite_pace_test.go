@@ -37,12 +37,12 @@ func TestPaceTierForMapping(t *testing.T) {
 		factor, prob, lureProb float64
 		tier                   int
 	}{
-		{0.90, 1.0, 1.0, 0.30, 2},
-		{0.75, 1.0, 1.0, 0.30, 2},
-		{0.50, 1.6, 0.5, 0.10, 1},
-		{0.45, 1.6, 0.5, 0.10, 1},
-		{0.30, 3.0, 0.12, 0.02, 0},
-		{0.0, 3.0, 0.12, 0.02, 0},
+		{0.90, 1.0, 1.0, 1.0, 2},
+		{0.75, 1.0, 1.0, 1.0, 2},
+		{0.50, 1.6, 0.5, 0.5, 1},
+		{0.45, 1.6, 0.5, 0.5, 1},
+		{0.30, 3.0, 0.12, 0.12, 0},
+		{0.0, 3.0, 0.12, 0.12, 0},
 	}
 	for _, tc := range cases {
 		factor, prob, lureProb, tier := s.paceTierFor(tc.score)
@@ -102,47 +102,20 @@ func TestPaceDelayUsesFactorSnapshot(t *testing.T) {
 	}
 }
 
-// P2-1 回归：路亚窗口只能在原版窗内收窄，放宽被忽略。
-func TestPaceLureWindowNarrowOnly(t *testing.T) {
+// P2-1 回归（复合档位版）：好档采样窗硬封顶 min(6, lureMax)——
+// bite_delay_lure_max 再大也不放大窗口。
+func TestPaceLureWindowForGoodTierCap(t *testing.T) {
 	s, _ := newDetachTestServer(t)
-	lmin, lmax := s.paceLureWindow(6)
-	if lmin != 1.5 || lmax != 6 {
-		t.Fatalf("默认窗应为 [1.5,6]，实得 [%g,%g]", lmin, lmax)
+	if lmin, lmax := s.paceLureWindowFor(2, 6); lmin != 1.5 || lmax != 6 {
+		t.Fatalf("好档默认窗应为 [1.5,6]，实得 [%g,%g]", lmin, lmax)
 	}
-	setWeatherTestTunable(t, s, "pace_lure_min", "0.5")
 	setWeatherTestTunable(t, s, "pace_lure_max", "30")
-	if lmin, lmax = s.paceLureWindow(6); lmin != 1.5 || lmax != 6 {
-		t.Fatalf("放宽应被忽略，实得 [%g,%g]", lmin, lmax)
-	}
-	if lmin, lmax = s.paceLureWindow(30); lmin != 1.5 || lmax != 6 {
+	if lmin, lmax := s.paceLureWindowFor(2, 30); lmin != 1.5 || lmax != 6 {
 		t.Fatalf("bite_delay_lure_max 也不得放大窗口，实得 [%g,%g]", lmin, lmax)
 	}
-	setWeatherTestTunable(t, s, "pace_lure_min", "2.5")
-	setWeatherTestTunable(t, s, "pace_lure_max", "5")
-	if lmin, lmax = s.paceLureWindow(6); lmin != 2.5 || lmax != 5 {
+	setWeatherTestTunable(t, s, "pace_lure_max", "2.5")
+	if lmin, lmax := s.paceLureWindowFor(2, 6); lmin != 1.5 || lmax != 2.5 {
 		t.Fatalf("收窄应生效，实得 [%g,%g]", lmin, lmax)
-	}
-	setWeatherTestTunable(t, s, "pace_lure_min", "10")
-	if lmin, lmax = s.paceLureWindow(6); lmin != 5 || lmax != 5 {
-		t.Fatalf("min 被封顶后与 max 矛盾应塌缩到 max 单点 [5,5]，实得 [%g,%g]", lmin, lmax)
-	}
-}
-
-// P2-2 回归：查鱼助手路亚均值按 pace 窗口积分（与生产同源），不再是
-// 固定 legacy 窗。
-func TestFishQueryLureMeanUsesPaceWindow(t *testing.T) {
-	s, _ := newDetachTestServer(t)
-	cfg := biteDelaySettings{scale: 1, lureMax: 6}
-	if got := meanBiteDelay(cfg, true, 1, 1, 1.5, 6); math.Abs(got-3.75) > 1e-10 {
-		t.Fatalf("legacy 窗均值应 3.75，实得 %g", got)
-	}
-	// pace 收窄窗 [2.5,6]：k=1 无内部断点 → 均值=中点 4.25（≠legacy 3.75）。
-	if got := meanBiteDelay(cfg, true, 1, 1, 2.5, 6); math.Abs(got-4.25) > 1e-10 {
-		t.Fatalf("pace 窗均值应 4.25，实得 %g", got)
-	}
-	setWeatherTestTunable(t, s, "pace_lure_min", "2.5")
-	if lmin, lmax := s.paceLureWindow(cfg.lureMax); lmin != 2.5 || lmax != 6 {
-		t.Fatalf("paceLureWindow 收窄未生效：[%g,%g]", lmin, lmax)
 	}
 }
 
@@ -232,12 +205,66 @@ func TestPaceDelayBoundsAndLureUnchanged(t *testing.T) {
 			t.Fatalf("海底钓上限应为 30s，实得 %g", got)
 		}
 	}
-	// 路亚族在 pace 模式下延迟链默认零改动：×3 因子也不放大，仍是 1.5~6s 窗。
-	lure := &FishState{RigType: 5, PaceKnown: true, PaceTier: 0, PaceFactor: 3, PaceGround: 1, PaceLureProb: 0.02}
+	// 路亚族 pace 模式按复合档位（饵分 × 当前动作）取窗
+	//（specs/changes/lure-action-pace/spec.md）：好档 1.5~6s；好饵+中性动作
+	// → 中档 10~60s；差饵 → 差档 20~60s。
+	goodLure := &FishState{RigType: 5, PaceKnown: true, PaceScore: 1.0, LureType: "jerkbait", LureAction: "jerk", PaceGround: 1}
 	for i := 0; i < 50; i++ {
-		got := s.biteDelayInWeather(lure, fishingWeather{}, now)
-		if got > 6+1e-9 {
-			t.Fatalf("路亚窗口被 pace 放大：got %g", got)
+		if got := s.biteDelayInWeather(goodLure, fishingWeather{}, now); got < 1.5-1e-9 || got > 6+1e-9 {
+			t.Fatalf("好档路亚窗口越界：got %g", got)
+		}
+	}
+	midLure := &FishState{RigType: 5, PaceKnown: true, PaceScore: 1.0, LureType: "jerkbait", LureAction: "steady", PaceGround: 1}
+	over12 := 0
+	for i := 0; i < 50; i++ {
+		got := s.biteDelayInWeather(midLure, fishingWeather{}, now)
+		if got < 10-1e-9 || got > 60+1e-9 {
+			t.Fatalf("中档路亚窗口越界：got %g", got)
+		}
+		if got > 12 {
+			over12++
+		}
+	}
+	if over12 == 0 {
+		t.Fatal("中档 50 次全部 ≤12s，路亚窗口未按档位放大")
+	}
+	badLure := &FishState{RigType: 5, PaceKnown: true, PaceScore: 0.3, LureType: "jerkbait", LureAction: "jerk", PaceGround: 1}
+	over22 := 0
+	for i := 0; i < 50; i++ {
+		got := s.biteDelayInWeather(badLure, fishingWeather{}, now)
+		if got < 20-1e-9 || got > 60+1e-9 {
+			t.Fatalf("差档路亚窗口越界：got %g", got)
+		}
+		if got > 22 {
+			over22++
+		}
+	}
+	if over22 == 0 {
+		t.Fatal("差档 50 次全部 ≤22s，路亚窗口未按档位放大")
+	}
+	// bite_delay_lure_max 只封好档：压到 3 后好档 ≤3，中档仍可远超 3（绕过）。
+	setWeatherTestTunable(t, s, "bite_delay_lure_max", "3")
+	for i := 0; i < 50; i++ {
+		if got := s.biteDelayInWeather(goodLure, fishingWeather{}, now); got > 3+1e-9 {
+			t.Fatalf("好档未受 bite_delay_lure_max 封顶：got %g", got)
+		}
+	}
+	capped := 0
+	for i := 0; i < 50; i++ {
+		if got := s.biteDelayInWeather(midLure, fishingWeather{}, now); got > 3+1e-9 {
+			capped++
+		}
+	}
+	if capped == 0 {
+		t.Fatal("中档被 bite_delay_lure_max 封顶（应绕过）")
+	}
+	setWeatherTestTunable(t, s, "bite_delay_lure_max", "6")
+	// pace 关闭回 legacy 逐位一致：仍是 1.5~6s 窗，×3 因子也不放大。
+	setWeatherTestTunable(t, s, "bite_pace_enabled", "0")
+	lureLegacy := &FishState{RigType: 5, PaceKnown: true, PaceTier: 0, PaceFactor: 3, PaceGround: 1, PaceLureProb: 0.02}
+	for i := 0; i < 50; i++ {
+		if got := s.biteDelayInWeather(lureLegacy, fishingWeather{}, now); got > 6+1e-9 {
+			t.Fatalf("pace 关闭时路亚窗口被放大：got %g", got)
 		}
 	}
 }
@@ -546,5 +573,186 @@ func TestPaceScoreForGroups(t *testing.T) {
 		if got := s.paceScoreForGroups(ctx, base, "level_900_rules", tc.groups, 1); math.Abs(got-tc.want) > 1e-9 {
 			t.Fatalf("%s: got %g want %g", tc.name, got, tc.want)
 		}
+	}
+}
+
+// ---- 路亚复合档位（specs/changes/lure-action-pace/spec.md）----
+
+// 复合分（饵分 × 动作分）档位映射：好档要求饵与动作都好；无动作中性不给
+// 好档；中饵配对口动作到不了好档（饵不对口是硬伤）；差饵无论动作都差档。
+func TestPaceLureCombinedTier(t *testing.T) {
+	s, _ := newDetachTestServer(t)
+	cases := []struct {
+		name             string
+		bait             float64
+		lureType, action string
+		tier             int
+	}{
+		{"好饵+jerkbait对口抽停", 1.0, "jerkbait", "jerk", 2},
+		{"好饵+spinner对口匀速", 1.0, "spinner", "steady", 2},
+		{"好饵+pilker对口海图抖法", 1.0, "pilker", "marine_jig", 2},
+		{"好饵+jerkbait匀速中性", 1.0, "jerkbait", "steady", 1},
+		{"好饵+刚落水无动作", 1.0, "jerkbait", "", 1},
+		{"中饵+对口动作到不了好档", 0.5, "jerkbait", "jerk", 1},
+		{"好饵亮片配抽停不对口", 0.8, "spinner", "twitch", 0},
+		{"差饵恒差档", 0.3, "jerkbait", "jerk", 0},
+	}
+	for _, tc := range cases {
+		combined := paceLureCombinedScore(tc.bait, tc.lureType, tc.action)
+		_, _, _, tier := s.paceTierFor(combined)
+		if tier != tc.tier {
+			t.Fatalf("%s: combined=%g tier=%d want %d", tc.name, combined, tier, tc.tier)
+		}
+	}
+}
+
+// fire 开口率按复合档位动态取值：装排后动作变差，同一杆按低概率空掷；
+// PaceKnown=false（重启恢复）按中性 1，热关闭回 1。
+func TestPaceLureProbFollowsAction(t *testing.T) {
+	s, _ := seedPaceTest(t)
+	st := &FishState{RigType: 5, PaceKnown: true, PaceScore: 1.0, LureType: "jerkbait", LureAction: "jerk"}
+	if got := s.rodPaceProb(st); got != 1.0 {
+		t.Fatalf("对口动作开口率应 1.0：got %g", got)
+	}
+	st.LureAction = "steady"
+	if got := s.rodPaceProb(st); got != 0.5 {
+		t.Fatalf("中性动作开口率应 0.5：got %g", got)
+	}
+	st.PaceScore = 0.3
+	if got := s.rodPaceProb(st); got != 0.12 {
+		t.Fatalf("差饵开口率应 0.12：got %g", got)
+	}
+	st.PaceKnown = false
+	if got := s.rodPaceProb(st); got != 1 {
+		t.Fatalf("PaceKnown=false 应中性：got %g", got)
+	}
+	setWeatherTestTunable(t, s, "bite_pace_enabled", "0")
+	st.PaceKnown = true
+	if got := s.rodPaceProb(st); got != 1 {
+		t.Fatalf("热关闭后开口率应回 1：got %g", got)
+	}
+}
+
+// 动作改善重排：档位升高 → timer 按新档短窗重排；降档/Pending 非空/热关闭
+// 都不重排（恶化由 fire 动态开口率空掷处理）。
+func TestPaceLureActionRearm(t *testing.T) {
+	s, _ := seedPaceTest(t)
+	const uid = int64(1000001)
+	addFishingRecoverySession(s, uid, 913)
+	sess := s.liveSessionByUID(uid)
+	st := s.stateFor(uid)
+	st.mu.Lock()
+	st.GearGuid, st.Loc, st.RigType = "", "level_900_rules", 5
+	st.PaceScore, st.LureType, st.LureAction = 1.0, "jerkbait", "steady"
+	st.CastActive, st.InWater = true, true
+	st.storePaceState(fishPaceState{Known: true, Score: 1.0, Factor: 1.6, Prob: .5, LureProb: .1, Ground: 1, Tier: 1})
+	s.armBiteTimerLocked(uid, st, time.Now().Add(30*time.Second))
+	st.mu.Unlock()
+
+	// 动作改善（匀速 → 对口抽停）：14/7 已把动作更新为 jerk，重排进好档短窗。
+	st.mu.Lock()
+	st.LureAction = "jerk"
+	st.mu.Unlock()
+	s.paceLureActionRearm(sess, st)
+	st.mu.Lock()
+	wait := time.Until(st.BiteAt).Seconds()
+	tier := st.PaceTier
+	st.mu.Unlock()
+	if tier != 2 {
+		t.Fatalf("改善后档位应=2：got %d", tier)
+	}
+	if wait < 1.4 || wait > 6.2 {
+		t.Fatalf("改善后应进 1.5~6s 短窗：got %.2fs", wait)
+	}
+
+	// 档位下降不重排。
+	st.mu.Lock()
+	st.LureAction = "steady"
+	before := st.BiteAt
+	st.mu.Unlock()
+	s.paceLureActionRearm(sess, st)
+	st.mu.Lock()
+	kept := st.BiteAt.Equal(before)
+	st.mu.Unlock()
+	if !kept {
+		t.Fatal("降档不应重排")
+	}
+
+	// Pending 非空不重排。
+	st.mu.Lock()
+	st.LureAction = "jerk"
+	st.Pending = &RolledFish{FishGUID: "pending-1"}
+	st.mu.Unlock()
+	s.paceLureActionRearm(sess, st)
+	st.mu.Lock()
+	keptPending := st.BiteAt.Equal(before)
+	st.Pending = nil
+	st.mu.Unlock()
+	if !keptPending {
+		t.Fatal("Pending 非空不应重排")
+	}
+
+	// 热关闭 pace：不重排。
+	setWeatherTestTunable(t, s, "bite_pace_enabled", "0")
+	st.mu.Lock()
+	st.LureAction = "steady"
+	st.mu.Unlock()
+	s.paceLureActionRearm(sess, st)
+	st.mu.Lock()
+	keptDisabled := st.BiteAt.Equal(before)
+	st.mu.Unlock()
+	if !keptDisabled {
+		t.Fatal("pace 关闭不应重排")
+	}
+
+	st.mu.Lock()
+	st.cancelBiteTimerLocked()
+	st.mu.Unlock()
+	stopWeatherDamageTimer(st)
+}
+
+// fire 时动作可能已从排 timer 时的档位下降；动态开口率必须把实际档位写回
+// st.PaceTier，否则后续“动作改善”会拿旧好档比较，误判为没有升高而不重排。
+func TestPaceLureFireRefreshAllowsLaterRearm(t *testing.T) {
+	s, _ := seedPaceTest(t)
+	const uid = int64(1000002)
+	addFishingRecoverySession(s, uid, 914)
+	sess := s.liveSessionByUID(uid)
+	st := s.stateFor(uid)
+	st.mu.Lock()
+	st.Loc, st.RigType = "level_900_rules", 5
+	st.PaceScore, st.LureType, st.LureAction = 1.0, "jerkbait", "steady"
+	st.CastActive, st.InWater = true, true
+	st.storePaceState(fishPaceState{Known: true, Score: 1.0, Factor: 1.0, Prob: 1, LureProb: 1, Ground: 1, Tier: 2})
+	s.armBiteTimerLocked(uid, st, time.Now().Add(30*time.Second))
+	st.mu.Unlock()
+
+	// 定时器到点时，当前动作只到中档；开口率判定应同步把档位改为中档。
+	if got := s.rodPaceProb(st); got != .5 {
+		t.Fatalf("中档动作开口率应 0.5：got %g", got)
+	}
+	st.mu.Lock()
+	fireTier := st.PaceTier
+	st.mu.Unlock()
+	if fireTier != 1 {
+		t.Fatalf("fire 后档位应刷新为中档：got %d", fireTier)
+	}
+
+	// 随后做出对口动作，应按升档重排进好档短窗；旧实现仍拿初始好档比较会漏掉。
+	st.mu.Lock()
+	st.LureAction = "jerk"
+	st.mu.Unlock()
+	s.paceLureActionRearm(sess, st)
+	st.mu.Lock()
+	wait := time.Until(st.BiteAt).Seconds()
+	tier := st.PaceTier
+	st.cancelBiteTimerLocked()
+	st.mu.Unlock()
+	stopWeatherDamageTimer(st)
+	if tier != 2 {
+		t.Fatalf("动作改善后档位应=2：got %d", tier)
+	}
+	if wait < 1.4 || wait > 6.2 {
+		t.Fatalf("动作改善后应重排进 1.5~6s 短窗：got %.2fs", wait)
 	}
 }
