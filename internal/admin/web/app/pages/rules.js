@@ -150,7 +150,7 @@ function gradeEditor(form, set, t, interactive) {
   update();
   return h('div', { class: 'card', style: { padding: '16px 18px', background: 'var(--surface-2)' } },
     h('div', { class: 'row', style: { justifyContent: 'space-between', marginBottom: '10px' } }, h('b', { text: set.title }), hint),
-    inputs, h('div', { style: { margin: '14px 0 8px' } }, track), legend);
+    inputs, h('div', { style: { margin: interactive ? '22px 0 16px' : '14px 0 8px' } }, track), legend);
 }
 
 // Each gesture uses the starting weights so rounding never accumulates across moves.

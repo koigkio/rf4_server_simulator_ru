@@ -357,12 +357,13 @@ details.advanced>summary small{font-weight:400;color:var(--muted)}
 .grade-ratio-track {
   position: relative;
   --grip: 22px;
+  --touch: 44px;
   --first: min(var(--boundary-0), calc(100% - 2 * var(--grip)));
   --second: clamp(calc(var(--first) + var(--grip)), var(--boundary-1), calc(100% - var(--grip)));
 }
 .grade-ratio-handle {
   position: absolute; top: 50%; transform: translate(-50%, -50%);
-  width: var(--grip); height: 24px; padding: 0; border: 0; background: transparent;
+  width: var(--touch); height: var(--touch); padding: 0; border: 0; background: transparent;
   touch-action: none; cursor: ew-resize;
 }
 .grade-ratio-handle:nth-of-type(1) { left: var(--first); }

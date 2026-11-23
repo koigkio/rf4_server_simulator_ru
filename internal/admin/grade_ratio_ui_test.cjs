@@ -46,6 +46,9 @@ test('grade ratio grips share the numeric draft and explicit save', async () => 
     }
     // Fixed width makes a ten-point pointer movement exact in whole CSS pixels.
     await card.waitFor();
+    const firstGripBox = await grips.first().boundingBox();
+    assert.ok(firstGripBox.width >= 44, `grip width ${firstGripBox.width}`);
+    assert.ok(firstGripBox.height >= 44, `grip height ${firstGripBox.height}`);
     await track.evaluate(el => { el.style.width = '500px'; });
     await drag(1, -0.1, async () => {
       assert.deepEqual(await values(), [0, 50, 35, 15]);
