@@ -539,7 +539,7 @@ func TestNorwegianSeaCastLandingFromShiftedFrame(t *testing.T) {
 	}{
 		{"loc12_103", 14.67511, 761.9345, 2907.977, 2947.3718, 2.71, 2905.9744, 989.2175, 70},
 		{"loc12_94", 686.06293, 862.7506, 3574.8462, 3048.7686, 3, 3577.3622, 1090.0336, 75},
-		{"loc12_15", 272, 769, 254, 2740, 23, 272, 769, 0},
+		{"loc12_15", 272, 769, 254, 2740, 23, 272, 769, 12},
 	} {
 		t.Run(tc.scene, func(t *testing.T) {
 			pose := wiregen.MustMakeObj("deggnlnohoh", map[int]*proto.Value{0: proto.F32(tc.poseX), 2: proto.F32(tc.poseZ)})

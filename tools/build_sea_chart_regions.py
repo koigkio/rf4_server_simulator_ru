@@ -1,7 +1,7 @@
 """Digitize the 4.0.25034 Norwegian Sea paper chart into a grayscale zone index.
 
-Usage: python tools/build_sea_chart_regions.py original_chart.png [output.png]
-Offline dependencies: numpy, Pillow, OpenCV, scipy, scikit-image.
+Usage: python tools/build_sea_chart_regions.py original_chart.png --client-data rf4_x64_Data [output.png]
+Offline dependencies: numpy, Pillow, OpenCV, scipy, scikit-image, UnityPy.
 """
 
 import argparse
@@ -11,10 +11,12 @@ from pathlib import Path
 
 import cv2
 import numpy as np
+import UnityPy
 from PIL import Image
 from scipy import ndimage
 from skimage.segmentation import felzenszwalb
 
+from fish_query_water import sample_heights
 
 ASSETS = Path(__file__).resolve().parents[1] / "internal/gameserver/assets"
 RGB_SHA256 = "3707ed5ed667502a296ab394148ea5a8c604e07ce43a0637c27c6b258295de28"
@@ -47,13 +49,17 @@ def remove_print(rgb, marks):
     return cv2.medianBlur(clean, 7)
 
 
+def chart_area(shape):
+    area = np.zeros(shape, bool)
+    area[81:1967, 81:1967] = True
+    area[80:308, 1183:1969] = False  # legend
+    area[96:288, 97:626] = False     # title
+    return area
+
+
 def water_mask(clean):
     r, g, b = np.moveaxis(clean.astype(np.int16), 2, 0)
-    water = np.zeros(clean.shape[:2], bool)
-    water[81:1967, 81:1967] = True
-    water[80:308, 1183:1969] = False  # legend
-    water[96:288, 97:626] = False     # title
-    return water & (b > r+4) & (b >= g+1)
+    return chart_area(r.shape) & (b > r+4) & (b >= g+1)
 
 
 def hatched_banks(rgb, water):
@@ -123,10 +129,69 @@ def assign_soundings(bands, marks):
     return result
 
 
+def shore_terrain(client_data):
+    # 4.0.25034 level24: Terrain_visible is at (0, -7.9980011, 0) and
+    # WaterCrestOcean is at y=0. Where this detail terrain has a hole,
+    # the underlying 5km terrain is entirely below sea level (max -0.15 m).
+    env = UnityPy.load(str(client_data / "sharedassets24.assets"))
+    obj = next(o for o in env.objects if o.type.name == "TerrainData" and
+               o.peek_name() == "level_12_terrain_MS")
+    data = obj.read_typetree()["m_Heightmap"]
+    n, scale = data["m_Resolution"], data["m_Scale"]
+    heights = np.asarray(data["m_Heights"], dtype="<i2").reshape(n, n)
+    solid = np.asarray(data["m_Holes"], dtype=np.uint8).reshape(n-1, n-1)
+    if (hashlib.sha256(heights.tobytes()).hexdigest() !=
+            "a3e9070c6ff5395a6ba533ba89d2536c7fa029888e763e71bf9c24720ef4a55f" or
+            hashlib.sha256(solid.tobytes()).hexdigest() !=
+            "881dcca25d188f9b4f7f3e6a6f8bfa8c053c37bc9bceb33e37712c9f8285d59f"):
+        raise ValueError("expected the 4.0.25034 Norwegian Sea shore terrain")
+    # Only sample chart pixel centers within the detailed coastal terrain.
+    size_x, size_z = (n-1)*scale["x"], (n-1)*scale["z"]
+    v0 = 1970 - 1957*.38
+    rows = slice(int(np.ceil(v0-size_z*.38)), int(np.floor(v0))+1)
+    cols = slice(78, int(np.floor(78+size_x*.38))+1)
+    v, u = np.mgrid[rows, cols]
+    x, z = (u-78)/.38, (v0-v)/.38
+    points = np.column_stack((x.ravel(), z.ravel()))
+    sample_scale = dict(scale, y=scale["y"]/32766)
+    ground = sample_heights(heights, (0, -7.9980011, 0), sample_scale, points).reshape(x.shape)
+    cx = np.minimum((x/scale["x"]).astype(int), n-2)
+    cz = np.minimum((z/scale["z"]).astype(int), n-2)
+    return (rows, cols), (solid[cz, cx] != 0) & (ground >= 0)
+
+
+def assign_coastal_shallows(result, water, bands, banks, client_data):
+    window, dry = shore_terrain(client_data)
+    zones = result[window]
+    zones[dry] = 0
+    paper_water = water[window]
+    # Only the two palest unlabelled washes and the softened outline are
+    # ambiguous. The outline tolerance is the radius of the 7px median filter.
+    near_water = ndimage.distance_transform_edt(~paper_water) <= 3
+    fringe = ((zones == 0) & ~dry & (banks[window] == 0) & (bands[window] <= 2) &
+              near_water & chart_area(result.shape)[window])
+    fringe = ndimage.binary_propagation(fringe & ndimage.binary_dilation(dry), mask=fringe)
+    # Grow neighboring plain-chart regions one water pixel at a time. Dry
+    # headlands, other depth bands and unnumbered banks block traversal.
+    cross = ndimage.generate_binary_structure(2, 1)
+    sources = (zones != 0) & (banks[window] == 0)
+    # 256 is above any chart label. min resolves equal-length paths consistently.
+    labels = np.where(sources, zones, np.uint16(256))
+    while True:
+        neighbors = ndimage.minimum_filter(labels, footprint=cross, mode="constant", cval=256)
+        reached = fringe & (labels == 256) & (neighbors < 256)
+        if not np.any(reached):
+            break
+        labels[reached] = neighbors[reached]
+    matched = fringe & (labels < 256)
+    zones[matched] = labels[matched]
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("chart", type=Path)
     parser.add_argument("output", nargs="?", type=Path, default=ASSETS/"sea_chart_regions.png")
+    parser.add_argument("--client-data", required=True, type=Path, help="4.0.25034 rf4_x64_Data directory")
     args = parser.parse_args()
     rgb = np.array(Image.open(args.chart).convert("RGB"))
     if hashlib.sha256(rgb.tobytes()).hexdigest() != RGB_SHA256 or rgb.shape != (2048, 2048, 3):
@@ -136,9 +201,10 @@ def main():
     water = water_mask(clean)
     banks = hatched_banks(rgb, water)
     bands = water_colors(clean)
-    bands[~water] = 0
-    bands[banks > 0] = len(PALETTE) + banks[banks > 0]
-    result = assign_soundings(bands, marks)
+    mapped = np.where(water, bands, 0)
+    mapped[banks > 0] = len(PALETTE) + banks[banks > 0]
+    result = assign_soundings(mapped, marks)
+    assign_coastal_shallows(result, water, bands, banks, args.client_data)
     if not np.array_equal(result[marks[:, 2], marks[:, 1]], marks[:, 0]):
         raise ValueError("a sounding disagrees with the resulting chart")
     Image.fromarray(result).save(args.output, optimize=True)

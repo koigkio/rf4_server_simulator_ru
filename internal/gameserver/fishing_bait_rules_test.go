@@ -306,7 +306,7 @@ func TestSeaBaitEmptyRollLogsChartAndRosterZone(t *testing.T) {
 	st.mu.Lock()
 	st.cancelBiteTimerLocked()
 	st.mu.Unlock()
-	for _, field := range []string{"空因=饵料规则（strict）", "场景=loc12_75", "网格=挪威海/6/19", "海图区号=15", "攻略标深=标注范围外", "名册区域=试钓区（exclusive）"} {
+	for _, field := range []string{"空因=饵料规则（strict）", "场景=loc12_75", "网格=挪威海/6/19", "海图区号=15", "攻略标深=12 ", "名册区域=试钓区（exclusive）"} {
 		if !strings.Contains(log.String(), field) {
 			t.Errorf("空轮日志缺少 %q：%s", field, log.String())
 		}

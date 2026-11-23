@@ -72,6 +72,34 @@ func TestSeaBaitOverrideMatchesBothPrinted90Areas(t *testing.T) {
 	}
 }
 
+func TestSeaBaitOverrideAtHarborShore(t *testing.T) {
+	s, db := newStaticRigTestServer(t)
+	setBaitRuleSwitch(t, s, "1")
+	ov := store.FishBaitOverride{FishZh: "剑鱼", Allow: []string{"Hunter 1000-1"}, Condition: "海图13区或80号区或12号区", Enabled: true}
+	if err := db.SaveFishBaitOverride(t.Context(), ov, "test"); err != nil {
+		t.Fatal(err)
+	}
+	for _, tc := range []struct {
+		name  string
+		x, z  float64
+		spot  int
+		allow bool
+	}{
+		{"港口近岸实钓落点", 257, 774, 12, true},
+		{"同一岸尖的陆地", 257, 790, 0, false},
+		{"相邻38区", 371, 788, 38, false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			c := fishRollContext{loc: "loc12_15", x: tc.x, z: tc.z, hasPos: true}
+			s.prepareFishRollRuntime(t.Context(), &c, "挪威海")
+			keys, _ := s.filterFishBaitSet("挪威海", []string{"pilkerlures_2687"}, []string{"x_gladius"}, []float64{1}, time.Now(), c)
+			if c.runtime.guideSpot != tc.spot || (len(keys) > 0) != tc.allow {
+				t.Errorf("饵落点 (%g,%g) 标深=%d，候选=%v；期望标深=%d，放行=%t", tc.x, tc.z, c.runtime.guideSpot, keys, tc.spot, tc.allow)
+			}
+		})
+	}
+}
+
 // 轮换用时间桶计算：同桶不变、跨桶轮转、未配置或间隔过小不启用。
 func TestExportedRotationState(t *testing.T) {
 	groups := [][]string{{"甲"}, {"乙"}, {"丙"}}
