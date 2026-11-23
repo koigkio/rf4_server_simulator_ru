@@ -8,6 +8,70 @@ import (
 	"rf4server/internal/store"
 )
 
+func TestBaitOverrideRoundTripsSeaGuideCondition(t *testing.T) {
+	s, db := newStaticRigTestServer(t)
+	setBaitRuleSwitch(t, s, "1")
+	info, ok := ExportedBaitRules("剑鱼")
+	if !ok {
+		t.Fatal("缺少剑鱼内置规则")
+	}
+	for _, tc := range []struct {
+		name, condition                string
+		at80, at75, at120, atUnknown80 bool
+	}{
+		{"只编辑内置规则的饵", info.Condition, true, true, false, false},
+		{"玩家填写的钓点", "80区", true, false, false, false},
+		{"多个纸图钓点", "75或80区", true, true, false, false},
+		{"旧版无标记条件", "海图80号区域", true, false, false, false},
+		{"已保存的标深说明", "海图80号区域（纸图标深）", true, false, false, false},
+		{"明确指定声呐网格", "声呐252区", true, false, false, false},
+		{"仅带有声呐前缀的编号使用网格", "80区或声呐第170区", true, false, true, false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			ov := store.FishBaitOverride{FishZh: "剑鱼", Allow: []string{"Hunter 1000-1"}, Deny: info.Deny,
+				BottomOnly: info.BottomOnly, Condition: tc.condition, Enabled: true}
+			if err := db.SaveFishBaitOverride(t.Context(), ov, "test"); err != nil {
+				t.Fatal(err)
+			}
+			s.invalidateBaitOverrides()
+			for _, point := range []struct {
+				scene string
+				x, z  float64
+				want  bool
+			}{{"loc12_252", 3282, -925, tc.at80}, {"loc12_95", 3921, 1182, tc.at75},
+				{"loc12_170", 4258, 6, tc.at120}, {"loc12_80", 0, 0, tc.atUnknown80}} {
+				c := fishRollContext{loc: point.scene, x: point.x, z: point.z, hasPos: point.x != 0}
+				s.prepareFishRollRuntime(t.Context(), &c, "挪威海")
+				keys, _ := s.filterFishBaitSet("挪威海", []string{"pilkerlures_2687"}, []string{"x_gladius"}, []float64{1}, time.Now(), c)
+				if (len(keys) > 0) != point.want {
+					t.Errorf("保存条件 %q 后，场景 %s、攻略标深 %d 的候选=%v，期望放行=%t", tc.condition, point.scene, c.runtime.guideSpot, keys, point.want)
+				}
+			}
+		})
+	}
+}
+
+func TestSeaBaitOverrideMatchesBothPrinted90Areas(t *testing.T) {
+	s, db := newStaticRigTestServer(t)
+	setBaitRuleSwitch(t, s, "1")
+	ov := store.FishBaitOverride{FishZh: "剑鱼", Allow: []string{"Hunter 1000-1"}, Condition: "海图90区", Enabled: true}
+	if err := db.SaveFishBaitOverride(t.Context(), ov, "test"); err != nil {
+		t.Fatal(err)
+	}
+	for _, tc := range []struct {
+		u, v int
+		want bool
+	}{{550, 1476, true}, {361, 1040, true}, {1182, 850, false}, {1040, 930, false}} {
+		c := fishRollContext{loc: "loc12_90", hasPos: true,
+			x: (float64(tc.u) - 78) / .38, z: (1970-float64(tc.v))/.38 - 1957}
+		s.prepareFishRollRuntime(t.Context(), &c, "挪威海")
+		keys, _ := s.filterFishBaitSet("挪威海", []string{"pilkerlures_2687"}, []string{"x_gladius"}, []float64{1}, time.Now(), c)
+		if (len(keys) > 0) != tc.want {
+			t.Errorf("饵落点 (%d,%d) 标深=%d，剑鱼候选=%v", tc.u, tc.v, c.runtime.guideSpot, keys)
+		}
+	}
+}
+
 // 轮换用时间桶计算：同桶不变、跨桶轮转、未配置或间隔过小不启用。
 func TestExportedRotationState(t *testing.T) {
 	groups := [][]string{{"甲"}, {"乙"}, {"丙"}}
