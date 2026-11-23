@@ -39,6 +39,7 @@ func seaChartLanding(rawX, rawZ, poseX, poseZ, castM float64) (x, z float64, kno
 
 // Pixels in the derived grayscale map contain a printed sounding, or zero.
 // The map and its reference points share the same 4.0.25034 chart coordinates.
+//
 //go:embed assets/sea_chart_regions.png
 var seaRegionPNG []byte
 
