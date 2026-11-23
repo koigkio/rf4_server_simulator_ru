@@ -352,3 +352,26 @@ details.advanced>summary small{font-weight:400;color:var(--muted)}
 .zcard .sub{font-size:12px;color:var(--muted)}
 .zswatch{width:10px;height:10px;border-radius:3px;flex:none}
 @media(max-width:1100px){.zmap,.zmap.no-map{grid-template-columns:1fr}.zmap-side{position:static;max-height:none}.zside-edit{max-height:none}}
+
+/* Keep adjacent grips separately reachable when one or more bands collapse. */
+.grade-ratio-track {
+  position: relative;
+  --grip: 22px;
+  --touch: 44px;
+  --first: min(var(--boundary-0), calc(100% - 2 * var(--grip)));
+  --second: clamp(calc(var(--first) + var(--grip)), var(--boundary-1), calc(100% - var(--grip)));
+}
+.grade-ratio-handle {
+  position: absolute; top: 50%; transform: translate(-50%, -50%);
+  width: var(--touch); height: var(--touch); padding: 0; border: 0; background: transparent;
+  touch-action: none; cursor: ew-resize;
+}
+.grade-ratio-handle:nth-of-type(1) { left: var(--first); }
+.grade-ratio-handle:nth-of-type(2) { left: var(--second); }
+.grade-ratio-handle:nth-of-type(3) { left: max(calc(var(--second) + var(--grip)), var(--boundary-2)); }
+.grade-ratio-handle::after {
+  content: ""; display: block; width: 5px; height: 14px; margin: auto;
+  border: 1px solid var(--text-2); border-radius: 4px; background: var(--surface-2);
+}
+.grade-ratio-handle:disabled { opacity: .55; cursor: default; }
+.grade-ratio-handle:focus-visible { outline: 2px solid var(--accent); border-radius: 4px; }

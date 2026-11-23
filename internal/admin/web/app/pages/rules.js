@@ -76,7 +76,7 @@ export default async function rules() {
     }, h('div', { class: 'row', style: { justifyContent: 'space-between' } }, h('b', { text: title }), on ? badge('当前', 'accent') : null),
     h('p', { class: 'muted small', style: { marginTop: '6px' }, text: desc }));
   }));
-  const gradeEditors = (GRADE_SETS[spawnMode] || []).map((set) => gradeEditor(form, set, t));
+  const gradeEditors = (GRADE_SETS[spawnMode] || []).map((set) => gradeEditor(form, set, t, spawnMode === 'grade_ratio'));
 
   return h('div', { class: 'page' },
     pageHead('玩法规则', '决定钓鱼玩起来是什么感觉。具体数字（咬钩快慢、经验倍率等）在「数值调整」里改。'),
@@ -98,28 +98,94 @@ export default async function rules() {
 }
 
 // 四档比例编辑：输入相对权重，实时显示换算后的百分比
-function gradeEditor(form, set, t) {
+function gradeEditor(form, set, t, interactive) {
   const bar = h('div', { style: { display: 'flex', height: '10px', borderRadius: '6px', overflow: 'hidden', background: 'var(--surface-4)' } });
   const legend = h('div', { class: 'row small', style: { gap: '16px' } });
   const fields = GRADES.map(([g, label], i) => {
     const key = set.prefix + g;
     return { key, label, f: form.field({ key, label, kind: 'float', min: 0, max: 100 }, t[key] ?? String(set.defs[i])) };
   });
+  const track = h('div', { class: interactive ? 'grade-ratio-track' : null }, bar);
+  const hint = h('span', { class: 'muted small' });
+  const readWeights = () => fields.map(({ key }) => Math.max(0, Number(form.value(key)) || 0));
+  const handles = interactive ? GRADES.slice(1).map((_, i) =>
+    ratioHandle(i, fields, readWeights, track, () => form.refresh())) : [];
+  track.append(...handles);
   const update = () => {
-    const nums = fields.map(({ key }) => Math.max(0, Number(form.value(key)) || 0));
+    const nums = readWeights();
     const sum = nums.reduce((a, b) => a + b, 0) || 1;
+    const valid = !interactive || fields.every(({ key }) => {
+      const raw = form.value(key), n = Number(raw);
+      return raw !== '' && Number.isFinite(n) && n >= 0 && n <= 100;
+    });
+    let cumulative = 0;
+    handles.forEach((handle, i) => {
+      cumulative += nums[i] / sum * 100;
+      track.style.setProperty('--boundary-' + i, cumulative + '%');
+      const pair = nums[i] + nums[i + 1];
+      const min = Math.max(0, pair - 100), max = Math.min(100, pair);
+      handle.disabled = !valid || min >= max;
+      handle.setAttribute('aria-valuemin', min);
+      handle.setAttribute('aria-valuemax', max);
+      handle.setAttribute('aria-valuenow', nums[i]);
+      handle.setAttribute('aria-valuetext', GRADES[i][1] + ' ' + (nums[i] / sum * 100).toFixed(1) + '%');
+    });
+    hint.textContent = !interactive ? '填相对数量，会自动换算成百分比' :
+      nums.every(n => n === 0) ? '总权重为 0，请先输入一档权重' : '可输入权重，也可拖动分界线调整';
     bar.replaceChildren(...nums.map((n, i) => h('div', { style: { width: (n / sum * 100) + '%', background: GRADES[i][2] } })));
     legend.replaceChildren(...nums.map((n, i) => h('span', {}, h('span', { style: { display: 'inline-block', width: '8px', height: '8px', borderRadius: '2px', background: GRADES[i][2], marginRight: '6px' } }),
       GRADES[i][1] + ' ', h('b', { text: (n / sum * 100).toFixed(1) + '%' }))));
   };
   const inputs = h('div', { class: 'grid-4' }, fields.map(({ label, f }) => {
-    f.input = h('input', { class: 'input num', inputmode: 'decimal', value: f.original, oninput: () => { form.refresh(); update(); } });
+    f.input = h('input', { class: 'input num', inputmode: 'decimal', value: f.original, oninput: () => { form.refresh(); if (!interactive) update(); } });
     f.errEl = h('div', { class: 'help', style: { color: '#f08a97' }, hidden: true });
     f.row = h('div', { class: 'field' }, h('label', { text: label }), f.input, f.errEl);
     return f.row;
   }));
+  if (interactive) {
+    // Form.reset() also calls refresh when the user discards a drag.
+    const updateSavebar = form.onChange;
+    form.onChange = () => { updateSavebar(form); update(); };
+  }
   update();
   return h('div', { class: 'card', style: { padding: '16px 18px', background: 'var(--surface-2)' } },
-    h('div', { class: 'row', style: { justifyContent: 'space-between', marginBottom: '10px' } }, h('b', { text: set.title }), h('span', { class: 'muted small', text: '填相对数量，会自动换算成百分比' })),
-    inputs, h('div', { style: { margin: '14px 0 8px' } }, bar), legend);
+    h('div', { class: 'row', style: { justifyContent: 'space-between', marginBottom: '10px' } }, h('b', { text: set.title }), hint),
+    inputs, h('div', { style: { margin: interactive ? '22px 0 16px' : '14px 0 8px' } }, track), legend);
+}
+
+// Each gesture uses the starting weights so rounding never accumulates across moves.
+function ratioHandle(i, fields, readWeights, track, refresh) {
+  const label = GRADES[i][1] + ' / ' + GRADES[i + 1][1];
+  const handle = h('button', { type: 'button', class: 'grade-ratio-handle', role: 'slider',
+    'aria-label': label, title: label + '（拖动或按左右方向键调整）' });
+  function transfer(weights, delta) {
+    const left = weights[i], pair = left + weights[i + 1];
+    const next = Math.max(0, pair - 100, Math.min(100, pair, left + delta));
+    fields[i].f.input.value = Number(next.toPrecision(15));
+    fields[i + 1].f.input.value = Number((pair - next).toPrecision(15));
+    refresh();
+  }
+  let drag;
+  handle.onpointerdown = e => {
+    if (!e.isPrimary || e.button !== 0 || drag) return;
+    drag = { id: e.pointerId, x: e.clientX, width: track.getBoundingClientRect().width, weights: readWeights() };
+    handle.setPointerCapture(e.pointerId);
+  };
+  handle.onpointermove = e => {
+    if (drag?.id !== e.pointerId || !drag.width) return;
+    const total = drag.weights.reduce((a, b) => a + b, 0);
+    const tenths = Math.round((e.clientX - drag.x) / drag.width * 1000);
+    transfer(drag.weights, total * tenths / 1000);
+  };
+  handle.onlostpointercapture = () => { drag = null; };
+  handle.onkeydown = e => {
+    const weights = readWeights();
+    const step = weights.reduce((a, b) => a + b, 0) / 100;
+    const deltas = { ArrowLeft: -step, ArrowDown: -step, ArrowRight: step, ArrowUp: step,
+      Home: -weights[i], End: weights[i + 1] };
+    if (!Object.hasOwn(deltas, e.key)) return;
+    e.preventDefault();
+    transfer(weights, deltas[e.key]);
+  };
+  return handle;
 }
