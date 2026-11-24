@@ -27,11 +27,11 @@ test('active admin SPA tolerates empty lists and shows four QQ groups',async()=>
    return route.fulfill({contentType:'application/json',body:'{}'});
   });
   await page.goto('http://127.0.0.1:19214/#players');
-  await page.getByRole('heading',{name:'玩家',exact:true}).waitFor();
-  await page.getByText('还没有玩家').waitFor();
+  await page.getByRole('heading',{name:'玩家管理',exact:true}).waitFor();
+  await page.getByText('还没有玩家登录过').waitFor();
   const notice=await page.locator('.notice-bar').innerText();
   for(const group of ['379233540','225460820','1128152596','1134665746'])assert.ok(notice.includes(group),group);
-  await page.getByLabel('主导航').getByRole('button',{name:'总览',exact:true}).click();
+  await page.getByRole('navigation',{name:'总类导航'}).getByRole('link',{name:/总览/}).click();
   await page.getByRole('heading',{name:'总览',exact:true}).waitFor();
   await page.getByText('还没有修改记录').waitFor();
   assert.equal(await page.getByText('页面加载失败').count(),0);
@@ -63,8 +63,8 @@ test('active skill gain UI switches mode through one endpoint',async()=>{
    return route.fulfill({contentType:'application/json',body:'{}'});
   });
   await page.goto('http://127.0.0.1:19214/#tuning/reward');
-  await page.getByRole('heading',{name:'数值调整',exact:true}).waitFor();
-  await page.getByText('技能升级概率',{exact:true}).waitFor();
+  await page.getByRole('heading',{name:'游戏参数',exact:true}).waitFor();
+  await page.locator('#pg-skill').getByText('技能升级概率',{exact:true}).waitFor();
   for(const label of ['原版概率','百分百','自定义'])assert.equal(await page.getByRole('radio',{name:label,exact:true}).count(),1);
   await page.getByRole('radio',{name:'自定义',exact:true}).click();
   await page.getByText('浮子钓鱼',{exact:true}).waitFor();

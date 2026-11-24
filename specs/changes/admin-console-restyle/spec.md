@@ -44,7 +44,7 @@ Status: done
 
 - 鉴权接缝（已有）：`internal/admin/api_test.go` 断言匿名读仪表盘返回 200、匿名写可调参数返回 401；`hook_profiles_test.go`、`release_notes_test.go` 断言对应只读接口匿名可读。回滚「匿名只读」后这三个断言会变红，正是需要的信号。
 - 新接口接缝（新增）：`cmd/launcher/main_test.go` 的 `TestOverviewReportsAdminCounts` 用真实 SQLite（`store.Open` + `Migrate`）验证 `ready`、身份字段与四类计数；`TestOverviewWithoutAdminDB` 验证库未就绪时返回 `ready:false`。
-- 前端：仓库没有前端测试设施。以实机回归为准（下面命令栏列出 Playwright 断言项与实测值），不把脚本提交进仓库。期望值来自与定稿演示稿在同一视口的逐项几何对照，不是「用同一套代码再算一遍」。
+- 前端回归：运行 `node --test internal/admin/*_ui_test.cjs`。本 PR 同步更新 active SPA 的标题、导航、参数页路由和档位滑块 selector；仍在维护的 legacy fallback 测试 `dashboard_ui_test.cjs` 在当前 main 已有 8 vs 7 的既有断言失败，本 PR 未改 `legacy.html`，因此单独记录为基线问题。
 - 测试数据：`TestOverviewReportsAdminCounts` 的期望值来自「新库四类计数为 0、迁移自带的参数表非空」，属可手算的字面量。
 
 ## Out of Scope
