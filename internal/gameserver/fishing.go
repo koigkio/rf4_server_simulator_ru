@@ -1444,6 +1444,11 @@ func (s *Server) rollFishFromDBWithRules(loc, bait string, gearCapKg float64, bo
 	// companion 周纪录饵效（config bait_pref_scale / bait_pref_weight_shift；
 	// 缺表=空，运行中性）。tier：top5=3 / top20=2 / 在列=1 → ×8/×4/×2；
 	// 未在列 ×(0.9 - 0.6×覆盖度)（覆盖度 = total_evidence/200，封顶 1）。
+	//
+	// bait_pref_scale 是「这层效果有多强」的强度系数，必须作用在「与 1 的差距」
+	// 上（mult^scale），不能整体乘到每个候选上：所有候选同乘一个常数会在
+	// weightedChoice 归一化时约掉，等于配了没效果；只有把 ≥1 的倍率推向更强、
+	// 把 <1 的倍率压得更低，才会改变鱼种占比。0 表示整层关闭。
 	prefScale := s.tunableF("bait_pref_scale", 1.0)
 	var tiers map[string]int64
 	var meta map[string]int64
@@ -1458,7 +1463,7 @@ func (s *Server) rollFishFromDBWithRules(loc, bait string, gearCapKg float64, bo
 		for i, key := range keys {
 			t := tiers[key]
 			if t > 0 {
-				wts[i] *= companionTierMult(t) * prefScale
+				wts[i] *= baitPrefScale(companionTierMult(t), prefScale)
 				baitHit = true
 				continue
 			}
@@ -1467,7 +1472,7 @@ func (s *Server) rollFishFromDBWithRules(loc, bait string, gearCapKg float64, bo
 			if cov > 1.0 {
 				cov = 1.0
 			}
-			wts[i] *= (0.9 - 0.6*cov) * prefScale
+			wts[i] *= baitPrefScale(0.9-0.6*cov, prefScale)
 		}
 	}
 	scale := s.tunableF("fish_weight_scale", 1)
@@ -1559,6 +1564,21 @@ func (s *Server) rollFishFromDBWithRules(loc, bait string, gearCapKg float64, bo
 		return f
 	}
 	return nil
+}
+
+// baitPrefScale 把饵效基础倍率按「饵料影响力」拉伸到与 1 的偏差方向。
+//
+// mult 是这层给出的原倍率（≥1 表示饵对口、<1 表示不对口）；scale>1 让对口鱼
+// 更集中、不对口鱼更少，0<scale<1 反过来把差距拉平，scale=0 由调用方整层关闭。
+// 直接乘 scale 不行：所有候选同乘一个常数在归一化时会被约掉。
+func baitPrefScale(mult, scale float64) float64 {
+	if mult <= 0 || scale <= 0 {
+		return mult
+	}
+	if scale == 1 {
+		return mult
+	}
+	return math.Pow(mult, scale)
 }
 
 // companionTierMult 将饵效档位转换为权重倍率。

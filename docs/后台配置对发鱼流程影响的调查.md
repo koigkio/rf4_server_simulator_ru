@@ -178,7 +178,7 @@
 | C5 | `fish_ecology_enabled`（**无 UI**） | api 可设；关 | 开启后乘 ~14 因子各 `clamp(值,floor,2)^0.35`（首因子水层 floor 0.05、指数 0.60）：水层/昼夜/季节/天气型/天气附加/水温/浑浊度/光照/钓点底质水流/拟饵动作/运动状态/稀有度(1+RareFish×RarityTier×0.12)/拟饵本体/技能环境；技能 tolerance 把 <1 因子往 1 拉回最多 45%；整体 clamp [0.08,2.5]（fish_ecology.go:283-348）；`fish_ecology` 表单鱼 enabled=0 → 该鱼权重 0 | 乘法叠加；**不做饵料放行**（禁饵在 C2 已删）；依赖技能节点与天气计划作输入 |
 | C6 | 钓点偏移 spotPref | 内置不可配 | 乘法 | — |
 | C7 | `groundbait_enabled` + `groundbait_gain`(1.5)/`cap`(2.60)/`sat`(4)/`special_gain`(0.3)/`soft_max`(0.6)/`soft_beta`(0.45)/`special_margin`(0.08)/距离三参(4/7/10m)（**全部无 UI**） | tunables | 窝料乘子 `M=1+(min(2.60, 1+1.5×S×a×(1+0.3×spec)×√(硬门×软门))−1)×P`，仅 M>1 生效（groundbait.go:706-708, 870-889）；S=1−exp(−份数/4)；硬门=水层×昼夜×季节×稀有度×底质×流速 clamp[0.05,1]；软门=水温×低温×水色被对口窝料按 β 软化；掠食鱼冻结恒 ×1 | 乘法叠加在 C5 之后；同份数同时进 B3 闸门——窝越多对口鱼越强但开口率越低 |
-| C8 | `bait_pref_scale` | 游戏参数页；1 | 非 strict 通道的饵效证据层：tier3 ×8 / tier2 ×4 / 在列 ×2，再 ×`bait_pref_scale`；未上榜 ×(0.9−0.6×覆盖度)×scale（fishing.go:852-880）；**设 0 = 整层关闭**（含 C9） | 只在 C2 关闭时生效；与 C3 是两条独立通道 |
+| C8 | `bait_pref_scale` | 游戏参数页；1 | 非 strict 通道的饵效证据层：tier3 ×8 / tier2 ×4 / 在列 ×2；未上榜 ×(0.9−0.6×覆盖度)。该层倍率再按 `bait_pref_scale` 取幂（`mult^scale`）：>1 放大对口/不对口差距，0~1 拉平，**设 0 = 整层关闭**（含 C9）。必须以取幂方式生效——所有候选同乘一个常数会在归一化时约掉 | 只在 C2 关闭时生效；与 C3 是两条独立通道 |
 | C9 | `bait_pref_weight_shift` | 游戏参数页；1 | 不改权重，改**体重分布峰值**：mode=1+0.12×tier×shift（tier≥2 才生效，fishing.go:985-1010）——tier3 饵峰值 ×1.36 招大鱼 | 被 C8=0 关闭；进入阶段 D 采样 |
 | C10 | `happy_hour_enabled` + BiteBonus=0.1 | 鱼群规则条；开 | **不是权重乘子**，是选鱼定稿后的二次掷骰：`chance=interest×(1+0.1)×天气活跃度`，interest≤0.1 封顶 0.1，失败整轮作废重排（fishing.go:931、happy_hour.go:64-86） | 仅 `forRig`（C2∨天气∨欢乐时光>0）时启用；三个全关时此掷骰整体跳过必过；interest 来自 C2，天气活跃度来自 C5 因子 |
 
