@@ -70,11 +70,19 @@ type Gateway struct {
 }
 
 type Game struct {
-	Tunnel        Tunnel `yaml:"tunnel"` // 与 Gateway.Tunnel 相同配置
-	ObsAddr       string `yaml:"obs_addr"`
-	DefaultUserid int64  `yaml:"default_userid"` // 单账号模式下使用的固定 userid
+	Tunnel        Tunnel  `yaml:"tunnel"` // 与 Gateway.Tunnel 相同配置
+	ObsAddr       string  `yaml:"obs_addr"`
+	DefaultUserid int64   `yaml:"default_userid"` // 单账号模式下使用的固定 userid
+	Weather       Weather `yaml:"weather"`
 
 	KeepaliveIntervalSec float64 `yaml:"keepalive_interval_sec"` // 2/2 世界时钟推送间隔（秒）
+}
+
+// Weather 控制进程启动时生成的逐日天气 kind 序列。
+// 序列在本进程内固定，每次启动重新随机；关闭时沿用地图模板的固定顺序。
+type Weather struct {
+	Randomize bool `yaml:"randomize"`  // true=启动时按图加权生成天气 kind
+	CycleDays int  `yaml:"cycle_days"` // 每图序列长度，最小 8，默认 64
 }
 
 // KeepaliveInterval 2/2 保活间隔；必须小于客户端断开阈值（~10s）。
@@ -154,6 +162,7 @@ func defaults() *Config {
 			Tunnel:               Tunnel{Addr: "127.0.0.1:9401", PSK: "change-me"},
 			ObsAddr:              ":9502",
 			DefaultUserid:        1000001,
+			Weather:              Weather{Randomize: true, CycleDays: 64},
 			KeepaliveIntervalSec: 5.0,
 		},
 		Admin: Admin{
@@ -187,6 +196,13 @@ func (c *Config) applyEnvOverrides() {
 			}
 		}
 	}
+	envBool := func(key string, dst *bool) {
+		if v, ok := os.LookupEnv(key); ok {
+			if b, err := strconv.ParseBool(strings.TrimSpace(v)); err == nil {
+				*dst = b
+			}
+		}
+	}
 
 	envStr("RF4_LOG_LEVEL", &c.Log.Level)
 	envStr("RF4_LOG_FORMAT", &c.Log.Format)
@@ -210,6 +226,8 @@ func (c *Config) applyEnvOverrides() {
 	envFloat("RF4_KEEPALIVE_INTERVAL_SEC", &c.Gateway.KeepaliveInterval)
 	envFloat("RF4_BITE_PROBABILITY", &c.Gateway.BiteProbability)
 	envInt("RF4_GATEWAY_MAX_CONNS", &c.Gateway.MaxConns)
+	envBool("RF4_WEATHER_RANDOMIZE", &c.Game.Weather.Randomize)
+	envInt("RF4_WEATHER_CYCLE_DAYS", &c.Game.Weather.CycleDays)
 }
 
 func (c *Config) validate() error {
