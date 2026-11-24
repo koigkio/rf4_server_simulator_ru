@@ -97,7 +97,11 @@ func (s *Server) fishQueryMaps(ctx context.Context, req FishQueryRequest, c fish
 		if !isSea && current != nil && current.LevelKey == key && current.Scene != "" {
 			loc.scene = current.Scene
 		}
-		refs, err := s.DB.SQL.QueryContext(ctx, `SELECT spot,SUM(catches) FROM spot_fish WHERE loc=? AND fish_key=? GROUP BY spot ORDER BY SUM(catches) DESC,spot LIMIT 6`, statLoc, req.Fish)
+		limit := 6
+		if isSea {
+			limit = 100 // 过滤旧声呐网格号后仍要保留足够的海图标深参考点。
+		}
+		refs, err := s.DB.SQL.QueryContext(ctx, `SELECT spot,SUM(catches) FROM spot_fish WHERE loc=? AND fish_key=? GROUP BY spot ORDER BY SUM(catches) DESC,spot LIMIT ?`, statLoc, req.Fish, limit)
 		if err != nil {
 			return nil, err
 		}
@@ -114,6 +118,18 @@ func (s *Server) fishQueryMaps(ctx context.Context, req FishQueryRequest, c fish
 			return nil, err
 		}
 		refs.Close()
+		if isSea {
+			kept := loc.references[:0]
+			for _, ref := range loc.references {
+				if n, e := strconv.Atoi(ref.Coordinate); e == nil && isSeaGuideSpot(n) {
+					kept = append(kept, ref)
+				}
+			}
+			loc.references = kept
+			if len(loc.references) > 6 {
+				loc.references = loc.references[:6]
+			}
+		}
 		if req.X != nil {
 			zone, _ := sonarZoneForPoint(key, *req.X, *req.Z)
 			loc.points = []fishQueryPoint{{x: req.X, z: req.Z, zone: zone, kind: "manual"}}
@@ -144,7 +160,7 @@ func (s *Server) fishQueryMaps(ctx context.Context, req FishQueryRequest, c fish
 			}
 			guidePriority := map[int]int{}
 			for i, r := range loc.references {
-				if n, e := strconv.Atoi(r.Coordinate); e == nil {
+				if n, e := strconv.Atoi(r.Coordinate); e == nil && isSeaGuideSpot(n) {
 					guidePriority[n] = 100 - i
 				}
 			}

@@ -82,6 +82,7 @@ func (s *Server) prepareFishRollRuntime(ctx context.Context, c *fishRollContext,
 		levelKey := s.resolveRollLevelKey(ctx, c.loc)
 		c.runtime.chartKnown = sonarChartLevel(levelKey)
 		if c.runtime.chartKnown && c.hasPos && !c.playerPosOnly {
+			c.runtime.guideKnown = true
 			c.runtime.guideSpot = seaGuideSpotForPoint(c.x, c.z)
 			c.runtime.zone, c.runtime.zoneKnown = sonarZoneForPoint(levelKey, c.x, c.z)
 			if c.runtime.zoneKnown {
@@ -147,7 +148,8 @@ func fnvHash(s string) uint64 {
 // 缺少图上标深的定位证据或只有内陆网格文本（如 "67:57"）时保持中性。
 func (s *Server) loadFishSpotPreference(ctx context.Context, statLoc string, c *fishRollContext) (map[string]float64, bool) {
 	out := map[string]float64{}
-	if s == nil || s.DB == nil || statLoc == "" || c == nil || c.runtime == nil || c.runtime.guideSpot == 0 {
+	if s == nil || s.DB == nil || statLoc == "" || c == nil || c.runtime == nil ||
+		!c.runtime.guideKnown || !isSeaGuideSpot(c.runtime.guideSpot) {
 		return out, false
 	}
 	rows, err := s.DB.SQL.QueryContext(ctx,

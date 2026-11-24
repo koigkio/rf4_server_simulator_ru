@@ -84,3 +84,16 @@ func seaGuideSpotForPoint(x, z float64) int {
 	}
 	return int(seaRegions.GrayAt(int(u), int(v)).Y)
 }
+
+// isSeaGuideSpot 判断数字是否属于纸图上的标深。旧声呐网格号没有对应标注时必须忽略。
+func isSeaGuideSpot(spot int) bool {
+	if spot <= 0 {
+		return false
+	}
+	for _, mark := range seaGuideMarks {
+		if mark.spot == spot {
+			return true
+		}
+	}
+	return false
+}

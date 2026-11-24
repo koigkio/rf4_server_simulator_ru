@@ -614,6 +614,7 @@ func (s *Server) rosterSonarSchools(ctx context.Context, systemID string, grid s
 	// 回波属于请求的水域，只有饵落在这片水域时才使用该点的渔获观测。
 	if c.hasPos && !c.playerPosOnly {
 		if _, _, inside := sonarPlayerCell(grid, c.x, c.z); inside {
+			c.runtime.guideKnown = true
 			c.runtime.guideSpot = seaGuideSpotForPoint(c.x, c.z)
 		}
 	}
@@ -758,7 +759,7 @@ func sonarZoneNumber(systemID string) (int, bool) {
 	return zone, true
 }
 
-// sonarZoneForPoint 把抛竿落点换算成海图区号。矩形重叠时取面积最小的水域，
+// sonarZoneForPoint 把抛竿落点换算成声呐网格编号。矩形重叠时取面积最小的水域，
 // 结果只由静态资源决定，同一坐标重复查询稳定。落在海图之外返回 ok=false。
 func sonarZoneForPoint(levelKey string, x, z float64) (int, bool) {
 	if levelKey == "" {

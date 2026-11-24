@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math"
 	"math/rand"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -215,6 +216,11 @@ func TestFishQuerySeaPointsUseGuideMarksAndEffectiveRule(t *testing.T) {
 		}
 		if maps[0].scene != req.Map {
 			t.Errorf("模拟落点被玩家所在声呐区覆盖：scene=%s", maps[0].scene)
+		}
+		for _, ref := range maps[0].references {
+			if n, e := strconv.Atoi(ref.Coordinate); e == nil && !isSeaGuideSpot(n) {
+				t.Errorf("旧声呐网格号 %q 混入海图查鱼参考点", ref.Coordinate)
+			}
 		}
 		return maps[0].points
 	}

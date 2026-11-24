@@ -742,18 +742,23 @@ func fishChartCondition(condition string) (guide, sonar []int, chartAny bool) {
 	return guide, sonar, len(guide) == 0 && len(sonar) == 0 && strings.Contains(condition, "海图")
 }
 
-// ruleConditionAllows 只用客户端给得出的证据判断攻略前置条件：海图条件要有能
-// 定位的抛竿落点，拟饵动作条件要有钓组动作上报。天然饵不套用“使用拟饵时”的
-// 动作和船条件。限定区域的规则要命中落点，缺少动作上报则保持中性。
+// ruleConditionAllows 只用客户端给得出的证据判断攻略前置条件：海图条件的每个证据源
+// 仅在已定位时参与，所有适用证据源都未知时保持中性；已知且不匹配才剔除。
+// 拟饵动作条件要有钓组动作上报，缺少动作上报同样保持中性。
+// 天然饵不套用“使用拟饵时”的动作和船条件。
 func ruleConditionAllows(r fishBaitRule, c fishRollContext) bool {
 	if c.runtime != nil && (r.chartAny || len(r.chartZones) > 0 || len(r.sonarZones) > 0) {
 		if !c.runtime.chartKnown {
 			return false
 		}
-		guideAllowed := c.runtime.guideSpot > 0 && slices.Contains(r.chartZones, c.runtime.guideSpot)
+		guideApplicable := len(r.chartZones) > 0
+		sonarApplicable := len(r.sonarZones) > 0
+		guideAllowed := c.runtime.guideKnown && c.runtime.guideSpot > 0 && slices.Contains(r.chartZones, c.runtime.guideSpot)
 		sonarAllowed := c.runtime.zoneKnown && slices.Contains(r.sonarZones, c.runtime.zone)
 		if !r.chartAny && !guideAllowed && !sonarAllowed {
-			return false
+			if (!guideApplicable || c.runtime.guideKnown) && (!sonarApplicable || c.runtime.zoneKnown) {
+				return false
+			}
 		}
 	}
 	if !c.lureBait {

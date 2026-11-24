@@ -40,4 +40,12 @@ func TestSeaGuideAreasOnPrintedChart(t *testing.T) {
 	if seaGuideSpotForPoint(math.NaN(), 0) != 0 || seaGuideSpotForPoint(0, math.Inf(1)) != 0 {
 		t.Fatal("无效的落点应视为未知")
 	}
+	for _, tc := range []struct {
+		spot int
+		want bool
+	}{{75, true}, {120, true}, {133, false}, {144, false}, {0, false}} {
+		if got := isSeaGuideSpot(tc.spot); got != tc.want {
+			t.Errorf("标深 %d 有效性=%t，期望 %t", tc.spot, got, tc.want)
+		}
+	}
 }

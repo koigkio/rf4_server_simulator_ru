@@ -335,6 +335,25 @@ func actionNamesForTest() []string {
 	}
 }
 
+func TestSeaGuideSpotLabelDistinguishesUnknownAndOutside(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		r    *fishRollRuntime
+		want string
+	}{
+		{"无上下文", nil, "未知"},
+		{"只有声呐区", &fishRollRuntime{chartKnown: true, zone: 170, zoneKnown: true}, "未知"},
+		{"纸图已知但无标注", &fishRollRuntime{chartKnown: true, guideKnown: true}, "标注范围外"},
+		{"纸图命中", &fishRollRuntime{chartKnown: true, guideKnown: true, guideSpot: 75}, "75"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := tc.r.guideSpotLabel(); got != tc.want {
+				t.Fatalf("label=%q，期望 %q", got, tc.want)
+			}
+		})
+	}
+}
+
 func TestLoadFishSpotPreferenceMatchesChartZone(t *testing.T) {
 	srv, db := newRigTestServer(t)
 	if _, err := db.SQL.Exec(`INSERT OR REPLACE INTO loc_alias(alias,loc) VALUES('level_012_north_sea','挪威海')`); err != nil {
@@ -342,7 +361,8 @@ func TestLoadFishSpotPreferenceMatchesChartZone(t *testing.T) {
 	}
 	seed := `INSERT INTO spot_fish(loc,spot,fish_key,catches) VALUES
 		('chart-zone-test','120','atl_cod',9),('chart-zone-test','120:3','atl_haddock',7),
-		('chart-zone-test','75','atl_mackerel',5),('chart-zone-test','80','x_gladius',16)`
+		('chart-zone-test','75','atl_mackerel',5),('chart-zone-test','80','x_gladius',16),
+		('chart-zone-test','133','legacy_sonar',99)`
 	if _, err := db.SQL.Exec(seed); err != nil {
 		t.Fatal(err)
 	}
@@ -362,6 +382,10 @@ func TestLoadFishSpotPreferenceMatchesChartZone(t *testing.T) {
 	srv.prepareFishRollRuntime(t.Context(), &swordfish, "chart-zone-test")
 	if got := swordfish.runtime.spotPref; len(got) != 1 || got["x_gladius"] != 4 {
 		t.Fatalf("80米钓点应读取标深80的16条剑鱼观测：%v", got)
+	}
+	legacy := &fishRollContext{runtime: &fishRollRuntime{chartKnown: true, guideKnown: true, guideSpot: 133}}
+	if got, has := srv.loadFishSpotPreference(t.Context(), "chart-zone-test", legacy); has || len(got) != 0 {
+		t.Fatalf("旧声呐网格号不能当成纸图标深观测：%v has=%v", got, has)
 	}
 	for _, unknown := range []fishRollContext{
 		{loc: "loc12_80"}, // 声呐80区不能归入80米钓点的观测

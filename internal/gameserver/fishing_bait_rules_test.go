@@ -190,7 +190,7 @@ func TestSwordfishRollRespectsSeaGuideLocation(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Setenv("GODEBUG", "randseednop=0")
-	t.Run("缺少本竿落点时不借用人物坐标", func(t *testing.T) {
+	t.Run("缺少本竿落点时区域条件保持中性", func(t *testing.T) {
 		var log bytes.Buffer
 		original := s.log
 		s.log = slog.New(slog.NewTextHandler(&log, nil))
@@ -208,8 +208,10 @@ func TestSwordfishRollRespectsSeaGuideLocation(t *testing.T) {
 		st.mu.Lock()
 		defer st.mu.Unlock()
 		st.cancelBiteTimerLocked()
-		if st.Pending != nil || !strings.Contains(log.String(), "海图区号=未知 攻略标深=未知") || !strings.Contains(log.String(), "空因=饵料规则（strict）") {
-			t.Fatalf("仅人物位于80米钓点时应空竿：%s", log.String())
+		if st.Pending == nil || st.Pending.Species != "x_gladius" ||
+			!strings.Contains(log.String(), "海图区号=未知 攻略标深=未知") ||
+			strings.Contains(log.String(), "空因=饵料规则（strict）") || strings.Contains(log.String(), "x=3282") {
+			t.Fatalf("仅人物位于80米钓点时应保持区域条件中性，且不能借用人物坐标：%s", log.String())
 		}
 	})
 	for _, exact := range []string{"0", "1"} {
@@ -426,19 +428,25 @@ func TestRuleConditionAllowsChartZoneAndMotionEvidence(t *testing.T) {
 	for _, tc := range []struct {
 		loc  string
 		spot int
-		want bool
 	}{
-		{"loc12_15", 80, false}, {"loc12_170", 75, false}, {"loc12_252", 80, false},
-		{"loc12_244", 41, false},
+		{"loc12_15", 80}, {"loc12_170", 75}, {"loc12_252", 80},
+		{"loc12_244", 41},
 	} {
 		c := fishRollContext{loc: tc.loc}
 		s.prepareFishRollRuntime(t.Context(), &c, "挪威海")
-		if got := ruleConditionAllows(fishBaitRule{chartZones: []int{tc.spot}}, c); got != tc.want {
-			t.Errorf("仅上报 %s 时，%d米钓点：得到%t，期望%t", tc.loc, tc.spot, got, tc.want)
+		if got := ruleConditionAllows(fishBaitRule{chartZones: []int{tc.spot}}, c); !got {
+			t.Errorf("仅上报 %s 时没有落点证据，%d米钓点条件应保持中性，得到 false", tc.loc, tc.spot)
 		}
 	}
-	if ruleConditionAllows(zoneRule, inSea(0, false)) || ruleConditionAllows(fishBaitRule{sonarZones: []int{252}}, inSea(0, false)) {
-		t.Fatal("缺少落点时不能命中限定标深或声呐区的规则")
+	if !ruleConditionAllows(zoneRule, inSea(0, false)) || !ruleConditionAllows(fishBaitRule{sonarZones: []int{252}}, inSea(0, false)) {
+		t.Fatal("缺少落点时限定标深或声呐区条件应保持中性")
+	}
+	if ruleConditionAllows(zoneRule, fishRollContext{runtime: &fishRollRuntime{chartKnown: true, guideKnown: true, guideSpot: 120}}) ||
+		ruleConditionAllows(zoneRule, fishRollContext{runtime: &fishRollRuntime{chartKnown: true, guideKnown: true}}) {
+		t.Fatal("已定位纸图但不在规则标深时应剔除")
+	}
+	if !ruleConditionAllows(zoneRule, inSea(95, true)) || ruleConditionAllows(fishBaitRule{sonarZones: []int{252}}, inSea(95, true)) {
+		t.Fatal("纸图未定位时应按已有声呐证据处理，已定位的声呐区不匹配时应剔除")
 	}
 	offGrid := fishRollContext{loc: "loc12_95", x: 3921, z: 2093, hasPos: true}
 	s.prepareFishRollRuntime(t.Context(), &offGrid, "挪威海")

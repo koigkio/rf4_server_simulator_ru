@@ -16,16 +16,16 @@ func TestBaitOverrideRoundTripsSeaGuideCondition(t *testing.T) {
 		t.Fatal("缺少剑鱼内置规则")
 	}
 	for _, tc := range []struct {
-		name, condition                string
-		at80, at75, at120, atUnknown80 bool
+		name, condition              string
+		at80, at75, at120, atUnknown bool
 	}{
-		{"只编辑内置规则的饵", info.Condition, true, true, false, false},
-		{"玩家填写的钓点", "80区", true, false, false, false},
-		{"多个纸图钓点", "75或80区", true, true, false, false},
-		{"旧版无标记条件", "海图80号区域", true, false, false, false},
-		{"已保存的标深说明", "海图80号区域（纸图标深）", true, false, false, false},
-		{"明确指定声呐网格", "声呐252区", true, false, false, false},
-		{"仅带有声呐前缀的编号使用网格", "80区或声呐第170区", true, false, true, false},
+		{"只编辑内置规则的饵", info.Condition, true, true, false, true},
+		{"玩家填写的钓点", "80区", true, false, false, true},
+		{"多个纸图钓点", "75或80区", true, true, false, true},
+		{"旧版无标记条件", "海图80号区域", true, false, false, true},
+		{"已保存的标深说明", "海图80号区域（纸图标深）", true, false, false, true},
+		{"明确指定声呐网格", "声呐252区", true, false, false, true},
+		{"仅带有声呐前缀的编号使用网格", "80区或声呐第170区", true, false, true, true},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			ov := store.FishBaitOverride{FishZh: "剑鱼", Allow: []string{"Hunter 1000-1"}, Deny: info.Deny,
@@ -39,7 +39,7 @@ func TestBaitOverrideRoundTripsSeaGuideCondition(t *testing.T) {
 				x, z  float64
 				want  bool
 			}{{"loc12_252", 3282, -925, tc.at80}, {"loc12_95", 3921, 1182, tc.at75},
-				{"loc12_170", 4258, 6, tc.at120}, {"loc12_80", 0, 0, tc.atUnknown80}} {
+				{"loc12_170", 4258, 6, tc.at120}, {"loc12_80", 0, 0, tc.atUnknown}} {
 				c := fishRollContext{loc: point.scene, x: point.x, z: point.z, hasPos: point.x != 0}
 				s.prepareFishRollRuntime(t.Context(), &c, "挪威海")
 				keys, _ := s.filterFishBaitSet("挪威海", []string{"pilkerlures_2687"}, []string{"x_gladius"}, []float64{1}, time.Now(), c)

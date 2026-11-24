@@ -65,10 +65,11 @@ type fishRollRuntime struct {
 	chartKnown bool
 	zone       int
 	zoneKnown  bool
-	// guideSpot 是已定位的纸图测深标注，0 表示未知。
-	guideSpot int
-	spotPref  map[string]float64
-	spotData  bool
+	// guideKnown 表示拿到了纸图定位证据；此时 guideSpot=0 表示落点已知但在标注范围外。
+	guideKnown bool
+	guideSpot  int
+	spotPref   map[string]float64
+	spotData   bool
 	// sonarSystemID 是海图声呐档案键（如 loc12_215）；内陆为空。
 	sonarSystemID string
 }
@@ -87,11 +88,11 @@ func (r *fishRollRuntime) chartZoneLabel() string {
 }
 
 func (r *fishRollRuntime) guideSpotLabel() string {
-	if r == nil || r.guideSpot == 0 {
-		if r != nil && r.zoneKnown {
-			return "标注范围外"
-		}
+	if r == nil || !r.guideKnown {
 		return "未知"
+	}
+	if r.guideSpot == 0 {
+		return "标注范围外"
 	}
 	return strconv.Itoa(r.guideSpot)
 }
