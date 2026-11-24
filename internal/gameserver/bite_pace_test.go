@@ -273,6 +273,12 @@ func TestBaitPaceScoreEvidence(t *testing.T) {
 	s, _ := seedPaceTest(t)
 	ctx := t.Context()
 	base := fishRollContext{now: time.Now()}
+	// 快照未就绪时判鱼会异步预热（go loadRf4Share）。本用例前面几个 case
+	// 就处在未就绪状态，预热一旦启动就会在断言前后覆盖手工注入的快照，
+	// 是否踩中取决于 goroutine 调度。先钉住 loading 让预热无法启动，
+	// 未就绪分支的语义（share 未知）保持不变。
+	s.rf4ShareLoading.Store(true)
+	defer s.rf4ShareLoading.Store(false)
 	cases := []struct {
 		name  string
 		loc   string
@@ -300,10 +306,7 @@ func TestBaitPaceScoreEvidence(t *testing.T) {
 		}
 	}
 	// 拟饵的证据票：rf4 占比 10% 应把无证据拟饵抬到 0.9（审查 P2-3）。
-	s.rf4ShareMu.Lock()
-	s.rf4ShareCache = map[string]map[string]float64{"c.roach": {"rule_lure": 10}}
-	s.rf4ShareLoaded = true
-	s.rf4ShareMu.Unlock()
+	setRf4Shares(s, map[string]map[string]float64{"c.roach": {"rule_lure": 10}}, nil)
 	if got := s.baitPaceScore(ctx, base, "level_900_rules", []string{"rule_lure"}, 1); math.Abs(got-0.9) > 1e-9 {
 		t.Fatalf("lure rf4 share evidence ignored: got %g want 0.9", got)
 	}
