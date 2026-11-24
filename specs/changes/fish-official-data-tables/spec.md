@@ -101,7 +101,7 @@ a_char 0.50、gc_smelt 0.50（原走鲑科组 0.60）；m_carp 0.65（原走鲤�
 ### f6 台阶：按全部样本重定
 
 把 76 条样本按"鱼种×档位"分组后，f6 在每组内完全恒定（39 组零例外），上台阶
-只发生在档位之间。体重阈值按两侧最近样本的中点重定：
+只发生在档位之间。体重阈值按两侧最近样本的中点重定，再按档位取整：
 
 | species | 低档侧样本 → f6 | 高档侧样本 → f6 | 旧阈值 | 新阈值 |
 |---|---|---|---|---|
@@ -110,6 +110,8 @@ a_char 0.50、gc_smelt 0.50（原走鲑科组 0.60）；m_carp 0.65（原走鲤�
 | carp | 1063~2434g → 0.65 | 4137~5710g → 0.75 | 无 | 3300g |
 | m_carp | 2312~3494g → 0.65 | 4756~5370g → 0.75 | 无 | 4100g |
 
+- 阈值取整：perch 358→360g、carp 3285.5→3300g、m_carp 4125→4100g；
+  crucian 保留既有 450g。
 - perch：374g（2 档）实测 0.80，旧阈值 500g 会把它判成 0.70。
 - carp / m_carp：新增 0.10 的台阶。此前 carp 全档 0.65。
 - 未观察到台阶的实测种（coalfish、m_scorpius、rudd 各有两档样本）维持基值。
@@ -120,6 +122,6 @@ a_char 0.50、gc_smelt 0.50（原走鲑科组 0.60）；m_carp 0.65（原走鲤�
 ### Tests
 
 - `officialStaminaAnchors` 新增 6 条（a_char / gc_smelt ±3%，m_carp ±15%）。
-- `TestFishF6MatchesOfficialTable` 新增 7 个用例：perch 374g、carp ×2、
-  m_carp ×2、a_char、gc_smelt。
+- `TestFishF6MatchesOfficialTable` 新增 15 个用例：perch 374g、carp ×2、
+  m_carp ×2、a_char、gc_smelt，以及 perch/carp/m_carp/crucian 的台阶边界。
 - `TestFishFightCrossLayerConsistency` 新增 a_char / gc_smelt 的全链路用例。
