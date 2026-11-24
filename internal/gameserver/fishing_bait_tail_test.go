@@ -43,11 +43,8 @@ func TestBaitShareTailGate(t *testing.T) {
 	for i := 0; i < 40; i++ {
 		ins("frog", "rule_other")
 	}
-	s.tunMu.Lock()
-	delete(s.tunCache, "bait_share_strong")
-	s.tunCache["bait_share_min_count"] = 1
-	s.tunAt = time.Now()
-	s.tunMu.Unlock()
+	setBaitShareGate(t, s, "5", "1", "0.2")
+	setBaitRuleTunable(t, s, "bait_share_min_count", "1")
 	s.loadRf4Share()
 
 	cache := newFishingRollCache()

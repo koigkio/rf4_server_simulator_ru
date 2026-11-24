@@ -146,6 +146,41 @@ func TestLureGateDisabledWithShareThresholdsRestoresLegacy(t *testing.T) {
 	}
 }
 
+// 回滚语义必须是"任一为 0 即整道门关闭"，而不是"三项全为 0 才关闭"。
+// 重点在于硬排除：双壳类/螯虾的排除也挂在同一个开关下，否则管理员
+// 只关一项时门看着关了、蚌类却仍然不吃拟饵，等于回滚不干净。
+func TestLureGateAnyZeroThresholdDisablesWholeGate(t *testing.T) {
+	for _, tc := range []struct {
+		name   string
+		strong string
+		medium string
+		tail   string
+	}{
+		{"strong 归零", "0", "1", "0.2"},
+		{"medium 归零", "5", "0", "0.2"},
+		{"tail 归零", "5", "1", "0"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			s, db := seedBaitRuleTest(t)
+			if _, err := db.SQL.Exec(`INSERT INTO loc_wiki_fish(loc,fish_key,fish_zh) VALUES
+				('rules-test','n.pike','常见狗鱼'),
+				('rules-test','freshwater_mussel','珠蚌')`); err != nil {
+				t.Fatal(err)
+			}
+			setBaitShareGate(t, s, tc.strong, tc.medium, tc.tail)
+			// 鱼种级拟饵占比 0.2%：分级开启时会被 <1% 直接出池。
+			setLureShare(s, map[string]float64{"n.pike": 0.2, "freshwater_mussel": 0.2})
+
+			for _, fish := range []string{"n.pike", "freshwater_mussel"} {
+				keys, _ := s.filterFishBaitSet("rules-test", []string{"rule_lure"}, []string{fish}, []float64{1}, time.Now())
+				if len(keys) != 1 {
+					t.Fatalf("任一项为 0 时 %s 应回旧行为（含硬排除解除）: %v", fish, keys)
+				}
+			}
+		})
+	}
+}
+
 func TestRf4LureShareTTLExpiresToUnknown(t *testing.T) {
 	s, _ := seedBaitRuleTest(t)
 	setLureShare(s, map[string]float64{"n.pike": 50})

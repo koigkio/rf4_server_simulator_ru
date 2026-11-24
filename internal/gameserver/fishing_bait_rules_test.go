@@ -72,13 +72,38 @@ func seedBaitRuleTest(t *testing.T) (*Server, *store.DB) {
 	}
 	// 食性分级（bait-evidence-threshold）默认关闭：旧测试验证的是规则匹配与
 	// 替代路径；分级路径由 TestBaitEvidenceThresholdGrading 显式开启覆盖。
+	// 必须落库而不只是写缓存：setBaitRuleSwitch / reload_tunables 都会把
+	// tunAt 置零触发重载，缓存里的手写值会被 DB 缺省值静默顶掉。
 	s.tunMu.Lock()
 	if s.tunCache == nil {
 		s.tunCache = map[string]float64{}
 	}
-	s.tunCache["bait_share_strong"] = 0
 	s.tunMu.Unlock()
+	setBaitShareGate(t, s, "0", "0", "0")
 	return s, db
+}
+
+// setBaitRuleTunable 落库一条运行参数并强制下次读取重载。
+// 只写 tunCache 是不够的：setBaitRuleSwitch 与 reload_tunables 都会把 tunAt
+// 置零触发重载，缓存里的手写值会被 DB 里的真实值（缺省时是代码默认值）
+// 静默覆盖回去。要固定某个取值必须让它成为 DB 里的记录。
+func setBaitRuleTunable(t *testing.T, s *Server, key, value string) {
+	t.Helper()
+	if err := s.DB.TunableSet(context.Background(), key, value, "test"); err != nil {
+		t.Fatal(err)
+	}
+	s.tunMu.Lock()
+	s.tunAt = time.Time{}
+	s.tunMu.Unlock()
+}
+
+// setBaitShareGate 设置拟饵占比门的三项阈值（食性分级总开关）。
+// 任一为 0 即整道门关闭、回旧行为。
+func setBaitShareGate(t *testing.T, s *Server, strong, medium, tail string) {
+	t.Helper()
+	setBaitRuleTunable(t, s, "bait_share_strong", strong)
+	setBaitRuleTunable(t, s, "bait_share_medium", medium)
+	setBaitRuleTunable(t, s, "bait_share_tail", tail)
 }
 
 func setBaitRuleSwitch(t *testing.T, s *Server, value string) {
@@ -89,6 +114,29 @@ func setBaitRuleSwitch(t *testing.T, s *Server, value string) {
 	s.tunMu.Lock()
 	s.tunAt = time.Time{}
 	s.tunMu.Unlock()
+}
+
+// TestSeedBaitRuleTestDisablesGrading 守住 seedBaitRuleTest 的核心约定：
+// 食性分级默认关闭。这个约定没有编译期保障，一旦 seedBaitRuleTest 少设阈值、
+// 或有人为了"方便"把某一项改回正数，全部 33 处调用点都会静默漂移到分级开启态，
+// 却不会有任何用例变红——这正是本用例存在的意义。
+func TestSeedBaitRuleTestDisablesGrading(t *testing.T) {
+	s, _ := seedBaitRuleTest(t)
+	// 走 tunableF 而不是直接读 tunCache：必须验证"重载之后仍然是 0"，
+	// 否则缓存里写死 0、DB 里没有记录的写法会蒙混过关。
+	strong := s.tunableF("bait_share_strong", 5)
+	medium := s.tunableF("bait_share_medium", 1)
+	tail := s.tunableF("bait_share_tail", 0.2)
+	if strong != 0 || medium != 0 || tail != 0 {
+		t.Fatalf("seedBaitRuleTest 未关闭食性分级: strong=%g medium=%g tail=%g（应全为 0）", strong, medium, tail)
+	}
+	// 再触发一次强制重载，确认取值来自 DB 而非残留缓存。
+	s.tunMu.Lock()
+	s.tunAt = time.Time{}
+	s.tunMu.Unlock()
+	if got := s.tunableF("bait_share_strong", 5); got != 0 {
+		t.Fatalf("强制重载后分级仍非关闭态: strong=%g", got)
+	}
 }
 
 func TestFishBaitSwitchFiltersAndRestoresLegacy(t *testing.T) {
