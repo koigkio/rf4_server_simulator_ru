@@ -94,7 +94,7 @@ func (s *Server) fishQueryPaceState(ctx context.Context, c fishRollContext, st *
 		// fishQueryMotion 的 drift/jig 口径（查询不知道玩家实际手法，st.LureAction
 		// 即该假设）；路亚类型按候选饵实时加载，读不到按 ""（动作分中性）。
 		lureType := ""
-		if lure, ok := s.loadLureAttributes(ctx, st.Bait); ok {
+		if lure, ok := s.loadLureAttributes(ctx, st.Bait); ok && lure.TypeID != lureTypeAttraction {
 			lureType = lure.Type
 		}
 		pace = s.paceLureStateFor(score, lureType, st.LureAction, 1)

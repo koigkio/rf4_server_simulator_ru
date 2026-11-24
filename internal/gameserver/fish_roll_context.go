@@ -26,6 +26,10 @@ type fishRollContext struct {
 	lureAction string
 	lureMask   uint32
 	lureSpeed  int64
+	// marineLayer 是海钓状态机输出的相对水层（0=水面，0.93=贴底）。
+	// marineLayerKnown=false 表示该路径没有 14/7 序列（查鱼/声呐），回退旧口径。
+	marineLayer      float64
+	marineLayerKnown bool
 	weather    fishingWeather
 	rigType    int64
 	happyBite  float64
@@ -48,6 +52,10 @@ type fishRollContext struct {
 	// 只放宽环境类因素（分布散布归零→0.15、水层地板≥0.05），
 	// 食性硬门（G1 拟饵×非掠食鱼、明确禁饵）不放宽。
 	pityEnv bool
+	// paceOn 是饵效控速的路亚逐钩判定开关：rollFishForRig 在逐钩循环里
+	// 直接用当前钩位的饵实时算复合档位与开口率，第一口命中即停、其它钩位
+	// 跳过——与关闭 pace 时「每钩独立判鱼、哪口先上算哪口」同一条循环。
+	paceOn bool
 }
 
 type fishRollAudit struct {

@@ -1599,8 +1599,8 @@ async function loadFishRules(){
 function toggleRulesHelp(){const h=$('#rulesHelp'),b=$('#rulesHelpBtn');h.hidden=!h.hidden;b.setAttribute('aria-expanded',String(!h.hidden));b.textContent=h.hidden?'说明 ⌄':'收起 ⌃';}
 // ---- 鱼汛模式二选一（真实 / 旧版全随机）----
 const BITE_MODE_OPTIONS=[
- ['realistic','官方鱼汛','硬性门+生态+天气+吃饵+分布五开：拟饵不喂非掠食鱼、天然饵按双票、钓层/天气/昼夜/区域都参与判鱼；出鱼比例来自 rf4info 公开周档统计'],
- ['legacy','全随机（旧版）','五个开关全关：任何鱼都可能咬任何饵，全图名册纯随机出鱼——改造之前的旧版手感']
+ ['realistic','官方鱼汛','硬性门+生态+天气+吃饵+分布+海钓水层六开：拟饵不喂非掠食鱼、天然饵按双票、钓层/天气/昼夜/区域都参与判鱼；出鱼比例来自 rf4info 公开周档统计'],
+ ['legacy','全随机（旧版）','六个开关全关：任何鱼都可能咬任何饵，全图名册纯随机出鱼——改造之前的旧版手感']
 ];
 let BITE_MODE='';
 async function loadBiteMode(){

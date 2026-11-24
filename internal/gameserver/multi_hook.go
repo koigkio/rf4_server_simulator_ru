@@ -269,6 +269,7 @@ func (s *Server) rollExtraFishForRig(ctx context.Context, uid int64, gearGUID, l
 		f.HookGUID = group.hookGUID
 		f.GearGUID = gearGUID
 		f.BaitGUIDs = strings.Join(group.baitGUIDs, " ")
+		f.BaitItem = group.baits[0]
 		f.BaitsKnown = true
 		// 同一杆、同一水层：咬口条件沿用主鱼快照，避免多算一次天气/船位。
 		f.HappyHour, f.HappyHourKnown = primary.HappyHour, primary.HappyHourKnown

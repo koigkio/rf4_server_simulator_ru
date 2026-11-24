@@ -2,14 +2,15 @@
 import { h, api, post, icon, toast, errText, pageHead, pageTabs, work, ib, pblock, h2s, h3s, hint, note, kv, bullets, pill, callout, badge, Form, savebar, setLeaveGuard, confirmDialog, render, replaceHash, setCrumbTail, navigate } from '../core.js';
 
 const STYLES = [
-  ['realistic', '真实鱼汛', '鱼按习性、天气、位置和饵料决定咬不咬。要研究钓点、选对饵，更接近真实钓鱼。', '下面六项规则中，除欢乐时光外全部开启'],
-  ['legacy', '全随机', '任何鱼都可能咬任何饵，出鱼完全随机。轻松，适合随便玩玩。', '下面六项规则中，除欢乐时光外全部关闭'],
+  ['realistic', '真实鱼汛', '鱼按习性、天气、位置和饵料决定咬不咬。要研究钓点、选对饵，更接近真实钓鱼。', '下面七项规则中，除欢乐时光外全部开启'],
+  ['legacy', '全随机', '任何鱼都可能咬任何饵，出鱼完全随机。轻松，适合随便玩玩。', '下面七项规则中，除欢乐时光外全部关闭'],
 ];
 export const RULE_SWITCHES = [
   ['bite_gate_enabled', '饵要对口', '拟饵不会钓到不吃拟饵的鱼（如泥鳅、鲤科鱼）；钓层不对时几乎不咬。', '0'],
   ['fish_ecology_enabled', '鱼种习性', '252 种鱼各按习性决定咬不咬：水层、昼夜、季节、天气、水底环境、拟饵动作都有影响。', '0'],
   ['fish_weather_enabled', '天气与水温', '游戏里的气温和天气会影响鱼口；底钓、浮钓时鱼会断断续续地试口。', '0'],
   ['fish_distribution_enabled', '鱼群分布', '每种鱼只在地图的特定区域出没，每 4 个游戏小时重新分布一次。', '0'],
+  ['marine_layer_enabled', '海钓水层影响', '开启后海钓钓组按海钓状态机修正水层：下沉按相对进度过渡，贴底为 0.93；关闭时回到旧的拟饵实时水层/固定贴底。', '0'],
   ['fish_bait_rules_enabled', '鱼会挑饵', '根据钩上挂的饵决定会来哪些鱼。每种鱼爱吃什么在「鱼饵偏好」里设置。', '0'],
   ['happy_hour_enabled', '欢乐时光', '会员在线钓鱼时：经验 +50%、鱼口 +10%、熟练度提升机会 +25%，没有每日时长限制。', '1'],
 ];
@@ -85,7 +86,7 @@ export default async function rules(params = []) {
   setCrumbTail((TABS.find(([k]) => k === SUB) || [])[1] || '');
 
   const DESC = {
-    switches: '决定钓鱼玩起来是什么感觉。上面两种是官方预设，下面六项可以单独改。',
+    switches: '决定钓鱼玩起来是什么感觉。上面两种是官方预设，下面七项可以单独改。',
     grade: '决定钓到的鱼里，好鱼（奖杯、蓝冠）占多少。三选一，点卡片切换。',
     other: '活着、精力和鱼钩大小这类杂项。',
   };
@@ -97,7 +98,7 @@ export default async function rules(params = []) {
       h3s('玩法风格'),
       styleCards,
       hint(cur === 'mixed' ? '现在不是任何一种预设。改下面任何一项都会变成自定义组合。' : '现在就是「' + (STYLES.find(([m]) => m === cur) || [])[1] + '」。改下面任何一项都会变成自定义组合。'),
-      h3s('六项规则（各自独立）'),
+      h3s('七项规则（各自独立）'),
       ...RULE_SWITCHES.map(([k, l, d, def]) => form.row({ key: k, label: l, help: d, kind: 'bool', def }, val(k, def))),
     ];
   } else if (SUB === 'grade') {

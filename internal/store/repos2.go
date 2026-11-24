@@ -887,6 +887,7 @@ func (d *DB) SpawnModeSet(ctx context.Context, mode, updatedBy string) error {
 var biteModeKeys = []string{
 	"bite_gate_enabled", "fish_ecology_enabled", "fish_weather_enabled",
 	"fish_bait_rules_enabled", "fish_distribution_enabled",
+	"marine_layer_enabled",
 }
 
 // BiteModeFor 由当前 tunables 推断鱼汛模式：realistic=五开、legacy=五关，
