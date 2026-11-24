@@ -27,11 +27,11 @@ test('grade ratio grips share the numeric draft and explicit save', async () => 
       }
       return route.fulfill({ json: { username: 'admin' } });
     });
-    await page.goto('http://localhost/#rules');
-    const card = page.locator('.card').filter({ has: page.getByText('四档比例', { exact: true }) });
-    const inputs = card.locator('input');
+    await page.goto('http://localhost/#rules/grade');
+    const card = page.locator('.pblock').filter({ has: page.getByText('四档比例', { exact: true }) });
+    const inputs = card.locator('input[type="range"]');
     const track = card.locator('.grade-ratio-track');
-    const grips = card.getByRole('slider');
+    const grips = card.locator('.grade-ratio-handle');
     const values = () => inputs.evaluateAll(nodes => nodes.map(n => Number(n.value)));
     const widths = () => track.locator(':scope > div > div').evaluateAll(nodes => nodes.map(n => parseFloat(n.style.width)));
     async function drag(i, fraction, checkDuringDrag) {
@@ -46,6 +46,7 @@ test('grade ratio grips share the numeric draft and explicit save', async () => 
     }
     // Fixed width makes a ten-point pointer movement exact in whole CSS pixels.
     await card.waitFor();
+    await page.waitForTimeout(500); // 等页面切换的 view-transition 快照退出后再拖动。
     const firstGripBox = await grips.first().boundingBox();
     assert.ok(firstGripBox.width >= 44, `grip width ${firstGripBox.width}`);
     assert.ok(firstGripBox.height >= 44, `grip height ${firstGripBox.height}`);
@@ -56,12 +57,14 @@ test('grade ratio grips share the numeric draft and explicit save', async () => 
     });
     assert.deepEqual(await values(), [0, 50, 35, 15]);
     assert.deepEqual(await widths(), [0, 50, 35, 15]);
+    const setRange = async (locator, value) => locator.evaluate((el, v) => { el.value = String(v); el.dispatchEvent(new Event('input', { bubbles: true })); }, value);
     assert.deepEqual(writes, []);
     await page.getByRole('button', { name: '保存修改' }).click();
     await page.waitForSelector('.savebar.on', { state: 'hidden' });
     assert.deepEqual(writes, keys.slice(1, 3));
     await page.reload();
     await card.waitFor();
+    await page.waitForTimeout(500);
     assert.deepEqual(await values(), [0, 50, 35, 15]);
 
     const touch = await page.context().newCDPSession(page);
@@ -76,24 +79,24 @@ test('grade ratio grips share the numeric draft and explicit save', async () => 
     assert.equal(touched[0] + touched[1], 50);
     await page.getByRole('button', { name: '放弃' }).click();
 
-    await inputs.nth(3).fill('15.5');
+    await setRange(inputs.nth(3), '15.5');
     assert.ok(Math.abs((await widths())[3] - 15.5 / 100.5 * 100) < 0.001);
     await grips.nth(0).press('ArrowRight');
-    assert.deepEqual(await values(), [1.005, 48.995, 35, 15.5]);
+    assert.deepEqual(await values(), [1.01, 49, 35, 15.5]);
     await page.getByRole('button', { name: '放弃' }).click();
     assert.deepEqual(await widths(), [0, 50, 35, 15]);
 
-    for (const input of await inputs.all()) await input.fill('0');
+    for (const input of await inputs.all()) await setRange(input, '0');
     assert.deepEqual(await widths(), [0, 0, 0, 0]);
     assert.equal(await card.getByRole('slider', { disabled: true }).count(), 3);
-    await inputs.last().fill('80');
+    await setRange(inputs.last(), '80');
     for (const i of [2, 1, 0]) await drag(i, 0.1 * (i + 1));
     const recovered = await values();
     assert.ok(recovered.every(n => n > 0));
     assert.ok(Math.abs(recovered.reduce((a, b) => a + b) - 80) < 1e-9);
 
-    await inputs.nth(0).fill('90');
-    await inputs.nth(1).fill('40');
+    await setRange(inputs.nth(0), '90');
+    await setRange(inputs.nth(1), '40');
     await grips.first().press('End');
     assert.deepEqual((await values()).slice(0, 2), [100, 30]);
     assert.deepEqual(writes, keys.slice(1, 3));
@@ -101,18 +104,18 @@ test('grade ratio grips share the numeric draft and explicit save', async () => 
     settings.grade_ratio_enabled = '0';
     settings.fish_hunt_enabled = '1';
     await page.reload();
-    await page.getByText(/鱼猎四阶段按玩家打窝/).waitFor();
-    assert.equal(await page.getByRole('slider').count(), 0);
+    await page.getByText(/鱼猎四阶段没有要设置的比例/).waitFor();
+    assert.equal(await page.locator('.grade-ratio-handle').count(), 0);
     settings.two_stage_hunt_enabled = '1';
     await page.reload();
     for (const title of ['日常（没打窝）', '打窝后']) {
-      const editor = page.locator('.card').filter({ has: page.getByText(title, { exact: true }) });
+      const editor = page.locator('.pblock').filter({ has: page.getByText(title, { exact: true }) });
       await editor.waitFor();
-      assert.equal(await editor.locator('input').count(), 4);
-      await editor.locator('input').first().fill('0');
+      assert.equal(await editor.locator('input[type="range"]').count(), 4);
+      await setRange(editor.locator('input[type="range"]').first(), '0');
       await editor.getByText('0.0%', { exact: true }).first().waitFor();
     }
-    assert.equal(await page.getByRole('slider').count(), 0);
+    assert.equal(await page.locator('.grade-ratio-handle').count(), 0);
     assert.deepEqual(writes, keys.slice(1, 3));
   } finally {
     await browser.close();
