@@ -2,8 +2,8 @@
   "schema": 1,
   "stable": {
     "version": "v0.1.11",
-    "build_ts": "20261124030243",
-    "released_at": "2026-11-24T03:03:16Z",
+    "build_ts": "20261124030407",
+    "released_at": "2026-11-24T03:04:38Z",
     "notes_url": "https://github.com/OpenFisherCommunity/rf4_server_simulator/releases/tag/v0.1.11",
     "download_url": "https://github.com/OpenFisherCommunity/rf4_server_simulator/releases/latest",
     "download_mirror_url": "https://gh-proxy.com/https://github.com/OpenFisherCommunity/rf4_server_simulator/releases/download/v0.1.11/rf4_server_simulator-v0.1.11-windows-amd64.zip"
