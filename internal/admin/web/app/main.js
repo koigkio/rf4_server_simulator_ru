@@ -86,9 +86,7 @@ function rail() {
     brand(),
     h('div', { class: 'mobile-nav' }, h('b', { text: 'RF4' }), h('span', { id: 'mobilePage' }), toggle),
     nav,
-    h('div', { class: 'rail-foot', id: 'railFoot' },
-      h('label', { for: 'themeBtn', text: '界面主题' }),
-      themeMenu(),
+    h('div', { class: 'rail-foot' },
       h('div', { class: 'who' },
         h('span', { text: signedIn ? (me?.username || '管理员') : '未登录' }),
         h('button', { class: 'who-out', type: 'button', title: accountAction, onclick: signedIn ? logout : () => loginDialog() },
@@ -164,57 +162,128 @@ document.addEventListener('rf4:route', (e) => {
 
 // ---- 主题 ----
 const THEMES = [['system', '跟随系统'], ['light', '浅色 · 骨白'], ['dark', '深色 · 墨黑']];
-function themeMenu() {
-  let saved;
-  try { saved = localStorage.getItem('rf4.theme'); } catch (e) {}
-  if (!THEMES.some(([v]) => v === saved)) saved = 'system';
+const themeLabel = (v) => (THEMES.find(([k]) => k === v) || THEMES[0])[1];
 
-  const btn = h('button', { id: 'themeBtn', type: 'button', 'aria-haspopup': 'listbox',
-    'aria-controls': 'themeMenu', 'aria-expanded': 'false', onclick: () => menu.hidden ? open() : close() });
-  const menu = h('ul', { id: 'themeMenu', role: 'listbox', 'aria-label': '界面主题', hidden: true });
-  const options = THEMES.map(([v, label]) => h('li', { role: 'option', tabindex: '-1', dataset: { v }, onclick: () => choose(v) }, label));
-  menu.append(...options);
-  function sync() {
-    const label = THEMES.find(([v]) => v === saved)[1];
-    btn.textContent = label;
-    btn.setAttribute('aria-label', '界面主题：' + label);
-    for (const opt of options) opt.setAttribute('aria-selected', String(opt.dataset.v === saved));
-    if (saved === 'system') delete document.documentElement.dataset.theme;
-    else document.documentElement.dataset.theme = saved;
+// 只改页面状态，不碰任何节点：这样没挂进 DOM 的控件也能先算好文案。
+function applyThemeState(v) {
+  const root = document.documentElement;
+  if (v === 'system') delete root.dataset.theme; else root.dataset.theme = v;
+  try { localStorage.setItem('rf4.theme', v); } catch (e) {}
+}
+// 把某个值画到具体的按钮/菜单上（不按 id 全局找，页面重渲染时旧节点已经不在文档里了）。
+function paintTheme(v, btn, menu) {
+  const now = btn && btn.querySelector('#themeNow');
+  if (now) now.textContent = themeLabel(v);
+  if (menu) for (const li of menu.children) {
+    const on = li.dataset.v === v;
+    li.setAttribute('aria-selected', String(on));
+    li.tabIndex = on ? 0 : -1;
   }
-  function open() {
-    menu.hidden = false;
-    btn.setAttribute('aria-expanded', 'true');
-    options.find((opt) => opt.dataset.v === saved).focus();
-  }
-  function close(restore = true) {
+  if (btn) btn.dataset.theme = v;
+}
+function applyTheme(v) {
+  applyThemeState(v);
+  const btn = $('#themeBtn');
+  paintTheme(v, btn, $('#themeMenu'));
+  if (btn) btn.dispatchEvent(new CustomEvent('rf4:themechange', { detail: { value: v }, bubbles: false }));
+}
+
+// 主题切换挂在页面主操作行（「控制中心 →」旁边），不再占顶栏或左栏。
+// 这里只产出控件，挂到哪由 pageHead 的 actions 决定。
+export function themeMenu() {
+  let saved = 'system';
+  try { saved = localStorage.getItem('rf4.theme') || 'system'; } catch (e) {}
+  if (!THEMES.some(([k]) => k === saved)) saved = 'system';
+
+  const itemFor = (v, label) => h('li', {
+    role: 'option', dataset: { v }, tabindex: -1, 'aria-selected': 'false',
+    onclick: (ev) => { ev.stopPropagation(); applyTheme(v); close(); btn.focus(); },
+  }, label);
+
+  const menu = h('ul', {
+    id: 'themeMenu', class: 'theme-menu', role: 'listbox', 'aria-label': '界面主题',
+    hidden: true,
+    onkeydown: (ev) => {
+      const items = [...menu.children];
+      const at = items.indexOf(document.activeElement);
+      if (ev.key === 'ArrowDown' || ev.key === 'ArrowUp') {
+        ev.preventDefault();
+        const step = ev.key === 'ArrowDown' ? 1 : -1;
+        const next = items[(at + step + items.length) % items.length] || items[0];
+        next.focus();
+      } else if (ev.key === 'Home' || ev.key === 'End') {
+        ev.preventDefault();
+        (ev.key === 'Home' ? items[0] : items[items.length - 1]).focus();
+      } else if (ev.key === 'Enter' || ev.key === ' ') {
+        if (at < 0) return;
+        ev.preventDefault();
+        items[at].click();
+      } else if (ev.key === 'Escape') {
+        ev.preventDefault();
+        close();
+        btn.focus();
+      } else if (ev.key === 'Tab') {
+        close();
+      }
+    },
+  }, ...THEMES.map(([v, label]) => itemFor(v, label)));
+
+  // 顶带上的祖先节点带 filter/overflow，fixed 会被它们当成包含块、位置算歪，
+  // 所以菜单不留在原地：挂到 body 上，按按钮实测坐标摆到它下面。
+  // 每页渲染都会重建一次，先把旧的摘掉，避免 body 上越堆越多。
+  for (const old of document.querySelectorAll('.theme-menu')) old.remove();
+  document.body.appendChild(menu);
+  const place = () => {
+    const r = btn.getBoundingClientRect();
+    menu.style.position = 'fixed';
+    menu.style.left = Math.round(r.left) + 'px';
+    menu.style.top = Math.round(r.bottom + 8) + 'px';
+  };
+  const close = () => {
     menu.hidden = true;
     btn.setAttribute('aria-expanded', 'false');
-    if (restore) btn.focus();
+  };
+  const open = () => {
+    place();
+    menu.hidden = false;
+    btn.setAttribute('aria-expanded', 'true');
+    const cur = menu.querySelector('li[aria-selected="true"]') || menu.children[0];
+    if (cur) cur.focus();
+  };
+
+  const btn = h('button', {
+    id: 'themeBtn', type: 'button', class: 'theme-pick', 'aria-haspopup': 'listbox',
+    'aria-expanded': 'false', 'aria-controls': 'themeMenu', title: '界面主题',
+    onclick: (e) => {
+      e.stopPropagation();
+      if (menu.hidden) open(); else close();
+    },
+    onkeydown: (e) => {
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); if (menu.hidden) open(); }
+    },
+  }, h('span', { class: 'tb-lab', text: '界面主题选择' }), h('span', { id: 'themeNow', text: themeLabel(saved) }));
+
+  // 按钮此刻还没挂进文档，paintTheme 直接对齐这两个本地节点，
+  // 否则回到总览时按钮文案会退回默认值（localStorage 已经是新主题）。
+  applyThemeState(saved);
+  paintTheme(saved, btn, menu);
+
+  const wrap = h('div', { class: 'tselect theme-inline' }, btn);
+  if (!window.__rf4ThemeOutside) {
+    window.__rf4ThemeOutside = true;
+    const hideAll = () => {
+      for (const ul of document.querySelectorAll('.theme-menu')) ul.hidden = true;
+      for (const b of document.querySelectorAll('#themeBtn')) b.setAttribute('aria-expanded', 'false');
+    };
+    document.addEventListener('click', (ev) => {
+      if (ev.target.closest && ev.target.closest('.theme-menu, #themeBtn')) return;
+      hideAll();
+    });
+    window.addEventListener('scroll', hideAll, { passive: true });
+    window.addEventListener('resize', hideAll);
+    document.addEventListener('keydown', (ev) => { if (ev.key === 'Escape') hideAll(); });
   }
-  function choose(v) {
-    saved = v;
-    try { localStorage.setItem('rf4.theme', v); } catch (e) {}
-    sync();
-    close();
-  }
-  sync();
-  return h('div', { class: 'tselect', onfocusout: (e) => {
-    if (!e.currentTarget.contains(e.relatedTarget)) close(false);
-  }, onkeydown: (e) => {
-    const i = options.indexOf(e.target);
-    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
-      e.preventDefault();
-      if (menu.hidden) open();
-      else options[(i + (e.key === 'ArrowDown' ? 1 : -1) + options.length) % options.length].focus();
-    } else if (!menu.hidden && e.key === 'Escape') {
-      e.preventDefault(); e.stopPropagation(); close();
-    } else if (i >= 0 && (e.key === 'Enter' || e.key === ' ')) {
-      e.preventDefault(); choose(options[i].dataset.v);
-    } else if (i >= 0 && (e.key === 'Home' || e.key === 'End')) {
-      e.preventDefault(); options[e.key === 'Home' ? 0 : options.length - 1].focus();
-    }
-  } }, btn, menu);
+  return wrap;
 }
 
 // ---- 更新提示 ----

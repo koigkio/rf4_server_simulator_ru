@@ -93,7 +93,7 @@ export function zonesEditor({ area, zones, roster }, scope) {
   const overlapNote = h('span', { style: { color: '#f3a0a0' } });
   const toolButtons = {};
   const toolbar = h('div', { class: 'zmap-tools' },
-    TOOLS.map(([t, label, key, help]) => (toolButtons[t] = h('button', { type: 'button', title: `${label}（${key}）\n${help}`, 'aria-label': label, onclick: () => setTool(t) }, svg(SVG[t], 18)))),
+    TOOLS.map(([t, label, key, help]) => (toolButtons[t] = h('button', { type: 'button', title: `${label}（${key}）\n${help}`, 'aria-label': label, 'aria-pressed': 'false', onclick: () => setTool(t) }, svg(SVG[t], 18)))),
     h('hr'),
     h('button', { type: 'button', title: '放大', 'aria-label': '放大', onclick: () => zoomBy(1.35) }, svg(SVG.plus, 18)),
     h('button', { type: 'button', title: '缩小', 'aria-label': '缩小', onclick: () => zoomBy(1 / 1.35) }, svg(SVG.minus, 18)),
@@ -354,7 +354,12 @@ export function zonesEditor({ area, zones, roster }, scope) {
   }
   function applyTool(t) {
     S.tool = t;
-    for (const [k, b] of Object.entries(toolButtons)) b.classList.toggle('on', k === t);
+    // 选中态同时写进 class 与 aria-pressed：只给 class 的话辅助技术读不到当前工具。
+    for (const [k, b] of Object.entries(toolButtons)) {
+      const on = k === t;
+      b.classList.toggle('on', on);
+      b.setAttribute('aria-pressed', String(on));
+    }
     stage.style.cursor = t === 'pan' ? 'grab' : t === 'brush' ? 'cell' : 'crosshair';
     readout.textContent = toolHint();
   }
