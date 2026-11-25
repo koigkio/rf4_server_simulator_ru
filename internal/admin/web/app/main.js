@@ -1,10 +1,9 @@
 // RF4 管理后台入口：登录、框架、导航。各页面按需加载。
 // 视觉与结构以演示页 RF4-管理工作台.html v177 为准：
 // body 直接是两列网格（aside.rail + main），页面顶部是照片横幅 hero，下面是 .work 双栏。
-import { h, $, api, post, icon, getToken, setToken, onAuth, route, render, navigate, toast, errText, parseHash, setHeroStats, loginDialog } from './core.js';
+import { h, $, api, post, icon, getToken, setToken, onAuth, route, render, navigate, toast, errText, parseHash, setHeroStats, loginDialog, reloadPage } from './core.js';
 
-// 导航结构即信息架构：一条一个总类，副标题说明这一条管什么。
-// 编号、图标、主标题、副标题四件套与演示页一致。
+// 保留各页说明作为链接提示；常驻导航只展示图标与页名。
 const NAV = [
   ['dashboard', '总览', '服务状态 · 在线 · 最近改动', 'home'],
   ['players', '玩家管理', '档案 · 资产 · 鱼护 · 技能 · 邮箱', 'users'],
@@ -34,7 +33,10 @@ const PAGES = {
   about: () => import('./pages/docs.js').then((m) => ({ default: m.about })),
 };
 for (const [name, load] of Object.entries(PAGES)) {
-  route(name, { render: async (params) => (await load()).default(params) });
+  route(name, { render: async (params, scope) => {
+    const page = await load();
+    return scope.isCurrent() ? page.default(params, scope) : [];
+  } });
 }
 
 // 模块预取：左栏指到哪一条就把那页先下好，点下去不再等 import。
@@ -66,39 +68,69 @@ function brand() {
 // 左栏：照片长条 + 品牌 + 总类导航 + 底部主题/账号。
 function rail() {
   const nav = h('nav', { id: 'rail', 'aria-label': '总类导航' });
-  NAV.forEach(([key, label, sub, ic], i) => {
-    nav.append(h('a', { href: '#' + key, dataset: { route: key }, onpointerenter: () => warm(key), onfocus: () => warm(key) },
-      h('span', { class: 'no', text: String(i + 1).padStart(2, '0') }),
-      h('span', { class: 'cat' }, icon(ic)),
-      h('span', { class: 'txt' }, h('b', { text: label }), h('small', { text: sub }))));
+  const toggle = h('button', { id: 'navToggle', type: 'button', 'aria-controls': 'rail railFoot',
+    'aria-expanded': 'false', onclick: () => toggle.setAttribute('aria-expanded', String(toggle.getAttribute('aria-expanded') !== 'true')) },
+    icon('list', 18), '菜单');
+  NAV.forEach(([key, label, sub, ic]) => {
+    nav.append(h('a', { href: '#' + key, title: sub, dataset: { route: key }, onpointerenter: () => warm(key), onfocus: () => warm(key),
+      onclick: () => { if (location.hash === '#' + key) closeNavigation(); } },
+      h('span', { class: 'cat', 'aria-hidden': 'true' }, icon(ic)),
+      h('span', { class: 'txt' }, h('b', { text: label }))));
   });
-  const name = (me && me.username) || 'admin';
-  return h('aside', { class: 'rail' },
+  const signedIn = !!getToken();
+  const accountAction = signedIn ? '退出登录' : '登录';
+  return h('aside', { class: 'rail', id: 'workspaceRail', onkeydown: (e) => {
+    if (e.key === 'Escape' && toggle.getAttribute('aria-expanded') === 'true') closeNavigation();
+  } },
     h('div', { class: 'railband' }),
     brand(),
+    h('div', { class: 'mobile-nav' }, h('b', { text: 'RF4' }), h('span', { id: 'mobilePage' }), toggle),
     nav,
-    h('div', { class: 'rail-foot' },
+    h('div', { class: 'rail-foot', id: 'railFoot' },
       h('div', { class: 'who' },
-        h('span', { text: name }),
-        h('span', { text: getToken() ? '管理员' : '未登录' }),
-        getToken()
-          ? h('button', { class: 'who-out', type: 'button', title: '退出登录', 'aria-label': '退出登录', onclick: logout }, icon('logout', 15))
-          : h('button', { class: 'who-out', type: 'button', title: '登录', 'aria-label': '登录', onclick: () => loginDialog() }, icon('logout', 15)))));
+        h('span', { text: signedIn ? (me?.username || '管理员') : '未登录' }),
+        h('button', { class: 'who-out', type: 'button', title: accountAction, onclick: signedIn ? logout : () => loginDialog() },
+          icon('logout', 15), accountAction))));
+}
+
+function closeNavigation() {
+  const toggle = $('#navToggle');
+  if (toggle?.getAttribute('aria-expanded') !== 'true') return;
+  toggle.setAttribute('aria-expanded', 'false');
+  if (toggle.offsetWidth) toggle.focus();
 }
 
 function inFrame() { try { return window.top !== window.self; } catch (e) { return false; } }
 
 // ---- 顶部条：面包屑 + 版本戳 + 刷新 ----
 function topBar() {
+  const key = 'rf4.rail.collapsed';
+  let collapsed = false;
+  try { collapsed = localStorage.getItem(key) === '1'; } catch {}
+  const toggle = h('button', { type: 'button', id: 'railToggle', class: 'ghost', 'aria-controls': 'workspaceRail', onclick: () => {
+    collapsed = !collapsed;
+    try { localStorage.setItem(key, collapsed ? '1' : '0'); } catch {}
+    sync();
+  } });
+  function sync() {
+    document.body.classList.toggle('rail-collapsed', collapsed);
+    const action = collapsed ? '展开侧边栏' : '收起侧边栏';
+    toggle.setAttribute('aria-expanded', String(!collapsed));
+    toggle.setAttribute('aria-label', action);
+    toggle.title = action;
+    toggle.replaceChildren(icon(collapsed ? 'list' : 'back', 18));
+  }
+  sync();
   return h('div', { class: 'top' },
     h('div', { class: 'crumb', id: 'crumb' },
+      toggle,
       h('span', { text: 'RF4' }), h('i', { text: '/' }), h('span', { id: 'crumbGroup', text: '总览' })),
     h('div', { class: 'tools' },
       // 在控制中心的 iframe 里才出现「回控制中心」，单独打开 /admin/ 时不打扰
       inFrame() ? h('a', { class: 'ghost back-home', href: '/', target: '_top', text: '← 控制中心' }) : null,
       h('span', { id: 'stamp', text: '本地 · ' + portNow() + ' · ' + BUILD }),
       getToken() ? null : h('button', { class: 'ghost', id: 'loginBtn', type: 'button', onclick: () => loginDialog(), text: '登录' }),
-      h('button', { class: 'ghost', id: 'reload', type: 'button', onclick: () => location.reload(), text: '刷新本页' })));
+      h('button', { class: 'ghost', id: 'reload', type: 'button', onclick: reloadPage, text: '刷新本页' })));
 }
 
 function pageFoot() {
@@ -111,6 +143,8 @@ function setCrumb(name) {
   const item = NAV.find(([k]) => k === name);
   const g = $('#crumbGroup');
   if (g) g.textContent = item ? item[1] : '总览';
+  const mobile = $('#mobilePage');
+  if (mobile) mobile.textContent = item ? item[1] : '总览';
   // 换页时清掉上一页留下的末级（二级页签名），避免面包屑挂错分类。
   const c = document.getElementById('crumb');
   if (c) c.querySelectorAll('i.tail,b').forEach((n) => n.remove());
@@ -122,6 +156,7 @@ document.addEventListener('rf4:route', (e) => {
     if (a.dataset.route === e.detail.name) a.setAttribute('aria-current', 'page');
     else a.removeAttribute('aria-current');
   }
+  closeNavigation();
   setCrumb(e.detail.name);
 });
 
@@ -277,9 +312,9 @@ export function updateBanner(u, slotEl) {
   slot.replaceChildren(h('div', { class: 'upd', style: { margin: '0 0 14px' } },
     h('b', { text: u.forced ? '需要升级' : '有新版本' }),
     h('span', { class: 'ver', text: u.latest_version }),
-    h('span', { class: 'hint', style: { margin: '0' }, text: '当前 ' + BUILD + (u.size_text ? ' · 更新包 ' + u.size_text : '') }),
+    h('span', { class: 'hint', style: { margin: '0' }, text: '当前 ' + (u.current_version || '未上报') + (u.size_text ? ' · 更新包 ' + u.size_text : '') }),
     h('span', { class: 'sp' }),
-    links[0] || null,
+    ...links,
     dismiss || null));
 }
 
@@ -367,7 +402,18 @@ async function boot() {
 export function logout() {
   setToken('');
 }
-onAuth(() => boot());
+onAuth(async signedIn => {
+  if (!signedIn || !$('#view')) { boot(); return; }
+  const session = getToken();
+  const previousUser = me?.username;
+  try { const user = await api('/api/me'); if (getToken() !== session) return; me = user; }
+  catch (e) { if (getToken() !== session) return; }
+  $('.rail .who')?.replaceWith(rail().querySelector('.who'));
+  $('#loginBtn')?.remove();
+  closeNavigation();
+  if (parseHash().name === 'players' && (!previousUser || me?.username !== previousUser)) render();
+  else document.dispatchEvent(new Event('rf4:login'));
+});
 boot();
 export function currentUser() { return me; }
 export { parseHash };

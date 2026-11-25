@@ -1,5 +1,5 @@
 // 玩法规则：决定钓鱼「玩起来是什么感觉」。数值微调在「数值调整」页。
-import { h, api, post, icon, toast, errText, pageHead, pageTabs, work, ib, pblock, h2s, h3s, hint, note, kv, bullets, pill, callout, badge, Form, savebar, setLeaveGuard, confirmDialog, render, replaceHash, setCrumbTail, navigate } from '../core.js';
+import { h, api, post, icon, toast, errText, pageHead, pageTabs, work, ib, pblock, h2s, h3s, hint, note, kv, bullets, pill, callout, badge, Form, savebar, confirmDialog, render, replaceHash, setCrumbTail, navigate } from '../core.js';
 
 const STYLES = [
   ['realistic', '真实鱼汛', '鱼按习性、天气、位置和饵料决定咬不咬。要研究钓点、选对饵，更接近真实钓鱼。', '下面七项规则中，除欢乐时光外全部开启'],
@@ -34,30 +34,52 @@ const OTHER = [
   ['bite_pace_enabled', '饵效控速', '开启后来鱼快慢由饵与动作共同决定：底钓/浮钓看饵对不对口；路亚/海钓铁板还看收线动作对不对口——饵与动作都对口时 1.5~6 秒内来鱼，动作不对口像差饵一样长时间才有鱼。只控节奏，不改出什么鱼。', '0'],
 ];
 
-export default async function rules(params = []) {
+export default async function rules(params, scope) {
   const [t, mode] = await Promise.all([api('/api/tunables'), api('/api/fish/bite_mode').catch(() => ({}))]);
+  if (!scope.isCurrent()) return [];
   const val = (k, d) => (t[k] === undefined || t[k] === '' ? d : t[k]);
   const form = new Form();
+  const status = h('p', { class: 'hint', role: 'status', hidden: true });
+  let saving = false;
   savebar(form, {
+    effect:'服务端最多 30 秒生效，无需重新登录。',
     onSave: async (values) => {
-      for (const [key, value] of Object.entries(values)) await post('/api/tunables', { key, value: String(value) });
-      toast('已保存，约 30 秒内生效');
-      render();
+      for (const set of GRADE_SETS[spawnMode] || []) {
+        const keys = GRADES.map(([g]) => set.prefix + g);
+        if (form.fields.has(keys[0]) && !keys.some(k => Number(form.value(k)) > 0)) throw new Error(`${set.title}的总权重不能为 0`);
+      }
+      // 逐键 API：先写正权重，避免换档时短暂出现整组为零。
+      const entries = Object.entries(values).sort((a, b) => (Number(a[1]) === 0) - (Number(b[1]) === 0));
+      const applied = [];
+      saving = true;
+      try {
+        for (const [key, value] of entries) {
+          await post('/api/tunables', { key, value: String(value) });
+          form.commit({ [key]: value });
+          applied.push(form.fields.get(key).spec.label);
+        }
+      } catch (e) {
+        const pending = form.dirtyKeys().map(k => form.fields.get(k).spec.label);
+        status.hidden = false;
+        status.textContent = `已确认保存：${applied.join('、') || '无'}；待重试：${pending.join('、')}。${errText(e)}`;
+        throw e;
+      } finally { saving = false; }
+      if (status.isConnected && !form.isDirty()) render();
     },
   });
-  setLeaveGuard(() => form.isDirty());
+  scope.setLeaveGuard(() => form.isDirty());
 
   // 玩法风格
-  const cur = mode.mode || 'legacy';
+  const cur = mode.mode;
   const styleCards = h('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(240px,1fr))', gap: '10px' } }, STYLES.map(([m, title, desc, note]) => {
     const on = cur === m;
     return h('button', {
       type: 'button', class: 'stylecard' + (on ? ' on' : ''), style: { cursor: on ? 'default' : 'pointer' },
       onclick: async () => {
-        if (on) return;
-        const ok = await confirmDialog({ title: `切换到「${title}」？`, desc: `${note}。约 30 秒内生效。`, confirm: '切换' });
+        if (on || saving) return;
+        const ok = await confirmDialog({ title: `切换到「${title}」？`, desc: `${note}，欢乐时光保持不变。${form.isDirty() ? '未保存的修改会被放弃。' : ''}约 30 秒内生效。`, confirm: '切换' });
         if (!ok) return;
-        try { await post('/api/fish/bite_mode', { mode: m }); toast(`已切换到「${title}」`); render(); } catch (e) { toast(errText(e), 'bad'); }
+        try { await post('/api/fish/bite_mode', { mode: m }); toast(`已切换到「${title}」，最多 30 秒生效`); render(); } catch (e) { toast(errText(e), 'bad'); }
       },
     }, h('div', { class: 'row', style: { justifyContent: 'space-between', gap: '10px', borderBottom: '0', padding: '0' } }, h('b', { text: title }), on ? badge('当前', 'accent') : null),
     h('p', { class: 'hint', style: { margin: '4px 0 0' }, text: desc }));
@@ -70,7 +92,7 @@ export default async function rules(params = []) {
     return h('button', {
       type: 'button', class: 'stylecard' + (on ? ' on' : ''), style: { cursor: on ? 'default' : 'pointer' },
       onclick: async () => {
-        if (on) return;
+        if (on || saving) return;
         if (form.isDirty() && !(await confirmDialog({ title: '有修改还没保存', desc: '切换出鱼方式会刷新页面，没保存的修改会丢失。', confirm: '继续切换' }))) return;
         try { await post('/api/fish/spawn_mode', { mode: m }); toast(`已切换到「${title}」，约 30 秒内生效`); render(); } catch (e) { toast(errText(e), 'bad'); }
       },
@@ -82,7 +104,16 @@ export default async function rules(params = []) {
   const TABS = [['switches', '玩法开关'], ['grade', '出鱼与奖杯'], ['other', '其他']];
   let SUB = 'switches';
   if (params[0] && TABS.some(([k]) => k === params[0])) SUB = params[0];
-  const tabsEl = pageTabs(TABS, SUB, (k) => { SUB = k; replaceHash('#rules/' + k); render(); });
+  const tabsEl = pageTabs(TABS, SUB, async (k) => {
+    if (k === SUB) return;
+    if (saving || (form.isDirty() && !(await confirmDialog({ title: '有修改还没保存', desc: '切换页签会放弃本页草稿。', confirm: '放弃并切换' })))) {
+      queueMicrotask(() => tabsEl.querySelectorAll('a').forEach(a => {
+        if (a.hash === '#rules/' + SUB) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
+      }));
+      return;
+    }
+    replaceHash('#rules/' + k); render();
+  });
   setCrumbTail((TABS.find(([k]) => k === SUB) || [])[1] || '');
 
   const DESC = {
@@ -97,7 +128,7 @@ export default async function rules(params = []) {
       hint(DESC.switches),
       h3s('玩法风格'),
       styleCards,
-      hint(cur === 'mixed' ? '现在不是任何一种预设。改下面任何一项都会变成自定义组合。' : '现在就是「' + (STYLES.find(([m]) => m === cur) || [])[1] + '」。改下面任何一项都会变成自定义组合。'),
+      hint((cur === 'mixed' ? '当前为自定义组合。' : STYLES.some(([k]) => k === cur) ? `当前预设：${STYLES.find(([k]) => k === cur)[1]}。` : '当前预设未取得。') + '预设覆盖前六项；欢乐时光独立。'),
       h3s('七项规则（各自独立）'),
       ...RULE_SWITCHES.map(([k, l, d, def]) => form.row({ key: k, label: l, help: d, kind: 'bool', def }, val(k, def))),
     ];
@@ -126,7 +157,7 @@ export default async function rules(params = []) {
       ['预设', cur === 'mixed' ? '自定义组合' : (STYLES.find(([m]) => m === cur) || [])[1] || '—'],
       ['开着的规则', String(RULE_SWITCHES.filter(([k, , , d]) => val(k, d) === '1').length) + ' / ' + RULE_SWITCHES.length],
       ['出鱼方式', (SPAWN.find(([m]) => m === spawnMode) || [])[1] || '旧版规则'],
-    ]), hint('切预设会整体覆盖六项开关，单独改一项就变自定义。')),
+    ]), hint('预设只覆盖饵要对口、鱼种习性、天气与水温、鱼群分布、海钓水层影响、鱼会挑饵六项。欢乐时光独立。')),
     ib('相关页面', null, h('div', { class: 'pills' },
       h('a', { class: 'pill', href: '#bait', text: '每种鱼吃什么' }),
       h('a', { class: 'pill', href: '#tuning/gameplay', text: '咬钩快慢在游戏参数' }),
@@ -136,7 +167,7 @@ export default async function rules(params = []) {
   return [
     pageHead('钓场与鱼口', DESC[SUB] || DESC.switches),
     tabsEl,
-    work(blocks, aside),
+    work([status, ...blocks], aside),
   ];
 }
 // 四档比例编辑：输入相对权重，实时显示换算后的百分比
@@ -145,7 +176,7 @@ function gradeEditor(form, set, t, interactive) {
   const legend = h('div', { class: 'row small', style: { gap: '16px', borderBottom: '0', padding: '0', flexWrap: 'wrap' } });
   const fields = GRADES.map(([g, label], i) => {
     const key = set.prefix + g;
-    return { key, label, f: form.field({ key, label, kind: 'float', min: 0, max: 100 }, t[key] ?? String(set.defs[i])) };
+    return { key, label, f: form.field({ key, label: set.title + ' · ' + label, kind: 'float', min: 0, max: 100 }, t[key] ?? String(set.defs[i])) };
   });
   const track = h('div', { class: interactive ? 'grade-ratio-track' : null }, bar);
   const hint = h('span', { class: 'muted small' });
@@ -156,7 +187,7 @@ function gradeEditor(form, set, t, interactive) {
   const update = () => {
     const list = readWeights();
     const sum = list.reduce((a, b) => a + b, 0) || 1;
-    const valid = !interactive || fields.every(({ key }) => {
+    const valid = fields.every(({ key }) => {
       const raw = form.value(key), n = Number(raw);
       return raw !== '' && Number.isFinite(n) && n >= 0 && n <= 100;
     });
@@ -172,33 +203,30 @@ function gradeEditor(form, set, t, interactive) {
       handle.setAttribute('aria-valuenow', list[i]);
       handle.setAttribute('aria-valuetext', GRADES[i][1] + ' ' + (list[i] / sum * 100).toFixed(1) + '%');
     });
-    hint.textContent = !interactive ? '拖动滑块改权重，右侧实时换算成百分比' :
-      list.every((n) => n === 0) ? '总权重为 0，先把某一档拖起来' : '拖动滑块改权重，也可以直接拖中间的分界线';
+    hint.textContent = list.every(n => n === 0) ? '总权重不能为 0' : interactive ? '可拖动分界线或键入权重' : '可拖动滑块或键入权重';
     bar.replaceChildren(...list.map((n, i) => h('div', { style: { width: (n / sum * 100) + '%', background: GRADES[i][2] } })));
     legend.replaceChildren(...list.map((n, i) => h('span', {}, h('span', { style: { display: 'inline-block', width: '8px', height: '8px', borderRadius: '2px', background: GRADES[i][2], marginRight: '6px' } }),
       GRADES[i][1] + ' ', h('b', { text: (n / sum * 100).toFixed(1) + '%' }))));
     fields.forEach(({ f }, i) => {
-      if (f.out) f.out.textContent = String(Math.round(list[i] * 100) / 100);
+      if (f.slider) f.slider.value = String(list[i]);
       if (f.pct) f.pct.textContent = '占比 ' + (list[i] / sum * 100).toFixed(1) + '%';
     });
   };
   const inputs = h('div', { class: 'grid-4' }, fields.map(({ label, f }) => {
-    const out = h('span', { class: 'grade-val' });
-    const pct = h('span', { class: 'grade-percent' });
-    const start = Math.max(0, Math.min(100, Number(f.original) || 0));
-    f.input = h('input', { type: 'range', class: 'grade-slider', min: '0', max: '100', step: '0.01', value: String(start), oninput: () => { form.refresh(); update(); } });
-    f.errEl = h('div', { class: 'help', style: { color: '#f08a97' }, hidden: true });
-    f.out = out; f.pct = pct;
-    f.row = h('div', { class: 'field' }, h('label', { style: { display: 'flex', alignItems: 'baseline', gap: '8px' } }, h('span', { text: label }), out), f.input, pct, f.errEl);
+    f.input = h('input', { type: 'number', class: 'input num', min: 0, max: 100, step: 'any', value: f.original, 'aria-label': label + '权重', oninput: () => form.refresh() });
+    f.slider = h('input', { type: 'range', class: 'grade-slider', min: 0, max: 100, step: '0.01', 'aria-label': label + '滑杆', oninput: () => { f.input.value = f.slider.value; form.refresh(); } });
+    f.errEl = h('div', { class: 'help', hidden: true });
+    f.pct = h('span', { class: 'grade-percent' });
+    f.row = h('div', { class: 'field' }, h('label', {}, label, f.input), f.slider, f.pct, f.errEl);
     return f.row;
   }));
-  if (interactive) {
-    // Form.reset() also calls refresh when the user discards a drag.
-    const updateSavebar = form.onChange;
-    form.onChange = () => { updateSavebar(form); update(); };
-  }
+  const previous = form.onChange;
+  form.onChange = () => { previous(form); update(); };
+  const reset = h('button', { class: 'btn ghost sm', type: 'button', onclick: () => {
+    fields.forEach(({ f }, i) => { f.input.value = set.defs[i]; }); form.refresh();
+  } }, '整组恢复出厂');
   update();
-  return h('div', {}, h('div', { class: 'row', style: { justifyContent: 'flex-end', gap: '8px', margin: '0 0 4px', padding: '0', borderBottom: '0' } }, hint), inputs,
+  return h('div', {}, h('div', { class: 'row' }, hint, reset), inputs,
     h('div', { style: { margin: interactive ? '18px 0 12px' : '12px 0 6px' } }, track), legend);
 }
 
@@ -210,8 +238,10 @@ function ratioHandle(i, fields, readWeights, track, refresh) {
   function transfer(weights, delta) {
     const left = weights[i], pair = left + weights[i + 1];
     const next = Math.max(0, pair - 100, Math.min(100, pair, left + delta));
-    fields[i].f.input.value = Number(next.toPrecision(15));
-    fields[i + 1].f.input.value = Number((pair - next).toPrecision(15));
+    [next, pair - next].forEach((v, j) => {
+      const f = fields[i + j].f;
+      f.slider.value = Number(v.toPrecision(15)); f.input.value = f.slider.value;
+    });
     refresh();
   }
   let drag;

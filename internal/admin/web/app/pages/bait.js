@@ -1,5 +1,5 @@
 // 鱼饵偏好：每种鱼吃什么、不吃什么，可以按时间轮换。
-import { h, api, toast, errText, pageHead, work, ib, h2s, h3s, hint, note, kv, bullets, brief, pill, callout, btn, empty, loading, searchBox, debounce, drawer, dialog, confirmDialog, segmented, toggleEl, icon } from '../core.js';
+import { h, api, toast, errText, pageHead, work, ib, h2s, h3s, hint, note, kv, bullets, brief, pill, callout, btn, empty, loading, searchBox, debounce, sidePage, confirmDialog, segmented, toggleEl, icon } from '../core.js';
 
 const DIET = [['lure', '拟饵'], ['worm', '蠕虫'], ['fish', '饵鱼'], ['boilie', '煮饵'], ['plant', '植物'], ['crustacean', '甲壳类']];
 const WILDCARD = [['各类饵', '所有饵料'], ['拟饵', '所有拟饵'], ['活饵类', '所有活饵'], ['饵鱼类', '所有饵鱼']];
@@ -34,12 +34,12 @@ export default async function bait() {
     try {
       const d = await api('/api/bait/prefs?limit=2000&q=' + encodeURIComponent(Q) + '&loc=' + encodeURIComponent(LOC));
       rows = d.rows || [];
-      banner.replaceChildren(d.rules_enabled === true ? '' : note('「鱼会挑饵」规则现在是关闭的。', '这里的设置暂时不影响钓鱼，先去「玩法规则 → 其他」把它打开。'));
+      banner.replaceChildren(d.rules_enabled === false ? h('div', { class: 'note' }, '鱼会挑饵：关闭。', h('a', { href: '#rules/switches', text: '打开玩法开关' })) : '');
       draw();
     } catch (e) { listWrap.replaceChildren(empty('读取失败', errText(e))); }
   }
   function draw() {
-    const list = rows.filter((r) => FILTER === 'all' || (FILTER === 'rule' && r.has_rule) || (FILTER === 'none' && !r.has_rule) || (FILTER === 'edited' && r.source === 'override'));
+    const list = rows.filter((r) => FILTER === 'all' || (FILTER === 'tier3' && r.tier3 > 0) || (FILTER === 'rule' && r.has_rule) || (FILTER === 'none' && !r.has_rule) || (FILTER === 'edited' && r.source === 'override'));
     const page = list.slice(0, SHOWN);
     count.textContent = list.length > page.length ? `${list.length} 种鱼 · 先显示 ${page.length}` : `${list.length} 种鱼`;
     const more = list.length > page.length
@@ -75,11 +75,11 @@ export default async function bait() {
     ib('生效方式', null, hint('保存后约 30 秒热加载，不用重启服务，也不用玩家重登。')),
   ];
   const filterSel = h('select', { class: 'select', style: { width: '104px', flex: '0 0 auto' }, onchange: (e) => { FILTER = e.target.value; SHOWN = PAGE; draw(); } },
-    [['all', '全部鱼种'], ['rule', '已设置'], ['none', '没设置'], ['edited', '我改过的']].map(([v, l]) => h('option', { value: v, text: l, selected: v === FILTER })));
+    [['all', '全部鱼种'], ['tier3', '有 Tier 3 饵'], ['rule', '已设置'], ['none', '没设置'], ['edited', '我改过的']].map(([v, l]) => h('option', { value: v, text: l, selected: v === FILTER })));
   const body = [
     banner,
     h('div', { class: 'row baitfilters', style: { gap: '8px', margin: '0 0 14px', flexWrap: 'nowrap' } },
-      h('div', { style: { flex: '1 1 100%', minWidth: '0' } }, searchBox('搜索鱼名或饵名', debounce((v) => { Q = v; SHOWN = PAGE; load(); }, 300), Q)),
+      h('div', { style: { flex: '1 1 100%', minWidth: '0' } }, searchBox('搜索鱼名或鱼种 ID', debounce((v) => { Q = v; SHOWN = PAGE; load(); }, 300), Q)),
       locSel, filterSel, h('span', { class: 'spacer' }), count),
     listWrap,
   ];
@@ -153,19 +153,20 @@ function editFish(r, reload) {
     } catch (e) { toast(errText(e), 'bad'); }
   };
   let saved = false;
-  const d = drawer({
-    title: r.name_zh, sub: r.fish_key, body,
+  const d = sidePage({
+    title: r.name_zh, sub: r.fish_key, body, effect:'保存后最多 30 秒生效，无需重启游戏客户端。',
     foot: [r.source === 'override' ? btn('恢复默认', async () => {
       if (!(await confirmDialog({ title: `把「${r.name_zh}」恢复默认？`, desc: '删除你的设置，回到内置规则。', confirm: '恢复默认' }))) return;
-      try { await api('/api/bait/rules/reset', { method: 'POST', body: JSON.stringify({ fish_zh: r.name_zh }) }); toast('已恢复默认'); saved = true; d.close(); reload(); } catch (e) { toast(errText(e), 'bad'); }
+      try { await api('/api/bait/rules/reset', { method: 'POST', body: JSON.stringify({ fish_zh: r.name_zh }) }); toast('已恢复默认，最多 30 秒生效'); saved = true; d.close(); reload(); } catch (e) { toast(errText(e), 'bad'); }
     }, 'ghost') : null, h('span', { class: 'spacer' }), btn('保存', save, 'primary')],
-    onClose: () => { if (!saved && snapshot() !== initial) toast('修改没有保存', 'bad'); },
+    beforeClose: () => saved || snapshot() === initial || window.confirm('放弃未保存的鱼饵修改？'),
+    isDirty: () => !saved && snapshot() !== initial,
   });
 }
 
 // 只读：这条鱼的习性数据，帮助判断该怎么设置
 function habits(r) {
-  if (!r.diet && !r.layer) return null;
+  if (!r.diet && !r.layer && !r.official?.length && !r.baits?.length && !r.bite_verdict) return null;
   const bars = DIET.map(([k, label]) => {
     const v = (r.diet && r.diet[k]) || 0, gate = k === 'lure' ? 0.3 : 0.25, likes = v >= gate;
     return h('div', { class: 'row', style: { flexWrap: 'nowrap', fontSize: '12.5px' } },
@@ -178,14 +179,16 @@ function habits(r) {
     h('div', { class: 'stack', style: { paddingTop: '12px' } },
       h('div', {}, h('div', { class: 'small text-2', style: { marginBottom: '6px' }, text: r.lure_ok ? '会咬拟饵。' : '不咬拟饵。' }), h('div', { class: 'stack', style: { gap: '5px' } }, bars)),
       h('div', {}, h('div', { class: 'small text-2', style: { marginBottom: '6px' }, text: '活动水层（左边水面，右边水底，白线是最爱的深度）' }), layerBar(r.layer, 320)),
-      (r.baits || []).length ? h('div', { class: 'small muted', text: '实际钓获最多的饵：' + r.baits.slice(0, 8).map((b) => b.bait_id).join('、') }) : null,
+      r.bite_verdict ? h('p', { text: `${r.bite_verdict} · 首选 ${r.bite_ready ?? '—'} · 保底 ${r.bite_fallback ?? '—'} · 不吃 ${r.bite_blocked ?? '—'}` }) : null,
+      r.official?.length ? h('p', { text: '官服占比：' + r.official.map(b => `${b.bait_id} ${b.pct}%`).join('、') }) : null,
+      r.baits?.length ? h('p', { text: '逐饵证据：' + r.baits.map(b => `${b.bait_id}（T${b.tier} / ${b.evidence}）`).join('、') }) : null,
       r.qual_g ? h('div', { class: 'small muted', text: `达标约 ${r.qual_g} g${r.trophy_g ? `，奖杯约 ${r.trophy_g} g` : ''}。` }) : null));
 }
 
 // 选饵：先选类别，再搜具体的饵
 let CATS = null;
 function pickBait(target, onPick) {
-  let cat = 27, sub = 0, q = '';
+  let cat = 0, sub = 0, q = '', generation = 0;
   const results = h('div', { class: 'card', style: { maxHeight: '380px', overflow: 'auto' } });
   const subSel = h('select', { class: 'select', style: { width: '220px' }, onchange: (e) => { sub = Number(e.target.value); load(); } });
   const input = h('input', { class: 'input', placeholder: '搜索饵料名称', oninput: debounce((e) => { q = input.value; load(); }, 250) });
@@ -195,19 +198,21 @@ function pickBait(target, onPick) {
     subSel.disabled = cat <= 0;
   };
   async function load() {
+    const id = ++generation;
     if (cat === -1) {
-      results.replaceChildren(h('div', { class: 'list' }, WILDCARD.map(([name, desc]) => h('div', { class: 'list-item clickable', onclick: () => { close(); onPick(name); } }, h('div', { class: 'grow' }, h('div', { class: 'title', text: name }), h('div', { class: 'sub', text: desc }))))));
+      results.replaceChildren(h('div', { class: 'list' }, WILDCARD.map(([name, desc]) => h('button', { type: 'button', class: 'list-item clickable', onclick: () => { close(); onPick(name); } }, h('span', { class: 'grow' }, h('b', { text: name }), h('small', { class: 'sub', text: desc }))))));
       return;
     }
     results.replaceChildren(h('div', { style: { padding: '12px' } }, loading(3)));
     try {
       const d = await api(`/api/bait/items?limit=200&cat=${cat}&sub=${sub}&q=${encodeURIComponent(q)}`);
+      if (id !== generation) return;
       const rows = d.rows || [];
-      results.replaceChildren(rows.length ? h('div', { class: 'list' }, rows.map((x) => h('div', { class: 'list-item clickable', onclick: () => { close(); onPick(x.name_zh || x.item_id); } },
-        h('div', { class: 'grow' }, h('div', { class: 'title', text: x.name_zh || x.item_id }), h('div', { class: 'sub mono', text: x.item_id })), h('span', { class: 'muted small', text: x.sub_label || '' })))) : empty('没有找到'));
-    } catch (e) { results.replaceChildren(empty('读取失败', errText(e))); }
+      results.replaceChildren(rows.length ? h('div', { class: 'list' }, rows.map((x) => h('button', { type: 'button', class: 'list-item clickable', onclick: () => { close(); onPick(x.name_zh || x.item_id); } },
+        h('span', { class: 'grow' }, h('b', { text: x.name_zh || x.item_id }), h('small', { class: 'sub mono', text: x.item_id })), h('span', { class: 'muted small', text: x.sub_label || '' })))) : empty('没有找到'));
+    } catch (e) { if (id === generation) results.replaceChildren(empty('读取失败', errText(e))); }
   }
-  const seg = segmented([['27', '饵料'], ['17', '拟饵'], ['-1', '一整类']], '27', (v) => { cat = Number(v); sub = 0; input.hidden = cat === -1; subSel.hidden = cat === -1; fillSub(); load(); });
-  const { close } = dialog({ title: `添加到「${target}」`, size: 'lg', body: h('div', { class: 'stack' }, h('div', { class: 'row' }, seg, subSel), input, results) });
+  const seg = segmented([['0', '全部'], ['27', '饵料'], ['17', '拟饵'], ['-1', '一整类']], '0', (v) => { cat = Number(v); sub = 0; input.hidden = cat === -1; subSel.hidden = cat === -1; fillSub(); load(); });
+  const { close } = sidePage({ title: `添加到「${target}」`, nested: true, body: h('div', { class: 'stack' }, h('div', { class: 'row' }, seg, subSel), input, results) });
   (CATS ? Promise.resolve() : api('/api/bait/categories').then((d) => { CATS = d.categories || []; }).catch(() => { CATS = []; })).then(() => { fillSub(); load(); });
 }

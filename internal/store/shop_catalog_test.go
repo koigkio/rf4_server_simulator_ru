@@ -171,6 +171,13 @@ func TestTungusShopAdminAndPurchaseShelvesAgree(t *testing.T) {
 	if err != nil || len(items) != 95 {
 		t.Fatalf("管理后台应保留93件上游商品并补齐两件特产: count=%d err=%v", len(items), err)
 	}
+	if items[0].HasOverride {
+		t.Fatal("fixture: first row must not have an override")
+	}
+	filtered, err := db.ListAdminStoreItemsFiltered(ctx, "tungus_015", "", 1, true)
+	if err != nil || len(filtered) != 1 || filtered[0].ItemID != "tungus_bot" {
+		t.Fatalf("筛选覆盖应早于 limit: %+v, %v", filtered, err)
+	}
 	var totalStock int64
 	for _, row := range items {
 		price, err := db.ShopItemGet(ctx, "tungus_015", row.ItemID)

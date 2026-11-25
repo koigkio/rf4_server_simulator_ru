@@ -1,5 +1,5 @@
 // 跨页面复用的业务组件
-import { h, api, apiList, dialog, debounce, icon, webURL, empty, loading, errText } from './core.js';
+import { h, api, apiList, sidePage, debounce, icon, webURL, empty, loading, errText } from './core.js';
 
 export function itemIcon(id, size = 36) {
   const img = h('img', {
@@ -28,7 +28,7 @@ export function pickItem({ title = '选择物品', completeOnly = false, onPick 
       if (group.value) qs.set('group', group.value);
       const list = await apiList('/api/catalog/items?' + qs);
       if (my !== seq) return;
-      results.replaceChildren(list.length ? h('div', { class: 'list' }, list.map((x) => h('div', {
+      results.replaceChildren(list.length ? h('div', { class: 'list' }, list.map((x) => h('button', {type:'button',
         class: 'list-item clickable', onclick: () => { close(); onPick({ item_id: x.item_id, name: x.name || x.item_id }); },
       }, itemIcon(x.item_id), h('div', { class: 'grow' }, h('div', { class: 'title', text: x.name || x.item_id }), h('div', { class: 'sub mono', text: x.item_id })),
       h('span', { class: 'muted small', text: x.group || x.kind || '' })))) : empty('没有找到', '换个关键词试试。'));
@@ -40,5 +40,5 @@ export function pickItem({ title = '选择物品', completeOnly = false, onPick 
   api('/api/catalog/groups' + (completeOnly ? '?complete_only=1' : '')).then((gs) => {
     for (const g of (Array.isArray(gs) ? gs : gs.groups || [])) group.append(h('option', { value: g.key, text: (g.name || g.key) + (g.count ? `（${g.count}）` : '') }));
   }).catch(() => {});
-  const { close } = dialog({ title, body: h('div', {}, h('div', { class: 'row' }, h('div', { class: 'grow search' }, icon('search'), input), group), results), size: 'lg' });
+  const { close } = sidePage({ title, body: h('div', {}, h('div', { class: 'row' }, h('div', { class: 'grow search' }, icon('search'), input), group), results) });
 }

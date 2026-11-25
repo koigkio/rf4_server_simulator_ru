@@ -1,8 +1,8 @@
 // 商店：货架价格 / 库存。结构照演示页——hero + 二级页签 + 两栏（左表格右信息块）。
-import { h, api, apiList, post, toast, errText, pageHead, pageTabs, work, ib, h2s, h3s, hint, note, brief, kv, pill, empty, btn, Form, setLeaveGuard, setPageCleanup, confirmDialog, fmt, navigate, route, setCrumbTail, setHeroNumbers } from '../core.js';
+import { h, apiList, post, errText, pageHead, work, ib, h2s, h3s, hint, kv, pill, empty, btn, confirmDialog, replaceHash, pushHash, setCrumbTail } from '../core.js';
 
-const plain = (c) => { const v = Number(c || 0) / 100; return (Math.round(v * 100) % 100 === 0 ? String(Math.round(v)) : v.toFixed(2)); };
-const money = (c) => { const v = Number(c || 0) / 100; const digits = Math.round(v * 100) % 100 === 0 ? 0 : 2; return v.toLocaleString('zh-CN', { minimumFractionDigits: digits, maximumFractionDigits: 2 }); };
+const plain = (c) => String(c / 100);
+const effective = (x) => `${plain(x.silver)} 银 / ${plain(x.gold)} 金 / ${x.stock} 件`;
 
 const STORE_KIND = [
   [/^fishing_?store/, '渔具店'], [/^food_?store/, '食品店'], [/^tool_store/, '工具店'], [/^workshop/, '工坊'], [/^boatstation/, '船坞'],
@@ -21,243 +21,213 @@ const ITEM_KIND = [
 ];
 const itemKind = (id) => (ITEM_KIND.find(([re]) => re.test(id || '')) || [null, ''])[1];
 
-const TABS = [
-  { key: 'price', label: '货架价格', href: '#shop/price' },
-  { key: 'stock', label: '库存', href: '#shop/stock' },
-];
+const tabs = { price: '货架价格', stock: '库存' };
+const units = { silver: '银', gold: '金', stock: '件' };
+const fieldName = { silver: '银价', gold: '金币价', stock: '库存' };
+const LIMIT = 2000; // ListAdminStoreItems 先按 q 过滤，再截取 limit；没有 offset。
+const storeLabel = (s) => (s.map_key || s.store_id).replace(/^level_\d+_?/, '') || s.map_key;
+const label = (x) => `${x.name || x.item_id}（${x.item_id}）`;
 
-export default async function shop(params) {
-  const tabKey = params[1] === 'stock' ? 'stock' : 'price';
-  const tab = TABS.find((t) => t.key === tabKey);
-  setCrumbTail(tab.label);
+export default function shop(params, scope) {
+  // 旧控件曾把「店/页签」当成一个参数编码。
+  if (params.length === 1 && /\/(price|stock)$/.test(params[0])) params = params[0].split('/');
+  const tabOnly = params.length === 1 && Object.hasOwn(tabs, params[0]);
+  let tab = (tabOnly ? params[0] : params[1]) === 'stock' ? 'stock' : 'price';
+  let storeId = tabOnly ? '' : params[0]; // 默认店一旦选定，就不能在刷新时换成另一家。
+  setCrumbTail(tabs[tab]);
+  let stores = [], cur, items = [], query = '', water = params[2] || '', changedOnly = false, shown = 50;
+  const hash = (id, tabKey) => '#shop/' + [id, tabKey, water].filter(Boolean).map(encodeURIComponent).join('/');
+  let active = true, busy = false, loading = true, error = '';
+  let generation = 0;
+  // 每份草稿绑定本页的店和商品，不从当前表格位置或可见行反推写入目标。
+  const drafts = new Map();
+  const body = h('div'), aside = h('div'), tabBar = h('div', { id: 'tabs' });
+  const report = h('p', { role: 'status', 'aria-live': 'polite' });
+  scope.setLeaveGuard(() => busy || drafts.size > 0);
+  scope.setPageCleanup(() => { active = false; body.inert = true; });
 
-  const [stores, dash] = await Promise.all([apiList('/api/stores'), api('/api/dashboard').catch(() => ({}))]);
-  const catalogTotal = Number(dash.items || 0);
-  const storeId = params[0] && stores.some((s) => s.store_id === params[0]) ? params[0] : (stores[0] && stores[0].store_id);
-  const cur = stores.find((s) => s.store_id === storeId);
-
-  const body = h('div', {}, empty('读取中…'));
-  const aside = h('div');
-  const tabsEl = pageTabs(TABS.map((t) => [t.key, t.label]), tabKey, (k) => navigate('shop', (storeId ? storeId + '/' : '') + k));
-
-  const form = new Form();
-  setLeaveGuard(() => form.isDirty());
-  setPageCleanup(() => form.reset());
-
-  let items = [];
-
-  const priceCell = (x, field) => {
-    const key = x.item_id + '|' + field;
-    const base = x['base_' + field];
-    const shown = x.has_override ? (field === 'stock' ? String(x[field] ?? '') : plain(x[field])) : '';
-    let f = form.fields.get(key);
-    if (!f) f = form.field({ key, label: field, kind: field === 'stock' ? 'int' : 'float', min: 0 }, shown);
-    const input = h('input', {
-      class: 'input num',
-      type: 'number', min: '0', step: field === 'stock' ? '1' : '0.01',
-      'aria-label': `${x.name || x.item_id}覆盖${field === 'stock' ? '库存' : '价'}`,
-      value: String(f.input ? f.input.value : f.original),
-      placeholder: base == null || base === 0 ? '' : (field === 'stock' ? String(base) : plain(base)),
-      oninput: () => { f.input = input; form.refresh(); },
-    });
-    f.input = input;
-    return h('span', { class: 'unit' }, input, h('i', { text: field === 'stock' ? '件' : '银' }));
+  const readItems = (q, filtered = false) => apiList('/api/stores/items?' + new URLSearchParams({ store_id: cur.store_id, q, limit: LIMIT, ...(filtered ? {overrides_only:'1'} : {}) }));
+  const readItem = async (id) => {
+    const x = (await readItems(id)).find(x => x.store_id === cur.store_id && x.item_id === id);
+    if (!x) throw new Error('未取得该商品，无法核对');
+    return x;
   };
-
-  const saveBtn = btn('核对并保存', async () => {
-    const keys = form.dirtyKeys();
-    if (!keys.length) return;
-    if (!form.validate(keys)) { toast('有填写不正确的项，请检查输入框', 'bad'); return; }
-    saveBtn.disabled = true;
-    try {
-      const touched = new Set(keys.map((k) => k.split('|')[0]));
-      const read = (id, field) => {
-        const f = form.fields.get(id + '|' + field);
-        const raw = f && f.input ? String(f.input.value).trim() : '';
-        if (raw === '') return null;
-        return field === 'stock' ? Math.floor(+raw) : Math.round(+raw * 100);
-      };
-      let saved = 0, reset = 0;
-      for (const id of touched) {
-        const x = items.find((it) => it.item_id === id) || {};
-        const sv = read(id, 'silver'), gv = read(id, 'gold'), stv = read(id, 'stock');
-        if (sv === null && gv === null && stv === null) {
-          await post('/api/stores/items/reset', { store_id: storeId, item_id: id });
-          reset += 1;
-        } else {
-          await post('/api/stores/items/update', {
-            store_id: storeId, item_id: id,
-            silver: sv === null ? (x.silver || 0) : sv,
-            gold: gv === null ? (x.gold || 0) : gv,
-            stock: stv === null ? (x.stock || 0) : stv,
-          });
-          saved += 1;
-        }
-      }
-      toast(`已保存 ${saved} 件` + (reset ? `，${reset} 件恢复默认` : ''));
-      form.commit(form.values(keys));
-      setTimeout(() => { form.reset(); redraw(); }, 120);
-    } catch (e) {
-      toast(errText(e), 'bad');
-    } finally {
-      saveBtn.disabled = false;
-    }
-  }, 'primary');
-  saveBtn.disabled = true;
-
-  const actions = h('footer', { class: 'actions' },
-    btn('放弃修改', () => { form.reset(); redraw(); }, 'ghost'),
-    saveBtn);
-
-  const syncActions = () => { saveBtn.disabled = !form.isDirty(); };
-  form.onChange = syncActions;
-
-  function tableEl() {
-    const isPrice = tabKey === 'price';
-    const head = isPrice
-      ? ['物品', '类别', ['基础价', 'num'], ['覆盖价', 'num'], '状态', ['', 'num']]
-      : ['物品', '类别', ['默认库存', 'num'], ['覆盖库存', 'num'], '状态', ['', 'num']];
-    const rows = items.map((x) => {
-      const kind = itemKind(x.item_id);
-      const tds = [
-        h('td', {}, h('span', { class: 'ic', text: (x.name || x.item_id || '?').slice(0, 1) }), h('b', { text: x.name || x.item_id }), h('div', { class: 'mono', text: x.item_id })),
-        h('td', { text: kind || '—' }),
-      ];
-      if (isPrice) {
-        tds.push(h('td', { class: 'num', text: money(x.base_silver) + (x.base_gold ? ' / ' + money(x.base_gold) : '') }));
-        tds.push(h('td', { class: 'num' }, priceCell(x, 'silver'), x.base_gold ? priceCell(x, 'gold') : null));
-      } else {
-        tds.push(h('td', { class: 'num', text: x.base_stock == null ? '—' : String(x.base_stock) }));
-        tds.push(h('td', { class: 'num' }, priceCell(x, 'stock')));
-      }
-      tds.push(h('td', {}, pill(x.has_override ? '覆盖' : '默认', x.has_override ? 'ok' : '')));
-      tds.push(h('td', { class: 'num' }, x.has_override
-        ? btn('恢复默认', async () => {
-          if (!(await confirmDialog({ title: `把「${x.name || x.item_id}」恢复默认？`, desc: '价格和库存回到游戏自带的数值。', confirm: '恢复' }))) return;
-          try { await post('/api/stores/items/reset', { store_id: storeId, item_id: x.item_id }); toast('已恢复默认'); form.reset(); reload(); } catch (e) { toast(errText(e), 'bad'); }
-        }, 'ghost')
-        : h('span', { class: 'hint', style: { margin: '0' }, text: '—' })));
-      return h('tr', {}, tds);
-    });
-    if (!rows.length) rows.push(h('tr', {}, h('td', { colspan: '6' }, empty('这家店还没登记商品', '服务端只给每个水域商店登记了少量基础货架。'))));
-    return h('div', { class: 'tbl shop' }, h('table', {}, h('thead', {}, h('tr', {}, head.map((c) => {
-      const [label, cls] = Array.isArray(c) ? c : [c, ''];
-      return h('th', { class: cls || null, text: label });
-    }))), h('tbody', {}, ...rows)));
+  function follow(e, action) {
+    if (e.ctrlKey || e.metaKey || e.shiftKey || e.altKey || e.button !== 0) return;
+    e.preventDefault(); action();
   }
-
-  const storeLabel = (s) => (s.map_key ? s.map_key.replace(/^level_\d+_?/, '') || s.map_key : s.store_id);
-  // 205 家商店排成按钮墙看不清，这里按类别分组的下拉，一行就够。
-  function pickerEl() {
-    const groups = new Map();
-    stores.slice().sort((a, b) => {
-      const ka = storeKind(a.store_id); const kb = storeKind(b.store_id);
-      return ka === kb ? a.store_id.localeCompare(b.store_id) : ka.localeCompare(kb);
-    }).forEach((s) => {
-      const k = storeKind(s.store_id);
-      if (!groups.has(k)) groups.set(k, []);
-      groups.get(k).push(s);
-    });
-    const sel = h('select', {
-      id: 'storeSel', style: { width: '300px', maxWidth: '46vw' },
-      onchange: (e) => navigate('shop', e.target.value + '/' + tabKey),
-    }, ...[...groups.entries()].map(([k, list]) => h('optgroup', { label: `${k}（${list.length}）` },
-      ...list.map((s) => h('option', { value: s.store_id, selected: s.store_id === storeId },
-        `${storeLabel(s)} · ${s.item_count || 0} 件`)))));
-    return h('div', { class: 'storebar', style: { display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap', margin: '0 0 14px' } },
-      h('span', { class: 'lab', style: { fontSize: '12.4px', color: 'var(--muted)' }, text: '商店' }),
-      sel,
-      cur ? h('span', { class: 'hint', style: { margin: '0' }, text: `${storeKind(cur.store_id)} · ${storeLabel(cur)} · ${items.length} 件商品` }) : null,
-      h('span', { style: { flex: '1 1 auto' } }),
-      btn('刷新', () => reload(), 'ghost'));
+  function selectStore(id) {
+    if (busy || !id || id === storeId) return;
+    if (drafts.size && !window.confirm('切换店铺会放弃未保存的修改，确定切换吗？')) return;
+    drafts.clear(); storeId = id; cur = stores.find(s => s.store_id === id);
+    report.textContent = ''; shown = 50;
+    pushHash(hash(id, tab)); syncNavigation(); drawAside(); reload();
   }
-
-  function redraw() {
-    const overrides = items.filter((x) => x.has_override).length;
-    const isPrice = tabKey === 'price';
-    body.replaceChildren(
-      h2s(isPrice ? '货架价格' : '库存'),
-      hint(isPrice
-        ? '覆盖价留空 = 按基础价走；金币区商品只按金币计价。改完玩家刷新商店就看到。'
-        : '覆盖库存留空 = 按默认库存走；填 0 表示这个店卖光了。', { margin: '0 0 10px' }),
-      note('为什么看起来商品很少：', `物品目录里有 ${fmt(catalogTotal)} 件可上架物品，但服务端给每个水域商店只登记了 1–3 件（基础货架），所以这里每店只列得出几条。这是真服现状，不是没加载出来。`, { margin: '0 0 14px' }),
-      brief([[stores.length, '商店'], [items.length, '本店商品'], [overrides, '本店覆盖'], [catalogTotal, '目录物品']]),
-      pickerEl(),
-      tableEl(),
-      actions,
-      storesBlock(),
-    );
-    introAside();
-    syncActions();
+  const waterSelect = h('select', { 'aria-label': '按水域定位店铺', onchange: e => {
+    water = e.target.value;
+    if (storeId) replaceHash(hash(storeId, tab));
+    syncStores(); syncNavigation();
+  } });
+  const storeSelect = h('select', { id: 'storeSel', onchange: e => {
+    const id = e.target.value; e.target.value = cur?.store_id || ''; selectStore(id);
+  } });
+  const picker = h('div', { class:'storebar' }, h('label', {}, '水域 ', waterSelect), h('label', {}, ' 当前商店 ', storeSelect));
+  function syncStores() {
+    const options = stores.filter(s => !water || s.map_key === water);
+    waterSelect.replaceChildren(h('option', {value:''}, '全部水域'), ...[...new Set(stores.map(s => s.map_key).filter(Boolean))].sort().map(k => h('option', {value:k}, k)));
+    waterSelect.value = water;
+    storeSelect.replaceChildren(h('option', {value:''}, '请选择店铺'),
+      ...(cur && !options.includes(cur) ? [h('option', {value:cur.store_id}, `${cur.store_id}（当前编辑，不在所选水域）`)] : []),
+      ...options.map(s => h('option', {value:s.store_id}, `${storeKind(s.store_id)} · ${storeLabel(s)} · ${s.store_id}`)));
+    listSlot.replaceChildren(storesBlock());
   }
-
-  function storeName(s) {
-    const key = String(s.map_key || '').replace(/^level_\d+_?/, '').replace(/[_-]+/g, ' ').trim();
-    return key || s.store_id;
-  }
-
-  // 205 家商店在右栏只能看前 8 家，放到主栏下面完整列出，能滚。
   function storesBlock() {
-    const sorted = stores.slice().sort((a, b) => {
-      const ka = storeKind(a.store_id); const kb = storeKind(b.store_id);
-      return ka === kb ? a.store_id.localeCompare(b.store_id) : ka.localeCompare(kb);
-    });
-    const rows = sorted.map((s) => h('tr', { class: s.store_id === storeId ? 'on' : null, style: { cursor: 'pointer' }, onclick: () => navigate('shop', s.store_id + '/' + tabKey) },
-      h('td', {}, h('b', { text: storeName(s) }), h('div', { class: 'mono', text: s.store_id })),
-      h('td', { class: 'dim', text: storeKind(s.store_id) }),
-      h('td', { class: 'num', text: String(s.item_count || 0) }),
-      h('td', { class: 'num', text: s.override_count ? String(s.override_count) : '—' })));
-    return h('div', {},
-      h3s(`全部商店（${stores.length} 家）`),
-      hint('点一行切到那家店。件数是这家的货架条目数，覆盖是你改过的条目数。', { margin: '0 0 8px' }),
-      h('div', { class: 'tbl shops' }, h('table', {},
-        h('thead', {}, h('tr', {}, h('th', { text: '商店' }), h('th', { text: '类别' }), h('th', { class: 'num', text: '件' }), h('th', { class: 'num', text: '覆盖' }))),
-        h('tbody', {}, ...rows))));
+    const rows = stores.filter(s => !water || s.map_key === water);
+    return h('div', {}, h3s(`店铺列表（${rows.length} 家）`), h('div', { class: 'tbl shops' }, h('table', {},
+      h('thead', {}, h('tr', {}, ['店铺', '水域', '商品', '覆盖'].map(t => h('th', {}, t)))),
+      h('tbody', {}, rows.map(s => h('tr', { dataset:{store:s.store_id}, onclick: e => { if (!e.target.closest('a')) selectStore(s.store_id); } },
+        h('td', {}, h('a', { href: hash(s.store_id, tab), onclick:e => follow(e, () => selectStore(s.store_id)) }, s.store_id)),
+        h('td', {}, storeLabel(s)), h('td', {}, s.item_count), h('td', {}, s.override_count)))))));
   }
 
-  function introAside() {
-    const overrides = items.filter((x) => x.has_override).length;
-    const effRows = items.map((x) => h('div', {},
-      h('dt', { text: x.name || x.item_id }),
-      h('dd', { text: money(x.silver) + ' 银' + (x.gold ? ' / ' + money(x.gold) + ' 金' : '') })));
-    const kind = cur ? storeKind(cur.store_id) : '';
-    const sameKind = stores.filter((x) => storeKind(x.store_id) === kind);
-    const totalItems = sameKind.reduce((n, x) => n + (x.item_count || 0), 0);
-    const totalOver = sameKind.reduce((n, x) => n + (x.override_count || 0), 0);
-    const missing = sameKind.filter((x) => !x.item_count).length;
-    aside.replaceChildren(
-      ib('这家店', cur ? storeKind(cur.store_id) + (cur.map_key ? ' · ' + storeName(cur) : '') : '未选择商店',
-        kv([['货架条目', String(items.length)], ['覆盖条目', String(overrides)], ['店 ID', storeId || '—']]),
-        h3s('当前生效'),
-        effRows.length ? h('dl', {}, ...effRows) : hint('这家店还没有商品。', { margin: '0' })),
-      ib('同类商店', kind || null,
-        kv([['店数', String(sameKind.length)], ['条目合计', String(totalItems)], ['覆盖合计', String(totalOver)], ['空货架', String(missing)]]),
-        hint('「全部商店」的完整列表在主栏下面，能滚。', { margin: '10px 0 0' })),
-      ib('为什么商品这么少', null,
-        hint(`物品目录 ${fmt(catalogTotal)} 件，但每个店只登记 1–3 件基础货架。没登记的店在游戏里是空的。`, { margin: '0' })),
-    );
+  const save = btn('核对并保存', () => write(), 'primary');
+  function syncSave() {
+    save.disabled = busy || loading || !!error || !drafts.size;
+    save.textContent = drafts.size ? `核对并保存（${drafts.size} 件）` : '核对并保存';
+  }
+  const display = (field, n) => field === 'stock' ? String(n) : plain(n);
+  function cell(x, field) {
+    const id = x.item_id, original = x.has_override ? display(field, x[field]) : '';
+    const input = h('input', { class: 'input num', type: 'number', min: 0, step: field === 'stock' ? 1 : '0.01',
+      'aria-label': `${x.name || id}覆盖${fieldName[field]}`, value: drafts.get(id)?.fields[field]?.raw ?? original,
+      placeholder: display(field, x['base_' + field]), oninput: () => {
+        const draft = drafts.get(id) || { name: label(x), fields: {} };
+        if (input.validity.valid && input.value === original) delete draft.fields[field];
+        else draft.fields[field] = { raw: input.value, valid: input.validity.valid };
+        if (Object.keys(draft.fields).length) drafts.set(id, draft); else drafts.delete(id);
+        syncSave();
+      } });
+    return h('span', { class: 'unit' }, input, h('i', {}, units[field]));
+  }
+  function table() {
+    const rows = items, price = tab === 'price';
+    return h('div', {}, hint(`本次查询显示 ${Math.min(shown, rows.length)} / ${rows.length} 件` + (items.length === LIMIT ? `；接口最多返回 ${LIMIT} 件，请缩小商品搜索范围。` : '')),
+      h('div', { class: 'tbl shop' }, h('table', {},
+        h('thead', {}, h('tr', {}, ['商品', '基础值', price ? '覆盖价格' : '覆盖库存', '当前生效', '操作'].map(t => h('th', {}, t)))),
+        h('tbody', {}, rows.slice(0, shown).map(x => h('tr', {},
+          h('td', {}, h('b', {}, x.name || x.item_id), h('div', { class: 'mono' }, x.item_id), itemKind(x.item_id)),
+          h('td', { class: 'num' }, price ? `${plain(x.base_silver)} 银 / ${plain(x.base_gold)} 金` : `${x.base_stock} 件`),
+          h('td', { class: 'num' }, price ? [cell(x, 'silver'), cell(x, 'gold')] : cell(x, 'stock')),
+          h('td', {}, pill(x.has_override ? '覆盖' : '默认', x.has_override ? 'ok' : ''), h('div', {}, effective(x))),
+          h('td', {}, x.has_override ? btn('恢复默认', () => write(x), 'ghost') : '—')))))),
+      !rows.length ? empty('没有匹配的商品') : null,
+      rows.length > shown ? btn('显示更多', () => { shown += 50; drawShelf(); }, 'ghost') : null);
   }
 
-  async function reload() {
+  async function write(resetItem) {
+    if (!active || busy || loading || error) return;
+    const batch = resetItem ? [[resetItem.item_id, { name: label(resetItem) }]] : [...drafts];
+    if (!batch.length) return;
+    if (!resetItem && batch.some(([,d]) => Object.entries(d.fields).some(([k,v]) => !v.valid || (v.raw !== '' && !Number.isSafeInteger(Math.round(Number(v.raw) * (k === 'stock' ? 1 : 100))))))) {
+      report.textContent = '有无效数值：库存须为非负整数，价格最多两位小数。'; return;
+    }
+    busy = true; body.inert = true;
     try {
-      items = await apiList('/api/stores/items?limit=1000&store_id=' + encodeURIComponent(storeId) + '&q=');
-      setHeroNumbers([
-        [stores.length, '商店'],
-        [items.length, '本店商品'],
-        [items.filter((x) => x.has_override).length, '覆盖'],
-        [catalogTotal, '目录物品'],
-      ]);
-      redraw();
-    } catch (e) {
-      body.replaceChildren(h2s(tab.label), empty('读取失败', errText(e)));
+      const ok = await confirmDialog({ title: resetItem ? `恢复「${label(resetItem)}」的整件覆盖？` : `保存 ${batch.length} 件商品？`,
+        desc: `${cur.store_id}：` + (resetItem ? '同时恢复银价、金币价和库存，并放弃这件商品的草稿。其他商品不变。'
+          : batch.map(([,d]) => d.name + '：' + Object.entries(d.fields).map(([k,v]) => `${fieldName[k]} ${v.raw === '' ? '取当前基础值' : v.raw + units[k]}`).join('、')).join('；') + '。按整件保存，未编辑项取当前生效值，不支持单项动态继承。'),
+        confirm: resetItem ? '恢复' : '保存' });
+      if (!ok || !active) return;
+      const saved = [], failed = [];
+      for (const [id, draft] of batch) {
+        if (!active) break;
+        const target = { store_id: cur.store_id, item_id: id };
+        try {
+          if (resetItem) await post('/api/stores/items/reset', target);
+          else {
+            // 接口只能写整行。核对同店同 ID 的最新生效值，不能从可见表格补 0。
+            const x = await readItem(id);
+            if (!active) break;
+            for (const field of Object.keys(units)) {
+              const edit = draft.fields[field];
+              target[field] = !edit ? x[field] : edit.raw === '' ? x['base_' + field] : Math.round(Number(edit.raw) * (field === 'stock' ? 1 : 100));
+            }
+            await post('/api/stores/items/update', target);
+          }
+          drafts.delete(id);
+          try { const x = await readItem(id); saved.push(`${draft.name}：${effective(x)}（${x.has_override ? '覆盖' : '默认'}）`); }
+          catch (e) { saved.push(`${draft.name}：已写入，回读失败（${errText(e)}）`); }
+        } catch (e) { failed.push(`${draft.name}：${errText(e)}`); }
+      }
+      report.textContent = [saved.length && '成功：' + saved.join('；') + '（立即生效）', failed.length && '待重试：' + failed.join('；')].filter(Boolean).join('。');
+      if (active) await reload(true);
+    } finally { busy = false; body.inert = !active; syncSave(); }
+  }
+
+  const heading = h2s(tabs[tab]), shelf = h('div'), listSlot = h('div');
+  const progress = h('span', {class:'hint', role:'status'});
+  const search = h('input', {type:'search', 'aria-label':'搜索商品名称或 ID', placeholder:'商品名称或 ID'});
+  const form = h('form', {class:'actions shop-filters', onsubmit:e => {
+    e.preventDefault(); if (busy || !cur) return;
+    query = search.value.trim(); shown = 50; reload();
+  }}, search, h('button', {class:'ghost', type:'submit'}, '查询'),
+    h('label', {}, h('input', {type:'checkbox', onchange:e => { changedOnly = e.target.checked; shown = 50; reload(); }}), '只看改过的'),
+    btn('刷新', () => { if (!busy && !loading) reload(true); }, 'ghost'), progress);
+  const footer = h('footer', {class:'actions'}, hint('货架价格和库存保存后立即生效。'),
+    btn('放弃修改', () => { drafts.clear(); report.textContent = ''; drawShelf(); }, 'ghost'), save);
+  const links = Object.entries(tabs).map(([k,t]) => h('a', {href:hash(storeId,k), dataset:{tab:k}, onclick:e => follow(e, () => {
+    if (busy || k === tab) return;
+    tab = k; pushHash(hash(storeId,tab)); setCrumbTail(t); syncNavigation();
+    if (!loading) drawShelf();
+  })}, t));
+  tabBar.append(h('nav', {class:'tabs','aria-label':'二级分类'}, links));
+  body.append(heading, picker, form, report, shelf, footer, listSlot);
+  function syncNavigation() {
+    heading.textContent = tabs[tab]; storeSelect.value = cur?.store_id || '';
+    for (const link of links) {
+      link.href = hash(storeId,link.dataset.tab);
+      if (link.dataset.tab === tab) link.setAttribute('aria-current','page'); else link.removeAttribute('aria-current');
+    }
+    for (const row of listSlot.querySelectorAll('tr[data-store]')) {
+      row.classList.toggle('on', row.dataset.store === storeId); row.querySelector('a').href = hash(row.dataset.store,tab);
+    }
+    form.hidden = footer.hidden = !cur;
+  }
+  function drawShelf() {
+    if (!active || loading) return;
+    shelf.replaceChildren(error ? h('div', {role:'alert'}, empty('读取失败', error), btn('重试读取', () => reload(true), 'ghost')) : cur ? table() : empty('请选择有效店铺', storeId ? `找不到店铺：${storeId}` : '未登记店铺'));
+    syncSave();
+  }
+  function drawAside() {
+    aside.replaceChildren(ib('正在编辑', cur ? `${storeKind(cur.store_id)} · ${storeLabel(cur)}` : '未选择商店', kv([['店 ID', cur?.store_id || '—'], ['货架条目', cur?.item_count ?? '—'], ['整件覆盖', cur?.override_count ?? '—']]),
+      hint('没有整件覆盖时按默认值。保存任一项会同时写入银价、金币价和库存；清空已填项取当前基础值，不会随基础值变化。要重新继承请恢复整件。'),
+      hint('填 0 是显式覆盖。库存为 0 时服务端会补至 1000 件，以回读值为准。')));
+  }
+
+  async function reload(refreshStores = false) {
+    const id = ++generation;
+    loading = true; error = ''; shelf.inert = true; shelf.setAttribute('aria-busy','true');
+    progress.textContent = '正在读取货架…'; syncSave();
+    try {
+      if (refreshStores || !stores.length) {
+        const list = await apiList('/api/stores');
+        if (!active || id !== generation) return;
+        storeId ||= list[0]?.store_id;
+        stores = list; cur = stores.find(s => s.store_id === storeId);
+        if (water && !stores.some(s => s.map_key === water)) water = '';
+        if (cur && location.hash !== hash(storeId, tab)) replaceHash(hash(storeId, tab));
+        syncStores(); syncNavigation(); drawAside();
+      }
+      const result = cur ? await readItems(query, changedOnly) : [];
+      if (active && id === generation) items = result;
+    } catch (e) { if (active && id === generation) error = errText(e); }
+    finally {
+      if (active && id === generation) {
+        loading = false; progress.textContent = ''; shelf.inert = false; shelf.removeAttribute('aria-busy'); drawShelf();
+      }
     }
   }
-
-  await reload();
-  return [
-    pageHead('商店与库存', '按商店改覆盖价与覆盖库存；没有覆盖的行按基础价走，随时可以恢复默认。',
-      { facts: [['生效', '保存后约 30 秒'], ['作用范围', '当前商店'], ['要重登', '不需要'], ['上次保存', '—']] }),
-    tabsEl,
-    work(body, aside),
-  ];
+  syncNavigation(); shelf.append(empty('读取中…'));
+  reload();
+  return [pageHead('商店与库存', '按商店查看、调整商品价格和库存。', { facts: [['作用范围', '当前商店'], ['恢复范围', '整件商品']] }), tabBar, work(body, aside)];
 }

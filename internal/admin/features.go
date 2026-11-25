@@ -210,8 +210,8 @@ func (s *Server) handleStores(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) handleStoreItems(w http.ResponseWriter, r *http.Request) {
 	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
-	rows, err := s.db.ListAdminStoreItems(r.Context(), r.URL.Query().Get("store_id"),
-		r.URL.Query().Get("q"), limit)
+	q := r.URL.Query()
+	rows, err := s.db.ListAdminStoreItemsFiltered(r.Context(), q.Get("store_id"), q.Get("q"), limit, q.Get("overrides_only") == "1")
 	if err != nil {
 		httpError(w, 400, err.Error())
 		return

@@ -3,7 +3,7 @@
 // 坐标换算与 docs/fish-query-coordinates.md 同源：
 //   图像像素 = (世界 - 原点) × scale + offset（Z 轴从图片底部往上量，需要翻转）
 //   网格 = floor(世界 / 40)；游戏里看到的坐标 = (世界 - 显示原点) / 5
-import { h, api, apiList, post, toast, errText, badge, btn, empty, svg, confirmDialog, callout, setLeaveGuard, segmented, toggleEl, webURL } from '../core.js';
+import { h, api, apiList, post, toast, errText, badge, btn, empty, svg, confirmDialog, callout, segmented, toggleEl, webURL } from '../core.js';
 
 const CELL = 40;
 const SIZE = 2048;
@@ -28,7 +28,7 @@ const TOOLS = [
   ['pan', '移动地图', 'H', '拖动地图。滚轮随时可以缩放。'],
 ];
 
-export function zonesEditor({ area, zones, roster }) {
+export function zonesEditor({ area, zones, roster }, scope) {
   const loc = area.loc;
   const kind = area.map_kind || 'none';
   const cal = area.calibration && area.calibration.paper ? area.calibration : null;
@@ -39,7 +39,7 @@ export function zonesEditor({ area, zones, roster }) {
     tool: 'rect', erase: false, view: { tx: 0, ty: 0, k: 1 }, fitted: false, imgOk: false,
     draft: null, stroke: null, pin: null, down: null,
   };
-  setLeaveGuard(() => S.dirty);
+  scope.setLeaveGuard(() => S.dirty);
 
   // ---------- 坐标 ----------
   const P = cal && cal.paper;
@@ -521,7 +521,7 @@ export function zonesEditor({ area, zones, roster }) {
         sec('名称', refs.name),
         sec('范围', range),
         sec('出鱼方式', segmented([['exclusive', '独占'], ['boost', '增益']], z.mode, (v) => { z.mode = v; touch(); drawMode(); drawChosen(); }), modeHelp, modeParams),
-        sec('区内的鱼', chosen, picker)),
+        sec('区内的鱼', chosen, picker), h('p', {class:'hint', text:'区域保存后最多 30 秒生效。'})),
       h('div', { class: 'zside-foot' },
         isNew ? null : btn('删除', () => removeZone(z), 'danger sm', { icon: 'trash' }),
         h('span', { class: 'spacer' }),
