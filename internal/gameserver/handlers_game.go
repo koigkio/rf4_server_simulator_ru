@@ -1760,6 +1760,8 @@ func hFishingLoad(ctx *Ctx) ([]byte, bool) {
 	// 磨损按官服帧节奏中途落库并经 Push4_22Trees 下发裸部件子树。
 	// 严禁在这里做全量 4/22 同步——全量会重建鱼实体，打断冲刺与体力阶段。
 	ctx.Sess.Srv.recordFightReelLoad(ctx)
+	// 咬断线组以 14/8 为节拍：鱼在挣扎时按官方概率掷骰，命中即断组。
+	ctx.Sess.Srv.maybeBiteOff(ctx)
 	return nil, true
 }
 

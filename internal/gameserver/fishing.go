@@ -144,6 +144,12 @@ type FishState struct {
 	// 不缓存就等于每个搏鱼玩家每 2 秒一次单行查询；菜单改设置时清掉重读。
 	staminaFlagCached bool
 	staminaFlagOn     bool
+	// 仅进程内：咬断线组的冲刺窗口状态。biteOffLastStamina 是上一条 14/8 的
+	// 鱼剩余体力，降幅 > 0 说明这尾鱼在挣扎（见 bite_off.go 顶部说明）；
+	// biteOffRollAt 是上次掷骰的时刻，用来限制冲刺判定频率。
+	biteOffSeen        bool
+	biteOffLastStamina float64
+	biteOffRollAt      time.Time
 }
 
 // effectiveBaitDepthCMLocked 返回当前有效饵深。手杆从落水开始按固定

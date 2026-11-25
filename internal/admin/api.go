@@ -471,6 +471,36 @@ func (s *Server) handleTunableSet(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
+	if strings.HasPrefix(req.Key, "bite_off_") {
+		switch req.Key {
+		case "bite_off_enabled":
+			if req.Value != "0" && req.Value != "1" {
+				httpError(w, 400, "咬断线组开关只能为 0 或 1")
+				return
+			}
+		case "bite_off_species":
+			// 空串表示整层关闭；其余按逗号分隔的鱼种 key 存，不做白名单校验
+			// （越界 key 只会在运行时永不命中，不影响其他鱼种）。
+		default:
+			v, err := strconv.ParseFloat(strings.TrimSpace(req.Value), 64)
+			if err != nil || math.IsNaN(v) || math.IsInf(v, 0) || v < 0 {
+				httpError(w, 400, "咬断线组参数必须是非负数字")
+				return
+			}
+			switch req.Key {
+			case "bite_off_over_pct", "bite_off_under_pct":
+				if v > 100 {
+					httpError(w, 400, "咬断概率必须在 0 ~ 100 之间")
+					return
+				}
+			case "bite_off_sprint_seconds":
+				if v < 1 || v > 120 {
+					httpError(w, 400, "冲刺判定间隔必须在 1 ~ 120 秒之间")
+					return
+				}
+			}
+		}
+	}
 	if strings.HasPrefix(req.Key, "skill_gain_pct_") {
 		v, err := strconv.ParseFloat(strings.TrimSpace(req.Value), 64)
 		if err != nil || math.IsNaN(v) || math.IsInf(v, 0) || v < 0 || v > 100 {
