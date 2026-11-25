@@ -26,18 +26,22 @@ type fishRollContext struct {
 	lureAction string
 	lureMask   uint32
 	lureSpeed  int64
-	weather    fishingWeather
-	rigType    int64
-	happyBite  float64
-	onBoat     bool
-	boatKnown  bool
-	biteRoll   func() float64
-	cache      *fishingRollCache
-	skill      fishingSkillBonus
-	spotEnv    fishSpotEnvironment
-	runtime    *fishRollRuntime
-	hook       gearPhysicsSpec
-	query      *fishQueryCapture
+	// marineLayer 是海钓状态机输出的相对水层（0=水面，0.93=贴底）。
+	// marineLayerKnown=false 表示该路径没有 14/7 序列（查鱼/声呐），回退旧口径。
+	marineLayer      float64
+	marineLayerKnown bool
+	weather          fishingWeather
+	rigType          int64
+	happyBite        float64
+	onBoat           bool
+	boatKnown        bool
+	biteRoll         func() float64
+	cache            *fishingRollCache
+	skill            fishingSkillBonus
+	spotEnv          fishSpotEnvironment
+	runtime          *fishRollRuntime
+	hook             gearPhysicsSpec
+	query            *fishQueryCapture
 	// gateBlocked 由 rollFishWithRules 挂指针：硬性鱼口门把本图名册剔空时置位，
 	// 调用方据此跳过内置鱼池兜底——门拦下的杆就该空竿重排，不能从鱼池
 	// 捞出不属于本图的鱼。指针随值拷贝存活。
@@ -48,6 +52,10 @@ type fishRollContext struct {
 	// 只放宽环境类因素（分布散布归零→0.15、水层地板≥0.05），
 	// 食性硬门（G1 拟饵×非掠食鱼、明确禁饵）不放宽。
 	pityEnv bool
+	// paceOn 是饵效控速的路亚逐钩判定开关：rollFishForRig 在逐钩循环里
+	// 直接用当前钩位的饵实时算复合档位与开口率，第一口命中即停、其它钩位
+	// 跳过——与关闭 pace 时「每钩独立判鱼、哪口先上算哪口」同一条循环。
+	paceOn bool
 }
 
 type fishRollAudit struct {
@@ -59,6 +67,9 @@ type fishRollAudit struct {
 type fishRollRuntime struct {
 	lure      lureAttributes
 	lureKnown bool
+	// lureBaitsKey 是 lure 对应的饵集合。多钩逐钩循环会换 c.baits，
+	// 只有集合变了才重新解析，避免把上一钩位的主导拟饵属性带过来。
+	lureBaitsKey string
 	// levelChecked 保证一次判鱼只解析一次地点与海图区号。
 	levelChecked bool
 	// chartKnown 表示该地点有没有海图，zoneKnown 表示是否定位到声呐网格。

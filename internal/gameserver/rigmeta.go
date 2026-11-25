@@ -256,13 +256,21 @@ func (s *Server) lureActiveHookGUID(ctx context.Context, lureGUID string) string
 	return ""
 }
 
+// marineLureRig 海钓拟饵族（rig 50-54）。这族的主饵在 17 类拟饵槽；
+// 杆上还能挂 27 类天然饵当吸引成分，它不是钩上饵，不能参与咬钩判鱼。
+func marineLureRig(rigType int64) bool { return rigType >= 50 && rigType <= 54 }
+
 // currentBait 返回当前钩上或拟饵位的 item_id，用于选择鱼种。
 // 优先读取饵品类 27，其次读取拟饵品类 17；item_id 为空时按 numeric_id 反查定义。
 func (s *Server) currentBait(ctx context.Context, rodGUID string) string {
 	if rodGUID == "" {
 		return ""
 	}
-	for _, cat := range []int64{27, 17} {
+	cats := []int64{27, 17}
+	if marineLureRig(s.rigTypeForWrite(ctx, rodGUID)) {
+		cats = []int64{17}
+	}
+	for _, cat := range cats {
 		g := s.rigComponentGuidOf(ctx, rodGUID, cat)
 		if g == "" {
 			continue
@@ -282,9 +290,14 @@ func (s *Server) currentBait(ctx context.Context, rodGUID string) string {
 }
 
 // currentBaits 按槽序读取全部钩上饵；没有天然饵时再读取拟饵。
+// 海钓拟饵族（rig 50-54）的 27 类天然饵只是吸引成分，这里只读拟饵槽。
 func (s *Server) currentBaits(ctx context.Context, rodGUID string) []string {
 	comps := s.storedRigComponents(ctx, rodGUID)
-	for _, category := range []int64{27, 17} {
+	categories := []int64{27, 17}
+	if marineLureRig(s.rigTypeForWrite(ctx, rodGUID)) {
+		categories = []int64{17}
+	}
+	for _, category := range categories {
 		var ids []string
 		for _, key := range rigCompKeysOfCategory(comps, category) {
 			row, err := s.DB.GetItemByGUID(ctx, comps[key].GUID)

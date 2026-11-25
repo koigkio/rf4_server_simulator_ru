@@ -252,6 +252,13 @@ func (s *Server) rollExtraFishForRig(ctx context.Context, uid int64, gearGUID, l
 		if !s.applyBaitedHookSpec(ctx, group, &selected) {
 			continue
 		}
+		// 与主鱼同口径：海钓拟饵族只拿真实拟饵判鱼。钩位上只有天然饵或
+		// 彩珠/发光管时不出鱼，避免用装饰饵触发咬口、BaitItem 与实际扣饵
+		// 对象对不上。
+		baits := s.rollBaitsForGroup(ctx, c, group, c.rigType)
+		if len(baits) == 0 {
+			continue
+		}
 		capKg, ok := extraFishCapKg(cfg, budget, usedKg, outKg, len(out)+1)
 		if !ok {
 			break
@@ -260,15 +267,21 @@ func (s *Server) rollExtraFishForRig(ctx context.Context, uid int64, gearGUID, l
 			capKg = own
 		}
 		cc := c
-		cc.baits = group.baits
+		cc.baits = baits
 		cc.hook = selected
-		f := s.rollFishWithRules(loc, group.baits[0], capKg, bonus, cc)
+		// 路亚族的饵效控速在主鱼路径按钩位实时判定，额外鱼也必须同口径；
+		// 否则这一钩会绕过 pace 直接出鱼。
+		if cc.paceOn && !s.paceHookBiteHits(ctx, cc, baits) {
+			continue
+		}
+		f := s.rollFishWithRules(loc, baits[0], capKg, bonus, cc)
 		if f == nil {
 			continue
 		}
 		f.HookGUID = group.hookGUID
 		f.GearGUID = gearGUID
 		f.BaitGUIDs = strings.Join(group.baitGUIDs, " ")
+		f.BaitItem = baits[0]
 		f.BaitsKnown = true
 		// 同一杆、同一水层：咬口条件沿用主鱼快照，避免多算一次天气/船位。
 		f.HappyHour, f.HappyHourKnown = primary.HappyHour, primary.HappyHourKnown

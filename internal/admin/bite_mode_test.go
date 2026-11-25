@@ -61,11 +61,11 @@ func TestBiteModeEndpoint(t *testing.T) {
 	if code, out := call("GET", "/api/fish/bite_mode", ""); code != 200 || out["mode"] != "legacy" {
 		t.Fatalf("initial mode: %d %v", code, out)
 	}
-	// 切到官方鱼汛：五个开关全部为 1。
+	// 切到官方鱼汛：六个开关全部为 1。
 	if code, out := call("POST", "/api/fish/bite_mode", `{"mode":"realistic"}`); code != 200 || out["mode"] != "realistic" {
 		t.Fatalf("set realistic: %d %v", code, out)
 	}
-	for _, key := range []string{"bite_gate_enabled", "fish_ecology_enabled", "fish_weather_enabled", "fish_bait_rules_enabled", "fish_distribution_enabled"} {
+	for _, key := range []string{"bite_gate_enabled", "fish_ecology_enabled", "fish_weather_enabled", "fish_bait_rules_enabled", "fish_distribution_enabled", "marine_layer_enabled"} {
 		var v string
 		if err := db.SQL.QueryRow(`SELECT value FROM tunables WHERE key=?`, key).Scan(&v); err != nil || v != "1" {
 			t.Fatalf("%s=%v err=%v", key, v, err)
@@ -81,7 +81,7 @@ func TestBiteModeEndpoint(t *testing.T) {
 	if code, out := call("GET", "/api/fish/bite_mode", ""); code != 200 || out["mode"] != "mixed" {
 		t.Fatalf("mixed mode: %d %v", code, out)
 	}
-	// 切回遗留：五个开关全部归零。
+	// 切回遗留：六个开关全部归零。
 	if code, out := call("POST", "/api/fish/bite_mode", `{"mode":"legacy"}`); code != 200 {
 		t.Fatalf("set legacy: %d %v", code, out)
 	}

@@ -69,9 +69,11 @@ func (s *Server) weatherBiteDelayFactor(st *FishState, weather fishingWeather, n
 		}
 		keys, values = s.filterFishBaitSet(baitLoc, baits, keys, values, now, fishRollContext{rigType: st.RigType})
 	}
+	marineLayer, marineLayerKnown := s.marineContextLayer(st)
 	rollCtx := fishRollContext{
 		rigType: st.RigType, depthCM: st.DepthCM, lureLayer: st.LureLayer,
 		lureAction: st.LureAction, now: now, weather: weather,
+		marineLayer: marineLayer, marineLayerKnown: marineLayerKnown,
 		loc: st.Loc, spot: st.Spot, cache: newFishingRollCache(),
 	}
 	rollCtx.skill = st.Bonus

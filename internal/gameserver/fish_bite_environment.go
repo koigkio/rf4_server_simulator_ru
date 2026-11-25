@@ -96,15 +96,28 @@ func (s *Server) prepareFishRollRuntime(ctx context.Context, c *fishRollContext,
 	if c.runtime.spotPref == nil {
 		c.runtime.spotPref, c.runtime.spotData = s.loadFishSpotPreference(ctx, statLoc, c)
 	}
-	if !c.runtime.lureKnown && c.rigType != 0 {
-		// 多拟饵取最深（与 lureCoreForGear 种子同源，评审 P3-1），
-		// 避免"种子用最深、fallback 用第一枚"的两套口径。
-		for _, id := range c.baits {
-			if lure, ok := s.loadLureAttributes(ctx, id); ok {
-				if !c.runtime.lureKnown || lure.DiveDepth > c.runtime.lure.DiveDepth {
-					c.runtime.lure, c.runtime.lureKnown = lure, true
+	// 拟饵属性必须跟当前这组饵对应：rollFishForRig 会逐钩换 c.baits，
+	// 只按 lureKnown 算一次会让后续钩位继续沿用第一钩的拟饵。
+	// 饵集合没变就复用结果（runtime 是整杆共享的），变了一次重算。
+	if c.rigType != 0 {
+		baitsKey := strings.Join(c.baits, "\x00")
+		if !c.runtime.lureKnown || c.runtime.lureBaitsKey != baitsKey {
+			// 多拟饵取最深（与 lureCoreForGear 种子同源，评审 P3-1），
+			// 避免"种子用最深、fallback 用第一枚"的两套口径。彩珠/发光管
+			// （lureType 17）是吸引成分，不参与判鱼，也不得抢主导拟饵。
+			var lure lureAttributes
+			lureKnown := false
+			for _, id := range c.baits {
+				item, ok := s.loadLureAttributes(ctx, id)
+				if !ok || item.TypeID == lureTypeAttraction {
+					continue
+				}
+				if !lureKnown || item.DiveDepth > lure.DiveDepth {
+					lure, lureKnown = item, true
 				}
 			}
+			c.runtime.lure, c.runtime.lureKnown = lure, lureKnown
+			c.runtime.lureBaitsKey = baitsKey
 		}
 	}
 }
@@ -268,6 +281,10 @@ func (s *Server) loadLureAttributes(ctx context.Context, id string) (lureAttribu
 	return lure, true
 }
 
+// lureTypeAttraction 彩珠/发光管等吸引成分的拟饵类型（item_def.mbemakijdeh=17）。
+// 它们只作装饰，不参与判鱼，也不得参与 pace 复合分的动作权重。
+const lureTypeAttraction int64 = 17
+
 // lureCoreForGear 取竿上当前装配拟饵的名义泳层（DiveDepth）与类型名。
 // 多拟饵/多钩钓组取最深：钓组运行水层由最深拟饵决定（评审 P2-3），类型名取
 // 同一枚最深拟饵——pace 复合分的动作权重按主导拟饵计；单拟饵不变；无拟饵
@@ -277,11 +294,18 @@ func (s *Server) lureCoreForGear(ctx context.Context, gearGUID string) (float64,
 	if s == nil || s.DB == nil || gearGUID == "" {
 		return 0, ""
 	}
+	return s.lureCoreForBaits(ctx, s.currentBaits(ctx, gearGUID))
+}
+
+// lureCoreForBaits 一组饵里的最深真实拟饵。吸引成分（lureType 17）不参与
+// 判鱼，也不得抢主导拟饵：海图多钩钓组的 color_bead DiveDepth 0.78 比铁板
+// 0.76 更深，曾把 LureType 判成 "bead"，动作权重表查不到而全部回退中性。
+func (s *Server) lureCoreForBaits(ctx context.Context, baits []string) (float64, string) {
 	deepest := 0.0
 	typeName := ""
-	for _, bait := range s.currentBaits(ctx, gearGUID) {
+	for _, bait := range baits {
 		lure, ok := s.loadLureAttributes(ctx, bait)
-		if !ok {
+		if !ok || lure.TypeID == lureTypeAttraction {
 			continue
 		}
 		if lure.DiveDepth > deepest || typeName == "" {
@@ -290,6 +314,12 @@ func (s *Server) lureCoreForGear(ctx context.Context, gearGUID string) (float64,
 		}
 	}
 	return deepest, typeName
+}
+
+// lureTypeForBaits 一组饵里的主导拟饵类型（最深真实拟饵，排除吸引成分）。
+func (s *Server) lureTypeForBaits(ctx context.Context, baits []string) string {
+	_, typeName := s.lureCoreForBaits(ctx, baits)
+	return typeName
 }
 
 func lureIntAttr(attrs map[string]any, key string) int64 {
@@ -535,6 +565,8 @@ func fishWaterConditionsFor(profile fishEcologyProfile, c fishRollContext) fishW
 	daylight := clampFloat((1+math.Cos((float64(hour)-12)*math.Pi/12))/2, 0, 1)
 	layer := .45
 	switch {
+	case marineRigType(c.rigType) && c.marineLayerKnown:
+		layer = normalizeWaterLayer(c.marineLayer)
 	case bottomRigTypes[c.rigType]:
 		layer = .93
 	case rigTypeLureFamily[c.rigType]:
@@ -695,7 +727,11 @@ func (s *Server) fishLureWeight(profile fishEcologyProfile, c fishRollContext, w
 	if lure.DiveDepthM > 0 && c.spotEnv.DepthM > 0 {
 		diveDepth = clampFloat(lure.DiveDepthM/c.spotEnv.DepthM, 0, 1)
 	}
-	depthDistance := math.Abs(effectiveLureLayer(c) - diveDepth)
+	targetLayer := effectiveLureLayer(c)
+	if c.marineLayerKnown {
+		targetLayer = normalizeWaterLayer(c.marineLayer)
+	}
+	depthDistance := math.Abs(targetLayer - diveDepth)
 	depthMatch := .72 + .28*math.Exp(-depthDistance*depthDistance*6)
 	colorWeight := 1.0
 	if lure.ColorKnown {
