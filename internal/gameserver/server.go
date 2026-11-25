@@ -145,6 +145,20 @@ type Server struct {
 func NewServer(cfg config.Game, log *slog.Logger, obs *metrics.Server) *Server {
 	reg := obsRegistry(obs)
 	initMetrics(reg)
+	if cfg.Weather.Randomize {
+		seed, err := InitWeatherSchedule(WeatherScheduleOptions{
+			Randomize: true,
+			CycleDays: cfg.Weather.CycleDays,
+		})
+		if err != nil {
+			log.Warn("天气序列初始化失败，沿用地图模板", "err", err)
+		} else {
+			log.Info("天气序列已随机生成",
+				"seed", seed, "cycle_days", normalizeWeatherCycleDays(cfg.Weather.CycleDays))
+		}
+	} else {
+		clearRandomWeatherSchedule()
+	}
 	s := &Server{
 		cfg:             cfg,
 		log:             log,
