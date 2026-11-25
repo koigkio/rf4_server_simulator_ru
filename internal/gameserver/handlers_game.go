@@ -1372,11 +1372,17 @@ func hFishingPull(ctx *Ctx) ([]byte, bool) {
 		if ctx.Sess.marineHookConfirm() {
 			bound = ctx.Sess.Push14_15(gear, pending.FishGUID)
 		} else if !ctx.Sess.marineHookItemSync() {
-			ctx.Log.Info("14/9 海钓抬竿只走真服 14/11 路径，跳过 14/15/4/22")
+			ctx.Log.Info("14/9 海钓抬竿走真服 14/11 口径，只补中鱼钩挂载位")
 		}
 		if ctx.Sess.marineHookItemSync() {
 			ctx.Sess.Push4_22Hook(false, gear)
 		}
+		// 海钓 14/9 是实际刺鱼入口，客户端不一定再补发 14/11（见本函数开头）。
+		// 若只走这条路径，多钩倒钓臂（1001/1005/1009）同样需要按鱼实际咬的钩
+		// 补挂竿运行位，否则客户端仍把鱼挂到线末端钩、中鱼钩留在水下。
+		// 这里只发单钩帧（与 14/11 钩帧同形状），不重建竿树，不会触发
+		// “扣饵 4/21 + 竿树同步打断搏鱼 ctor”的秒脱问题。
+		ctx.Sess.pushFightHookMounted(gear, pending)
 		ctx.Log.Info("14/9 海钓抬竿确认", "rod", shortGUID(gear), "fish", shortGUID(pending.FishGUID),
 			"rig_type", rigType, "14/15", bound)
 	} else if reconfirm {
@@ -1472,17 +1478,14 @@ func hFishingHooked(ctx *Ctx) ([]byte, bool) {
 	if pending == nil && !resolved && castActive {
 		srv.scheduleBiteForHooked(ctx.Sess, st)
 	}
-	if pending != nil && marineRigType(rigType) && !wasHooked {
-		// 官方抓包（2026-11-11）海钓 14/11 后有钩 4/22（串钩=嵌套容器、
-		// 单钩=裸钩，挂竿位同四钓法口径）；14/15 仍是"鱼离场"分支，继续默认不推。
-		if ctx.Sess.marineHookConfirm() {
-			ctx.Sess.Push14_15(gear, pending.FishGUID)
-		}
-		ctx.Sess.Push4_22Hook(true, gear)
-	} else {
-		// 挂竿位四钓法通用（官方抓包沉底/浮钓/海钓/路亚中鱼钩 flags 均含 1024）。
-		ctx.Sess.Push4_22Hook(true, gear)
+	if pending != nil && marineRigType(rigType) && !wasHooked && ctx.Sess.marineHookConfirm() {
+		// 14/15 仍是"鱼离场"分支，继续默认不推。
+		ctx.Sess.Push14_15(gear, pending.FishGUID)
 	}
+	// 挂竿位四钓法通用（官方抓包沉底/浮钓/海钓/路亚中鱼钩 flags 均含 1024）。
+	// 多钩钓组必须按本杆实际中鱼的钩补位：线末端钩不一定是鱼咬的那枚
+	// （倒钓臂 1001/1005/1009），否则鱼模型会挂到线末端钩上、中鱼钩留水下。
+	ctx.Sess.pushFightHookMounted(gear, pending)
 	// 中鱼即进搏鱼态：客户端搏鱼 ctor 一次性读取全部挂载态并锁定整场，
 	// 竿/线/轮/前导的运行位必须当刻可达——只等结算再推对秒脱来说已经晚了
 	// （官方搏鱼期每 2s 全树帧同口径）。紧随钩帧发一次全树运行位同步；
