@@ -636,16 +636,17 @@ func (s *Server) handleSkillGainModeSet(w http.ResponseWriter, r *http.Request) 
 // ---- 玩家管理 ----
 
 type playerRow struct {
-	UID     int64   `json:"uid"`
-	Name    string  `json:"name"`
-	Level   int64   `json:"level"`
-	XP      int64   `json:"xp"`
-	Silver  int64   `json:"silver"`
-	Gold    int64   `json:"gold"`
-	Bank    int64   `json:"bank"`
-	Banned  bool    `json:"banned"`
-	Online  bool    `json:"online"`
-	Updated float64 `json:"updated_ts"`
+	UID         int64   `json:"uid"`
+	Name        string  `json:"name"`
+	Level       int64   `json:"level"`
+	XP          int64   `json:"xp"`
+	Silver      int64   `json:"silver"`
+	Gold        int64   `json:"gold"`
+	Bank        int64   `json:"bank"`
+	Banned      bool    `json:"banned"`
+	Online      bool    `json:"online"`
+	OnlineKnown bool    `json:"online_known"`
+	Updated     float64 `json:"updated_ts"`
 }
 
 func (s *Server) handlePlayers(w http.ResponseWriter, r *http.Request) {
@@ -668,6 +669,7 @@ func (s *Server) handlePlayers(w http.ResponseWriter, r *http.Request) {
 	online := s.onlineUIDs(ctx)
 	for i := range rows {
 		rows[i].Online = online[rows[i].UID]
+		rows[i].OnlineKnown = online != nil
 	}
 	writeJSON(w, rows)
 }

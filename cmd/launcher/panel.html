@@ -385,6 +385,9 @@ body.in-admin #backHome{display:inline-flex}
 .home-grid{display:grid;grid-template-columns:minmax(0,1fr) 404px;gap:30px;align-items:start}
 #view-control .page{display:grid;grid-template-columns:minmax(0,1fr) 470px;gap:40px;align-items:start;max-width:1560px}
 .home-main{min-width:0}
+.workbench{overflow-x:auto}
+.workbench table{min-width:620px}
+.frame-notice{position:absolute;right:12px;top:8px;z-index:2}
 .home-side{min-width:0;position:sticky;top:18px}
 .loginbox{padding:18px 20px;margin-bottom:24px}
 .loginbox p{margin:0 0 14px;font-size:13px;line-height:1.66;color:var(--text-2)}
@@ -459,13 +462,14 @@ body.in-admin #backHome{display:inline-flex}
               <div class="menu-list" id="serverMenu" hidden>
                 <button onclick="act('start','')">启动服务器</button>
                 <button onclick="act('restart','')">重启服务器</button>
+                <button id="clientOnly" onclick="launchGame()">只启动游戏客户端</button>
                 <button class="danger" onclick="act('stop','')">停止服务器</button>
               </div>
             </div>
           </div>
         </div>
       </div>
-      <div class="notice bad game-msg" id="lastError" hidden></div>
+      <div class="notice bad game-msg" id="lastError" hidden><span class="grow"></span><button class="btn ghost sm" onclick="openProcessLog()">查看日志</button></div>
       <div class="game-msg" id="gameNotice" hidden></div>
 
       <div class="section-title"><h2>开始前确认这三件事</h2><span id="stepsSummary"></span></div>
@@ -507,7 +511,7 @@ body.in-admin #backHome{display:inline-flex}
       </div>
 
       <div class="section-title"><h2>服务器工作台</h2><span id="wkSummary" class="pill idle">读取中</span></div>
-      <div class="card pad">
+      <div class="card pad workbench">
         <table class="wk">
           <thead><tr><th>组件</th><th>状态</th><th class="num">已运行</th><th class="num">自动重启</th><th class="num">操作</th></tr></thead>
           <tbody id="wkBody"><tr><td colspan="5" class="muted">正在读进程列表…</td></tr></tbody>
@@ -533,8 +537,8 @@ body.in-admin #backHome{display:inline-flex}
       <div class="tiles">
         <div class="card tile">
           <div class="tile-head"><b>诊断与日志</b></div>
-          <p>各服务组件的运行状态和实时日志已经并到管理后台的「总览」页底部，遇到问题时可以去那里复制日志。</p>
-          <div class="row"><a class="btn" href="#admin" onclick="openAdminDiag();return false">去看诊断</a></div>
+          <p>游戏逻辑和登录与连接进程的标准输出。</p>
+          <div class="row"><button class="btn" onclick="openProcessLog()">去看诊断</button></div>
         </div>
         <div class="card tile">
           <div class="tile-head"><b>管理后台</b></div>
@@ -566,7 +570,7 @@ body.in-admin #backHome{display:inline-flex}
           </section>
           <section>
             <h3>2 · 点「开始游戏」</h3>
-            <p>它会先拉起 <code>gameserver</code>（游戏逻辑）和 <code>gateway</code>（登录与连接），再启动游戏本体。两个组件都显示「运行中」再进游戏；启动大约十几秒，首次启动更长。</p>
+            <p>两个组件都在运行后，再启动游戏本体。「只启动游戏客户端」不会启动或重启服务。</p>
           </section>
           <section>
             <h3>3 · 连本地服务器还是官方</h3>
@@ -578,7 +582,7 @@ body.in-admin #backHome{display:inline-flex}
           </section>
           <section>
             <h3>5 · 出问题了看哪里</h3>
-            <p>右侧「运行日志」就是两个组件的标准输出；管理后台「总览」页底部也有一份，带「只看警告和错误」和复制。重启服务会让正在游戏的玩家掉线。</p>
+            <p>右侧「运行日志」显示所选组件的标准输出。重启服务会让正在游戏的玩家掉线。</p>
           </section>
           <section>
             <h3>6 · 存档与备份</h3>
@@ -594,7 +598,9 @@ body.in-admin #backHome{display:inline-flex}
           </div>
           <label class="check"><input type="checkbox" id="logOnlyBad" onchange="renderHomeLogs()"> 只看警告和错误</label>
           <button class="btn ghost sm" onclick="refreshHomeLogs(true)">刷新</button>
-          <button class="btn ghost sm" onclick="copyHomeLogs()">复制</button>
+          <button class="btn ghost sm" onclick="copyHomeLogs(false)">复制筛选结果</button>
+          <button class="btn ghost sm" onclick="copyHomeLogs(true)">复制全部</button>
+          <span id="logCopyStatus" role="status"></span>
         </div>
         <div class="home-log" id="logs"><div class="ln"><span class="m">正在读日志…</span></div></div>
         <div class="section-title" style="margin-top:26px"><h2>版本与更新</h2></div>
@@ -618,11 +624,13 @@ body.in-admin #backHome{display:inline-flex}
 
   <!-- 管理后台 -->
   <section id="view-admin" class="view admin-view" role="tabpanel">
+    <div id="frameNotice" class="notice warn frame-notice" role="status" hidden>状态连接中断，已保留当前后台页面。</div>
     <div class="admin-gate" id="adminGate">
       <div class="card gate-card">
         <h2 id="gateTitle">管理后台准备中</h2>
         <p id="gateText">正在读取状态…</p>
         <button id="gateStart" class="btn pri" onclick="retryAdmin()" disabled>重试</button>
+        <button class="btn" onclick="showView('control');document.getElementById('tab-control').focus()">返回首页</button>
       </div>
     </div>
     <iframe id="adminFrame" class="frame" title="管理后台" src="about:blank"></iframe>
@@ -649,7 +657,6 @@ const ICONS = {
 
 function viewFromHash(){
   if(location.hash === "#admin") return "admin";
-  if(location.hash === "#diag" || location.hash === "#logs") return "admin";
   return "control";
 }
 
@@ -717,7 +724,7 @@ function renderStatus(st){
   renderSteps(st);
   renderWorkbench(st);
   const err = document.getElementById("lastError");
-  if(st.last_error){ err.hidden = false; err.innerHTML = '<span class="grow"></span><button class="btn ghost sm" onclick="openAdminDiag()">查看日志</button>'; err.querySelector(".grow").textContent = "最近一次出错：" + st.last_error; }
+  if(st.last_error){ err.hidden = false; err.querySelector(".grow").textContent = "最近一次出错：" + st.last_error; }
   else err.hidden = true;
 }
 
@@ -727,10 +734,10 @@ function appRowsHTML(){
   const o = lastOverview;
   if(!o) return "";
   const rows = [
-    ["管理后台", "/admin/ · 本页", "运行中", "ok"],
-    ["玩家数据库", o.ready ? "已连接" : "未就绪", o.ready ? "ok" : "warn"],
-    ["可调参数", (o.tunables || 0) + " 项", "已加载", "ok"],
-    ["物品目录", (o.items || 0) + " 件 · 档案 " + (o.players || 0), "已加载", "ok"],
+    ["管理后台", "/admin/ · 本页", lastStatus?.admin_ready ? "运行中" : "未就绪", lastStatus?.admin_ready ? "ok" : "warn"],
+    ["玩家数据库", "角色存档", o.ready ? "已连接" : "未就绪", o.ready ? "ok" : "warn"],
+    ["可调参数", o.ready ? (o.tunables ?? "未知") + " 项" : "—", o.ready ? "已加载" : "未就绪", o.ready ? "ok" : "warn"],
+    ["物品目录", o.ready ? (o.items ?? "未知") + " 件 · 档案 " + (o.players ?? "未知") : "—", o.ready ? "已加载" : "未就绪", o.ready ? "ok" : "warn"],
   ];
   return rows.map(r => '<tr><td><b>' + esc(r[0]) + '</b><div class="mono">' + esc(r[1]) + '</div></td>' +
     '<td><span class="pill ' + r[3] + '">' + esc(r[2]) + '</span></td>' +
@@ -746,11 +753,13 @@ function renderWorkbench(st){
   if(!st){
     sum.className = "pill bad"; sum.textContent = "连不上";
     body.innerHTML = '<tr><td colspan="5" class="muted">读不到进程列表：控制面板和服务器可能都没在跑。</td></tr>';
+    delete body.dataset.rendered;
     return;
   }
   if(!procs.length){
     sum.className = "pill warn"; sum.textContent = "准备中";
     body.innerHTML = '<tr><td colspan="5" class="muted">进程还没起来，稍等几秒。</td></tr>';
+    delete body.dataset.rendered;
     return;
   }
   const ok = procs.filter(p => p.state === "running").length;
@@ -758,30 +767,43 @@ function renderWorkbench(st){
   sum.textContent = ok === procs.length ? "全部运行中" : ok + "/" + procs.length + " 运行中";
   const text = {running:"运行中", starting:"启动中", backoff:"重试中", stopping:"停止中", stopped:"已停止", failed:"已崩溃"};
   const tone = {running:"ok", starting:"busy", backoff:"warn", stopping:"busy", stopped:"idle", failed:"bad"};
-  body.innerHTML = procs.map(p => {
+  const focused = body.contains(document.activeElement) && document.activeElement.dataset.op;
+  const html = procs.map(p => {
     const label = SERVICE_LABELS[p.name] || p.name;
     const running = p.state === "running";
     const sub = p.name + (p.pid ? " · pid " + p.pid : "");
-    const ops = '<span class="ops">' +
-      '<button class="btn ghost sm" onclick="act(\'' + (running ? "restart" : "start") + '\',\'' + esc(p.name) + '\')">' + (running ? "重启" : "启动") + '</button>' +
-      (running ? '<button class="btn ghost sm" onclick="act(\'stop\',\'' + esc(p.name) + '\')">停止</button>' : "") +
-      '</span>';
-    return '<tr><td><b>' + esc(label) + '</b><div class="mono">' + esc(sub) + '</div></td>' +
-      '<td><span class="pill ' + (tone[p.state] || "idle") + '">' + esc(text[p.state] || p.state) + '</span></td>' +
-      '<td class="num">' + esc(humanUptime(p.uptime_s)) + '</td>' +
+    const action = running ? 'restart' : 'start';
+    const ops = NAMES.includes(p.name) ? '<span class="ops">' +
+      `<button class="btn ghost sm" data-op="${p.name}-${action}" onclick="act('${action}','${p.name}')">${running ? '重启' : '启动'}</button>` +
+      (running ? `<button class="btn ghost sm" data-op="${p.name}-stop" onclick="act('stop','${p.name}')">停止</button>` : '') +
+      `<button class="btn ghost sm" data-op="${p.name}-log" onclick="openProcessLog('${p.name}')">日志</button></span>` : '';
+    const build = running ? '<div class="mono" title="' + esc(p.running_build?.source) + '">构建：' + esc(buildText(p)) + '</div>' : '';
+    const changed = p.exe_changed ? '<span class="pill warn">磁盘程序已替换，重启后生效</span>' : '';
+    return '<tr><td><b>' + esc(label) + '</b><div class="mono">' + esc(sub) + '</div>' + build + changed + '</td>' +
+      '<td><span class="pill ' + (tone[p.state] || "idle") + '">' + esc(text[p.state] || '状态未知') + '</span></td>' +
+      '<td class="num">' + (running ? esc(humanUptime(p.uptime_s)) : '—') + '</td>' +
       '<td class="num">' + esc(String(p.restarts || 0)) + '</td>' +
       '<td class="num">' + ops + '</td></tr>';
   }).join("") + appRowsHTML();
+  if(body.dataset.rendered !== html){
+    body.innerHTML = html; body.dataset.rendered = html;
+    if(focused) body.querySelector(`[data-op="${focused}"]`)?.focus({preventScroll:true});
+  }
 }
 
 let logName = "gameserver";
 let homeLogLines = [];
+// 每个组件同一时刻只发一个日志请求；慢请求不被后续轮询作废，只有切换组件时才丢弃旧组件的结果。
+const logInFlight = new Set();
 
 function selectLog(name){
+  if(logName !== name){homeLogLines = [];document.getElementById('logs').textContent='正在读日志…';}
   logName = name;
-  const g = document.getElementById("logTabGameserver"), w = document.getElementById("logTabGateway");
-  if(g) g.classList.toggle("on", name === "gameserver");
-  if(w) w.classList.toggle("on", name === "gateway");
+  document.getElementById('logCopyStatus').textContent='';
+  for(const tab of document.querySelectorAll('.log-bar [role=tab]')){
+    const active = tab.id === (name === 'gateway' ? 'logTabGateway' : 'logTabGameserver');
+    tab.classList.toggle('on',active);tab.setAttribute('aria-selected',String(active));
+  }
   refreshHomeLogs(true);
 }
 
@@ -801,11 +823,14 @@ function parseHomeLog(line){
   return { t: t, lv: lv, m: msg };
 }
 
+function shownLines(){
+  return document.getElementById('logOnlyBad').checked ? homeLogLines.filter(line=>['WARN','ERROR'].includes(parseHomeLog(line).lv)) : homeLogLines;
+}
 function renderHomeLogs(){
   const box = document.getElementById("logs");
   if(!box) return;
-  const onlyBad = document.getElementById("logOnlyBad");
-  const rows = homeLogLines.map(parseHomeLog).filter((r) => !(onlyBad && onlyBad.checked) || r.lv === "WARN" || r.lv === "ERROR");
+  const top = box.scrollTop, follow = box.scrollHeight - box.clientHeight - top < 3;
+  const rows = shownLines().map(parseHomeLog);
   if(!rows.length){
     box.innerHTML = '<div class="ln"><span class="m">' + (homeLogLines.length ? "没有警告或错误。" : "这个组件还没有输出。") + '</span></div>';
     return;
@@ -814,31 +839,38 @@ function renderHomeLogs(){
   // 这里不再二次截断，直接画满，行数由上面的 pill 标出来。
   box.innerHTML = rows.map((r) =>
     '<div class="ln ' + esc(r.lv) + '"><span class="t">' + esc(r.t) + '</span><span class="lv">' + esc(r.lv) + '</span><span class="m">' + esc(r.m) + '</span></div>').join("");
-  box.scrollTop = box.scrollHeight;
+  box.scrollTop = follow ? box.scrollHeight : top;
 }
 
 async function refreshHomeLogs(force){
   if(!document.getElementById("logs")) return;
   if(currentView !== "control" && !force) return;
   const hint = document.getElementById("logHint");
+  const name = logName;
+  if(logInFlight.has(name)) return;
+  logInFlight.add(name);
   try{
-    const r = await fetch("/api/logs?name=" + encodeURIComponent(logName) + "&since=0", {cache: "no-store"});
+    const r = await fetch("/api/logs?name=" + encodeURIComponent(name) + "&since=0", {cache: "no-store"});
+    if(!r.ok) throw Error('日志读取失败');
     const j = await r.json();
-    homeLogLines = (j && j.lines) || [];
+    if(name !== logName) return;
+    homeLogLines = j.lines || [];
     renderHomeLogs();
     if(hint){ hint.className = "pill ok"; hint.textContent = homeLogLines.length + " 行 · 内存里保留最近 800 行"; }
   }catch(e){
+    if(name !== logName) return;
     if(hint){ hint.className = "pill bad"; hint.textContent = "读不到"; }
+  }finally{
+    logInFlight.delete(name);
   }
 }
 
-function copyHomeLogs(){
-  const text = homeLogLines.join("\n");
-  if(!text) return;
-  navigator.clipboard.writeText(text).then(() => {
-    const hint = document.getElementById("logHint");
-    if(hint){ hint.textContent = "已复制"; hint.className = "pill ok"; }
-  }).catch(() => {});
+async function copyHomeLogs(all){
+  const lines = all ? homeLogLines : shownLines();
+  const status = document.getElementById('logCopyStatus');
+  if(!lines.length){status.textContent='没有可复制的日志。';return;}
+  try{await navigator.clipboard.writeText(lines.join('\n'));status.textContent=`已复制 ${lines.length} 行`;}
+  catch{status.textContent='复制失败，请手动选中日志复制。';}
 }
 
 // 登录状态与 /admin/ 共用同一个 localStorage key（同源 9500）。
@@ -889,6 +921,7 @@ async function refreshInfo(){
   const hint = document.getElementById("infoHint");
   try{
     const r = await fetch("/api/overview", {cache:"no-store"});
+    if(!r.ok) throw Error('读取失败');
     const j = await r.json();
     lastOverview = j;
     if(typeof renderWorkbench === "function") renderWorkbench(lastStatus);
@@ -903,6 +936,7 @@ async function refreshInfo(){
       hint.className = "pill warn"; hint.textContent = "库未就绪";
     }
   }catch(e){
+    lastOverview=null;renderWorkbench(lastStatus);
     if(hint){ hint.className = "pill bad"; hint.textContent = "读不到"; }
   }
 }
@@ -942,7 +976,7 @@ function renderHero(st){
   }else if(s.key === "failed" || s.key === "partial"){
     const bad = s.procs.filter(p => p.state !== "running").map(p => SERVICE_LABELS[p.name] || p.name);
     title.textContent = "服务器有部分功能没有运行";
-    text.textContent = "「" + bad.join("」「") + "」没有正常运行。可以先试试重启；如果反复出现，请到管理后台「总览」页底部看日志。";
+    text.textContent = "「" + bad.join("」「") + "」没有正常运行。请在组件表中查看对应进程日志。";
     primary.textContent = "重启服务器"; primary.dataset.mode = "restart"; primary.disabled = false;
   }else{
     title.textContent = "连接不上本地服务器";
@@ -982,16 +1016,11 @@ function renderSteps(st){
   document.getElementById("stepsSummary").textContent = st ? (done === 3 ? "全部完成" : `已完成 ${done}/3`) : "状态读取中断";
 }
 
-function openAdminDiag(){ openAdmin('dashboard'); }
-
-function openAdmin(page){
-  const frame = document.getElementById("adminFrame");
-  showView("admin");
-  if(page && frame.dataset.loaded === "1"){
-    try{ frame.contentWindow.location.hash = "#" + page; }catch(e){}
-  }else if(page){
-    frame.dataset.page = page;
-  }
+function openProcessLog(name){
+  const procs=lastStatus?.procs || [];
+  name=name || NAMES.find(n=>lastStatus?.last_error?.includes(n)) || procs.find(p=>NAMES.includes(p.name)&&p.state!=='running')?.name || logName;
+  showView('control');selectLog(name);
+  const tab=document.getElementById(name==='gateway'?'logTabGateway':'logTabGameserver');tab.focus();tab.scrollIntoView({block:'center'});
 }
 
 // buildText 渲染子进程通过 /metrics 自报的构建身份。
@@ -999,9 +1028,7 @@ function openAdmin(page){
 // 不能反过来显示成「版本正常」。
 function buildText(p){
   const b = p.running_build;
-  if(!b || !b.version) return "未知";
-  const src = b.source && b.source !== "unknown" ? " · " + shortSource(b.source) : "";
-  return b.version + src;
+  return (b?.version || '未知') + ' · 来源：' + (b?.source && b.source !== 'unknown' ? shortSource(b.source) : '未知');
 }
 
 // shortSource 把检出目录压成最后两段，避免面板被长路径撑破。
@@ -1268,6 +1295,8 @@ async function saveGamePath(silent=false){
 async function launchGame(){
   const btn = document.getElementById("heroPrimary");
   btn.disabled = true;
+  if(btn.dataset.busy === '1')return;
+  document.getElementById('clientOnly').disabled = true;
   btn.dataset.busy = "1";
   btn.textContent = "正在启动游戏…";
   try{
@@ -1283,6 +1312,7 @@ async function launchGame(){
     setGameNotice("没能启动游戏：" + (e.message || String(e)), "bad");
   }finally{
     btn.dataset.busy = "";
+    document.getElementById('clientOnly').disabled = false;
     if(lastStatus) renderHero(lastStatus);
   }
 }
@@ -1295,6 +1325,9 @@ function syncAdminFrame(){
   const text = document.getElementById("gateText");
   const start = document.getElementById("gateStart");
   const ready = !!(lastStatus && lastStatus.admin_ready);
+  const interrupted = !lastStatus && frame.dataset.loaded === '1';
+  document.getElementById('frameNotice').hidden = !interrupted;
+  if(interrupted) return;
   if(ready){
     gate.classList.add("hidden");
     frame.classList.add("on");
@@ -1315,7 +1348,7 @@ function syncAdminFrame(){
   if(!lastStatus){
     title.textContent = "正在连接";
     text.textContent = "连接上本地服务器后会自动打开管理后台。";
-    start.disabled = true;
+    start.disabled = false;
     return;
   }
   if(lastStatus.admin_error){
@@ -1326,7 +1359,7 @@ function syncAdminFrame(){
   }
   title.textContent = "管理后台准备中";
   text.textContent = "存档初始化完成后会自动打开。";
-  start.disabled = true;
+  start.disabled = false;
 }
 
 async function retryAdmin(){
@@ -1334,14 +1367,16 @@ async function retryAdmin(){
   btn.disabled = true;
   btn.textContent = "正在重试…";
   try{
-    const r = await fetch("/api/admin/retry", {method:"POST"});
-    if(!r.ok) throw new Error(await readAPIError(r, "初始化失败"));
+    if(lastStatus?.admin_error){
+      const r = await fetch("/api/admin/retry", {method:"POST"});
+      if(!r.ok) throw new Error(await readAPIError(r, "初始化失败"));
+    }
     await refresh();
   }catch(e){
     document.getElementById("gateText").textContent = e.message || String(e);
   }finally{
     btn.textContent = "重试";
-    syncAdminFrame();
+    btn.disabled = false;
   }
 }
 
@@ -1371,6 +1406,7 @@ document.addEventListener("click", closeMenu);
 async function act(action, name){
   closeMenu();
   if(action === "stop" && !confirm("停止后正在游戏中的玩家会掉线。确定停止吗？")) return;
+  if(action === 'restart' && !confirm('重启会暂时停止服务，正在游戏中的玩家会掉线。确定重启吗？')) return;
   try{
     const r = await fetch(`/api/${action}?name=${encodeURIComponent(name)}`, {method:"POST"});
     if(!r.ok) throw new Error(await readAPIError(r, "操作失败"));

@@ -2392,7 +2392,7 @@ button.ghost{background:transparent!important;border:1px solid rgba(16,29,26,.30
 .hero-in>.hero-side{margin:0 0 16px!important}
 
 /* ===== 第一百三十版：右栏「本页分组」索引回到文字列表（不做胶囊底），编号用金色等宽 ===== */
-.ib .pills{display:flex!important;flex-direction:column!important;gap:0!important;margin:0!important}
+.ib .pills{display:flex!important;flex-direction:column!important;gap:8px!important;margin:0!important}
 .ib .pills button.pill{display:flex!important;align-items:baseline!important;gap:10px!important;
   width:100%!important;padding:8px 0!important;background:none!important;border:0!important;
   border-bottom:1px solid rgba(16,29,26,.12)!important;border-radius:0!important;
@@ -3868,6 +3868,9 @@ details.advanced>summary{font-size:13px;color:var(--ink);padding:12px 0 2px}
 .storebar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:0 0 14px}
 .storebar select{height:36px;padding:0 10px;font-size:13.2px!important}
 .storebar .hint{margin:0;font-size:12.2px}
+.shop-filters{align-items:center}
+.shop-filters>label{display:inline-flex;align-items:center;gap:6px;min-height:36px;white-space:nowrap;cursor:pointer}
+.shop-filters input[type=checkbox]{flex:none;margin:0}
 /* 鱼饵卡片：真服有 252 种鱼，「现在」那句话很长时不要把鱼名挤成一列 */
 .fishcard-head .fi{flex:0 0 auto}
 .fishcard-head .fname{white-space:nowrap}
@@ -4043,3 +4046,154 @@ details.advanced>summary{font-size:13px;color:var(--ink);padding:12px 0 2px}
 #app a.home-link:hover{filter:brightness(1.06);transform:translateY(-1px)}
 #app a.home-link:active{transform:translateY(0)}
 @media (max-width:880px){#app a.home-link{font-size:14.6px!important;padding:11px 18px!important}}
+
+/* 工作台布局桥接：先为编辑区留足宽度，再并排放辅助说明。 */
+main{container:workspace / inline-size;overflow:visible!important}
+#work.work{grid-template-columns:minmax(0,1fr)!important;gap:20px!important}
+#work.work>aside{position:static;padding:0!important}
+/* 960 = 至少 660px 编辑区 + 20px 栏距 + 280px 说明。 */
+@container workspace (min-width:960px){
+  #work.work:not(.solo){grid-template-columns:minmax(0,1fr) clamp(280px,26%,380px)!important}
+  #work.work>aside{position:sticky}
+}
+#work .tbl,#work .tbl.shops{max-width:100%;overflow-x:auto!important}
+.mobile-nav{display:none}
+#rail a,#rail a[aria-current=page]{display:grid!important;grid-template-columns:20px minmax(0,1fr)!important;
+  align-items:center!important;gap:12px!important;min-height:40px!important;height:auto!important;padding:6px 12px!important;margin:0!important}
+#rail a .cat{width:20px!important;height:20px!important}
+#rail a .cat svg{width:20px!important;height:20px!important}
+#rail a .txt{display:block!important;width:auto!important;min-width:0!important}
+#rail a .txt b{font:400 17px/24px var(--display)!important;letter-spacing:0!important}
+.rail :is(a,button,[role=option]):focus-visible{outline:2px solid #efd592!important;outline-offset:-3px}
+#railFoot .who{align-items:center;min-width:0}
+#railFoot .who>span{min-width:0;overflow-wrap:anywhere}
+#railFoot .who-out{display:inline-flex;align-items:center;gap:4px;flex:none;min-height:32px}
+@media(min-width:881px){
+  body{--nav-width:220px;grid-template-columns:var(--nav-width) minmax(0,1fr)!important}
+  body.rail-collapsed{--nav-width:0px}
+  body.rail-collapsed #workspaceRail{display:none!important}
+  body.rail-collapsed #app>main{grid-column:2}
+  #railToggle{display:inline-grid;place-items:center;min-width:36px;min-height:36px;padding:0;color:inherit}
+  #railToggle:focus-visible{outline:2px solid currentColor;outline-offset:2px}
+  .rail #rail{padding:4px 8px!important;justify-content:flex-start!important;gap:0!important}
+  .rail .brand{padding:20px 20px 12px!important}
+}
+@media(max-width:880px){
+  html,body{overflow-x:visible!important}
+  #app>.rail{display:block!important;padding:0!important;overflow:visible!important}
+  #railToggle{display:none!important}
+  #app>.rail :is(.railband,.brand){display:none!important}
+  .mobile-nav{position:relative;display:flex;align-items:center;gap:12px;padding:8px 16px;color:#f2f7f0}
+  .mobile-nav>b{font:700 20px/1 var(--display);color:#dfbe72}
+  .mobile-nav>span{font:400 16px/24px var(--display)}
+  #navToggle{margin-left:auto;display:inline-flex;align-items:center;gap:8px;min-height:40px;padding:6px 12px!important;
+    color:#f2f7f0!important;border:1px solid #657369!important;background:transparent!important;border-radius:8px!important}
+  .rail #rail,.rail #railFoot{display:none!important}
+  .rail:has(#navToggle[aria-expanded=true]) #rail{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr));
+    width:100%!important;gap:0 4px!important;padding:4px 12px!important;overflow:visible!important}
+  #rail a{width:auto!important;min-width:0!important}
+  .rail:has(#navToggle[aria-expanded=true]) #railFoot{display:flex!important;flex-flow:row wrap!important;align-items:center;
+    padding:12px 16px!important;gap:12px!important}
+  #railFoot .tselect{flex:1 1 128px;width:auto}
+  #railFoot .who{display:flex!important;align-items:center;gap:8px}
+  #railFoot .who-out{display:inline-flex!important;align-items:center;justify-content:center;min-width:40px;min-height:40px}
+  #railFoot #themeMenu{top:auto!important;bottom:calc(100% + 4px)!important}
+  #app main{padding-inline:16px!important;width:100%!important}
+  #view .hero{width:calc(100% + 32px)!important;margin-inline:-16px!important;height:auto!important;min-height:0!important}
+  #view .hero-in{grid-template-areas:'m'!important;grid-template-columns:minmax(0,1fr)!important;min-height:0!important;height:auto!important;padding:16px!important}
+  #view .hero-side,#view .factbar{display:none!important}
+  #tabs .tabs{flex-wrap:wrap!important;gap:4px!important}
+  #tabs nav.tabs a{font-size:15px!important;padding:8px 10px!important}
+  #work .pblock .two,#work .rows{grid-template-columns:minmax(0,1fr)!important}
+  #work .pblock .two .row{display:grid;grid-template-columns:minmax(0,1fr);align-items:start;gap:8px}
+  #work .pblock .two .row .ctrl{width:auto;max-width:100%;justify-content:flex-start;flex-wrap:wrap}
+  #work .storebar>label,#work .storebar select{min-width:0;max-width:100%}
+  #work .tbl.shops table{min-width:480px}
+}
+
+/* Branch names label checkboxes; unlike parameter rows these are not two-column forms. */
+#pg-branch .event-branches{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,max(12rem,30%)),1fr));gap:16px 24px}
+#pg-branch fieldset{min-inline-size:0;margin:0;padding:0;border:0}
+#pg-branch legend{padding:0;margin:0 0 4px;font-weight:650;color:var(--ink)}
+#pg-gifts .reward-remove{display:inline-flex;align-items:center;gap:5px;flex:none;width:auto;min-height:32px;white-space:nowrap}
+#pg-gifts .reward-remove svg{display:block;flex:none;width:16px;height:16px;stroke:currentColor}
+#pg-branch .branch-option{display:flex;align-items:center;gap:8px;min-height:36px;cursor:pointer;font:inherit;color:var(--ink)}
+#pg-branch .branch-option input{width:16px;height:16px;flex:none;margin:0;accent-color:var(--accent)}
+#pg-branch .branch-option span{white-space:nowrap}
+#pg-branch .branch-option:focus-within{outline:2px solid var(--accent);outline-offset:1px}
+
+#work .roster-toolbar{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px 16px;margin-bottom:8px}
+#work .roster-toolbar h3{margin:0;font-size:15px;letter-spacing:0}
+#work .roster-toolbar .search{width:min(100%,18rem);min-width:0;margin:0}
+#work .whorow{display:block;margin:0 0 20px}
+#work .whorow .player-roster{display:inline-flex;width:fit-content;max-width:100%;flex-wrap:wrap;justify-content:flex-start;gap:6px}
+#work .player-roster .roster-option{display:grid;grid-template-columns:minmax(0,auto) auto auto auto;gap:6px;align-items:center;flex:0 1 auto;max-width:min(100%,19rem);width:auto;height:auto;min-height:44px;white-space:normal;text-align:start;letter-spacing:0}
+#work .roster-option:focus-visible{outline:2px solid var(--ink);outline-offset:-2px}
+.roster-option .player-identity{display:grid;min-width:0;gap:2px}
+.player-identity strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font:600 14px/1.35 system-ui,sans-serif}
+.player-identity small,.roster-level{font-size:12px;line-height:1.35;font-weight:400;color:inherit;font-variant-numeric:tabular-nums;white-space:nowrap}
+.roster-state{display:grid;justify-items:start;gap:2px}
+.roster-mark{display:grid;place-items:center;color:inherit}
+.player-roster .player-presence{background:var(--raise);color:var(--ink);border:1px solid var(--line);border-radius:999px;font-weight:400}
+.player-roster .player-presence[data-state=online]::before{background:var(--ok);border-color:var(--ok)}
+@media(max-width:480px){#work .roster-toolbar .search{width:100%}}
+.player-heading{display:flex;align-items:center;flex-wrap:wrap;gap:10px}
+.player-presence{display:inline-flex;align-items:center;gap:5px;flex:none;padding:3px 7px;border-radius:4px;font:600 12px/1.3 system-ui,sans-serif;white-space:nowrap;color:#49535c;background:#e8ecef}
+.player-presence::before{content:'';width:7px;height:7px;border-radius:50%;border:1px solid currentColor;box-sizing:border-box}
+.player-presence[data-state=online]{color:#175b39;background:#dbf3e4}
+.player-presence[data-state=online]::before{background:currentColor}
+.player-presence[data-state=unknown]{color:#684a12;background:#fff0c7}
+
+#work .membership-options>button,#work .event-mode-options>button,#work .audit-kind-options>button{display:inline-flex;align-items:center;justify-content:center;padding-block:0!important;line-height:1.2}
+.audit-toolbar .search{margin:0}
+.audit-toolbar .search>input{height:38px}
+.records-toolbar>.grow{flex:1 1 220px}
+.records-toolbar .search{margin:0}
+.records-toolbar>.select,.records-toolbar>.btn,.records-toolbar .search>input{height:36px}
+.hooks-toolbar .search{margin:0}
+.hooks-toolbar>.select,.hooks-toolbar .search>input{height:36px}
+.logs-toolbar>.search{margin:0}
+.logs-toolbar>.btn,.logs-toolbar .search>input{height:36px}
+
+/* Detail pages share the workspace; only confirmations and login use a backdrop. */
+body{--side-page-width:clamp(26rem,40vw,44rem);
+  --side-enter-duration:420ms;--side-enter-easing:cubic-bezier(.32,.72,.18,1);
+  --side-exit-duration:320ms;--side-exit-easing:cubic-bezier(.4,0,.2,1)}
+.side-page{position:fixed;inset:0 0 0 auto;z-index:50;width:min(100%,var(--side-page-width));box-sizing:border-box;
+  display:flex;flex-direction:column;overflow:hidden;background:var(--paper);color:var(--ink);border-inline-start:1px solid var(--line);
+  transform:translateX(100%);transition:transform var(--side-exit-duration) var(--side-exit-easing)}
+.side-page.is-open{transform:translateX(0);transition-duration:var(--side-enter-duration);transition-timing-function:var(--side-enter-easing)}
+.side-page[hidden]{display:none}
+.side-page-head,.side-page-foot{flex:none;display:flex;align-items:center;gap:12px;padding:14px 20px;background:var(--raise)}
+.side-page-head{justify-content:space-between;border-bottom:1px solid var(--line)}
+.side-page-head h2{margin:0;font-size:18px;line-height:1.4;overflow-wrap:anywhere}
+.side-page-head small{display:block;color:var(--muted);overflow-wrap:anywhere}
+.btn.icon.sm.panel-dismiss{display:inline-grid;place-items:center;flex:none;width:32px;height:32px;padding:0;
+  background:transparent!important;border:1px solid var(--line)!important;border-radius:10px!important;color:var(--muted)!important;box-shadow:none!important;
+  transition:background .15s,border-color .15s,color .15s}
+.btn.icon.sm.panel-dismiss:hover{background:var(--sunk)!important;color:var(--ink)!important}
+.panel-dismiss svg{width:16px;height:16px}
+@media(pointer:coarse){.btn.icon.sm.panel-dismiss{width:44px;height:44px}}
+.side-page-body{flex:1;min-height:0;padding:16px 20px;overflow:auto;overscroll-behavior:contain;overflow-wrap:anywhere}
+.side-page-body :is(input,select,img){max-width:100%}
+.side-page-foot{border-top:1px solid var(--line);justify-content:flex-end;flex-wrap:wrap;padding-bottom:max(14px,env(safe-area-inset-bottom))}
+@media(min-width:1100px){
+  body{grid-template-columns:var(--nav-width) minmax(0,1fr) 0px!important;transition:grid-template-columns var(--side-exit-duration) var(--side-exit-easing)}
+  body.has-side-page{grid-template-columns:var(--nav-width) minmax(0,1fr) var(--side-page-width)!important;transition-duration:var(--side-enter-duration);transition-timing-function:var(--side-enter-easing)}
+}
+@media(max-width:700px){body.has-side-page{overflow:hidden!important}.side-page{width:100%;border:0}.side-page-body .form-grid{grid-template-columns:minmax(0,1fr)}}
+@media(prefers-reduced-motion:reduce){body,body.has-side-page,.side-page{transition:none}}
+
+/* The 44px pointer target is transparent; only the thumb straddles the color bands. */
+:root #work .pblock .grade-ratio-track button.grade-ratio-handle[role=slider]{
+  display:grid;place-items:center;appearance:none;padding:0!important;border:0!important;
+  background:transparent!important;box-shadow:none!important;outline:none}
+.grade-ratio-track .grade-ratio-handle::after{
+  grid-area:1/1;box-sizing:border-box;width:14px;height:24px;border-radius:6px;
+  border:1px solid var(--muted);background:var(--raise);box-shadow:0 1px 3px #0003}
+.grade-ratio-track .grade-ratio-handle::before{
+  content:"";grid-area:1/1;z-index:1;box-sizing:border-box;width:4px;height:10px;
+  border-inline:1px solid var(--ink);pointer-events:none}
+.grade-ratio-handle:not(:disabled):is(:hover,:active,:focus-visible)::after{
+  border-color:var(--accent);outline:2px solid var(--accent);outline-offset:1px}
+@media(forced-colors:active){.grade-ratio-track .grade-ratio-handle:focus-visible::after{outline-color:Highlight}}

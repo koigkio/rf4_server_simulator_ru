@@ -423,6 +423,10 @@ func (d *DB) loadAdminShopItemMeta(ctx context.Context, itemIDs []string) (map[s
 }
 
 func (d *DB) ListAdminStoreItems(ctx context.Context, storeID, query string, limit int) ([]*AdminStoreItemView, error) {
+	return d.ListAdminStoreItemsFiltered(ctx, storeID, query, limit, false)
+}
+
+func (d *DB) ListAdminStoreItemsFiltered(ctx context.Context, storeID, query string, limit int, overridesOnly bool) ([]*AdminStoreItemView, error) {
 	storeID = strings.TrimSpace(storeID)
 	if storeID == "" {
 		return nil, fmt.Errorf("store_id 不能为空")
@@ -461,6 +465,9 @@ func (d *DB) ListAdminStoreItems(ctx context.Context, storeID, query string, lim
 			continue
 		}
 		_, hasOverride := shelf.Overrides[row.ItemID]
+		if overridesOnly && !hasOverride {
+			continue
+		}
 		out = append(out, &AdminStoreItemView{
 			StoreID:     storeID,
 			ItemID:      row.ItemID,

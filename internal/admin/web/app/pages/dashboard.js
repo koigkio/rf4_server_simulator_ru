@@ -1,4 +1,4 @@
-import { h, api, apiList, fmt, tsNum, timeText, clockText, icon, navigate, empty, pageHead, work, ib, h2s, h3s, hint, note, kv, bullets, pill, brief, tbl, logsBlock, startGrid, searchBox, btn, render, setPageCleanup } from '../core.js';
+import { h, api, apiList, fmt, tsNum, timeText, clockText, icon, navigate, empty, pageHead, work, ib, h2s, h3s, hint, note, kv, bullets, pill, brief, tbl, logsBlock, startGrid, searchBox, btn, render } from '../core.js';
 import { auditLabel } from '../labels.js';
 import { updateBanner, buildLabel } from '../main.js';
 
@@ -23,7 +23,6 @@ export default async function dashboard() {
     api('/api/fish/bite_mode').catch(() => ({})),
     apiList('/api/stores').catch(() => []),
   ]);
-  setPageCleanup(null);
 
   const modeName = { realistic: '真实鱼汛', legacy: '全随机（旧版）', mixed: '自定义' }[mode.mode] || '未上报';
   const on = (k) => (tuns[k] === undefined ? k === 'happy_hour_enabled' : tuns[k] === '1');
@@ -92,7 +91,7 @@ export default async function dashboard() {
       }))),
       h3s('运行日志'),
       hint('后台审计表里最近的记录，可以按动作、对象或管理员筛。', { margin: '0 0 8px' }),
-      h('div', { class: 'search' },
+      h('div', { class: 'search logs-toolbar' },
         searchBox('搜动作、对象或管理员', (v) => { search.q = v; drawLogs(); }),
         btn('刷新', () => render(), 'ghost')),
       logsBox,
