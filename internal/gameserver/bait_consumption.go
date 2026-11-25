@@ -57,7 +57,11 @@ func (s *Server) baitedHookSets(ctx context.Context, rod string) []baitedHookSet
 		return nil
 	}
 	groups := map[int64]*baitedHookSet{}
-	for _, category := range []int64{catBait, catLure} {
+	// 27 类天然饵在 rig 50-54 上只是吸引成分，但仍要挂在钩位上参与
+	// 分组、扣饵和补饵；判鱼候选由 rollFishForRig 里的 marineLureBaits
+	// 过滤，不能在这里整类跳过，否则多钩的饵分组会全部丢失。
+	categories := []int64{catBait, catLure}
+	for _, category := range categories {
 		for _, key := range rigCompKeysOfCategory(comps, category) {
 			comp := comps[key]
 			row, err := s.DB.GetItemByGUID(ctx, comp.GUID)
@@ -186,6 +190,13 @@ func (t hookAnchorTable) mainHook() string {
 	return hook
 }
 
+// isMainLureSlot 判断组件是否落在该钓组的主线拟饵槽（模板里 17 类的第一个索引）。
+// 只用于海钓拟饵族 50-54：300 是柳叶亮片/铁板主饵，325/326 是吸引成分。
+func isMainLureSlot(rigType, extra int64) bool {
+	idx := slotIndicesFor(rigType, catLure)
+	return len(idx) > 0 && extra == idx[0]
+}
+
 // baitHookAssignments 把已挂载的饵/拟饵分到钓组钩位上，返回 饵GUID → 钩GUID。
 //
 // 分配优先级：
@@ -204,6 +215,7 @@ func (t hookAnchorTable) mainHook() string {
 // 整批作废改用结构配对，并把纠正结果回写。
 func (s *Server) baitHookAssignments(ctx context.Context, rod string, comps map[int64]rigComp, single bool) (map[string]string, error) {
 	assigned := map[string]string{}
+	rigType := s.rigTypeForWrite(ctx, rod)
 	hooks := rigCompKeysOfCategory(comps, catHook)
 	mounted, rigHook := map[string]bool{}, map[string]bool{}
 	for _, key := range hooks {
@@ -324,9 +336,14 @@ func (s *Server) baitHookAssignments(ctx context.Context, rod string, comps map[
 					// 但记录必须落在本钓组的钩组件上：实机 2026-11-13 07:40
 					// 主线拟饵被记到它自带的三本钩（内嵌引用 04047060… 早已失效），
 					// 结果主线钩 250 整枚空置，4 个钩位只剩 3 个真钩能用。
-					// 没有记录的主线装饰（亮片/发光管）仍然不分配，不凭空占钩位。
+					// 没有记录的主线装饰（亮片/发光管）仍然不分配，不凭空占钩位；
+					// 但主线拟饵槽（rig 50-54 的 300）是主饵，无记录时归主线钩，
+					// 否则 Jiggmeister 这类主饵整个不参与判鱼，只剩子槽软饵。
 					hook = explicit[comp.GUID]
 					if hook != "" && !rigHook[strings.ToLower(hook)] {
+						hook = mainHook
+					}
+					if hook == "" && cat == catLure && marineLureRig(rigType) && isMainLureSlot(rigType, comp.Extra) {
 						hook = mainHook
 					}
 				}

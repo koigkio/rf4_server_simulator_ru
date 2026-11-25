@@ -261,7 +261,9 @@ func marineActionMatch(c fishRollContext, t marineFishTraits) float64 {
 
 func marineDepthMatch(c fishRollContext, t marineFishTraits) float64 {
 	layer := normalizeWaterLayer(c.lureLayer)
-	if c.spotEnv.Known && c.spotEnv.DepthM > 0 {
+	if c.marineLayerKnown {
+		layer = normalizeWaterLayer(c.marineLayer)
+	} else if c.spotEnv.Known && c.spotEnv.DepthM > 0 {
 		layer = groundbaitClamp(c.spotEnv.DepthM/220, 0, 1)
 	}
 	return groundbaitClamp(1-math.Abs(layer-.58*t.pit-.20*t.ambush), .25, 1)

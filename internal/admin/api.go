@@ -446,7 +446,7 @@ func (s *Server) handleTunableSet(w http.ResponseWriter, r *http.Request) {
 		httpError(w, 400, "参数错误")
 		return
 	}
-	if (req.Key == "fish_ecology_enabled" || req.Key == "fish_bait_rules_enabled" || req.Key == "fish_distribution_enabled" || req.Key == "fish_weather_enabled" || req.Key == "happy_hour_enabled" || req.Key == "grade_ratio_enabled" || req.Key == "fish_hunt_enabled" || req.Key == "two_stage_hunt_enabled" || req.Key == "hook_nibble_enabled" || req.Key == "event_anniversary_enabled" || req.Key == "event_newyear_enabled" || req.Key == "condition_health_enabled" || req.Key == "condition_fishing_pause_enabled" || req.Key == "bite_pace_enabled") && req.Value != "0" && req.Value != "1" {
+	if (req.Key == "fish_ecology_enabled" || req.Key == "fish_bait_rules_enabled" || req.Key == "fish_distribution_enabled" || req.Key == "fish_weather_enabled" || req.Key == "marine_layer_enabled" || req.Key == "happy_hour_enabled" || req.Key == "grade_ratio_enabled" || req.Key == "fish_hunt_enabled" || req.Key == "two_stage_hunt_enabled" || req.Key == "hook_nibble_enabled" || req.Key == "event_anniversary_enabled" || req.Key == "event_newyear_enabled" || req.Key == "condition_health_enabled" || req.Key == "condition_fishing_pause_enabled" || req.Key == "bite_pace_enabled") && req.Value != "0" && req.Value != "1" {
 		httpError(w, 400, "开关只能为 0 或 1")
 		return
 	}
@@ -545,7 +545,7 @@ func spawnModeFor(t map[string]string) string {
 }
 
 // handleBiteModeGet/Set 鱼汛模式二选一（legacy/realistic），
-// 原子统管硬性门/生态/天气/吃饵/分布五个开关；mixed 表示手动改过单个开关。
+// 原子统管硬性门/生态/天气/吃饵/分布/海钓水层六个开关；mixed 表示手动改过单个开关。
 func (s *Server) handleBiteModeGet(w http.ResponseWriter, r *http.Request) {
 	t, err := s.db.TunableList(r.Context())
 	if err != nil {

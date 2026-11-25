@@ -295,20 +295,7 @@ func (s *Server) QueryFish(ctx context.Context, req FishQueryRequest) (*FishQuer
 			}
 		}
 	}
-	sort.SliceStable(candidates, func(i, j int) bool {
-		return fishQueryPlanBetter(candidates[i], candidates[j])
-	})
-	seen := map[string]bool{}
-	for _, plan := range candidates {
-		key := fmt.Sprintf("%s/%s/%d", plan.Map, plan.Bait, plan.RigType)
-		if !seen[key] {
-			response.Plans = append(response.Plans, plan)
-			seen[key] = true
-		}
-		if len(response.Plans) >= 12 {
-			break
-		}
-	}
+	response.Plans = selectFishQueryPlans(candidates)
 	response.Elapsed = time.Since(started).Seconds()
 	response.Notes = []string{"理论条/小时 = 3600 × 单次目标鱼概率 ÷ 平均判鱼间隔；单竿、单饵无窝料，按当前条件折算，不是官服概率或未来一小时预测。不含客户端等待、占竿、搏鱼、收鱼、重抛及落水就位保护，非实际鱼获。", "只查指定地图、当前时段，比较天然饵及拟饵各最多24组与代表钓法；不是全饵、全天候最优解。", "海图比较最多6个有依据的落点，假设已上船；内陆默认岸钓。"}
 	if maps[0].regions != nil {
@@ -325,6 +312,84 @@ func (s *Server) QueryFish(ctx context.Context, req FishQueryRequest) (*FishQuer
 		}
 	}
 	return response, nil
+}
+
+const (
+	fishQueryPlansPerFamily = 3
+	fishQueryPlansLimit     = 12
+)
+
+type fishQueryFamily int
+
+const (
+	fishQueryFamilyOther fishQueryFamily = iota
+	fishQueryFamilyLure
+	fishQueryFamilyFloat
+	fishQueryFamilyBottom
+)
+
+// fishQueryFamilyRenderOrder 是回复里的固定分组顺序。海图 52（海钓鱼肉）
+// 属于收索族，归入路亚组，行内仍显示具体钓法。
+var fishQueryFamilyRenderOrder = []fishQueryFamily{
+	fishQueryFamilyLure,
+	fishQueryFamilyFloat,
+	fishQueryFamilyBottom,
+	fishQueryFamilyOther,
+}
+
+func fishQueryFamilyForRig(rig int64) fishQueryFamily {
+	switch {
+	case rigTypeLureFamily[rig]:
+		return fishQueryFamilyLure
+	case floatRigTypes[rig]:
+		return fishQueryFamilyFloat
+	case bottomRigTypes[rig]:
+		return fishQueryFamilyBottom
+	default:
+		return fishQueryFamilyOther
+	}
+}
+
+func (f fishQueryFamily) label() string {
+	switch f {
+	case fishQueryFamilyLure:
+		return "路亚"
+	case fishQueryFamilyFloat:
+		return "手杆"
+	case fishQueryFamilyBottom:
+		return "底钓"
+	default:
+		return "其他"
+	}
+}
+
+// selectFishQueryPlans 先按理论条/小时排序，再在每个钓法族内保留最多
+// fishQueryPlansPerFamily 条。全局截断会把低产钓法整组挤掉，所以必须先
+// 分组再截断；总条数仍受 fishQueryPlansLimit 约束。
+func selectFishQueryPlans(candidates []FishQueryPlan) []FishQueryPlan {
+	sort.SliceStable(candidates, func(i, j int) bool {
+		return fishQueryPlanBetter(candidates[i], candidates[j])
+	})
+	selected := make([]FishQueryPlan, 0, fishQueryPlansLimit)
+	seen := map[string]bool{}
+	perFamily := map[fishQueryFamily]int{}
+	for _, plan := range candidates {
+		key := fmt.Sprintf("%s/%s/%d", plan.Map, plan.Bait, plan.RigType)
+		if seen[key] {
+			continue
+		}
+		family := fishQueryFamilyForRig(plan.RigType)
+		if perFamily[family] >= fishQueryPlansPerFamily {
+			continue
+		}
+		seen[key] = true
+		perFamily[family]++
+		selected = append(selected, plan)
+		if len(selected) >= fishQueryPlansLimit {
+			break
+		}
+	}
+	return selected
 }
 
 func fishQueryBaitFitsRig(category, rig int64) bool {

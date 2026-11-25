@@ -1594,12 +1594,20 @@ func (s *Server) rigSetTarget(ctx context.Context, parentGUID string, slot int64
 	// 基本吸引成分与钓钩吸引成分互相顶掉正是这样发生的。
 	count := 0
 	used := map[int64]bool{}
-	for key := range comps {
+	for key, comp := range comps {
 		if rigCompCategory(key) != slot {
 			continue
 		}
-		count++
 		used[rigCompOrdinal(key)] = true
+		// 1000+ 是钩位子槽命名空间（倒钓臂展开的 1002/1006/1010 等），
+		// 模板只声明 300/325/326 三个普通拟饵族槽，子槽不占这份额度。
+		// 把它们计入 count 会让 count 恒大于 limit，普通索引全部落到
+		// 「替换 ordinal=0」分支：装亮片/吸引成分时后一件顶掉前一件
+		// （2026-11-22 22:53 实机：325 → 300 → 326 → 300 全部写 ordinal=0）。
+		if hookSlotIndexNamespace(slot, comp.Extra) {
+			continue
+		}
+		count++
 	}
 	freeOrdinal := func() int64 {
 		for ord := int64(0); ; ord++ {

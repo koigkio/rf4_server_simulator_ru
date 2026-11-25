@@ -65,7 +65,12 @@ func TestBaitDigSpendsEnergy(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	srv.tunCache = map[string]float64{tunableBaitDigEnergyCost: 0.15}
+	// 关掉自然恢复：体力按真实时间回（默认 100/h），seed 与挖饵之间只要跨过
+	// 一个整秒就会多回 100/3600≈0.0277，把 0.65 顶成 0.6777 而随机失败。
+	srv.tunCache = map[string]float64{
+		tunableBaitDigEnergyCost:  0.15,
+		tunableEnergyRegenPerHour: 0,
+	}
 	srv.tunAt = time.Now()
 	seedConditionPrimary(t, srv, uid, 0.80)
 
