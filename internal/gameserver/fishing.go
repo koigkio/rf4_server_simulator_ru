@@ -1746,7 +1746,10 @@ func (s *Server) sampleWeightDB(ctx context.Context, key string, modeMult, scale
 	// 抽样与最终判档必须共用 settleStatics 同一真源，避免鱼档占比失真。
 	if s.tunableF("grade_ratio_enabled", 1) == 1 {
 		settle := s.cachedSettleStatics(ctx, c, key)
-		ratioLines := cachedGradeLines{val: &settle[0], trophy: &settle[1], blue: &settle[2]}
+		ratioLines := cachedGradeLines{
+			val: &settle[0], trophy: &settle[1], blue: &settle[2],
+			lureSizeCM: lureLengthCM(c),
+		}
 		// 「未达标」档的下界取该鱼种自然最小体重（species_weight.min_g）。
 		if minG, ok := s.cachedSpeciesMinG(ctx, c, key); ok {
 			ratioLines.minG = &minG
@@ -1819,6 +1822,39 @@ func belowGradeFloorFromVal(valG int64) int64 {
 	return f
 }
 
+// lureLengthCM 返回本次中鱼拟饵的长度（厘米）。非拟饵、或非路亚/海钓钓组
+// 返回 0；长度区间按 [3, 38] cm 处理。
+func lureLengthCM(c fishRollContext) float64 {
+	if c.runtime == nil || !c.runtime.lureKnown {
+		return 0
+	}
+	if !rigTypeLureFamily[c.rigType] && !marineRigType(c.rigType) {
+		return 0
+	}
+	return c.runtime.lure.SizeCM
+}
+
+// lureLengthFloorFactor 用两段线性曲线把拟饵长度 [3,38]cm 映射为最小鱼
+// 重量向达标线抬升的比例，直接控制未达标率：
+//
+//	3cm  → 0     未达标率保持配置的 grade_pct_below（默认 3%）
+//	16cm → 0.95  未达标率约为配置值的 5%
+//	38cm → 1     未达标率 0（巨型软饵不再出未达标个体）
+//
+// 两段内都是线性插值，覆盖 [3,38] 全部长度，而不是只定义三个端点。
+func lureLengthFloorFactor(sizeCM float64) float64 {
+	switch {
+	case sizeCM <= 3:
+		return 0
+	case sizeCM <= 16:
+		return 0.95 * (sizeCM - 3) / 13
+	case sizeCM <= 38:
+		return 0.95 + 0.05*(sizeCM-16)/22
+	default:
+		return 1
+	}
+}
+
 func (s *Server) gradeRatioModel(l cachedGradeLines, modeMult, scale, capG float64) (fishGradeRatioModel, bool) {
 	if s.tunableF("grade_ratio_enabled", 1) != 1 {
 		return fishGradeRatioModel{}, false
@@ -1845,6 +1881,12 @@ func (s *Server) gradeRatioModel(l cachedGradeLines, modeMult, scale, capG float
 	}
 	if l.minG != nil && *l.minG > 0 && float64(*l.minG) < vf {
 		lo = float64(*l.minG)
+	}
+	// 拟饵越长，目标鱼体型越大：把最小鱼重量从兜底向达标线抬升，
+	// 并同步压缩未达标档占比，避免"大饵仍频繁出小鱼未达标"。
+	lureGain := lureLengthFloorFactor(l.lureSizeCM)
+	if lureGain > 0 && vf > lo {
+		lo += (vf - lo) * lureGain
 	}
 	bands := make([]gradeRatioBand, 0, 4)
 	if vf > lo {
@@ -1886,7 +1928,7 @@ func (s *Server) gradeRatioModel(l cachedGradeLines, modeMult, scale, capG float
 		}
 	}
 	w := map[int64]float64{
-		1: s.tunableF("grade_pct_below", 3),
+		1: s.tunableF("grade_pct_below", 3) * (1 - lureGain),
 		2: s.tunableF("grade_pct_qualified", 87.5),
 		3: s.tunableF("grade_pct_trophy", 9),
 		4: s.tunableF("grade_pct_super", 0.5),
