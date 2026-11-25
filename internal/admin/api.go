@@ -464,6 +464,13 @@ func (s *Server) handleTunableSet(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
+	if strings.HasPrefix(req.Key, "skill_grade_mult_") {
+		v, err := strconv.ParseFloat(strings.TrimSpace(req.Value), 64)
+		if err != nil || math.IsNaN(v) || math.IsInf(v, 0) || v < 0 || v > 20 {
+			httpError(w, 400, "鱼获档位熟练度倍数必须在 0 ~ 20 之间")
+			return
+		}
+	}
 	if strings.HasPrefix(req.Key, "skill_gain_pct_") {
 		v, err := strconv.ParseFloat(strings.TrimSpace(req.Value), 64)
 		if err != nil || math.IsNaN(v) || math.IsInf(v, 0) || v < 0 || v > 100 {

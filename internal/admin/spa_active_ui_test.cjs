@@ -74,6 +74,48 @@ test('active skill gain UI switches mode through one endpoint',async()=>{
  }finally{await browser.close()}
 });
 
+test('active grade gain UI renders four multiplier inputs and saves them',async()=>{
+ const browser=await chromium.launch({headless:true,executablePath:process.env.RF4_TEST_BROWSER});
+ try{
+  const context=await browser.newContext({viewport:{width:1280,height:900}});
+  await context.addInitScript(()=>localStorage.setItem('rf4_admin_token','fixture'));
+  const page=await context.newPage(),errors=[],writes=[];
+  page.on('pageerror',e=>errors.push(e.message));
+  await page.route('**/*',async route=>{
+   const url=new URL(route.request().url());
+   if(url.pathname==='/')return route.fulfill({contentType:'text/html; charset=utf-8',body:fs.readFileSync(path.join(webRoot,'index.html'),'utf8')});
+   if(url.pathname.startsWith('/app/')){
+    const file=path.join(webRoot,url.pathname.replace(/^\//,''));
+    if(fs.existsSync(file))return route.fulfill({contentType:file.endsWith('.css')?'text/css; charset=utf-8':'text/javascript; charset=utf-8',body:fs.readFileSync(file)});
+    return route.fulfill({status:404,body:''});
+   }
+   if(url.pathname==='/api/me')return route.fulfill({contentType:'application/json',body:JSON.stringify({username:'admin'})});
+   if(url.pathname==='/api/tunables'){
+    if(route.request().method()==='POST'){
+     const body=route.request().postDataJSON();
+     writes.push(body);
+     return route.fulfill({contentType:'application/json',body:JSON.stringify({ok:true})});
+    }
+    return route.fulfill({contentType:'application/json',body:JSON.stringify({skill_grade_mult_1:'1',skill_grade_mult_2:'1',skill_grade_mult_3:'1',skill_grade_mult_4:'1'})});
+   }
+   return route.fulfill({contentType:'application/json',body:'{}'});
+  });
+  await page.goto('http://127.0.0.1:19214/#tuning/reward');
+  // 档位倍数是「技能升级概率」区块内的第二段，不另起区块。
+  await page.locator('#pg-skill').getByText('按鱼获档位加成',{exact:true}).waitFor();
+  for(const label of ['未达标鱼','合格鱼','奖杯鱼','蓝冠鱼'])assert.equal(await page.locator('#pg-skill').getByText(label,{exact:true}).count(),1);
+  assert.equal(await page.locator('input[id^="f_skill_grade_mult_"]').count(),4);
+  assert.equal(await page.locator('#pg-skill-grade').count(),0);
+  await page.locator('input[id^="f_skill_grade_mult_4_"]').fill('8');
+  await page.getByRole('button',{name:'保存修改',exact:true}).click();
+  const saved=writes.find(w=>w&&w.key==='skill_grade_mult_4');
+  assert.ok(saved,'应保存 skill_grade_mult_4');
+  assert.equal(saved.value,'8');
+  assert.deepEqual(errors,[]);
+  await context.close();
+ }finally{await browser.close()}
+});
+
 test('active rules page exposes and saves the marine layer switch',async()=>{
  const browser=await chromium.launch({headless:true,executablePath:process.env.RF4_TEST_BROWSER});
  try{

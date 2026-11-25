@@ -141,6 +141,13 @@ const SKILL_GAIN_KEYS = [
   ['skill_gain_pct_8', '制作拟饵', '路亚手工制作熟练度。'],
 ];
 const SKILL_GAIN_MODES = [['native', '原版概率'], ['fixed100', '百分百'], ['custom', '自定义']];
+// 鱼获档位对熟练度增量的倍数。1..4 对应 grade 枚举；填 1 表示该档位不加成。
+const SKILL_GRADE_KEYS = [
+  ['skill_grade_mult_1', '未达标鱼', '协议里的 grade 1。填 1 = 不加成。'],
+  ['skill_grade_mult_2', '合格鱼', '协议里的 grade 2，绝大多数渔获是这一档。'],
+  ['skill_grade_mult_3', '奖杯鱼', '协议里的 grade 3，即「上星」的鱼。'],
+  ['skill_grade_mult_4', '蓝冠鱼', '协议里的 grade 4，超级稀有。'],
+];
 let CAT = 'gameplay';
 
 function skillGainModeOf(t) {
@@ -168,10 +175,18 @@ function skillGainSection(form, t, val, no = 90) {
   }, label)));
   const fields = mode === 'custom' ? h('div', { class: 'stack', style: { marginTop: '14px' } }, SKILL_GAIN_KEYS.map(([key, label, help]) =>
     form.row({ key, label, help, kind: 'float', min: 0, max: 100, unit: '%', def: 0 }, val(key, 0)))) : null;
+  // 鱼获档位倍数作为本区块的第二段：它同样按「涨多少」调节熟练度，
+  // 和上面的「涨不涨」是同一件事的两个维度，不另起一个区块。
+  const gradeFields = SKILL_GRADE_KEYS.map(([key, label, help]) =>
+    form.row({ key, label, help, kind: 'float', min: 0, max: 20, unit: '倍', def: 1 }, val(key, 1)));
   return pblock(no, '技能升级概率', '一键切换全部技能：原版概率、全部百分百，或逐项自定义。0=原版公式，100=必定增长。',
     [h('div', { class: 'span-2', style: { gridColumn: '1 / -1' } }, buttons,
       h('p', { class: 'hint', style: { margin: '8px 0 0' }, text: '百分百模式会让每次符合条件的钓获、挖饵或制作都获得熟练度；固定百分比模式不叠加欢乐时光对原版概率的修正。' })),
-    ...(fields ? [...fields.childNodes] : [])], { id: 'pg-skill' });
+    ...(fields ? [...fields.childNodes] : []),
+    h('div', { class: 'span-2', style: { gridColumn: '1 / -1', marginTop: '14px', paddingTop: '12px', borderTop: '1px solid var(--line)' } },
+      h('p', { style: { margin: '0 0 2px', fontWeight: '600' }, text: '按鱼获档位加成' }),
+      h('p', { class: 'hint', style: { margin: '0 0 8px' }, text: '钓到越稀有的鱼，单次熟练度涨得越多。倍数只放大增量，不改变上面「这次涨不涨」的概率，两种模式都叠加。基础增量是 0.1 或 0.2，乘以倍数后四舍五入到 0.1——建议用 1/2/4/8 这类整数倍，避免 0.15 被进位成 0.2。填 0 让该档完全不涨。制作和挖饵没有鱼档位，始终按 1 倍。' })),
+    ...gradeFields], { id: 'pg-skill' });
 }
 
 export default async function tuning(params) {
