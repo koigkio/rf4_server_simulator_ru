@@ -134,11 +134,22 @@ func setRf4TailCache(s *Server, fishKey string, total float64, shares map[string
 	s.rf4ShareMu.Unlock()
 }
 
-func enableTailGrading(s *Server) {
+func enableTailGrading(t *testing.T, s *Server) {
+	t.Helper()
+	setBaitShareGate(t, s, "5", "1", "0.2")
+	// 强制重载后从 DB 读取，确保开启态不依赖缓存里碰巧留下的默认值。
 	s.tunMu.Lock()
-	delete(s.tunCache, "bait_share_strong")
-	s.tunAt = time.Now()
+	s.tunAt = time.Time{}
 	s.tunMu.Unlock()
+	if got := s.tunableF("bait_share_strong", -1); got != 5 {
+		t.Fatalf("强制重载后 bait_share_strong=%g, want 5", got)
+	}
+	if got := s.tunableF("bait_share_medium", -1); got != 1 {
+		t.Fatalf("强制重载后 bait_share_medium=%g, want 1", got)
+	}
+	if got := s.tunableF("bait_share_tail", -1); got != 0.2 {
+		t.Fatalf("强制重载后 bait_share_tail=%g, want 0.2", got)
+	}
 }
 
 func TestBaitShareTailGateRejectsCategoryWildcard(t *testing.T) {
@@ -153,7 +164,7 @@ func TestBaitShareTailGateRejectsCategoryWildcard(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	enableTailGrading(s)
+	enableTailGrading(t, s)
 	setRf4TailCache(s, "salmon", 600, map[string]float64{"rule_livefish": 0.17})
 	keys, weights := s.filterFishBaitSet("rules-test", []string{"rule_livefish"}, []string{"salmon"}, []float64{1}, time.Unix(worldDayEpochUnix+1500, 0), fishRollContext{cache: newFishingRollCache()})
 	if len(keys) != 0 || len(weights) != 0 {
@@ -181,7 +192,7 @@ func TestBaitShareTailGateAllowsActiveRotationGroup(t *testing.T) {
 		t.Fatal(err)
 	}
 	s.invalidateBaitOverrides()
-	enableTailGrading(s)
+	enableTailGrading(t, s)
 	setRf4TailCache(s, "c.roach", 600, map[string]float64{"rot_other": 99.83})
 	at := time.Unix(1_800_000_000, 0)
 	for (at.Unix()/600)%2 != 0 {
@@ -204,7 +215,7 @@ func TestBaitShareTailGateRequiresReadyCache(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	enableTailGrading(s)
+	enableTailGrading(t, s)
 	setRf4TailCache(s, "c.roach", 600, map[string]float64{"refresh_other": 99.83})
 	now := time.Unix(worldDayEpochUnix+1500, 0)
 	keys, _ := s.filterFishBaitSet("rules-test", []string{"refresh_bait"}, []string{"c.roach"}, []float64{1}, now, fishRollContext{cache: newFishingRollCache()})
