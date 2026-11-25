@@ -76,6 +76,20 @@ func TestSkillGainModeSetIsAtomicAndPreservesCustomValues(t *testing.T) {
 			t.Fatalf("%s=%q, want 0", key, values[key])
 		}
 	}
+	// 档位倍数走同一条 tunable 写入路径，越界必须被拒。
+	if code := call(http.MethodPost, "/api/tunables", auth.Token, `{"key":"skill_grade_mult_4","value":"8"}`).Code; code != http.StatusOK {
+		t.Fatalf("设置档位倍数 code=%d", code)
+	}
+	values, _ = db.TunableList(context.Background())
+	if values["skill_grade_mult_4"] != "8" {
+		t.Fatalf("skill_grade_mult_4=%q, want 8", values["skill_grade_mult_4"])
+	}
+	for _, bad := range []string{"-1", "21", "abc"} {
+		if code := call(http.MethodPost, "/api/tunables", auth.Token, `{"key":"skill_grade_mult_4","value":"`+bad+`"}`).Code; code != http.StatusBadRequest {
+			t.Fatalf("倍数 %q 应被拒，实际 code=%d", bad, code)
+		}
+	}
+
 	if values["skill_gain_mode"] != "native" {
 		t.Fatalf("mode=%q", values["skill_gain_mode"])
 	}

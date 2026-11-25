@@ -42,6 +42,63 @@ func TestSkillProficiencyFixedPercent(t *testing.T) {
 	}
 }
 
+func TestSkillGradeMultiplierScalesGain(t *testing.T) {
+	const cat = int64(2)
+	const current = 60.0
+
+	s := &Server{
+		tunCache: map[string]float64{"skill_gain_pct_2": 100, "skill_grade_mult_2": 2, "skill_grade_mult_3": 4, "skill_grade_mult_4": 8},
+		tunText:  map[string]string{},
+		tunAt:    time.Now(),
+	}
+	// amountRoll=0 命中 0.2 大增量；档位倍数在增量上乘算。
+	cases := []struct {
+		grade int64
+		want  float64
+	}{{1, 0.2}, {2, 0.4}, {3, 0.8}, {4, 1.6}}
+	for _, c := range cases {
+		if got := s.skillProficiencyGainForGradeRoll(cat, c.grade, current, 0.5, 0); got != c.want {
+			t.Fatalf("grade=%d 增量=%.2f, want %.2f", c.grade, got, c.want)
+		}
+	}
+
+	// 未配置倍数的档位回退 1 倍；grade<=0 表示调用方不区分档位。
+	if got := s.skillProficiencyGainForGradeRoll(cat, 9, current, 0.5, 0); got != 0.2 {
+		t.Fatalf("未配置档位应回退 1 倍，实际 %.2f", got)
+	}
+	if got := s.skillProficiencyGainForGradeRoll(cat, 0, current, 0.5, 0); got != 0.2 {
+		t.Fatalf("grade<=0 应回退 1 倍，实际 %.2f", got)
+	}
+
+	// 非法倍数回退 1 倍，而不是把成长关掉。
+	s.tunCache["skill_grade_mult_2"] = -1
+	if got := s.skillProficiencyGainForGradeRoll(cat, 2, current, 0.5, 0); got != 0.2 {
+		t.Fatalf("负倍数应回退 1 倍，实际 %.2f", got)
+	}
+}
+
+func TestSkillGradeMultiplierKeepsProbability(t *testing.T) {
+	const cat = int64(2)
+	const current = 60.0
+	s := &Server{
+		tunCache: map[string]float64{"skill_gain_pct_2": 50, "skill_grade_mult_4": 8},
+		tunText:  map[string]string{},
+		tunAt:    time.Now(),
+	}
+	// 倍数为 8 也只放大增量，命中概率仍是固定 50%：0.51 必须判失败。
+	if got := s.skillProficiencyGainForGradeRoll(cat, 4, current, 0.51, 0); got != 0 {
+		t.Fatalf("档位倍数不应抬高命中概率，实际 gain=%.2f", got)
+	}
+	if got := s.skillProficiencyGainForGradeRoll(cat, 4, current, 0.49, 0); got != 1.6 {
+		t.Fatalf("命中后应按 8 倍放大到 1.6，实际 %.2f", got)
+	}
+
+	// 满熟练度不增长，倍数也不能绕过上限。
+	if got := s.skillProficiencyGainForGradeRoll(cat, 4, profCap, 0.49, 0); got != 0 {
+		t.Fatalf("满熟练度不应增长，实际 %.2f", got)
+	}
+}
+
 func setSkillGainCache(s *Server, key string, value float64) {
 	s.tunMu.Lock()
 	s.tunCache = map[string]float64{key: value}

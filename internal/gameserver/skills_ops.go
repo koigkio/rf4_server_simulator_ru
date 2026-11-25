@@ -141,6 +141,30 @@ func (s *Server) skillProficiencyGainChance(cat int64, current float64) (float64
 // skillProficiencyGainForRoll 与纯函数版本相同，但会按技能大类应用后台固定概率。
 // 固定百分比只替换「本次是否涨」的概率，命中后 0.1/0.2 的增量规则保持不变。
 func (s *Server) skillProficiencyGainForRoll(cat int64, current, gainRoll, amountRoll float64) float64 {
+	return s.skillProficiencyGainForGradeRoll(cat, 0, current, gainRoll, amountRoll)
+}
+
+// skillGradeGainMultiplier 返回鱼获档位对熟练度增量的倍数。
+//
+// 后台参数 skill_grade_mult_<grade>：1..4 对应未达标/合格/奖杯/蓝冠。
+// grade<=0 表示调用方不区分档位（制作、挖饵），直接返回 1。
+// 倍数最终会被 QuantizeSkillPoints 四舍五入到 0.1 格，倍数的乘积应落在 0.1 的
+// 整数倍上，否则 0.15 这类中间值会被进位成 0.2，与配置不符。
+func (s *Server) skillGradeGainMultiplier(grade int64) float64 {
+	if s == nil || grade <= 0 {
+		return 1
+	}
+	mult := s.tunableF(fmt.Sprintf("skill_grade_mult_%d", grade), 1)
+	if math.IsNaN(mult) || math.IsInf(mult, 0) || mult < 0 {
+		return 1
+	}
+	return mult
+}
+
+// skillProficiencyGainForGradeRoll 带鱼获档位的熟练度判定。
+// 档位只放大命中后的增量（0.1/0.2），不改变命中概率，因此原版公式与固定百分比
+// 两种模式都能叠加；倍数上限由调用方的 profCap 钳位兜底。
+func (s *Server) skillProficiencyGainForGradeRoll(cat, grade int64, current, gainRoll, amountRoll float64) float64 {
 	if current >= profCap {
 		return 0
 	}
@@ -148,20 +172,27 @@ func (s *Server) skillProficiencyGainForRoll(cat int64, current, gainRoll, amoun
 	if gainRoll >= chance {
 		return 0
 	}
+	base := 0.1
 	if amountRoll < fishingProficiencyLargeGainChance(current) {
-		return 0.2
+		base = 0.2
 	}
-	return 0.1
+	return base * s.skillGradeGainMultiplier(grade)
 }
 
 // proficiencyGainForCatch 是钓获结算的熟练度判定入口。
 // 固定百分比直接覆盖原版概率，且不叠加欢乐时光对原版概率的修正。
 func (s *Server) proficiencyGainForCatch(cat int64, current float64, happy bool) float64 {
+	return s.proficiencyGainForCatchGrade(cat, 0, current, happy)
+}
+
+// proficiencyGainForCatchGrade 在 proficiencyGainForCatch 基础上叠加鱼获档位倍数。
+// grade<=0 时与旧口径完全一致。
+func (s *Server) proficiencyGainForCatchGrade(cat, grade int64, current float64, happy bool) float64 {
 	gainRoll := s.rollSkillFloat()
 	if _, fixed := s.skillProficiencyFixedChance(cat); !fixed {
 		gainRoll = happyHourProficiencyRoll(current, gainRoll, happy)
 	}
-	return s.skillProficiencyGainForRoll(cat, current, gainRoll, s.rollSkillFloat())
+	return s.skillProficiencyGainForGradeRoll(cat, grade, current, gainRoll, s.rollSkillFloat())
 }
 
 // awardFishingProficiency 按实际钓组大类增加熟练度。
