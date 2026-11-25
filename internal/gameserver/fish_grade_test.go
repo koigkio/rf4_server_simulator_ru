@@ -2,6 +2,7 @@ package gameserver
 
 import (
 	"context"
+	"encoding/json"
 	"path/filepath"
 	"testing"
 
@@ -115,6 +116,92 @@ func TestFishGradeAllStaticSpecies(t *testing.T) {
 		}
 	}
 	t.Logf("checked %d species at all three ruler boundaries", len(species))
+}
+
+func TestFishGradeSourcesStayInSync(t *testing.T) {
+	db, err := store.OpenWithStatic(filepath.Join(t.TempDir(), "grade-sync.db"), filepath.Join("..", "..", "server_data", "static.sqlite3"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { db.Close() })
+	if err := db.Migrate(); err != nil {
+		t.Fatal(err)
+	}
+	s := NewServer(config.Game{Tunnel: config.Tunnel{PSK: "grade-sync"}}, logging.Discard(), nil)
+	s.SetDB(db)
+	ctx := context.Background()
+
+	recordWeights := map[string]int64{}
+	if err := json.Unmarshal(fishRecordWeightsJSON, &recordWeights); err != nil {
+		t.Fatal(err)
+	}
+	if len(recordWeights) != 252 {
+		t.Fatalf("fish_record_weights.json 记录数=%d，期望252", len(recordWeights))
+	}
+
+	rows, err := db.SQL.QueryContext(ctx, `
+		SELECT g.fish_key, g.qualified_g, g.trophy_g, g.blue_trophy_g,
+		       w.trophy_g, w.trophy_line_g, w.super_trophy_line_g
+		FROM fish_grade_lines g
+		JOIN species_weight w ON w.fish_key = g.fish_key
+		WHERE g.source = 'external-thresholds@2026-11-25'
+		ORDER BY g.fish_key`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	checked := 0
+	for rows.Next() {
+		var key string
+		var qualified, trophy, blue int64
+		var staticQualified, staticTrophy, staticBlue int64
+		if err := rows.Scan(&key, &qualified, &trophy, &blue, &staticQualified, &staticTrophy, &staticBlue); err != nil {
+			rows.Close()
+			t.Fatal(err)
+		}
+		record, ok := recordWeights[key]
+		if !ok {
+			rows.Close()
+			t.Fatalf("迁移有 %s，但 fish_record_weights.json 未收录", key)
+		}
+		if record != qualified || qualified != staticQualified {
+			rows.Close()
+			t.Fatalf("%s 达标线不一致: json=%d grade_lines=%d species_weight=%d", key, record, qualified, staticQualified)
+		}
+		if trophy != staticTrophy || blue != staticBlue {
+			rows.Close()
+			t.Fatalf("%s 奖杯/蓝冠线不一致: grade_lines=%d/%d species_weight=%d/%d", key, trophy, blue, staticTrophy, staticBlue)
+		}
+		delete(recordWeights, key)
+		checked++
+	}
+	if err := rows.Err(); err != nil {
+		rows.Close()
+		t.Fatal(err)
+	}
+	rows.Close()
+	if checked != 252 {
+		t.Fatalf("external-thresholds 迁移记录数=%d，期望252", checked)
+	}
+	if len(recordWeights) != 0 {
+		t.Fatalf("fish_record_weights.json 有 %d 个键未被 external-thresholds 迁移覆盖", len(recordWeights))
+	}
+
+	wantSalmon := [3]int64{13999, 14000, 20000}
+	q, y, b := db.GradeLines(ctx, "bs_salmon")
+	if q == nil || y == nil || b == nil || *q != wantSalmon[0] || *y != wantSalmon[1] || *b != wantSalmon[2] {
+		t.Fatalf("bs_salmon grade_lines=(%v,%v,%v)，期望%v", q, y, b, wantSalmon)
+	}
+	if got := s.settleStatics(ctx, "bs_salmon"); got != [6]int64{13999, 14000, 20000, 25000, 22000, 24000} {
+		t.Fatalf("bs_salmon settleStatics=%v", got)
+	}
+	f := &RolledFish{FishGUID: newFishGUID(), Species: "bs_salmon", WeightG: 13999, Grade: 2}
+	settle := s.buildSettle813(ctx, 1000001, f, &settleXpResult{})
+	for i, line := range wantSalmon {
+		if got := u32Of(settle.Field(i).Num); got != uint32(line) {
+			t.Fatalf("bs_salmon 结算 f%d=%d，期望%d", i, got, line)
+		}
+	}
+	t.Logf("checked %d species across json, grade_lines and species_weight", checked)
 }
 
 func TestAdminFishUsesRealWeightAndSurvivesRestart(t *testing.T) {
