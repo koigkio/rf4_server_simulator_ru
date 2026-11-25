@@ -9,14 +9,17 @@ import (
 
 func TestFishQueryReplyCompactReference(t *testing.T) {
 	result := &FishQueryResponse{AsOf: "2026-11-08T05:38:00Z", Plans: []FishQueryPlan{
-		{MapName: "旧奥斯特罗格湖", BaitName: "蚯蚓", RigName: "浮钓", Chance: .183, TheoreticalPerHour: 65.88,
+		{MapName: "旧奥斯特罗格湖", BaitName: "亮片", RigType: 5, RigName: "路亚", Chance: .1, TheoreticalPerHour: 80,
 			References: []FishQueryReference{{Coordinate: "45:12", Catches: 100}}},
-		{MapName: "旧奥斯特罗格湖", BaitName: "蛆", RigName: "底钓", Chance: .125, TheoreticalPerHour: 45,
+		{MapName: "旧奥斯特罗格湖", BaitName: "蚯蚓", RigType: 1, RigName: "浮钓", Chance: .183, TheoreticalPerHour: 65.88,
+			EquivalentBaits: 3, References: []FishQueryReference{{Coordinate: "45:12", Catches: 100}}},
+		{MapName: "旧奥斯特罗格湖", BaitName: "蛆", RigType: 12, RigName: "底钓", Chance: .125, TheoreticalPerHour: 45,
 			References: []FishQueryReference{{Coordinate: "45:12", Catches: 100}}},
 	}}
 	want := "旧奥斯特罗格湖 · 河鲈\n" +
-		"1. 蚯蚓 · 浮钓 · 理论 65.88条/小时\n" +
-		"2. 蛆 · 底钓 · 理论 45.00条/小时\n" +
+		"【路亚】\n1. 亮片 · 路亚 · 理论 80.00条/小时\n" +
+		"【手杆】\n1. 蚯蚓（同效饵 3 个） · 浮钓 · 理论 65.88条/小时\n" +
+		"【底钓】\n1. 蛆 · 底钓 · 理论 45.00条/小时\n" +
 		"攻略参考点：45:12（未参与概率计算）\n" +
 		"理论速率不计搏鱼、收鱼时间。"
 	if got := formatFishQueryReply("河鲈", result); got != want {
@@ -27,7 +30,7 @@ func TestFishQueryReplyCompactReference(t *testing.T) {
 func TestFishQueryReplyKeepsCalculatedLocationsSeparate(t *testing.T) {
 	x, z := 425.0, 495.0
 	result := &FishQueryResponse{Plans: []FishQueryPlan{
-		{MapName: "测试湖", BaitName: "饵一", RigName: "路亚", Action: "jig", Chance: .1, X: &x, Z: &z,
+		{MapName: "测试湖", BaitName: "饵一", RigType: 5, RigName: "路亚", Action: "jig", Chance: .1, X: &x, Z: &z,
 			CoordinateKind: "manual", References: []FishQueryReference{{Coordinate: "99:99"}}},
 	}}
 	reply := formatFishQueryReply("河鲈", result)
@@ -52,10 +55,11 @@ func TestFishQueryReplyLimitedAndNoInventedCoordinate(t *testing.T) {
 		t.Fatalf("empty reply = %s", got)
 	}
 	for range 4 {
-		result.Plans = append(result.Plans, FishQueryPlan{MapName: "测试湖", BaitName: "饵", RigName: "浮钓", Chance: .001, TheoreticalPerHour: .36, Action: "drift"})
+		result.Plans = append(result.Plans, FishQueryPlan{MapName: "测试湖", BaitName: "饵", RigType: 1, RigName: "浮钓", Chance: .001, TheoreticalPerHour: .36, Action: "drift"})
 	}
 	got := formatFishQueryReply("河鲈", result)
 	if strings.Contains(got, "4.") || !strings.Contains(got, "3. 饵 · 浮钓·顺水漂流 · 理论 0.36条/小时") ||
+		!strings.Contains(got, "仅列出当前条件下有可行方案的钓法。") ||
 		strings.Contains(got, "参考点") || strings.Contains(got, "落点") || strings.Contains(got, "饵深") {
 		t.Fatalf("too many plans, unnecessary fields or invented position: %s", got)
 	}
@@ -106,7 +110,7 @@ func TestFishQuerySpeciesOnlyCommands(t *testing.T) {
 	for _, text := range []string{"常见拟鲤", "常见拟鲤 rules-test", "查鱼 常见拟鲤", "查询 常见拟鲤 " + mapKey} {
 		t.Run(text, func(t *testing.T) {
 			got := s.fishQueryReply(t.Context(), sess, text)
-			if !strings.HasPrefix(got, "rules-test · 常见拟鲤\n1. ") || strings.Contains(got, "及以上") {
+			if !strings.HasPrefix(got, "rules-test · 常见拟鲤\n【") || !strings.Contains(got, "\n1. ") || strings.Contains(got, "及以上") {
 				t.Fatalf("species-only query returned %q", got)
 			}
 		})

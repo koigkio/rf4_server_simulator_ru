@@ -146,6 +146,58 @@ func TestFishQueryReadOnlyAndCatalog(t *testing.T) {
 	}
 }
 
+func TestFishQueryPlanFamilies(t *testing.T) {
+	for rig, want := range map[int64]fishQueryFamily{
+		5: fishQueryFamilyLure, 50: fishQueryFamilyLure, 52: fishQueryFamilyLure,
+		1: fishQueryFamilyFloat, 21: fishQueryFamilyFloat,
+		12: fishQueryFamilyBottom, 55: fishQueryFamilyBottom,
+		0: fishQueryFamilyOther,
+	} {
+		if got := fishQueryFamilyForRig(rig); got != want {
+			t.Fatalf("rig %d family=%v want=%v", rig, got, want)
+		}
+	}
+	candidates := []FishQueryPlan{
+		{Map: "m", Bait: "lure-low", RigType: 5, TheoreticalPerHour: 10},
+		{Map: "m", Bait: "float-1", RigType: 1, TheoreticalPerHour: 40},
+		{Map: "m", Bait: "bottom-1", RigType: 12, TheoreticalPerHour: 30},
+		{Map: "m", Bait: "lure-high", RigType: 5, TheoreticalPerHour: 90},
+		{Map: "m", Bait: "float-2", RigType: 1, TheoreticalPerHour: 50},
+		{Map: "m", Bait: "bottom-2", RigType: 12, TheoreticalPerHour: 20},
+		{Map: "m", Bait: "lure-mid", RigType: 50, TheoreticalPerHour: 60},
+		{Map: "m", Bait: "float-3", RigType: 21, TheoreticalPerHour: 70},
+		{Map: "m", Bait: "bottom-3", RigType: 55, TheoreticalPerHour: 80},
+		{Map: "m", Bait: "lure-extra", RigType: 51, TheoreticalPerHour: 5},
+		{Map: "m", Bait: "float-extra", RigType: 2, TheoreticalPerHour: 4},
+		{Map: "m", Bait: "bottom-extra", RigType: 13, TheoreticalPerHour: 3},
+	}
+	got := selectFishQueryPlans(candidates)
+	want := map[fishQueryFamily][]string{
+		fishQueryFamilyLure:   {"lure-high", "lure-mid", "lure-low"},
+		fishQueryFamilyFloat:  {"float-3", "float-2", "float-1"},
+		fishQueryFamilyBottom: {"bottom-3", "bottom-1", "bottom-2"},
+	}
+	if len(got) != 9 {
+		t.Fatalf("selected %d plans; want 9", len(got))
+	}
+	index := map[fishQueryFamily]int{}
+	for _, plan := range got {
+		family := fishQueryFamilyForRig(plan.RigType)
+		i := index[family]
+		if i >= len(want[family]) || plan.Bait != want[family][i] {
+			t.Fatalf("family %v plan %d=%q; want %v", family, i, plan.Bait, want[family])
+		}
+		index[family]++
+	}
+	duplicate := selectFishQueryPlans([]FishQueryPlan{
+		{Map: "m", Bait: "same", RigType: 1, TheoreticalPerHour: 10},
+		{Map: "m", Bait: "same", RigType: 1, TheoreticalPerHour: 20},
+	})
+	if len(duplicate) != 1 || duplicate[0].TheoreticalPerHour != 20 {
+		t.Fatalf("duplicate key was not collapsed to its best plan: %+v", duplicate)
+	}
+}
+
 func TestFishQueryContactAndMailReplay(t *testing.T) {
 	s, db := newProgressSrv(t)
 	const uid int64 = 1000001
