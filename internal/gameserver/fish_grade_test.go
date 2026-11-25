@@ -94,7 +94,16 @@ func TestFishGradeAllStaticSpecies(t *testing.T) {
 			t.Fatalf("invalid ruler %s: %v", key, lines)
 		}
 		for i, line := range lines[:3] {
+			next := int64(0)
+			if i+1 < len(lines) {
+				next = lines[i+1]
+			}
 			for _, delta := range []int64{-1, 0, 1} {
+				// 相邻档位线只差 1g（如 bs_salmon 的 13999/14000）时，
+				// line+1 已经是下一档，不能按本档边界断言。
+				if delta > 0 && next > 0 && line+delta >= next {
+					continue
+				}
 				want := int64(i + 2)
 				if delta < 0 {
 					want--
