@@ -44,14 +44,11 @@ func TestBaitEvidenceThresholdGrading(t *testing.T) {
 		ins("rule_grain_b")
 	}
 	ins("rule_grain_c")
-	// 显式开启分级（seedBaitRuleTest 默认关闭，见其注释）
-	s.tunMu.Lock()
-	delete(s.tunCache, "bait_share_strong")
+	// 显式开启分级（seedBaitRuleTest 默认关闭，见其注释）。
 	// 本用例要用 1 条纪录验证长尾档（0.6%），把最小样本量降到 1；
 	// 生产默认 5 条，防止「1/2 = 50%」这种噪声直接顶到强证据档。
-	s.tunCache["bait_share_min_count"] = 1
-	s.tunAt = time.Now() // 阻止 ensureTunablesLocked 立刻用 DB 值覆盖上面的手写值
-	s.tunMu.Unlock()
+	setBaitShareGate(t, s, "5", "1", "0.2")
+	setBaitRuleTunable(t, s, "bait_share_min_count", "1")
 	s.loadRf4Share() // 同步预热，避免异步时序
 
 	cache := newFishingRollCache()
@@ -97,9 +94,7 @@ func TestBaitEvidenceThresholdGrading(t *testing.T) {
 	}
 
 	// 开关回滚：任一阈值 <=0 回旧行为（companion 有行即满分，无证据排除）
-	s.tunMu.Lock()
-	s.tunCache["bait_share_strong"] = 0
-	s.tunMu.Unlock()
+	setBaitRuleTunable(t, s, "bait_share_strong", "0")
 	if weight("c.roach", "rule_grain_b") != 0 || weight("frog", "rule_other") <= 0 {
 		t.Fatalf("开关关闭应回旧行为: b=%f other=%f",
 			weight("c.roach", "rule_grain_b"), weight("frog", "rule_other"))
