@@ -86,7 +86,7 @@ function rail() {
     brand(),
     h('div', { class: 'mobile-nav' }, h('b', { text: 'RF4' }), h('span', { id: 'mobilePage' }), toggle),
     nav,
-    h('div', { class: 'rail-foot' },
+    h('div', { class: 'rail-foot', id: 'railFoot' },
       h('div', { class: 'who' },
         h('span', { text: signedIn ? (me?.username || '管理员') : '未登录' }),
         h('button', { class: 'who-out', type: 'button', title: accountAction, onclick: signedIn ? logout : () => loginDialog() },
