@@ -96,16 +96,28 @@ func (s *Server) prepareFishRollRuntime(ctx context.Context, c *fishRollContext,
 	if c.runtime.spotPref == nil {
 		c.runtime.spotPref, c.runtime.spotData = s.loadFishSpotPreference(ctx, statLoc, c)
 	}
-	if !c.runtime.lureKnown && c.rigType != 0 {
-		// 多拟饵取最深（与 lureCoreForGear 种子同源，评审 P3-1），
-		// 避免"种子用最深、fallback 用第一枚"的两套口径。彩珠/发光管
-		// （lureType 17）是吸引成分，不参与判鱼，也不得抢主导拟饵。
-		for _, id := range c.baits {
-			if lure, ok := s.loadLureAttributes(ctx, id); ok && lure.TypeID != lureTypeAttraction {
-				if !c.runtime.lureKnown || lure.DiveDepth > c.runtime.lure.DiveDepth {
-					c.runtime.lure, c.runtime.lureKnown = lure, true
+	// 拟饵属性必须跟当前这组饵对应：rollFishForRig 会逐钩换 c.baits，
+	// 只按 lureKnown 算一次会让后续钩位继续沿用第一钩的拟饵。
+	// 饵集合没变就复用结果（runtime 是整杆共享的），变了一次重算。
+	if c.rigType != 0 {
+		baitsKey := strings.Join(c.baits, "\x00")
+		if !c.runtime.lureKnown || c.runtime.lureBaitsKey != baitsKey {
+			// 多拟饵取最深（与 lureCoreForGear 种子同源，评审 P3-1），
+			// 避免"种子用最深、fallback 用第一枚"的两套口径。彩珠/发光管
+			// （lureType 17）是吸引成分，不参与判鱼，也不得抢主导拟饵。
+			var lure lureAttributes
+			lureKnown := false
+			for _, id := range c.baits {
+				item, ok := s.loadLureAttributes(ctx, id)
+				if !ok || item.TypeID == lureTypeAttraction {
+					continue
+				}
+				if !lureKnown || item.DiveDepth > lure.DiveDepth {
+					lure, lureKnown = item, true
 				}
 			}
+			c.runtime.lure, c.runtime.lureKnown = lure, lureKnown
+			c.runtime.lureBaitsKey = baitsKey
 		}
 	}
 }

@@ -30,18 +30,18 @@ type fishRollContext struct {
 	// marineLayerKnown=false 表示该路径没有 14/7 序列（查鱼/声呐），回退旧口径。
 	marineLayer      float64
 	marineLayerKnown bool
-	weather    fishingWeather
-	rigType    int64
-	happyBite  float64
-	onBoat     bool
-	boatKnown  bool
-	biteRoll   func() float64
-	cache      *fishingRollCache
-	skill      fishingSkillBonus
-	spotEnv    fishSpotEnvironment
-	runtime    *fishRollRuntime
-	hook       gearPhysicsSpec
-	query      *fishQueryCapture
+	weather          fishingWeather
+	rigType          int64
+	happyBite        float64
+	onBoat           bool
+	boatKnown        bool
+	biteRoll         func() float64
+	cache            *fishingRollCache
+	skill            fishingSkillBonus
+	spotEnv          fishSpotEnvironment
+	runtime          *fishRollRuntime
+	hook             gearPhysicsSpec
+	query            *fishQueryCapture
 	// gateBlocked 由 rollFishWithRules 挂指针：硬性鱼口门把本图名册剔空时置位，
 	// 调用方据此跳过内置鱼池兜底——门拦下的杆就该空竿重排，不能从鱼池
 	// 捞出不属于本图的鱼。指针随值拷贝存活。
@@ -67,6 +67,9 @@ type fishRollAudit struct {
 type fishRollRuntime struct {
 	lure      lureAttributes
 	lureKnown bool
+	// lureBaitsKey 是 lure 对应的饵集合。多钩逐钩循环会换 c.baits，
+	// 只有集合变了才重新解析，避免把上一钩位的主导拟饵属性带过来。
+	lureBaitsKey string
 	// levelChecked 保证一次判鱼只解析一次地点与海图区号。
 	levelChecked bool
 	// chartKnown 表示该地点有没有海图，zoneKnown 表示是否定位到声呐网格。

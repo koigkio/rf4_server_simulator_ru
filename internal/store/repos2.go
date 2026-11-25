@@ -882,29 +882,42 @@ func (d *DB) SpawnModeSet(ctx context.Context, mode, updatedBy string) error {
 	return tx.Commit()
 }
 
-// biteModeKeys 是「鱼汛模式」预设统管的五个开关。与发鱼模式不同，
-// 五个开关也可以在鱼群规则条里逐个手调（那是合法的 mixed 状态）。
-var biteModeKeys = []string{
+// biteModeLegacyKeys 是旧版鱼汛模式的五个开关。
+var biteModeLegacyKeys = []string{
 	"bite_gate_enabled", "fish_ecology_enabled", "fish_weather_enabled",
 	"fish_bait_rules_enabled", "fish_distribution_enabled",
-	"marine_layer_enabled",
 }
 
-// BiteModeFor 由当前 tunables 推断鱼汛模式：realistic=五开、legacy=五关，
-// 其余为 mixed（管理员手动改过单个开关）。
+// biteModeKeys 是预设统管的全部开关：旧五开关 + 后加的海钓水层影响。
+// 与发鱼模式不同，这些开关也可以在鱼群规则条里逐个手调（那是合法的 mixed 状态）。
+var biteModeKeys = append(append([]string(nil), biteModeLegacyKeys...), "marine_layer_enabled")
+
+// BiteModeFor 由当前 tunables 推断鱼汛模式：
+//   - 六开 = realistic；
+//   - 旧五开关全关、且海钓水层未开启 = legacy；
+//   - 其余 = mixed（管理员手动改过单个开关）。
+//
+// 旧库没有 marine_layer_enabled 这一行，读出来是空串。缺失要按“关”处理：
+// 五个旧开关全关时仍应显示 legacy，否则升级后整页会错报成「自定义组合」。
 func BiteModeFor(t map[string]string) string {
-	all, none := true, true
+	allOn := true
 	for _, key := range biteModeKeys {
-		if t[key] == "1" {
-			none = false
-		} else {
-			all = false
+		if t[key] != "1" {
+			allOn = false
+			break
 		}
 	}
-	switch {
-	case all:
+	if allOn {
 		return "realistic"
-	case none:
+	}
+	legacy := true
+	for _, key := range biteModeLegacyKeys {
+		if t[key] == "1" {
+			legacy = false
+			break
+		}
+	}
+	if legacy && t["marine_layer_enabled"] != "1" {
 		return "legacy"
 	}
 	return "mixed"
@@ -955,7 +968,7 @@ func (d *DB) SkillGainModeSet(ctx context.Context, mode, updatedBy string) error
 	return tx.Commit()
 }
 
-// BiteModeSet 原子切换鱼汛模式：realistic=五开，legacy=五关。
+// BiteModeSet 原子切换鱼汛模式：realistic=六开，legacy=六关。
 func (d *DB) BiteModeSet(ctx context.Context, mode, updatedBy string) error {
 	value := "0"
 	switch mode {

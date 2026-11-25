@@ -9,11 +9,11 @@ import (
 func newMarineLayerTestServer() *Server {
 	s := &Server{}
 	s.tunCache = map[string]float64{
-		"marine_layer_enabled":           1,
-		"marine_descent_seconds":         60,
-		"marine_descent_seconds_pilker":  60,
-		"marine_descent_seconds_jig":     50,
-		"marine_descent_seconds_bottom":  45,
+		"marine_layer_enabled":          1,
+		"marine_descent_seconds":        60,
+		"marine_descent_seconds_pilker": 60,
+		"marine_descent_seconds_jig":    50,
+		"marine_descent_seconds_bottom": 45,
 	}
 	s.tunAt = time.Now()
 	return s
@@ -190,10 +190,20 @@ func TestMarineLayerLearnsDescentByZoneAndRig(t *testing.T) {
 	s.updateMarineLayerLocked(st, marineDiveMask, t0)
 	s.updateMarineLayerLocked(st, marineBottomTouchBit, t0.Add(55*time.Second))
 
-	// 55s / ((0.93-0.05)/0.93) ≈ 58.1s。
+	// 推进模型里「到达 0.93」用的就是满程时长 T，观测到 55 秒下沉
+	// 就应该学成 55 秒，不能再按层差放大。
 	got := s.marineDescentSeconds(&FishState{RigType: 50, Loc: "loc12_198"})
-	if got < 55 || got > 61 {
-		t.Fatalf("学习后的满程时长=%f，期望约 58", got)
+	if !marineLayerNear(got, 55) {
+		t.Fatalf("学习后的满程时长=%f，期望 55", got)
+	}
+
+	// 下一次同区号、同钓组类别的下沉：观测时长走到学习值时层数应正好到 0.93。
+	next := &FishState{RigType: 50, Loc: "loc12_198", CastActive: true}
+	t1 := time.Unix(7600, 0)
+	s.updateMarineLayerLocked(next, marineDiveMask, t1)
+	s.updateMarineLayerLocked(next, marineDiveMask, t1.Add(55*time.Second))
+	if !marineLayerNear(next.MarineLayer, marineLayerBottom) {
+		t.Fatalf("下一次下沉观测 55 秒后层数=%f，期望 %f", next.MarineLayer, marineLayerBottom)
 	}
 	if other := s.marineDescentSeconds(&FishState{RigType: 50, Loc: "loc12_199"}); !marineLayerNear(other, 60) {
 		t.Fatalf("不同区号不应共享学习值，得到 %f", other)
@@ -214,7 +224,7 @@ func TestMarineLayerLearnIgnoresLegacySwitch(t *testing.T) {
 	s.updateMarineLayerLocked(st, marineBottomTouchBit, t0.Add(55*time.Second))
 
 	got := s.marineDescentSeconds(&FishState{RigType: 50, Loc: "loc12_198"})
-	if got < 55 || got > 61 {
+	if !marineLayerNear(got, 55) {
 		t.Fatalf("旧开关残留不应关闭学习，得到 %f", got)
 	}
 }

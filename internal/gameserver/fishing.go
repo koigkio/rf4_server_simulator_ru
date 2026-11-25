@@ -1293,15 +1293,11 @@ func (s *Server) rollFishForRig(ctx context.Context, uid int64, gearGUID, loc, b
 		if !s.applyBaitedHookSpec(ctx, group, &selected) {
 			continue
 		}
-		// 海钓拟饵族（rig 50-54）多钩：每个钩位的真实拟饵各自独立判鱼，
-		// 4 种饵都有机会先上，哪一组先出鱼就扣哪一组的饵。彩珠/发光管
-		// （lureType 17）是吸引成分，不参与判鱼；只剩装饰的钩位跳过。
-		baits := group.baits
-		if marineLureRig(c.rigType) {
-			baits = s.marineLureBaits(ctx, c, group.baits)
-			if len(baits) == 0 {
-				continue
-			}
+		// 每个钩位先取真正参与判鱼的饵：海钓拟饵族里天然饵与彩珠/发光管
+		// 只作吸引成分，只剩装饰的钩位直接跳过。
+		baits := s.rollBaitsForGroup(ctx, c, group, c.rigType)
+		if len(baits) == 0 {
+			continue
 		}
 		c.baits = baits
 		// 饵效控速逐钩开口率：直接用当前钩位的饵实时算复合档位并掷骰；
@@ -1320,6 +1316,39 @@ func (s *Server) rollFishForRig(ctx context.Context, uid int64, gearGUID, loc, b
 		}
 	}
 	return nil
+}
+
+// rollBaitsForGroup 返回某个钩位真正参与判鱼的饵。
+//
+// 海钓拟饵族（rig 50-54）的钩位上可能同时挂天然饵或彩珠/发光管：它们只作
+// 吸引成分，不能当成"咬钩的饵"。主鱼路径、多钩额外鱼路径和开口率分母都
+// 走这里，保证 BaitItem、QualBait 与扣饵看到的是同一组候选。
+// 返回空表示这个钩位只有装饰，不会出鱼，调用方应跳过。
+func (s *Server) rollBaitsForGroup(ctx context.Context, c fishRollContext, group baitedHookSet, rigType int64) []string {
+	if marineLureRig(rigType) {
+		return s.marineLureBaits(ctx, c, group.baits)
+	}
+	return group.baits
+}
+
+// marineBaitHookCount 统计本杆真正可能出鱼的钩位数。
+//
+// 海钓拟饵族里只挂天然饵/彩珠的装饰钩位不会出鱼，不能计入开口率分母；
+// 否则贴底时每多一个装饰钩位都会把有效钩位的开口率再压低一份。
+// 判鱼候选的过滤口径与 rollBaitsForGroup 完全一致。
+func (s *Server) marineBaitHookCount(ctx context.Context, rigType int64, groups []baitedHookSet) int {
+	if !marineLureRig(rigType) {
+		return len(groups)
+	}
+	// 同一批饵在多个钩位重复出现时复用缓存，避免每个钩位都查一次库。
+	c := fishRollContext{rigType: rigType, cache: newFishingRollCache()}
+	count := 0
+	for _, group := range groups {
+		if len(s.rollBaitsForGroup(ctx, c, group, rigType)) > 0 {
+			count++
+		}
+	}
+	return count
 }
 
 // realLureBaits 过滤掉彩珠/发光管这类 lureType=17 的吸引成分，
@@ -3215,7 +3244,8 @@ func (s *Server) onRodBiteTimerTicket(uid int64, st *FishState, ticket fishingTi
 	// 分摊：刚入水约 0.05、贴底约 0.93，越接近目标水层鱼口越高；关闭开关
 	// 或非海钓返回原概率。
 	if s.marineLayerEnabled() && marineRigType(st.RigType) {
-		probability = s.marineLayerBiteProbability(probability, st, len(s.baitedHookSets(s.dbCtx(), st.GearGuid)))
+		groups := s.baitedHookSets(s.dbCtx(), st.GearGuid)
+		probability = s.marineLayerBiteProbability(probability, st, s.marineBaitHookCount(s.dbCtx(), st.RigType, groups))
 	}
 	if s.tunableF("fish_bait_rules_enabled", 0) == 1 || s.tunableF("fish_weather_enabled", 0) == 1 {
 		probability = math.Min(.95, probability)

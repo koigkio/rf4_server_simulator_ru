@@ -152,12 +152,11 @@ func (s *Server) learnMarineDescent(st *FishState, now time.Time) {
 	if elapsed < 2 {
 		return
 	}
-	// T 是“从 0 到 0.93 的满程时长”；本次只走了 startLayer -> 0.93。
-	span := (marineLayerBottom - st.DescentStartLayer) / marineLayerBottom
-	if span <= 0.1 {
-		return
-	}
-	sample := elapsed / span
+	// 推进公式是 layer = startLayer + (0.93-startLayer) × elapsed/T，
+	// 到 0.93 时 elapsed 正好等于 T。所以本次观测到的下沉时长就是满程
+	// 时长，不能再按层差归一化——那会把 55 秒学成 55/(0.88/0.93)≈58 秒，
+	// 之后每次下沉都多走 3 秒。
+	sample := elapsed
 	if sample < 5 || sample > 300 {
 		return
 	}
