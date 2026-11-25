@@ -2907,6 +2907,16 @@ func hRodSetComp(ctx *Ctx) ([]byte, bool) {
 	}
 	srv.queueSplitSourceRefresh(ctx, res)
 	srv.queueReleasedStackRefresh(ctx, res.Released)
+	// 17/2 是通用的“装到竿上”路径，渔轮也能走这里。装轮后同样要补推
+	// 竿树：800 f1 不重建竿建模，换轮后客户端仍按旧轮建模（理由见
+	// hReelSetComp）。
+	if res != nil && !res.Rejected && res.MountedGUID != "" {
+		if row, gerr := srv.DB.GetItemByGUID(cctx, res.MountedGUID); gerr == nil && row != nil {
+			if cat, ok := srv.itemCategoryOf(cctx, row); ok && cat == catReel {
+				srv.pushRodModelRefresh(ctx, parentGUID)
+			}
+		}
+	}
 	return body, true
 }
 
@@ -3123,7 +3133,7 @@ func hLureSetComp(ctx *Ctx) ([]byte, bool) {
 // hLureRemoveComp 处理 15/2：[容器, 父 GUID, 槽位品类, 物品 GUID, int]。
 // 槽位品类取第二个整数；返回全量快照。
 func hLureRemoveComp(ctx *Ctx) ([]byte, bool) {
-	return hRigRemoveCompFamily(ctx)
+	return hRigRemoveCompFamily(ctx, false)
 }
 
 // hReelSetComp 处理 16/1：[容器, 父 GUID, 容器, 物品 GUID]，不带槽位。
@@ -3145,16 +3155,25 @@ func hReelSetComp(ctx *Ctx) ([]byte, bool) {
 	}
 	srv.queueSplitSourceRefresh(ctx, res)
 	srv.queueReleasedStackRefresh(ctx, res.Released)
+	// 全量快照把竿树放进 f0 新增段，客户端不据此重建竿建模：电轮换成
+	// 普通轮后客户端仍停在电动模式，必须收起再取竿（17/7 重建 158）才
+	// 清掉（实机：其它轮换电轮实时生效，反向不生效）。与 17/3 拆轮同因
+	// 同修法（见 hRodRemoveComp），回包后补推版本戳更大的 4/22 竿树。
+	if res != nil && !res.Rejected && res.MountedGUID != "" {
+		srv.pushRodModelRefresh(ctx, guids[0])
+	}
 	return body, true
 }
 
 // hReelRemoveComp 处理 16/2：[容器, 父 GUID, 槽位品类, 物品 GUID]。
 func hReelRemoveComp(ctx *Ctx) ([]byte, bool) {
-	return hRigRemoveCompFamily(ctx)
+	return hRigRemoveCompFamily(ctx, true)
 }
 
 // hRigRemoveCompFamily 供 15/2 和 16/2 共用，读取第二个整数作为槽位品类。
-func hRigRemoveCompFamily(ctx *Ctx) ([]byte, bool) {
+// refreshRodModel 为 true 时（16/2 拆轮）回包后补推竿树：客户端竿建模
+// 不随 800 快照重建，拆轮后模型把轮留在竿上（见 hRodRemoveComp）。
+func hRigRemoveCompFamily(ctx *Ctx, refreshRodModel bool) ([]byte, bool) {
 	srv := ctx.Sess.Srv
 	if !srv.requireDB(ctx) {
 		return nil, false
@@ -3180,6 +3199,11 @@ func hRigRemoveCompFamily(ctx *Ctx) ([]byte, bool) {
 	}
 	cctx := ctx.Sess.pushCtx()
 	res := srv.rigRemoveComponentInstance(cctx, ctx.Sess.Userid, guids[0], slot, itemGUID, extra)
+	// 16/2 拆轮：快照只更新物品数据，竿建模不重建，模型会把轮留在竿上。
+	// 真实拆下一件后补推 4/22 竿树（17/3 同因同修法）。
+	if refreshRodModel && res != nil {
+		srv.pushRodModelRefresh(ctx, guids[0])
+	}
 	// 拟饵拆钩走三段增量（与 17/3 同构）：f1=拟饵+退回钩树刷新详情面板
 	// 与背包；f0=出厂钩退包的新物品；f2 为空（退回不删除）。全量快照的
 	// 同 guid f0 段不刷新客户端；对正展示中的拟饵发 4/21 移除则会把
