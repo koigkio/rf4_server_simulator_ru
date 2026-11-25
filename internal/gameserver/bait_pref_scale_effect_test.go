@@ -2,6 +2,7 @@ package gameserver
 
 import (
 	"math"
+	"math/rand"
 	"testing"
 )
 
@@ -49,5 +50,56 @@ func TestBaitPrefScaleChangesSpeciesShare(t *testing.T) {
 	// 强度减弱：差距被拉平。
 	if !(weak[0] < neutral[0] && weak[2] > neutral[2]) {
 		t.Fatalf("scale=0.5 应拉平饵效差距: neutral=%v weak=%v", neutral, weak)
+	}
+}
+
+func TestBaitPrefScaleChangesActualRollDistribution(t *testing.T) {
+	t.Setenv("GODEBUG", "randseednop=0")
+	s, db := seedBaitWeightTest(t)
+	// 让青蛙作为“未上榜”候选参与派鱼；拟鲤对 rule_worm 是 tier3。
+	if _, err := db.SQL.Exec(`UPDATE fish_weight_override
+		SET weight=1, enabled=1
+		WHERE loc='rules-test' AND fish_key='frog'`); err != nil {
+		t.Fatal(err)
+	}
+
+	cache := newFishingRollCache()
+	const draws = 1200
+	rollShare := func(scale string) float64 {
+		t.Helper()
+		if err := db.TunableSet(t.Context(), "bait_pref_scale", scale, "test"); err != nil {
+			t.Fatal(err)
+		}
+		s.execAdminCmd(&AdminCommand{Op: "reload_tunables"})
+		rand.Seed(20261125)
+
+		hits := 0
+		for range draws {
+			fish := s.rollFishWithRules("level_900_rules", "rule_worm", 0, neutralFishingSkillBonus(),
+				fishRollContext{cache: cache})
+			if fish == nil {
+				t.Fatalf("scale=%s 实际派鱼返回空", scale)
+			}
+			if fish.Species == "c.roach" {
+				hits++
+			}
+		}
+		return float64(hits) / draws
+	}
+
+	weak := rollShare("0.5")
+	neutral := rollShare("1")
+	strong := rollShare("2")
+	disabled := rollShare("0")
+	t.Logf("拟鲤实际占比: 0.5=%.3f 1=%.3f 2=%.3f 0=%.3f", weak, neutral, strong, disabled)
+
+	if !(weak < neutral && neutral < strong) {
+		t.Fatalf("实际派鱼占比未随 bait_pref_scale 单调变化: 0.5=%g 1=%g 2=%g", weak, neutral, strong)
+	}
+	if neutral < 0.85 {
+		t.Fatalf("scale=1 应保留 tier3 的强偏好，拟鲤占比=%g", neutral)
+	}
+	if math.Abs(disabled-0.5) > 0.05 {
+		t.Fatalf("scale=0 应关闭饵效层、恢复等权派鱼，拟鲤占比=%g", disabled)
 	}
 }
