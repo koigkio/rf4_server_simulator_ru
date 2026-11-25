@@ -3541,6 +3541,34 @@ dialog .seg>button.on{
 :root[data-theme=dark] .work>aside .seg>button{
   background:rgba(233,240,232,.06)!important;color:#cfdad2!important;
   border-color:rgba(233,240,232,.18)!important}
+
+/* 地图工具栏：图标按钮不该套用全站「主按钮」的黑底
+   全站规则 `button:not(.ghost):not(.primary):not(.ok)...` 特异性 0,4,1 且带 !important，
+   会把 .zmap-tools 里的图标按钮一起刷成墨黑实底 + 纸色字；而图标是 stroke:currentColor，
+   于是深底配深描边几乎看不见。工具栏是浮在地图上的控件条，按卡片处理：
+   纸底 + 发丝边 + 墨色图标，选中的工具用淡金底 + 金边。选择器加 #view 前缀提高特异性。 */
+.zmap-tools{background:var(--raise)!important;border:1px solid var(--line)!important;border-radius:10px!important;
+  box-shadow:0 1px 0 rgba(255,255,255,.85) inset,0 10px 26px -20px rgba(15,26,22,.55)!important;padding:5px!important}
+.zmap-tools button,
+#view .zmap-tools button,
+.zmap-canvas .zmap-tools button,
+button.zmap-tools button{
+  width:34px!important;height:34px!important;padding:0!important;border-radius:7px!important;
+  background:transparent!important;border:1px solid transparent!important;
+  color:var(--ink)!important;box-shadow:none!important;display:grid!important;place-items:center!important}
+.zmap-tools button svg{stroke:currentColor!important;color:inherit!important}
+.zmap-tools button:hover{background:var(--sunk)!important;border-color:var(--line)!important;color:var(--ink)!important}
+#view .zmap-tools button.on,
+.zmap-tools button.on{background:rgba(168,118,42,.16)!important;border-color:rgba(168,118,42,.55)!important;
+  color:#7d5514!important;box-shadow:none!important}
+:root[data-theme=dark] .zmap-tools{background:#1b2420!important;border-color:rgba(233,240,232,.16)!important}
+:root[data-theme=dark] #view .zmap-tools button,
+:root[data-theme=dark] .zmap-tools button{background:transparent!important;color:#e8efe9!important;border-color:transparent!important}
+:root[data-theme=dark] .zmap-tools button:hover{background:rgba(233,240,232,.08)!important;border-color:rgba(233,240,232,.20)!important}
+:root[data-theme=dark] #view .zmap-tools button.on,
+:root[data-theme=dark] .zmap-tools button.on{background:rgba(216,180,90,.22)!important;border-color:rgba(216,180,90,.60)!important;
+  color:#f3e6c2!important}
+
 :root[data-theme=dark] #work .seg>button.on,
 :root[data-theme=dark] .work>aside .seg>button.on{
   background:var(--accent)!important;color:#12100a!important;border-color:var(--accent)!important}
@@ -4043,3 +4071,41 @@ details.advanced>summary{font-size:13px;color:var(--ink);padding:12px 0 2px}
 #app a.home-link:hover{filter:brightness(1.06);transform:translateY(-1px)}
 #app a.home-link:active{transform:translateY(0)}
 @media (max-width:880px){#app a.home-link{font-size:14.6px!important;padding:11px 18px!important}}
+
+/* 主题切换放在页面主操作行（「控制中心 →」右边），跟它同高、同形状。
+   这里不要整条宽的下拉，按钮按内容自适应、菜单向下弹。 */
+/* 主题切换放在页面主操作行，紧挨「控制中心 →」。
+   形状、字号、行高、圆角、内外边距全部跟 .btn.primary 对齐，
+   只把填充换成纸底 + 发丝边，做成「同一行里的第二颗按钮」。 */
+.tselect.theme-inline{position:relative;width:auto!important;flex:0 0 auto;display:inline-flex;align-items:center}
+#view .hero-acts .tselect.theme-inline>button{width:auto!important;display:inline-flex;align-items:center;gap:8px;
+  margin:0;font-family:var(--display)!important;font-size:16.5px!important;font-weight:700!important;
+  line-height:1!important;height:44px!important;min-height:44px!important;
+  padding:0 22px!important;border-radius:999px!important;letter-spacing:0;
+  background:var(--raise)!important;color:var(--ink)!important;
+  border:1px solid var(--line)!important;cursor:pointer;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.75),0 12px 26px -22px rgba(15,26,22,.75)!important}
+#view .hero-acts .tselect.theme-inline>button:hover{background:var(--sunk)!important;border-color:var(--accent)!important}
+#view .hero-acts .tselect.theme-inline>button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.tselect.theme-inline .tb-lab{font-size:12.4px;font-weight:600;letter-spacing:.06em;line-height:1;
+  color:var(--muted);padding-right:9px;border-right:1px solid var(--line)}
+.tselect.theme-inline #themeNow{font-weight:700}
+#view .hero-acts .tselect.theme-inline>button::after{content:'▾';font-size:9px;opacity:.62;line-height:1;margin-left:1px}
+#view .hero-acts .tselect.theme-inline>button[aria-expanded=true]::after{content:'▴'}
+.theme-menu{position:fixed;z-index:9999;margin:0;padding:6px;list-style:none;
+  min-width:168px;width:max-content;max-width:min(280px,72vw);
+  background:var(--raise);border:1px solid var(--line);border-radius:14px;
+  box-shadow:0 20px 44px -20px rgba(6,14,11,.62);box-sizing:border-box}
+.theme-menu[hidden]{display:none!important}
+.theme-menu li{padding:10px 12px;font-size:14.5px;color:var(--ink);border-radius:9px;cursor:pointer;white-space:nowrap}
+.theme-menu li:hover{background:rgba(168,118,42,.14)}
+.theme-menu li[aria-selected=true]{background:rgba(168,118,42,.18);color:#6f4a12;font-weight:600}
+:root[data-theme=dark] .theme-menu{background:#1b2420;border-color:rgba(233,240,232,.20)}
+:root[data-theme=dark] .theme-menu li{color:#e6ede7}
+:root[data-theme=dark] .theme-menu li:hover{background:rgba(216,180,90,.16)}
+:root[data-theme=dark] .theme-menu li[aria-selected=true]{background:rgba(216,180,90,.20);color:#f0dfae}
+@media(max-width:880px){
+  #view .hero-acts .tselect.theme-inline>button{font-size:14.4px!important;padding:0 15px!important;gap:6px;height:40px!important;min-height:40px!important}
+  .tselect.theme-inline .tb-lab{font-size:11.2px;padding-right:7px}
+  .theme-menu{min-width:148px}
+}
