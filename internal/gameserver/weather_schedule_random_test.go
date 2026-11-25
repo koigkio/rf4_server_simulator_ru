@@ -2,6 +2,7 @@ package gameserver
 
 import (
 	"math"
+	"sort"
 	"testing"
 	"time"
 
@@ -182,6 +183,24 @@ func TestWeatherScheduleDisabledKeepsTemplateOrder(t *testing.T) {
 	}
 }
 
+func TestNewServerDisablesRandomWeatherAfterRandomSchedule(t *testing.T) {
+	resetWeatherSchedule()
+	t.Cleanup(resetWeatherSchedule)
+	if _, err := initWeatherSchedule(WeatherScheduleOptions{Randomize: true, CycleDays: 64}, 1234); err != nil {
+		t.Fatalf("InitWeatherSchedule: %v", err)
+	}
+	_ = NewServer(config.Game{
+		Weather: config.Weather{Randomize: false},
+	}, logging.Discard(), nil)
+	p := mapWeatherProfiles()["level_012_north_sea"]
+	if p == nil {
+		t.Fatal("missing north sea weather profile")
+	}
+	if p.random || len(p.slots) != len(p.days) {
+		t.Fatalf("disabled config retained random schedule: random=%v slots=%d days=%d", p.random, len(p.slots), len(p.days))
+	}
+}
+
 func TestWeatherScheduleCycleBounds(t *testing.T) {
 	if got := normalizeWeatherCycleDays(0); got != defaultWeatherCycleDays {
 		t.Fatalf("default cycle = %d", got)
@@ -246,6 +265,55 @@ func TestWeatherScheduleRandomTemperatureSmooth(t *testing.T) {
 	}
 }
 
+func TestWeatherScheduleRandomForecastTemperatureSmooth(t *testing.T) {
+	now := time.Unix(worldDayEpochUnix+100*24*realSecPerGameHour+12*realSecPerGameHour, 0)
+	for _, seed := range []uint64{9, 99, 777, 20261125} {
+		profiles := initRandomWeather(t, seed, 64)
+		for loc := range profiles {
+			root := scheduledMapWeather(t, loc, now.Unix())
+			type dailyHigh struct {
+				day  int64
+				high float64
+			}
+			var forecasts []dailyHigh
+			irWalkObj(&root, func(n *irNode) {
+				if n.Class != forecastClass {
+					return
+				}
+				day, dayOK := irFieldInt(n, 0)
+				high, highOK := fishingWeatherFloat(n, 2)
+				if dayOK && highOK {
+					forecasts = append(forecasts, dailyHigh{day: day, high: high})
+				}
+			})
+			if len(forecasts) != 8 {
+				t.Fatalf("seed %d map %s: forecasts = %d", seed, loc, len(forecasts))
+			}
+			sort.Slice(forecasts, func(i, j int) bool { return forecasts[i].day < forecasts[j].day })
+			plan := fishingWeatherPlanFromIR(&root)
+			for _, forecast := range forecasts {
+				maxTemp := math.Inf(-1)
+				for hour := int64(0); hour < 24; hour++ {
+					w, ok := plan.at(float64(forecast.day*24 + hour))
+					if !ok {
+						t.Fatalf("seed %d map %s: missing forecast day %d hour %d", seed, loc, forecast.day, hour)
+					}
+					maxTemp = math.Max(maxTemp, w.airTemp)
+				}
+				if math.Abs(maxTemp-forecast.high) > 1e-5 {
+					t.Fatalf("seed %d map %s: forecast day %d high %.6f, actual max %.6f", seed, loc, forecast.day, forecast.high, maxTemp)
+				}
+			}
+			for i := 1; i < len(forecasts); i++ {
+				swing := math.Abs(forecasts[i].high - forecasts[i-1].high)
+				if swing > maxDailyTempSwing+1e-5 {
+					t.Fatalf("seed %d map %s: forecast day %d->%d swing %.6f", seed, loc, forecasts[i-1].day, forecasts[i].day, swing)
+				}
+			}
+		}
+	}
+}
+
 func TestWeatherScheduleRandomTemperatureReachesDay(t *testing.T) {
 	profiles := initRandomWeather(t, 778, minWeatherCycleDays)
 	p := profiles["level_012_north_sea"]
@@ -258,5 +326,22 @@ func TestWeatherScheduleRandomTemperatureReachesDay(t *testing.T) {
 	got, ok := fishingWeatherFloat(&node, 2)
 	if !ok || math.Abs(got-slot.high) > 1e-4 {
 		t.Fatalf("day %d temperature = %.3f, want %.3f", day, got, slot.high)
+	}
+}
+
+func TestAssignRandomTemperaturesKeepsSyntheticCycleSmooth(t *testing.T) {
+	days := []irNode{{Fields: make([]irField, 5)}, {Fields: make([]irField, 5)}}
+	setWeatherFloat(&days[0], 2, -10)
+	setWeatherFloat(&days[1], 2, 10)
+	for seed := uint64(0); seed < 10000; seed++ {
+		slots := make([]weatherDaySlot, 16)
+		assignRandomTemperatures(days, slots, seed)
+		for i := range slots {
+			j := (i + 1) % len(slots)
+			swing := math.Abs(slots[j].high - slots[i].high)
+			if swing > maxDailyTempSwing+1e-9 {
+				t.Fatalf("seed %d day %d->%d swing %.6f", seed, i, j, swing)
+			}
+		}
 	}
 }

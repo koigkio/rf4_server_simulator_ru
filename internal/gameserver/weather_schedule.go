@@ -109,6 +109,18 @@ func resetWeatherSchedule() {
 	weatherProfilesMu.Unlock()
 }
 
+// clearRandomWeatherSchedule 在配置切回模板天气时清掉同进程中先前生成
+// 的随机序列，避免 false 配置继续复用旧 schedule。
+func clearRandomWeatherSchedule() {
+	weatherProfilesMu.Lock()
+	if weatherScheduleOpts.Randomize {
+		weatherProfiles = nil
+		weatherProfilesLoaded = false
+		weatherScheduleOpts = WeatherScheduleOptions{}
+	}
+	weatherProfilesMu.Unlock()
+}
+
 func normalizeWeatherCycleDays(n int) int {
 	if n <= 0 {
 		return defaultWeatherCycleDays
@@ -247,7 +259,8 @@ func nearestWeatherTemplate(days []irNode, kind int64) int {
 const maxDailyTempSwing = 3.0
 
 // assignRandomTemperatures 为随机序列生成逐日最高温：在模板最高温区间
-// 附近做有界随机游走，并向区间均值轻微回归；相邻日（含首尾）变化不超过
+// 附近做有界随机游走，并向区间均值轻微回归。每天按当前温度限制步长，
+// 同时预留返回起始日所需的步数，保证包含首尾的相邻日变化不超过
 // maxDailyTempSwing，也不会长期漂出模板气候。
 func assignRandomTemperatures(days []irNode, slots []weatherDaySlot, seed uint64) {
 	low, high, ok := weatherTemplateHighRange(days)
@@ -257,45 +270,25 @@ func assignRandomTemperatures(days []irNode, slots []weatherDaySlot, seed uint64
 	n := len(slots)
 	mean := (low + high) / 2
 	margin := maxDailyTempSwing
+	minHigh, maxHigh := low-margin, high+margin
 	rng := rand.New(rand.NewSource(int64(seed)))
-	cur := mean + (rng.Float64()*2-1)*margin
-	cur = clampFloat(cur, low-margin, high+margin)
-	for i := range slots {
+	cur := clampFloat(mean+(rng.Float64()*2-1)*margin, minHigh, maxHigh)
+	first := cur
+	slots[0].high = cur
+	for i := 1; i < n; i++ {
 		step := (rng.Float64()*2 - 1) * maxDailyTempSwing
 		next := cur + step + (mean-cur)*0.18
 		next = clampFloat(next, cur-maxDailyTempSwing, cur+maxDailyTempSwing)
-		next = clampFloat(next, low-margin, high+margin)
+		// 从第 i 天还要走 n-i 步回到第 0 天；把当前值限制在能按时
+		// 返回 first 的窗口内，最后一日的首尾相邻差也自然不超过 3°C。
+		closeWindow := maxDailyTempSwing * float64(n-i)
+		next = clampFloat(next, math.Max(minHigh, first-closeWindow), math.Min(maxHigh, first+closeWindow))
+		// 闭环窗口每步收紧 3°C；若当前值正好落在旧窗口边缘，再叠加本次
+		// 随机步长会产生 6°C 跳变。窗口收紧后再约束一次相邻日步长。
+		next = clampFloat(next, cur-maxDailyTempSwing, cur+maxDailyTempSwing)
+
 		slots[i].high = next
 		cur = next
-	}
-	// 序列按天取模循环，最后一天到第一天也是相邻日；双向限幅直到闭合。
-	for pass := 0; pass < n; pass++ {
-		changed := false
-		for i := 0; i < n; i++ {
-			j := (i + 1) % n
-			if slots[j].high > slots[i].high+maxDailyTempSwing {
-				slots[j].high = slots[i].high + maxDailyTempSwing
-				changed = true
-			}
-			if slots[j].high < slots[i].high-maxDailyTempSwing {
-				slots[j].high = slots[i].high - maxDailyTempSwing
-				changed = true
-			}
-		}
-		for i := n - 1; i >= 0; i-- {
-			j := (i - 1 + n) % n
-			if slots[j].high > slots[i].high+maxDailyTempSwing {
-				slots[j].high = slots[i].high + maxDailyTempSwing
-				changed = true
-			}
-			if slots[j].high < slots[i].high-maxDailyTempSwing {
-				slots[j].high = slots[i].high - maxDailyTempSwing
-				changed = true
-			}
-		}
-		if !changed {
-			break
-		}
 	}
 }
 
@@ -379,6 +372,14 @@ func (p *mapWeatherProfile) hour(day, hour int64) irNode {
 				thunder = .8 * envelope
 			}
 			temp -= 1.5 * envelope
+		}
+	}
+	if p.random {
+		// 随机模式把 16 时定为当日峰值，其他小时不高于该值，确保客户端
+		// 发布的每日最高温与平滑后的 slot.high 完全一致。
+		temp = math.Min(temp, high)
+		if hour == 16 {
+			temp = high
 		}
 	}
 	setWeatherFloat(&n, 2, temp)
