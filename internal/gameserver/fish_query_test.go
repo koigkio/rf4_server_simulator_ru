@@ -2,6 +2,7 @@ package gameserver
 
 import (
 	"context"
+	"fmt"
 	"math"
 	"math/rand"
 	"strings"
@@ -195,6 +196,97 @@ func TestFishQueryPlanFamilies(t *testing.T) {
 	})
 	if len(duplicate) != 1 || duplicate[0].TheoreticalPerHour != 20 {
 		t.Fatalf("duplicate key was not collapsed to its best plan: %+v", duplicate)
+	}
+}
+
+func TestFishQueryReplyKeepsFamiliesBeforeGlobalLimit(t *testing.T) {
+	s, db := seedBaitWeightTest(t)
+	const uid int64 = 1000001
+	const mapKey = "level_015_tunguska"
+	if _, err := db.SQL.Exec(`UPDATE loc_alias SET alias=? WHERE alias='level_900_rules'`, mapKey); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.EnsureProfile(t.Context(), uid); err != nil {
+		t.Fatal(err)
+	}
+	// Keep every candidate distinct instead of folding equal bait tiers. The
+	// added lures then outrank the natural-bait candidates and reproduce the
+	// old global top-12 truncation.
+	if err := db.TunableSet(t.Context(), "fish_ecology_enabled", "1", "test"); err != nil {
+		t.Fatal(err)
+	}
+	s.execAdminCmd(&AdminCommand{Op: "reload_tunables"})
+	for i := 1; i <= 15; i++ {
+		baitID := fmt.Sprintf("query_family_lure_%02d", i)
+		if _, err := db.SQL.Exec(`INSERT INTO item_def(numeric_id,item_id,category,attrs_json) VALUES(?,?,17,?)`,
+			999900+i, baitID, `{"mbemakijdeh":4}`); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := db.SQL.Exec(`INSERT INTO item_catalog(item_id,name_zh) VALUES(?,?)`,
+			baitID, fmt.Sprintf("分组测试路亚%02d", i)); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := db.SQL.Exec(`INSERT INTO companion_bait_fish(bait_id,fish_key,tier,evidence) VALUES(?,'c.roach',3,10000)`, baitID); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	result, err := s.QueryFish(t.Context(), FishQueryRequest{UID: uid, Fish: "c.roach", Map: mapKey, Grade: 1})
+	if err != nil {
+		t.Fatal(err)
+	}
+	counts := map[fishQueryFamily]int{}
+	lastRate := map[fishQueryFamily]float64{}
+	minLureRate, maxBottomRate := math.Inf(1), 0.0
+	for _, plan := range result.Plans {
+		family := fishQueryFamilyForRig(plan.RigType)
+		if family == fishQueryFamilyOther {
+			t.Fatalf("unexpected family for rig %d: %+v", plan.RigType, plan)
+		}
+		if counts[family] >= fishQueryPlansPerFamily {
+			t.Fatalf("family %s has more than %d plans: %+v", family.label(), fishQueryPlansPerFamily, result.Plans)
+		}
+		if previous, ok := lastRate[family]; ok && plan.TheoreticalPerHour > previous+1e-9 {
+			t.Fatalf("family %s is not descending: previous=%.6f current=%.6f", family.label(), previous, plan.TheoreticalPerHour)
+		}
+		lastRate[family] = plan.TheoreticalPerHour
+		counts[family]++
+		switch family {
+		case fishQueryFamilyLure:
+			minLureRate = min(minLureRate, plan.TheoreticalPerHour)
+		case fishQueryFamilyBottom:
+			maxBottomRate = max(maxBottomRate, plan.TheoreticalPerHour)
+		}
+	}
+	if len(result.Plans) > fishQueryPlansLimit {
+		t.Fatalf("selected %d plans; limit is %d", len(result.Plans), fishQueryPlansLimit)
+	}
+	for _, family := range []fishQueryFamily{fishQueryFamilyLure, fishQueryFamilyFloat, fishQueryFamilyBottom} {
+		if counts[family] == 0 {
+			t.Fatalf("family %s was truncated from the real query path: %+v", family.label(), result.Plans)
+		}
+	}
+	if counts[fishQueryFamilyLure] != fishQueryPlansPerFamily {
+		t.Fatalf("top lures were not capped at %d: counts=%+v plans=%+v", fishQueryPlansPerFamily, counts, result.Plans)
+	}
+	if counts[fishQueryFamilyBottom] == 0 || minLureRate <= maxBottomRate {
+		t.Fatalf("fixture did not force lure plans above the retained bottom plan: lureMin=%.3f bottomMax=%.3f", minLureRate, maxBottomRate)
+	}
+
+	reply := s.fishQueryReply(t.Context(), &Session{Srv: s, Userid: uid}, "常见拟鲤 "+mapKey)
+	if !strings.HasPrefix(reply, "rules-test · 常见拟鲤\n") {
+		t.Fatalf("unexpected reply header: %s", reply)
+	}
+	lastHeader := -1
+	for _, header := range []string{"【路亚】", "【手杆】", "【底钓】"} {
+		at := strings.Index(reply, header)
+		if at <= lastHeader {
+			t.Fatalf("missing or misordered %s in reply: %s", header, reply)
+		}
+		lastHeader = at
+	}
+	if strings.Contains(reply, "【其他】") || strings.Contains(reply, "仅列出当前条件下有可行方案的钓法。") {
+		t.Fatalf("reply invented a missing family: %s", reply)
 	}
 }
 
