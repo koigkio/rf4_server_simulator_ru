@@ -394,3 +394,94 @@ func TestMarineRigAttractantsDoNotDisplaceEachOther(t *testing.T) {
 		t.Fatalf("钓钩吸引成分被退回 %q，应仍在 rig 上", row.Container)
 	}
 }
+
+// TestMarinePilkerLureFamilySurvivesHookSlotSubIndices 复现 2026-11-22 22:53 实机：
+// 铁板竿 rig50 先挂倒钓臂（12/250、1001、1005、1009），钩位下已有
+// 17/1002…1012 九条拟饵族子槽；随后依次装柳叶亮片(300)、基本吸引成分(325)、
+// 钓钩吸引成分(326)。修复前 rigSetTarget 把 1000+ 子槽计入模板三槽的占用数，
+// count(9+) 恒大于 limit(3)，三件全部落到「替换 ordinal=0」：
+//
+//	22:53:25 装配 slot=17 ordinal=0 item=0d03dc63 extra=325  ← fire_stick
+//	22:53:34 装配 slot=17 ordinal=0 item=8f163180 extra=300  ← 顶掉 fire_stick
+//	22:53:55 装配 slot=17 ordinal=0 item=653e85b9 extra=326  ← 顶掉亮片
+//	22:54:00 装配 slot=17 ordinal=0 item=8f163180 extra=300  ← 又顶掉 fire_tube
+//
+// 断言：三件普通拟饵族各占 300/325/326，倒钓臂子槽一条都不少。
+func TestMarinePilkerLureFamilySurvivesHookSlotSubIndices(t *testing.T) {
+	srv, _ := newRigTestServer(t)
+	ctx := context.Background()
+	const uid = int64(1000001)
+
+	rod, err := srv.CreateItem(ctx, uid, "pilkr_10212_90340", "backpack", 1)
+	if err != nil {
+		t.Fatalf("造竿失败: %v", err)
+	}
+	if !srv.rigSetType(ctx, uid, rod.GUID, 50) {
+		t.Fatal("rigSetType(50) 失败")
+	}
+
+	mount := func(cat, extra int64, itemID string) string {
+		t.Helper()
+		it, err := srv.CreateItem(ctx, uid, itemID, "backpack", 1)
+		if err != nil {
+			t.Fatal(err)
+		}
+		res := srv.rigSetComponent(ctx, uid, rod.GUID, cat, it.GUID, extra,
+			rigSetOpts{ParentType: familyRod, EnforceCategory: true})
+		if res.Rejected || res.MountedGUID == "" {
+			t.Fatalf("装 %s(cat=%d extra=%d) 被拒: %+v", itemID, cat, extra, res)
+		}
+		return res.MountedGUID
+	}
+
+	// 倒钓臂展开：三个钩位，每个钩位下带拟饵族子槽。
+	mount(catHook, 250, "mhook_20924")
+	mount(catHook, 1001, "mhook_20894")
+	mount(catHook, 1005, "mhook_20894")
+	mount(catHook, 1009, "mhook_20894")
+	var subGUIDs []string
+	for _, idx := range []int64{1002, 1003, 1004, 1006, 1007, 1008, 1010, 1011, 1012} {
+		subGUIDs = append(subGUIDs, mount(catLure, idx, "color_bead_009"))
+	}
+
+	pilker := mount(catLure, 300, "pilkerlures_2630") // 柳叶亮片
+	bead := mount(catLure, 325, "color_bead_009")     // 基本吸引成分
+	tube := mount(catLure, 326, "fire_tube_006")      // 钓钩吸引成分
+
+	comps := srv.storedRigComponents(ctx, rod.GUID)
+	byGUID := map[string]rigComp{}
+	for _, c := range comps {
+		byGUID[c.GUID] = c
+	}
+	for _, guid := range subGUIDs {
+		if _, ok := byGUID[guid]; !ok {
+			t.Fatalf("倒钓臂钩位子槽组件 %s 被普通拟饵装配顶掉", shortGUID(guid))
+		}
+	}
+	want := []struct {
+		name string
+		guid string
+		idx  int64
+	}{
+		{"柳叶亮片", pilker, 300},
+		{"基本吸引成分", bead, 325},
+		{"钓钩吸引成分", tube, 326},
+	}
+	seen := map[int64]string{}
+	for _, tc := range want {
+		c, ok := byGUID[tc.guid]
+		if !ok {
+			t.Fatalf("%s 被顶掉，f5 中已不存在（装配落到了 ordinal=0 同槽换件）", tc.name)
+		}
+		if c.Extra != tc.idx {
+			t.Fatalf("%s 索引 = %d，期望 %d", tc.name, c.Extra, tc.idx)
+		}
+		if prev, dup := seen[c.Extra]; dup {
+			t.Fatalf("索引 %d 被 %s 与 %s 同时占用", c.Extra, prev, tc.name)
+		}
+		seen[c.Extra] = tc.name
+	}
+	if n := lureCompCount(t, srv, ctx, rod.GUID); n != 12 {
+		t.Fatalf("拟饵族组件 = %d 个，期望 12 个（9 条钩位子槽 + 3 条普通槽）", n)
+	}
+}

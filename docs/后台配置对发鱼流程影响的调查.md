@@ -22,7 +22,7 @@
 > （`bite_gate_enabled`，默认关：拟饵×食性硬剔 / 水层 ±0.15 超界 ×0.01 地板 /
 > 天然饵攻略+生态双票）与**区域固定鱼种名册**（`fish_zone` 表，独占/增益两模式，
 > 后台钓场页可编辑）；剔空候选经 `gateBlocked` 压制内置鱼池兜底。
-> 「鱼汛模式」卡片二选一（遗留/官方鱼汛）原子统管五个开关。详见
+> 「鱼汛模式」卡片二选一（遗留/官方鱼汛）原子统管六个开关。详见
 > `specs/changes/bite-gates/spec.md`、`specs/changes/fish-zones/spec.md` 与 `docs/gameplay.md`。
 
 一杆从抛竿入水到 14/14 推鱼，配置按以下顺序生效：

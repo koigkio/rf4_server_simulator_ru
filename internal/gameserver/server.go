@@ -73,6 +73,11 @@ type Server struct {
 	marineFishMu   sync.RWMutex
 	marineFishKeys map[string]bool
 
+	// 海钓下沉时长学习：loc12_N + 钓组类别 -> 触底事件反推的满程时长。
+	// 仅内存、重启丢失；样本不足时回退默认时长。
+	marineDescentMu    sync.Mutex
+	marineDescentCache map[string]marineDescentSample
+
 	// rf4records 饵占比缓存（食性分级提案 bait-evidence-threshold 的占比判据）。
 	// 键 fish_key -> bait_id -> 占比百分比（0~100）；异步预热，TTL 30 分钟。
 	rf4ShareMu    sync.RWMutex

@@ -158,7 +158,10 @@ func (s *Server) settleCatchOnceWithQualification(ctx context.Context, uid int64
 		f.HappyHourKnown = true
 	}
 	happy := f.HappyHour
-	bait := state.Bait
+	// 多钩钓组里每尾鱼咬的是某一钩位，catch_log 记该钩位实际用的饵；
+	// state.Bait 只是"当前主饵"（rig 50-54 取第一枚拟饵），记它会
+	// 让所有渔获都显示同一款。旧快照没有 BaitItem 时回退原值。
+	bait := catchBaitItem(f, state.Bait)
 	state.mu.Unlock()
 	bonuses, err := s.rodXPBonuses(ctx, uid, gear, xp)
 	if err != nil {
@@ -347,6 +350,15 @@ func (s *Server) settleCatchOnceWithQualification(ctx context.Context, uid int64
 	// 而不是等入护。放生与否不影响（奖杯是纪念品，官方顺序是先弹卡后选择）。
 	res.waterwayGifts = s.waterwayTrophyAfterCatch(ctx, uid, locLevel)
 	return res, nil
+}
+
+// catchBaitItem 优先返回这尾鱼实际咬钩的饵；旧快照没有 BaitItem 时
+// 回退到当前主饵，保持旧档和 GM 武装鱼的行为不变。
+func catchBaitItem(f *RolledFish, fallback string) string {
+	if f != nil && f.BaitItem != "" {
+		return f.BaitItem
+	}
+	return fallback
 }
 
 // insertCatchLogSettleTx 在 14/4 结算事务内写下本尾鱼的钓获记录（source='catch'）。
