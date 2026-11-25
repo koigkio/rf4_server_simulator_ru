@@ -73,3 +73,68 @@ test('active skill gain UI switches mode through one endpoint',async()=>{
   await context.close();
  }finally{await browser.close()}
 });
+
+test('active rules page exposes and saves the marine layer switch',async()=>{
+ const browser=await chromium.launch({headless:true,executablePath:process.env.RF4_TEST_BROWSER});
+ try{
+  const context=await browser.newContext({viewport:{width:1280,height:900}});
+  await context.addInitScript(()=>localStorage.setItem('rf4_admin_token','fixture'));
+  const page=await context.newPage(),errors=[];
+  page.on('pageerror',e=>errors.push(e.message));
+  // 官方鱼汛六开、其余默认关；读默认值不应写库。
+  const values={bite_gate_enabled:'0',fish_ecology_enabled:'0',fish_weather_enabled:'0',fish_distribution_enabled:'0',fish_bait_rules_enabled:'0',marine_layer_enabled:'0',happy_hour_enabled:'1'};
+  const writes=[];
+  await page.route('**/*',async route=>{
+   const url=new URL(route.request().url());
+   const json=body=>route.fulfill({contentType:'application/json',body:JSON.stringify(body)});
+   if(url.pathname==='/')return route.fulfill({contentType:'text/html; charset=utf-8',body:fs.readFileSync(path.join(webRoot,'index.html'),'utf8')});
+   if(url.pathname.startsWith('/app/')){
+    const file=path.join(webRoot,url.pathname.replace(/^\//,''));
+    if(fs.existsSync(file))return route.fulfill({contentType:file.endsWith('.css')?'text/css; charset=utf-8':'text/javascript; charset=utf-8',body:fs.readFileSync(file)});
+    return route.fulfill({status:404,body:''});
+   }
+   if(url.pathname==='/api/me')return json({username:'admin'});
+   if(url.pathname==='/api/tunables'){
+    if(route.request().method()==='POST'){
+     const body=route.request().postDataJSON();
+     writes.push({key:body.key,value:String(body.value)});
+     values[body.key]=String(body.value);
+     return json({ok:true});
+    }
+    return json(values);
+   }
+   if(url.pathname==='/api/fish/bite_mode')return json({mode:'legacy'});
+   return json({});
+  });
+  await page.goto('http://127.0.0.1:19214/#rules');
+  await page.getByRole('heading',{name:'钓场与鱼口',exact:true}).waitFor();
+
+  // 七项规则全在：海钓水层是后加的那一项，默认关。
+  assert.equal(await page.locator('input[type="checkbox"][id^="f_"]').count(),7);
+  const marine=page.locator('input[id^="f_marine_layer_enabled_"]');
+  await marine.waitFor();
+  assert.equal(await marine.isChecked(),false);
+  assert.equal(writes.length,0,'只读默认值不应写库');
+
+  // 打开海钓水层 -> 保存：只提交这一项，写库后勾选状态保留。
+  await marine.click();
+  await page.getByRole('button',{name:'保存修改',exact:true}).click();
+  await page.waitForFunction(()=>!document.querySelector('input[id^="f_marine_layer_enabled_"]').closest('.row').classList.contains('changed'));
+  assert.deepEqual(writes,[{key:'marine_layer_enabled',value:'1'}]);
+  assert.equal(values.marine_layer_enabled,'1');
+
+  // 重新加载后从 tunables 读回，仍是打开状态。
+  await page.reload();
+  await page.getByRole('heading',{name:'钓场与鱼口',exact:true}).waitFor();
+  assert.equal(await page.locator('input[id^="f_marine_layer_enabled_"]').isChecked(),true);
+
+  // 关闭并保存，确认可以来回切换。
+  await page.locator('input[id^="f_marine_layer_enabled_"]').click();
+  await page.getByRole('button',{name:'保存修改',exact:true}).click();
+  await page.waitForFunction(()=>document.querySelector('input[id^="f_marine_layer_enabled_"]').checked===false);
+  assert.deepEqual(writes.at(-1),{key:'marine_layer_enabled',value:'0'});
+  assert.equal(values.marine_layer_enabled,'0');
+  assert.deepEqual(errors,[]);
+  await context.close();
+ }finally{await browser.close()}
+});

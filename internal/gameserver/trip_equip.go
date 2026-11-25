@@ -266,6 +266,7 @@ func (s *Server) clearFishingStateRefs(ctx context.Context, uid int64, removed [
 			st.Pending, st.Armed, st.pushing = nil, nil, nil
 			st.persist.recoverPending, st.persist.recoverCompleted = false, false
 			st.BiteAt = time.Time{}
+			resetMarineLayerLocked(st)
 		}
 		st.mu.Unlock()
 	}

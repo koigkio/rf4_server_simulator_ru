@@ -65,11 +65,31 @@ type FishState struct {
 	LurePulseCount  int
 	LureToggleAt    time.Time
 	LureToggleCount int
-	PushSent        bool
-	pushing         *RolledFish // 仅进程内：防止同一尾鱼并发重推
-	Hooked          bool
-	Resolved        bool
-	Pending         *RolledFish
+
+	// Marine* 是海钓 50~60 的水层状态机（marine_layer_enabled，默认关）。
+	// MarineLayer 0=水面，0.93=贴底活动层；仅进程内，不持久化。
+	MarineLayerSeen      bool
+	MarineState          int
+	MarineLayer          float64
+	MarineLayerStart     float64
+	MarineLayerBottom    float64
+	MarineDescentSeconds float64
+	DescentStartAt       time.Time
+	DescentStartLayer    float64
+	BottomReachedAt      time.Time
+	BottomLeftAt         time.Time
+	LastBottomBitAt      time.Time
+	MarineUniformSince   time.Time
+	MarineLayerAt        time.Time
+	MarineLastAnim       uint32
+	MarineDescentClean   bool
+	BottomCycle          int
+
+	PushSent bool
+	pushing  *RolledFish // 仅进程内：防止同一尾鱼并发重推
+	Hooked   bool
+	Resolved bool
+	Pending  *RolledFish
 	// Extra 是本杆多钩钓组上已咬钩、等待接管搏斗的额外鱼。
 	// 每条已各自推过 14/14 并绑定自己的钩位（HookGUID），按先后顺序结算。
 	// 仅进程内状态：它们是尚未结算的在途鱼，进程重启即丢，不产生错误渔获。
@@ -109,6 +129,10 @@ type FishState struct {
 	PaceGround   float64
 	PaceTier     int
 	PaceKnown    bool
+	// PaceLureGroups 仅进程内：路亚族每个钩位的（饵分, 主导拟饵类型）快照。
+	// 吸引成分（lureType 17）不参与；每钩独立算复合分取最好。重启恢复时
+	// PaceKnown=false，timer 触发前由 ensurePaceState 重算。
+	PaceLureGroups []paceLureGroup
 	// PaceRearmAt 是上次「动作改善重排」的时刻（2 秒防抖），仅进程内。
 	PaceRearmAt time.Time
 
@@ -292,6 +316,7 @@ type RolledFish struct {
 	HappyHourKnown bool
 	BaitGUIDs      string
 	BaitsKnown     bool
+	BaitItem       string  // 本次咬钩实际使用的饵（多钩取选中钩位的真实饵）
 	BiteQuality    string  // solid / nibble
 	HookHoldP      float64 // 钩型保持率；蓝冠天命鱼固定 1
 	LuckProtected  bool    // 蓝冠天命保护
@@ -498,8 +523,9 @@ func (s *Server) biteDelayInWeather(st *FishState, weather fishingWeather, now t
 	// 海底钓族用海钓窗 3~30s）。路亚族按复合档位（饵分 × 当前动作）取窗：
 	// 好档沿用 pace_lure_min/max（默认对齐原版 1.5~6s 收线短窗）并保留
 	// bite_delay_lure_max 封顶；中/差档拉长到底钓量级、不再封顶——
-	// 「路亚最长等待」在 pace 模式下只管好档。fire 开口率在 rodPaceProb
-	// 按同一复合档位动态取值。口径见 specs/changes/lure-action-pace/spec.md。
+	// 「路亚最长等待」在 pace 模式下只管好档。fire 开口率在 rollFishForRig
+	// 里按钩位逐组判定（paceHookBiteHits）；等待窗取最好一组。口径见
+	// specs/changes/lure-action-pace/spec.md。
 	// 调用方需持有 st.mu（查鱼路径的 st 为本地对象，无并发）。
 	if st != nil && st.PaceKnown && s.paceEnabled() && !rigTypeLureFamily[st.RigType] {
 		return s.paceStandardBiteDelay(officialPushDelay(), weatherDelay, bonus.BiteSpeed,
@@ -509,7 +535,8 @@ func (s *Server) biteDelayInWeather(st *FishState, weather fishingWeather, now t
 		lmin, lmax := 1.5, 6.0
 		capS := cfg.lureMax
 		if st.PaceKnown && s.paceEnabled() {
-			_, _, _, tier := s.paceTierFor(paceLureCombinedScore(st.PaceScore, st.LureType, st.LureAction))
+			combined, _ := st.paceLureCombinedLocked()
+			_, _, _, tier := s.paceTierFor(combined)
 			lmin, lmax = s.paceLureWindowFor(tier, cfg.lureMax)
 			if lmax < lmin {
 				lmax = lmin
@@ -1266,16 +1293,98 @@ func (s *Server) rollFishForRig(ctx context.Context, uid int64, gearGUID, loc, b
 		if !s.applyBaitedHookSpec(ctx, group, &selected) {
 			continue
 		}
-		c.baits = group.baits
+		// 每个钩位先取真正参与判鱼的饵：海钓拟饵族里天然饵与彩珠/发光管
+		// 只作吸引成分，只剩装饰的钩位直接跳过。
+		baits := s.rollBaitsForGroup(ctx, c, group, c.rigType)
+		if len(baits) == 0 {
+			continue
+		}
+		c.baits = baits
+		// 饵效控速逐钩开口率：直接用当前钩位的饵实时算复合档位并掷骰；
+		// 未命中只跳过这个钩位，不影响其它饵。第一口上鱼后直接返回，后续
+		// 钩位不再判定（与「上鱼后其它饵跳过」同语义）。
+		if c.paceOn && !s.paceHookBiteHits(ctx, c, baits) {
+			continue
+		}
 		c.hook = selected
-		f := s.rollFishWithRules(loc, group.baits[0], s.fishWeightCapKg(selected), bonus, c)
+		f := s.rollFishWithRules(loc, baits[0], s.fishWeightCapKg(selected), bonus, c)
 		if f != nil {
 			f.HookGUID = group.hookGUID
 			f.BaitGUIDs, f.BaitsKnown = strings.Join(group.baitGUIDs, " "), true
+			f.BaitItem = baits[0]
 			return f
 		}
 	}
 	return nil
+}
+
+// rollBaitsForGroup 返回某个钩位真正参与判鱼的饵。
+//
+// 海钓拟饵族（rig 50-54）的钩位上可能同时挂天然饵或彩珠/发光管：它们只作
+// 吸引成分，不能当成"咬钩的饵"。主鱼路径、多钩额外鱼路径和开口率分母都
+// 走这里，保证 BaitItem、QualBait 与扣饵看到的是同一组候选。
+// 返回空表示这个钩位只有装饰，不会出鱼，调用方应跳过。
+func (s *Server) rollBaitsForGroup(ctx context.Context, c fishRollContext, group baitedHookSet, rigType int64) []string {
+	if marineLureRig(rigType) {
+		return s.marineLureBaits(ctx, c, group.baits)
+	}
+	return group.baits
+}
+
+// marineBaitHookCount 统计本杆真正可能出鱼的钩位数。
+//
+// 海钓拟饵族里只挂天然饵/彩珠的装饰钩位不会出鱼，不能计入开口率分母；
+// 否则贴底时每多一个装饰钩位都会把有效钩位的开口率再压低一份。
+// 判鱼候选的过滤口径与 rollBaitsForGroup 完全一致。
+func (s *Server) marineBaitHookCount(ctx context.Context, rigType int64, groups []baitedHookSet) int {
+	if !marineLureRig(rigType) {
+		return len(groups)
+	}
+	// 同一批饵在多个钩位重复出现时复用缓存，避免每个钩位都查一次库。
+	c := fishRollContext{rigType: rigType, cache: newFishingRollCache()}
+	count := 0
+	for _, group := range groups {
+		if len(s.rollBaitsForGroup(ctx, c, group, rigType)) > 0 {
+			count++
+		}
+	}
+	return count
+}
+
+// realLureBaits 过滤掉彩珠/发光管这类 lureType=17 的吸引成分，
+// 只留下真正会咬钩的拟饵。
+func (s *Server) realLureBaits(ctx context.Context, c fishRollContext, ids []string) []string {
+	out := make([]string, 0, len(ids))
+	for _, id := range ids {
+		if b, ok := s.cachedBaitDefinition(ctx, c, id); ok && b.lureType == lureTypeAttraction {
+			continue
+		}
+		out = append(out, id)
+	}
+	return out
+}
+
+// marineLureBaits 海钓拟饵族（rig 50-54）的判鱼候选：27 类天然饵只作
+// 吸引成分，彩珠/发光管（lureType=17）也不咬钩，只保留真实拟饵。
+func (s *Server) marineLureBaits(ctx context.Context, c fishRollContext, ids []string) []string {
+	out := make([]string, 0, len(ids))
+	for _, id := range ids {
+		if b, ok := s.cachedBaitDefinition(ctx, c, id); ok &&
+			(b.category == catBait || b.lureType == lureTypeAttraction) {
+			continue
+		}
+		out = append(out, id)
+	}
+	return out
+}
+
+// lureFamilyBaits 路亚族判鱼候选：海钓拟饵族 50-54 只保留真实拟饵，
+// 其它路亚族沿用原有口径（仅排除 lureType=17 吸引成分）。
+func (s *Server) lureFamilyBaits(ctx context.Context, c fishRollContext, ids []string, rigType int64) []string {
+	if marineLureRig(rigType) {
+		return s.marineLureBaits(ctx, c, ids)
+	}
+	return s.realLureBaits(ctx, c, ids)
 }
 
 func (s *Server) rollFishWithRules(loc, bait string, gearCapKg float64, bonus fishingSkillBonus, contexts ...fishRollContext) *RolledFish {
@@ -3015,6 +3124,7 @@ func (s *Server) scheduleBiteState(sess *Session, st *FishState, preserveHooked,
 		// 新的一杆：还没确认在水中，等 14/7 的 0x400。
 		st.InWater = false
 		st.NeedBite = false
+		resetMarineLayerLocked(st)
 	}
 	st.Bonus = bonus
 	st.storePaceState(pace)
@@ -3150,15 +3260,30 @@ func (s *Server) onRodBiteTimerTicket(uid int64, st *FishState, ticket fishingTi
 		groundX, groundZ, hasGroundPos = st.PosX, st.PosZ, st.HasPos
 	}
 	probability := s.biteProbabilityForLoc(st.Loc)
+	// 海钓水层影响开启时，海钓模式整杆开口率取实时海钓水层，并按钩位/饵数
+	// 分摊：刚入水约 0.05、贴底约 0.93，越接近目标水层鱼口越高；关闭开关
+	// 或非海钓返回原概率。
+	if s.marineLayerEnabled() && marineRigType(st.RigType) {
+		groups := s.baitedHookSets(s.dbCtx(), st.GearGuid)
+		probability = s.marineLayerBiteProbability(probability, st, s.marineBaitHookCount(s.dbCtx(), st.RigType, groups))
+	}
 	if s.tunableF("fish_bait_rules_enabled", 0) == 1 || s.tunableF("fish_weather_enabled", 0) == 1 {
 		probability = math.Min(.95, probability)
 	}
 	// 窝料死窝闸门：同一格子堆超过 15 份开始压开口率，22 份以上不排咬钩。
 	probability *= s.groundbaitBiteGate(s.dbCtx(), uid, st.Loc, groundX, groundZ, hasGroundPos, st.Spot, st.RigType)
-	// 饵效控速：单轮判定概率按对口分三档（路亚轮单独一套参数）。
-	// 受当前开关门控（审查 P2-1）：运行中热关闭后，残留的 st.PaceKnown
-	// 不得继续压低本杆开口率。
-	probability *= s.rodPaceProb(st)
+	// 饵效控速：非路亚族按对口分三档乘整杆概率（受当前开关门控，热关闭
+	// 立即回 1，审查 P2-1）。路亚族多钩位各自算是否上鱼：整杆概率不乘，
+	// 由 rollFishForRig 在逐钩循环里直接用该钩位的饵实时算开口率，第一口
+	// 命中即停、其它饵跳过（与关闭 pace 时逐钩判鱼同一条循环）。
+	paceByHook := rigTypeLureFamily[st.RigType] && s.paceEnabled() && st.PaceKnown
+	if paceByHook {
+		// fire 时按当前动作刷新最好一组的档位：动作降档后空轮重排，再恢复
+		// 好动作时 paceLureActionRearm 才能按「只升不降」重新进短窗。
+		s.refreshLurePaceTierLocked(st)
+	} else {
+		probability *= s.rodPaceProb(st)
+	}
 	if rand.Float64() >= probability {
 		s.log.Info("鱼口未命中，继续等待", "rod", shortGUID(st.GearGuid), "rig_type", st.RigType)
 		s.emptyWeatherBiteLocked(sess, st, now)
@@ -3170,11 +3295,14 @@ func (s *Server) onRodBiteTimerTicket(uid int64, st *FishState, ticket fishingTi
 	lureLayer, lureAction, lureMask := st.LureLayer, st.LureAction, st.LureMotionMask
 	lureSpeed := st.ReelSetting
 	boatOn, boatKnown := st.onBoatLocked(now.Unix())
+	marineLayer, marineLayerKnown := s.marineContextLayer(st)
 	buildRollCtx := func(pity bool) fishRollContext {
 		return fishRollContext{
 			x: st.CastPosX, z: st.CastPosZ, hasPos: st.HasCastPos, spot: st.Spot, depthCM: baitDepthCM,
 			lureLayer: lureLayer, lureAction: lureAction, lureMask: lureMask, lureSpeed: lureSpeed, rigType: rigType,
+			marineLayer: marineLayer, marineLayerKnown: marineLayerKnown,
 			onBoat: boatOn, boatKnown: boatKnown, pityEnv: pity,
+			paceOn: paceByHook, cache: newFishingRollCache(),
 			audit: &fishRollAudit{},
 			now:   now, weather: sess.weatherAt(st.Loc, now), happyBite: sess.currentHappyHour().BiteBonus,
 		}

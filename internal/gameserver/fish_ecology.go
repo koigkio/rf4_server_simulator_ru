@@ -268,6 +268,9 @@ func effectiveLureLayer(c fishRollContext) float64 {
 }
 
 func (s *Server) rigWaterLayer(c fishRollContext) float64 {
+	if marineRigType(c.rigType) && c.marineLayerKnown {
+		return normalizeWaterLayer(c.marineLayer)
+	}
 	if bottomRigTypes[c.rigType] {
 		return .93
 	}

@@ -759,3 +759,72 @@ func TestPaceLureFireRefreshAllowsLaterRearm(t *testing.T) {
 		t.Fatalf("动作改善后应重排进 1.5~6s 短窗：got %.2fs", wait)
 	}
 }
+
+// 吸引成分（lureType 17）不参与主导拟饵与判鱼 runtime：海图多钩钓组里
+// color_bead 的 DiveDepth 0.78 比铁板 0.76 更深，修复前会抢成 LureType=bead，
+// 动作权重表查不到而全部回退中性。
+func TestLureCoreForBaitsSkipsAttraction(t *testing.T) {
+	s, db := seedPaceTest(t)
+	for _, q := range []string{
+		`INSERT INTO item_def(numeric_id,item_id,category,attrs_json) VALUES(999911,'pace_pilker',17,'{"mbemakijdeh":6}')`,
+		`INSERT INTO item_def(numeric_id,item_id,category,attrs_json) VALUES(999912,'pace_bead',17,'{"mbemakijdeh":17}')`,
+		`INSERT INTO item_catalog(item_id,name_zh) VALUES('pace_pilker','铁板'),('pace_bead','彩珠')`,
+	} {
+		if _, err := db.SQL.Exec(q); err != nil {
+			t.Fatal(err)
+		}
+	}
+	ctx := t.Context()
+	dive, typ := s.lureCoreForBaits(ctx, []string{"pace_bead", "pace_pilker"})
+	if typ != "pilker" || math.Abs(dive-0.76) > 1e-9 {
+		t.Fatalf("主导拟饵应跳过吸引成分取铁板：got (%g,%q)", dive, typ)
+	}
+	if got := s.lureTypeForBaits(ctx, []string{"pace_bead"}); got != "" {
+		t.Fatalf("只有吸引成分时不应有主导拟饵：got %q", got)
+	}
+	// 判鱼 runtime 与 pace 同源：彩珠不得抢主导拟饵。
+	c := fishRollContext{baits: []string{"pace_bead", "pace_pilker"}, rigType: 50}
+	s.prepareFishRollRuntime(ctx, &c, "rules-test")
+	if !c.runtime.lureKnown || c.runtime.lure.Type != "pilker" {
+		t.Fatalf("判鱼 runtime 主导拟饵应为 pilker：got %+v", c.runtime.lure)
+	}
+}
+
+// 多钩位各自带（饵分, 类型）：等待窗/整杆档位取最好一组；fire 时直接用
+// 当前钩位的饵实时算开口率，命中即上鱼、其它钩位跳过；吸引成分不算饵。
+func TestPaceLureGroupsUseBestHook(t *testing.T) {
+	s, db := seedPaceTest(t)
+	for _, q := range []string{
+		`INSERT INTO item_def(numeric_id,item_id,category,attrs_json) VALUES(999911,'pace_pilker',17,'{"mbemakijdeh":6}')`,
+		`INSERT INTO item_def(numeric_id,item_id,category,attrs_json) VALUES(999912,'pace_bead',17,'{"mbemakijdeh":17}')`,
+		`INSERT INTO item_catalog(item_id,name_zh) VALUES('pace_pilker','铁板'),('pace_bead','彩珠')`,
+	} {
+		if _, err := db.SQL.Exec(q); err != nil {
+			t.Fatal(err)
+		}
+	}
+	st := &FishState{RigType: 50, PaceKnown: true,
+		PaceScore: 1.0, LureType: "bead", LureAction: "vertical_dive",
+		PaceLureGroups: []paceLureGroup{
+			{hook: "bead-hook", score: 1.0, lureType: "bead"},
+			{hook: "pilker-hook", score: 1.0, lureType: "pilker"},
+		}}
+	if got := s.rodPaceProb(st); got != 1.0 {
+		t.Fatalf("铁板 vertical_dive 应为好档开口率 1.0：got %g", got)
+	}
+	st.LureAction = "little_jerk"
+	if got := s.rodPaceProb(st); got != 0.5 {
+		t.Fatalf("铁板 little_jerk 应为中档 0.5：got %g", got)
+	}
+	// fire 路径：测试名册对铁板无证据（0.30），把好档阈值压到 0 以固定命中。
+	setWeatherTestTunable(t, s, "pace_score_good", "0")
+	setWeatherTestTunable(t, s, "pace_lure_prob_good", "1")
+	c := fishRollContext{paceOn: true, loc: "level_900_rules", rigType: 50,
+		lureAction: "marine_jig", cache: newFishingRollCache()}
+	if !s.paceHookBiteHits(t.Context(), c, []string{"pace_pilker", "pace_bead"}) {
+		t.Fatal("铁板跳底应命中开口率")
+	}
+	if s.paceHookBiteHits(t.Context(), c, []string{"pace_bead"}) {
+		t.Fatal("只有吸引成分的钩位不应上鱼")
+	}
+}

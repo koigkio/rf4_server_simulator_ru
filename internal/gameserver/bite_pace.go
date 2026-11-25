@@ -27,6 +27,7 @@ package gameserver
 import (
 	"context"
 	"math"
+	"math/rand"
 	"time"
 
 	"rf4server/internal/store"
@@ -57,9 +58,12 @@ type fishPaceState struct {
 	Score    float64
 	Factor   float64 // 延迟乘数（好饵=1.0）
 	Prob     float64 // 底层杆（非路亚族）单轮判定概率
-	LureProb float64 // 路亚轮单轮判定概率
+	LureProb float64 // 路亚轮单轮判定概率（最好一组）
 	Ground   float64 // 打窝压缩（1=无窝/路亚）
 	Tier     int     // 0=差 1=中 2=好，仅日志用
+	// LureGroups 路亚族每个钩位的（饵分, 主导拟饵类型）快照；fire 时逐钩位
+	// 判开口率，第一口上鱼即停。非路亚族为空。
+	LureGroups []paceLureGroup
 }
 
 func neutralFishPaceState() fishPaceState {
@@ -164,6 +168,44 @@ func paceLureCombinedScore(baitScore float64, lureType, action string) float64 {
 	return clampFloat(baitScore*(0.4+0.6*paceLureActionQuality(lureType, action)), 0, 1)
 }
 
+// paceLureGroup 路亚族一个钩位的节奏输入：该钩最好的饵分与该钩主导拟饵
+// 类型（吸引成分不参与）。复合分按每组独立计算取最好，与 rollFishForRig
+// 「任意已挂饵钩位都可能出鱼」同语义——哪口饵先出鱼，哪口饵定节奏。
+type paceLureGroup struct {
+	hook     string // 钩位 GUID：fire 时按钩位取本组开口率，上鱼即停
+	score    float64
+	lureType string
+}
+
+// paceLureBestCombined 每组（饵分, 类型）与当前动作各算复合分，取最好一组。
+// groups 为空时回退单类型（重启恢复/查鱼/既有调用点）。
+func paceLureBestCombined(groups []paceLureGroup, baitScore float64, lureType, action string) (float64, string) {
+	if len(groups) == 0 {
+		return paceLureCombinedScore(baitScore, lureType, action), lureType
+	}
+	best, bestType := -1.0, lureType
+	for _, g := range groups {
+		if sc := paceLureCombinedScore(g.score, g.lureType, action); sc > best {
+			best, bestType = sc, g.lureType
+		}
+	}
+	return best, bestType
+}
+
+// paceLureGroupsLocked 本杆的分组快照；没有分组时用 PaceScore/LureType 合成
+// 单组，保证重启恢复、查鱼与既有测试的行为不变。调用方需持有 st.mu。
+func (st *FishState) paceLureGroupsLocked() []paceLureGroup {
+	if len(st.PaceLureGroups) > 0 {
+		return st.PaceLureGroups
+	}
+	return []paceLureGroup{{score: st.PaceScore, lureType: st.LureType}}
+}
+
+// paceLureCombinedLocked 当前动作下的复合分与命中类型（调用方需持有 st.mu）。
+func (st *FishState) paceLureCombinedLocked() (float64, string) {
+	return paceLureBestCombined(st.paceLureGroupsLocked(), st.PaceScore, st.LureType, st.LureAction)
+}
+
 // paceLureWindowFor pace 模式路亚族按复合档位的等待区间（秒）。好档沿用
 // pace_lure_min/max（默认 1.5~6 收线短窗，采样窗硬封顶 min(6, lureMax)——
 // bite_delay_lure_max 再大也不放大窗口）；中/差档默认对齐底钓中/差饵区间
@@ -195,9 +237,18 @@ func (s *Server) paceLureProbForTier(tier int) float64 {
 // paceLureStateFor 由饵分与当前动作合成路亚族的节奏因子。Score 保留纯饵分
 // （fire 动态开口率要用），Tier 存复合档位。
 func (s *Server) paceLureStateFor(baitScore float64, lureType, action string, ground float64) fishPaceState {
-	factor, prob, lureProb, tier := s.paceTierFor(paceLureCombinedScore(baitScore, lureType, action))
+	groups := []paceLureGroup{{score: baitScore, lureType: lureType}}
+	pace, _, _ := s.paceLureStateForGroups(groups, baitScore, lureType, action, ground)
+	return pace
+}
+
+// paceLureStateForGroups 多钩位版本：每组用自己的（饵分, 类型）算复合分，
+// 等待窗/整杆档位取最好一组；LureGroups 原样带回，fire 时逐钩位判定。
+func (s *Server) paceLureStateForGroups(groups []paceLureGroup, baitScore float64, lureType, action string, ground float64) (fishPaceState, float64, string) {
+	combined, usedType := paceLureBestCombined(groups, baitScore, lureType, action)
+	factor, prob, lureProb, tier := s.paceTierFor(combined)
 	return fishPaceState{Known: true, Score: baitScore, Factor: factor, Prob: prob,
-		LureProb: lureProb, Ground: ground, Tier: tier}
+		LureProb: lureProb, Ground: ground, Tier: tier, LureGroups: groups}, combined, usedType
 }
 
 // paceStandardBiteDelay pace 模式底层杆的完整延迟：采样 ×天气×技能×本杆乘数
@@ -364,14 +415,16 @@ func (s *Server) baitPaceScore(ctx context.Context, c fishRollContext, loc strin
 }
 
 // paceScoreForGroups 多钩钓组的整杆分：每钩按各自挂饵独立评分，取最好一钩。
-// 与 rollFishForRig 的「任意已挂饵钩位都可能出鱼」同语义——哪口饵先出鱼，
-// 哪口饵决定节奏（产品决策，见 spec/能力契约「多钩」条）。
+// 吸引成分（lureType 17）不算饵，先过滤；全是吸引成分的钩位跳过。
 func (s *Server) paceScoreForGroups(ctx context.Context, c fishRollContext, loc string, groups [][]string, rigType int64) float64 {
 	if len(groups) == 0 {
 		return 0.5
 	}
 	best := 0.0
 	for _, baits := range groups {
+		if rigTypeLureFamily[rigType] {
+			baits = s.lureFamilyBaits(ctx, c, baits, rigType)
+		}
 		if len(baits) == 0 {
 			continue
 		}
@@ -385,19 +438,43 @@ func (s *Server) paceScoreForGroups(ctx context.Context, c fishRollContext, loc 
 	return best
 }
 
-// rodPaceScore 生产路径的整杆分：按 baitedHookSets 的钩位分组（与判鱼/扣饵
-// 同一来源，坏饵与空数量饵不参与），每钩独立评分取最好。
-func (s *Server) rodPaceScore(ctx context.Context, gear string, loc string, rigType int64) (float64, [][]string) {
+// rodPaceGroups 生产路径的整杆分与每钩分组：按 baitedHookSets 的钩位分组
+// （与判鱼/扣饵同一来源，坏饵与空数量饵不参与），每组过滤吸引成分后独立
+// 评分，并取该组主导拟饵类型。路亚族的复合分在 fire 时按钩位逐组判定，
+// 第一口上鱼即停；排 timer 的等待窗取最好一组（最可能先出鱼的那口）。
+func (s *Server) rodPaceGroups(ctx context.Context, gear, loc string, rigType int64) (float64, [][]string, []paceLureGroup) {
 	groups := s.baitedHookSets(ctx, gear)
 	if len(groups) == 0 {
-		return 0.5, nil
+		return 0.5, nil, nil
 	}
 	c := fishRollContext{}
 	gs := make([][]string, 0, len(groups))
+	out := make([]paceLureGroup, 0, len(groups))
 	for _, g := range groups {
 		gs = append(gs, g.baits)
+		baits := g.baits
+		if rigTypeLureFamily[rigType] {
+			baits = s.lureFamilyBaits(ctx, c, g.baits, rigType)
+		}
+		if len(baits) == 0 {
+			continue
+		}
+		out = append(out, paceLureGroup{
+			hook:     g.hookGUID,
+			score:    s.baitPaceScore(ctx, c, loc, baits, rigType),
+			lureType: s.lureTypeForBaits(ctx, baits),
+		})
 	}
-	return s.paceScoreForGroups(ctx, c, loc, gs, rigType), gs
+	best := 0.0
+	for _, g := range out {
+		if g.score > best {
+			best = g.score
+		}
+	}
+	if best <= 0 {
+		return 0.5, gs, nil
+	}
+	return best, gs, out
 }
 
 // paceNaturalScore 单个天然饵的分：逐名册鱼取三类证据票的最大，
@@ -482,21 +559,32 @@ func (s *Server) computePaceState(sess *Session, st *FishState, force bool) fish
 		uid = sess.Userid
 	}
 	ctx := sess.pushCtx()
-	score, groups := s.rodPaceScore(ctx, gear, loc, rigType)
+	score, groups, lureGroups := s.rodPaceGroups(ctx, gear, loc, rigType)
 	factor, prob, lureProb, tier := s.paceTierFor(score)
 	ground := 1.0
 	if !rigTypeLureFamily[rigType] {
 		ground = s.groundbaitPaceFactor(ctx, uid, loc, x, z, hasPos, spot, rigType)
 	}
 	pace := fishPaceState{Known: true, Score: score, Factor: factor, Prob: prob, LureProb: lureProb, Ground: ground, Tier: tier}
-	logArgs := []any{"rod", shortGUID(gear), "各钩饵", groups, "score", roundTo(score, 3),
-		"tier", paceTierName(pace.Tier), "factor", pace.Factor, "prob", pace.Prob,
-		"lure_prob", pace.LureProb, "ground", roundTo(pace.Ground, 3), "rig_type", rigType}
+	logArgs := []any{"rod", shortGUID(gear), "各钩饵", groups, "score", roundTo(score, 3)}
 	if rigTypeLureFamily[rigType] {
-		// 路亚族按复合档位（饵分 × 当前动作）：好动作才给好档。
-		pace = s.paceLureStateFor(score, lureType, lureAction, ground)
-		logArgs = append(logArgs, "action", lureAction,
-			"combined", roundTo(paceLureCombinedScore(score, lureType, lureAction), 3))
+		// 路亚族按复合档位（饵分 × 当前动作）：好动作才给好档。多钩位各自
+		// 带（饵分, 主导拟饵类型）快照——等待窗取最好一组，fire 时逐钩位
+		// 判定是否上鱼，第一口命中即停，其它钩位跳过。
+		var combined float64
+		var usedType string
+		pace, combined, usedType = s.paceLureStateForGroups(lureGroups, score, lureType, lureAction, ground)
+		logArgs = append(logArgs,
+			"tier", paceTierName(pace.Tier), "factor", pace.Factor,
+			"prob", pace.Prob, "lure_prob", pace.LureProb,
+			"ground", roundTo(pace.Ground, 3), "rig_type", rigType,
+			"action", lureAction, "lure_type", usedType,
+			"combined", roundTo(combined, 3), "lure_groups", lureGroups)
+	} else {
+		logArgs = append(logArgs,
+			"tier", paceTierName(pace.Tier), "factor", pace.Factor,
+			"prob", pace.Prob, "lure_prob", pace.LureProb,
+			"ground", roundTo(pace.Ground, 3), "rig_type", rigType)
 	}
 	s.log.Info("咬钩节奏", logArgs...)
 	return pace
@@ -512,8 +600,9 @@ func (s *Server) paceStateSnapshot(st *FishState) fishPaceState {
 	if !st.PaceKnown {
 		return neutralFishPaceState()
 	}
+	groups := append([]paceLureGroup(nil), st.PaceLureGroups...)
 	return fishPaceState{Known: true, Score: st.PaceScore, Factor: st.PaceFactor, Prob: st.PaceProb,
-		LureProb: st.PaceLureProb, Ground: st.PaceGround, Tier: st.PaceTier}
+		LureProb: st.PaceLureProb, Ground: st.PaceGround, Tier: st.PaceTier, LureGroups: groups}
 }
 
 // ensurePaceState 惰性补算：重启恢复/模式刚开启后 st.PaceKnown=false，
@@ -544,6 +633,7 @@ func (s *Server) ensurePaceState(sess *Session, st *FishState) {
 func (st *FishState) storePaceState(pace fishPaceState) {
 	st.PaceScore, st.PaceFactor, st.PaceProb = pace.Score, pace.Factor, pace.Prob
 	st.PaceLureProb, st.PaceGround, st.PaceTier = pace.LureProb, pace.Ground, pace.Tier
+	st.PaceLureGroups = pace.LureGroups
 	st.PaceKnown = pace.Known
 }
 
@@ -562,17 +652,18 @@ func (st *FishState) paceProbFor() float64 {
 // st.mu。排 timer 后动作可能先降档；空轮重排后若动作再恢复，重排判断必须拿
 // 实际生效过的档位比较，不能继续拿排 timer 时的旧好档。
 func (s *Server) refreshLurePaceTierLocked(st *FishState) (int, float64) {
-	_, _, _, tier := s.paceTierFor(paceLureCombinedScore(st.PaceScore, st.LureType, st.LureAction))
+	combined, _ := st.paceLureCombinedLocked()
+	_, _, _, tier := s.paceTierFor(combined)
 	prob := s.paceLureProbForTier(tier)
 	st.PaceTier, st.PaceLureProb = tier, prob
 	return tier, prob
 }
 
-// rodPaceProb 判定用的整杆概率，受当前开关门控：运行中热关闭
-// bite_pace_enabled 后立即回 1（审查 P2-1），残留的 st.PaceKnown 不再生效。
-// 路亚族 fire 时动态取复合档位（饵分快照 × 当前动作）的开口率：装排后动作
-// 变差的轮次按低概率空掷，随后空轮重排按差档长窗重排；同时刷新 PaceTier，
-// 让之后动作改善的重排基于本轮实际档位。
+// rodPaceProb 非路亚整杆概率 / 路亚缺少逐钩分组时的回退概率，受当前开关
+// 门控：运行中热关闭 bite_pace_enabled 后立即回 1（审查 P2-1），残留的
+// st.PaceKnown 不再生效。路亚族正常路径不乘整杆概率，而是由
+// paceHookBiteHits 在 rollFishForRig 逐钩判定；这里取最好一组的开口率，
+// 并刷新 PaceTier，供等待窗与动作改善重排使用。
 func (s *Server) rodPaceProb(st *FishState) float64 {
 	if !s.paceEnabled() {
 		return 1
@@ -587,10 +678,33 @@ func (s *Server) rodPaceProb(st *FishState) float64 {
 	return st.paceProbFor()
 }
 
+// paceLureHitProb 纯函数：给定（饵分, 主导拟饵类型, 当前动作）返回本钩开口率。
+func (s *Server) paceLureHitProb(score float64, lureType, action string) float64 {
+	combined := paceLureCombinedScore(score, lureType, action)
+	_, _, _, tier := s.paceTierFor(combined)
+	return s.paceLureProbForTier(tier)
+}
+
+// paceHookBiteHits 路亚逐钩开口率：直接用当前钩位的饵（已排除吸引成分）
+// 实时算饵分与主导拟饵类型，再按当前动作取复合档位开口率。与关闭 pace 时
+// rollFishForRig 的逐钩判鱼走同一条循环、同一份 group.baits，不用排 timer
+// 时的快照按钩位匹配——换饵/换装配后不会因为 hook 对不上而整杆跳过。
+func (s *Server) paceHookBiteHits(ctx context.Context, c fishRollContext, baits []string) bool {
+	if !c.paceOn {
+		return true
+	}
+	baits = s.realLureBaits(ctx, c, baits)
+	if len(baits) == 0 {
+		return false
+	}
+	score := s.baitPaceScore(ctx, c, c.loc, baits, c.rigType)
+	return rand.Float64() < s.paceLureHitProb(score, s.lureTypeForBaits(ctx, baits), c.lureAction)
+}
+
 // paceLureActionRearm 在动作复合档位升高时按新档重排咬钩 timer（只升不降）：
 // 玩家做好动作的那一刻就进入对应档位的等待窗，好动作即 1.5~6s 短窗，而不是
 // 等旧 timer 按差档长窗慢慢到点。档位不变或下降不重排——恶化由 fire 时的
-// rodPaceProb 动态开口率空掷处理，随后空轮重排按差档长窗重排。
+// 逐钩开口率（paceHookBiteHits）空掷处理，随后空轮重排按差档长窗重排。
 // 调用方不持 st.mu（14/7/14/9 handler 解锁后调用）；内部自行加锁并在锁内
 // 复核全部守卫。票据机制（armBiteTimerLocked 递增 biteTicket）天然作废旧
 // timer，与 emptyWeatherBiteLocked 的重排互斥安全。
@@ -600,7 +714,9 @@ func (s *Server) paceLureActionRearm(sess *Session, st *FishState) {
 	}
 	st.mu.Lock()
 	baitScore, lureType, lureAction := st.PaceScore, st.LureType, st.LureAction
-	_, _, _, newTier := s.paceTierFor(paceLureCombinedScore(baitScore, lureType, lureAction))
+	groups := append([]paceLureGroup(nil), st.paceLureGroupsLocked()...)
+	combined, _ := paceLureBestCombined(groups, baitScore, lureType, lureAction)
+	_, _, _, newTier := s.paceTierFor(combined)
 	if !st.PaceKnown || newTier <= st.PaceTier ||
 		!st.CastActive || !st.InWater || st.NeedBite || st.Hooked || st.Resolved ||
 		st.Pending != nil || st.PushSent || st.pushing != nil {
@@ -616,7 +732,7 @@ func (s *Server) paceLureActionRearm(sess *Session, st *FishState) {
 	st.PaceRearmAt = time.Now()
 	st.mu.Unlock()
 	bonus := s.fishingBonus(sess.pushCtx(), sess.Userid, rigType, gear)
-	pace := s.paceLureStateFor(baitScore, lureType, lureAction, ground)
+	pace, _, _ := s.paceLureStateForGroups(groups, baitScore, lureType, lureAction, ground)
 	st.mu.Lock()
 	// 复核：等待期间鱼可能已 Pending/PushSent（timer 到点、客户端确认），
 	// 动作也可能又变了（只升不降）。
@@ -625,7 +741,8 @@ func (s *Server) paceLureActionRearm(sess *Session, st *FishState) {
 		st.mu.Unlock()
 		return
 	}
-	if _, _, _, tierNow := s.paceTierFor(paceLureCombinedScore(st.PaceScore, st.LureType, st.LureAction)); tierNow <= st.PaceTier {
+	combinedNow, _ := st.paceLureCombinedLocked()
+	if _, _, _, tierNow := s.paceTierFor(combinedNow); tierNow <= st.PaceTier {
 		st.mu.Unlock()
 		return
 	}

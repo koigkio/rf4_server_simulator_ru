@@ -161,6 +161,7 @@ func (s *Server) removeItemsAndRepairRigs(ctx context.Context, uid int64, guids 
 		st.FallSeen, st.RigSettled, st.TickSeen = false, false, false
 		st.TickSeq, st.LastAnim = 0, 0
 		st.PushSent, st.Hooked, st.Resolved, st.Pending = false, false, true, nil
+		resetMarineLayerLocked(st)
 	}
 	return removed, fish, nil
 }

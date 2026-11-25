@@ -234,7 +234,7 @@ func (s *Server) buildPending25(f *RolledFish, st *FishState, levelKey string) *
 		WeightG:  f.WeightG,
 		LengthM:  f.LengthM,
 		Cat:      f.Grade,
-		KeepBait: st.Bait,
+		KeepBait: catchBaitItem(f, st.Bait),
 		TS:       float64(time.Now().UnixNano()) / 1e9,
 	}
 	return buildKeepnet25(e, levelKey, s.rarityOf25(f.Species), s.fishModelVariantFor(f))
@@ -286,7 +286,7 @@ func (s *Server) fishingKeep(ctx *Ctx) ([]byte, bool) {
 		keptInNet, err := s.DB.KeepFishingCatchWithCapacity(cctx, &store.KeepnetEntry{
 			EchoGUID: echo, UID: uid, Species: kept.Species, NameZh: kept.Name,
 			WeightG: kept.WeightG, LengthM: kept.LengthM, Cat: kept.Grade,
-			KeepLoc: st.Loc, KeepSpot: int64(st.Spot), KeepBait: st.Bait,
+			KeepLoc: st.Loc, KeepSpot: int64(st.Spot), KeepBait: catchBaitItem(&kept, st.Bait),
 			KeepLevel: keepLevel, TS: float64(time.Now().UnixNano()) / 1e9,
 			TackleCat: tackleCat,
 		}, kept.XP, kept.Silver, capacity)
@@ -440,7 +440,7 @@ func (s *Server) keepBatchCatches(ctx context.Context, uid int64, batch []*Rolle
 		e := &store.KeepnetEntry{
 			EchoGUID: f.FishGUID, UID: uid, Species: f.Species, NameZh: f.Name,
 			WeightG: f.WeightG, LengthM: f.LengthM, Cat: f.Grade,
-			KeepLoc: loc, KeepSpot: spot, KeepBait: bait,
+			KeepLoc: loc, KeepSpot: spot, KeepBait: catchBaitItem(f, bait),
 			KeepLevel: level, TS: float64(time.Now().UnixNano()) / 1e9,
 			TackleCat: tackleCat,
 		}
