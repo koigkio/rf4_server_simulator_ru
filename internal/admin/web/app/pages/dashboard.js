@@ -1,6 +1,6 @@
 import { h, api, apiList, fmt, tsNum, timeText, clockText, icon, navigate, empty, pageHead, work, ib, h2s, h3s, hint, note, kv, bullets, pill, brief, tbl, logsBlock, startGrid, searchBox, btn, render, setPageCleanup } from '../core.js';
 import { auditLabel } from '../labels.js';
-import { updateBanner, buildLabel } from '../main.js';
+import { updateBanner, buildLabel, themeMenu } from '../main.js';
 
 // 演示页的「从这里开始」是一条一条完整流程：看现状 → 改 → 核对。
 const STARTS = [
@@ -70,12 +70,14 @@ export default async function dashboard() {
   updateBanner(d.update, updSlot);
 
   return [
-    pageHead('总览', '服务器现在什么状态、当前生效的是哪套参数、最近动过什么。', h('a', {
-      class: 'btn primary home-link',
-      href: '/',
-      target: '_top',
-      title: '控制中心：开始游戏、停止服务、看进程状态和日志',
-    }, '控制中心 →')),
+    pageHead('总览', '服务器现在什么状态、当前生效的是哪套参数、最近动过什么。',
+      h('a', {
+        class: 'btn primary home-link',
+        href: '/',
+        target: '_top',
+        title: '控制中心：开始游戏、停止服务、看进程状态和日志',
+      }, '控制中心 →'),
+      themeMenu()),
     work([
       updSlot,
       brief([

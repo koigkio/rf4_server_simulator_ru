@@ -290,7 +290,10 @@ const HPOS = {
 // 另加 .hero-fade（底部羽化，皮肤靠它把照片压进纸面）。
 export function pageHead(title, desc, a3, a4, a5) {
   let opts = {};
-  if (a3 && a3.nodeType) opts = { actions: a3, facts: a4, nums: a5 };
+  // 主操作行允许同时挂多个控件（例如「控制中心 →」+ 主题切换），
+  // 这时第 4 个参数才是 facts，而不是被当成 facts 丢掉。
+  if (a3 && a3.nodeType && a4 && a4.nodeType) opts = { actions: [a3, a4], facts: a5 };
+  else if (a3 && a3.nodeType) opts = { actions: a3, facts: a4, nums: a5 };
   else if (Array.isArray(a3)) opts = { facts: a3 };
   else if (a3 && typeof a3 === 'object') opts = a3;
   const port = location.port && location.port !== '80' ? location.port : '9500';
@@ -316,7 +319,7 @@ export function pageHead(title, desc, a3, a4, a5) {
         h('span', { class: 'eyebrow', id: 'eyebrow', text: opts.eyebrow || '' }),
         h('h1', { id: 'title', text: title }),
         desc ? h('p', { class: 'lede', id: 'lede', text: desc }) : null,
-        opts.actions ? h('div', { class: 'hero-acts' }, opts.actions) : null),
+        opts.actions ? h('div', { class: 'hero-acts' }, ...[].concat(opts.actions)) : null),
       h('div', { class: 'hero-side', 'aria-label': '服务器要点' },
         ...cells.map(([v, u], i) => h('div', { class: i === 0 ? 'k1' : '' }, h('b', { text: v }), h('i', { text: u })))),
       h('div', { class: 'factbar' },

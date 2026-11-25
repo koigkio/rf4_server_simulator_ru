@@ -4072,25 +4072,40 @@ details.advanced>summary{font-size:13px;color:var(--ink);padding:12px 0 2px}
 #app a.home-link:active{transform:translateY(0)}
 @media (max-width:880px){#app a.home-link{font-size:14.6px!important;padding:11px 18px!important}}
 
-/* 顶栏里的主题下拉：沿用左栏样式会变成压住版本号的大黑块
-   左栏 `.tselect` 是整条宽、菜单向上弹；搬到顶栏后要和其它按钮一样是胶囊，
-   宽度按内容自适应，菜单向下弹。 */
-.top .tselect{width:auto!important;flex:0 0 auto}
-.top .tselect>button{width:auto!important;gap:6px;padding:5px 12px;border-radius:999px;
-  background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.46);color:#fffdf2;font-size:12.4px}
-.top .tselect>button:hover{background:rgba(255,255,255,.24)}
-.top .tselect>button::after{font-size:9px;opacity:.8}
-.top .tselect ul{left:auto;right:0;top:calc(100% + 6px);bottom:auto;min-width:158px;width:max-content;
-  background:#fffef8;border:1px solid var(--line);border-radius:10px;box-shadow:0 16px 34px -18px rgba(6,14,11,.6);
-  padding:5px}
-.top .tselect li{color:#0f1a16;border-radius:6px;padding:8px 10px}
-.top .tselect li:hover{background:rgba(168,118,42,.14)}
-.top .tselect li[aria-selected=true]{background:rgba(168,118,42,.18);color:#6f4a12;font-weight:600}
-:root[data-theme=dark] .top .tselect ul{background:#1b2420;border-color:rgba(233,240,232,.20)}
-:root[data-theme=dark] .top .tselect li{color:#e6ede7}
-:root[data-theme=dark] .top .tselect li:hover{background:rgba(216,180,90,.16)}
-:root[data-theme=dark] .top .tselect li[aria-selected=true]{background:rgba(216,180,90,.20);color:#f0dfae}
+/* 主题切换放在页面主操作行（「控制中心 →」右边），跟它同高、同形状。
+   这里不要整条宽的下拉，按钮按内容自适应、菜单向下弹。 */
+/* 主题切换放在页面主操作行，紧挨「控制中心 →」。
+   形状、字号、行高、圆角、内外边距全部跟 .btn.primary 对齐，
+   只把填充换成纸底 + 发丝边，做成「同一行里的第二颗按钮」。 */
+.tselect.theme-inline{position:relative;width:auto!important;flex:0 0 auto;display:inline-flex;align-items:center}
+#view .hero-acts .tselect.theme-inline>button{width:auto!important;display:inline-flex;align-items:center;gap:8px;
+  margin:0;font-family:var(--display)!important;font-size:16.5px!important;font-weight:700!important;
+  line-height:1!important;height:44px!important;min-height:44px!important;
+  padding:0 22px!important;border-radius:999px!important;letter-spacing:0;
+  background:var(--raise)!important;color:var(--ink)!important;
+  border:1px solid var(--line)!important;cursor:pointer;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.75),0 12px 26px -22px rgba(15,26,22,.75)!important}
+#view .hero-acts .tselect.theme-inline>button:hover{background:var(--sunk)!important;border-color:var(--accent)!important}
+#view .hero-acts .tselect.theme-inline>button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.tselect.theme-inline .tb-lab{font-size:12.4px;font-weight:600;letter-spacing:.06em;line-height:1;
+  color:var(--muted);padding-right:9px;border-right:1px solid var(--line)}
+.tselect.theme-inline #themeNow{font-weight:700}
+#view .hero-acts .tselect.theme-inline>button::after{content:'▾';font-size:9px;opacity:.62;line-height:1;margin-left:1px}
+#view .hero-acts .tselect.theme-inline>button[aria-expanded=true]::after{content:'▴'}
+.theme-menu{position:fixed;z-index:9999;margin:0;padding:6px;list-style:none;
+  min-width:168px;width:max-content;max-width:min(280px,72vw);
+  background:var(--raise);border:1px solid var(--line);border-radius:14px;
+  box-shadow:0 20px 44px -20px rgba(6,14,11,.62);box-sizing:border-box}
+.theme-menu[hidden]{display:none!important}
+.theme-menu li{padding:10px 12px;font-size:14.5px;color:var(--ink);border-radius:9px;cursor:pointer;white-space:nowrap}
+.theme-menu li:hover{background:rgba(168,118,42,.14)}
+.theme-menu li[aria-selected=true]{background:rgba(168,118,42,.18);color:#6f4a12;font-weight:600}
+:root[data-theme=dark] .theme-menu{background:#1b2420;border-color:rgba(233,240,232,.20)}
+:root[data-theme=dark] .theme-menu li{color:#e6ede7}
+:root[data-theme=dark] .theme-menu li:hover{background:rgba(216,180,90,.16)}
+:root[data-theme=dark] .theme-menu li[aria-selected=true]{background:rgba(216,180,90,.20);color:#f0dfae}
 @media(max-width:880px){
-  .top .tselect>button{font-size:11.6px;padding:4px 9px}
-  .top .tselect ul{right:0;min-width:136px}
+  #view .hero-acts .tselect.theme-inline>button{font-size:14.4px!important;padding:0 15px!important;gap:6px;height:40px!important;min-height:40px!important}
+  .tselect.theme-inline .tb-lab{font-size:11.2px;padding-right:7px}
+  .theme-menu{min-width:148px}
 }
