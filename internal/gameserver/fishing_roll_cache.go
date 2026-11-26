@@ -12,6 +12,9 @@ type cachedGradeLines struct {
 	// minG 是该鱼种的自然最小体重（species_weight.min_g），用于给「未达标」
 	// 档定下界。nil 表示没有可用的 min_g。
 	minG *int64
+	// lureSizeCM 是当前中鱼拟饵的长度（厘米）。>0 时按长度把最小鱼重量
+	// 向达标线抬升，并同步压缩未达标档占比；0 表示非拟饵/未知，不启用。
+	lureSizeCM float64
 }
 
 type cachedBaitDef struct {

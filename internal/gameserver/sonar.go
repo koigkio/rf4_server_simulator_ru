@@ -681,7 +681,9 @@ func (s *Server) rosterSonarSchools(ctx context.Context, systemID string, grid s
 		}
 		if s.gradeRatioEnabled() {
 			lines := s.cachedSettleStatics(ctx, c, key)
-			if weights, handled := s.gradeRatioGradeWeights(sonarSettlementGradeLines(lines), 1, scale, 0); handled {
+			ratioLines := sonarSettlementGradeLines(lines)
+			ratioLines.lureSizeCM = lureLengthCM(c)
+			if weights, handled := s.gradeRatioGradeWeights(ratioLines, 1, scale, 0); handled {
 				gradeWeights = weights
 				forceTrophy = false
 			}
