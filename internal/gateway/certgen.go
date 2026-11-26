@@ -4,10 +4,13 @@ import (
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
+	"crypto/tls"
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/pem"
+	"errors"
 	"fmt"
+	"log/slog"
 	"math/big"
 	"net"
 	"os"
@@ -15,21 +18,53 @@ import (
 	"time"
 )
 
-// EnsureCert 确保存在 TLS 证书；缺失时自动生成自签名证书（SAN 覆盖登录域名/本机）。
-// 客户端需要信任该证书（由用户安装到受信任的根证书颁发机构）。
+// EnsureCert проверяет пару TLS и создаёт самоподписанный сертификат при её отсутствии.
+// Повреждённые файлы сохраняются перед заменой; новый сертификат нужно установить заново.
 func EnsureCert(certFile, keyFile, loginDomain string) error {
-	if certFile != "" && keyFile != "" {
-		if _, err := os.Stat(certFile); err == nil {
-			if _, err := os.Stat(keyFile); err == nil {
-				return nil // 已存在
-			}
-		}
-	}
 	if certFile == "" || keyFile == "" {
 		return fmt.Errorf("Не указан путь к сертификату")
 	}
-	if err := os.MkdirAll(filepath.Dir(certFile), 0o755); err != nil {
-		return err
+	if filepath.Clean(certFile) == filepath.Clean(keyFile) {
+		return fmt.Errorf("Сертификат и ключ должны храниться в разных файлах")
+	}
+	var existing []string
+	for _, path := range []string{certFile, keyFile} {
+		if _, err := os.Stat(path); err == nil {
+			existing = append(existing, path)
+		} else if !errors.Is(err, os.ErrNotExist) {
+			return fmt.Errorf("Проверка TLS-файла %s: %w", path, err)
+		}
+	}
+	if len(existing) == 2 {
+		if _, err := tls.LoadX509KeyPair(certFile, keyFile); err == nil {
+			return nil
+		}
+	}
+	// Сначала копируем все исходные файлы. Ошибка резервирования не должна
+	// приводить к перезаписи сертификата или ключа.
+	backupSuffix := ".invalid-" + time.Now().UTC().Format("20060102T150405.000000000")
+	for _, path := range existing {
+		data, err := os.ReadFile(path)
+		if err != nil {
+			return fmt.Errorf("Чтение TLS-файла %s: %w", path, err)
+		}
+		backup, err := os.OpenFile(path+backupSuffix, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0o600)
+		if err != nil {
+			return fmt.Errorf("Резервная копия TLS-файла %s: %w", path, err)
+		}
+		_, writeErr := backup.Write(data)
+		closeErr := backup.Close()
+		if err := errors.Join(writeErr, closeErr); err != nil {
+			return fmt.Errorf("Резервная копия TLS-файла %s: %w", path, err)
+		}
+	}
+	if len(existing) > 0 {
+		slog.Warn("Некорректная или неполная пара TLS сохранена в резервные копии; после восстановления установите новый сертификат в доверенные корневые центры", "cert", certFile, "backup_suffix", backupSuffix)
+	}
+	for _, path := range []string{certFile, keyFile} {
+		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+			return err
+		}
 	}
 
 	priv, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
