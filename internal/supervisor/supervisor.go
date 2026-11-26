@@ -37,6 +37,7 @@ const (
 	maxBackoff     = 30 * time.Second
 	healthWait     = 20 * time.Second
 	maxConsecFails = 5
+	stableUptime   = time.Minute
 )
 
 // Spec 一个受管进程的定义。
@@ -221,6 +222,7 @@ func (s *Supervisor) StartOne(name string) error {
 		return nil // 已在运行
 	}
 	p.stopReq = false
+	p.fails = 0
 	p.state = StateStarting
 	s.mu.Unlock()
 
@@ -286,8 +288,9 @@ func (s *Supervisor) launch(p *proc) error {
 // supervise 监督循环：等待退出；意外退出按退避重启。
 func (s *Supervisor) supervise(p *proc) {
 	backoff := time.Second
+	err := p.cmd.Wait()
+	ran := true
 	for {
-		err := p.cmd.Wait()
 		s.mu.Lock()
 		if s.stopping || p.stopReq {
 			p.state = StateStopped
@@ -297,6 +300,10 @@ func (s *Supervisor) supervise(p *proc) {
 			p.logf("[%s] Остановлен", p.spec.Name)
 			s.notify()
 			return
+		}
+		if ran && time.Since(p.startedAt) >= stableUptime {
+			p.fails = 0
+			backoff = time.Second
 		}
 		p.fails++
 		p.restarts++
@@ -330,14 +337,14 @@ func (s *Supervisor) supervise(p *proc) {
 			return
 		}
 		s.mu.Unlock()
-		if err := s.launch(p); err != nil {
+		err = s.launch(p)
+		ran = err == nil
+		if err != nil {
 			p.logf("[%s] Не удалось перезапустить: %v", p.spec.Name, err)
 			continue
 		}
-		s.mu.Lock()
-		p.fails = 0 // 拉起成功清零连续失败
-		s.mu.Unlock()
 		s.notify()
+		err = p.cmd.Wait()
 	}
 }
 
