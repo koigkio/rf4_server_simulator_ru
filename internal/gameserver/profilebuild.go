@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"math"
 	"sort"
+	"strings"
 	"time"
 
 	"rf4server/internal/proto"
@@ -805,6 +806,31 @@ func (s *Session) Push4_22HookGUID(hookGUID string, mounted bool) bool {
 		markHookMounted(tree)
 	}
 	return s.Push(4, 22, proto.Args(proto.S("61"), tree)) != 0
+}
+
+// pushFightHookMounted 按本杆实际中鱼的钩补挂竿运行位（4/22 mounted）。
+//
+// 多钩钓组（rig 50–60 的倒钓臂 250/1001/1005/1009）中鱼的不一定是线末端钩。
+// Push4_22Hook 走 mountedHookGuid，只取槽位 12 的第一枚（250）；若 14/11 只给
+// 它补运行位，客户端搏鱼 ctor 会把鱼挂到线末端钩上：收线后线末端钩随线出水，
+// 真正中鱼的倒钓臂钩与鱼模型仍留在发鱼水层。实机 2026-11-26 23:49
+// （thynnus_t 咬 1005）现象正是“250/1001 已出水，1005 被拉在水下”。
+//
+// 优先按 fish.HookGUID 推裸钩树；路亚内置钩等没有独立物品行时回退旧形状。
+func (s *Session) pushFightHookMounted(gear string, fish *RolledFish) {
+	if s == nil || s.Srv == nil {
+		return
+	}
+	// 线末端钩保持原推送形状：路亚内置钩要走拟饵容器树，改成裸钩会让客户端
+	// 钩组实例缺失（保持力 ×0.05 → 秒脱）。只有“咬钩的钩不是线末端钩”时才
+	// 按 GUID 单独推倒钓臂钩。
+	if fish != nil && fish.HookGUID != "" &&
+		!strings.EqualFold(fish.HookGUID, s.Srv.mountedHookGuid(s.pushCtx(), gear)) {
+		if s.Push4_22HookGUID(fish.HookGUID, true) {
+			return
+		}
+	}
+	s.Push4_22Hook(true, gear)
 }
 
 // pushCtx 推送上下文（超时保护）。

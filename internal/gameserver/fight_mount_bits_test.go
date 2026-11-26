@@ -659,6 +659,154 @@ func TestHookConfirmSendsHookFrameThenFightSync(t *testing.T) {
 	}
 }
 
+// 14/11 海钓倒钓臂中鱼：钩帧必须推鱼实际咬的那枚倒钓臂钩，而不是线末端钩。
+// 实机 2026-11-26 23:49 thynnus_t 咬 1005，旧实现只推 250，客户端收线后
+// 250/1001 出水而 1005 与鱼模型留在水下。
+func TestHookConfirmMarineArmHookFrameUsesBiteHook(t *testing.T) {
+	srv, _ := newDetachTestServer(t)
+	ctx := context.Background()
+	const uid = int64(1000001)
+	rod, err := srv.CreateItem(ctx, uid, "boatr_10213_012", "backpack", 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !srv.rigSetType(ctx, uid, rod.GUID, 50) {
+		t.Fatal("rigSetType 50 失败")
+	}
+	mainHook, err := srv.CreateItem(ctx, uid, "c_hook_20712", "backpack", 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	armHook, err := srv.CreateItem(ctx, uid, "c_hook_20712", "backpack", 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, m := range []struct {
+		guid  string
+		extra int64
+	}{{mainHook.GUID, 250}, {armHook.GUID, 1001}} {
+		res := srv.rigSetComponent(ctx, uid, rod.GUID, catHook, m.guid, m.extra,
+			rigSetOpts{ParentType: familyRod, EnforceCategory: true})
+		if res.Rejected || res.MountedGUID == "" {
+			t.Fatalf("装钩(extra=%d) 被拒: %+v", m.extra, res)
+		}
+	}
+	st := srv.stateFor(uid)
+	st.mu.Lock()
+	st.GearGuid = rod.GUID
+	st.RigType = 50
+	st.CastActive = true
+	st.InWater = true
+	st.Pending = &RolledFish{FishGUID: strings.Repeat("cd", 16), Species: "thynnus_t",
+		Grade: 2, WeightG: 240239, LengthM: 1.8, BiteQuality: "solid", HookHoldP: 1,
+		HookGUID: armHook.GUID}
+	st.mu.Unlock()
+
+	conn, peer := cleanupTestTunnel(t, "hook-marine-arm")
+	live := registerBiteTestSession(t, srv, 406, conn)
+	frames := make(chan *proto.Value, 2)
+	go func() {
+		defer close(frames)
+		for i := 0; i < 2; i++ {
+			v, err := readFightSyncPush(srv, peer)
+			if err != nil {
+				return
+			}
+			frames <- v
+		}
+	}()
+	if _, ok := hFishingHooked(&Ctx{Sess: live, Main: 14, Sub: 11, Log: logging.Discard()}); !ok {
+		t.Fatal("14/11 未处理")
+	}
+	hookFrame := waitFightFrame(t, frames)
+	if hookFrame.ArgCount() != 1 || len(hookFrame.Items) != 1 {
+		t.Fatalf("钩帧应为 1 棵树，实得 %v", classList(hookFrame.Items))
+	}
+	hook := hookFrame.Items[0]
+	if hook.Class != "agedjipcnpe" {
+		t.Fatalf("倒钓臂钩帧应为裸钩 agedjipcnpe，实得 %s", hook.Class)
+	}
+	gi := fieldIdxByCS(hook.Class, csGUID)
+	if gi < 0 || gi >= len(hook.Fields) || !strings.EqualFold(hook.Fields[gi].GuidHex(), armHook.GUID) {
+		t.Fatalf("14/11 钩帧推的是 %q，期望中鱼的倒钓臂钩 %s", hook.Fields[gi].GuidHex(), shortGUID(armHook.GUID))
+	}
+	if got := objFlagsOf(t, hook); got&1024 == 0 {
+		t.Fatalf("中鱼钩未补挂竿位：flags=%d", got)
+	}
+}
+
+// 14/9 海钓抬竿确认：客户端只走 Pull 刺鱼入口（不再补发 14/11）时，
+// 同样必须按鱼实际咬的钩补挂竿运行位，否则倒钓臂中鱼仍挂在线末端钩上。
+func TestMarinePullConfirmUsesBiteHook(t *testing.T) {
+	srv, _ := newDetachTestServer(t)
+	ctx := context.Background()
+	const uid = int64(1000001)
+	rod, err := srv.CreateItem(ctx, uid, "boatr_10213_012", "backpack", 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !srv.rigSetType(ctx, uid, rod.GUID, 50) {
+		t.Fatal("rigSetType 50 失败")
+	}
+	mainHook, err := srv.CreateItem(ctx, uid, "c_hook_20712", "backpack", 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	armHook, err := srv.CreateItem(ctx, uid, "c_hook_20712", "backpack", 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, m := range []struct {
+		guid  string
+		extra int64
+	}{{mainHook.GUID, 250}, {armHook.GUID, 1001}} {
+		res := srv.rigSetComponent(ctx, uid, rod.GUID, catHook, m.guid, m.extra,
+			rigSetOpts{ParentType: familyRod, EnforceCategory: true})
+		if res.Rejected || res.MountedGUID == "" {
+			t.Fatalf("装钩(extra=%d) 被拒: %+v", m.extra, res)
+		}
+	}
+	st := srv.stateFor(uid)
+	st.mu.Lock()
+	st.GearGuid = rod.GUID
+	st.RigType = 50
+	st.CastActive = true
+	st.InWater = true
+	st.Resolved = false
+	st.Hooked = false
+	st.Pending = &RolledFish{FishGUID: strings.Repeat("ef", 16), Species: "thynnus_t",
+		Grade: 2, WeightG: 240239, LengthM: 1.8, BiteQuality: "solid", HookHoldP: 1,
+		HookGUID: armHook.GUID}
+	st.mu.Unlock()
+
+	conn, peer := cleanupTestTunnel(t, "pull-marine-arm")
+	live := registerBiteTestSession(t, srv, 407, conn)
+	frames := make(chan *proto.Value, 1)
+	go func() {
+		defer close(frames)
+		v, err := readFightSyncPush(srv, peer)
+		if err != nil {
+			return
+		}
+		frames <- v
+	}()
+	if _, ok := hFishingPull(miscCtx(live, 14, 9, nil)); !ok {
+		t.Fatal("14/9 未处理")
+	}
+	hookFrame := waitFightFrame(t, frames)
+	if len(hookFrame.Items) != 1 || hookFrame.Items[0].Class != "agedjipcnpe" {
+		t.Fatalf("14/9 应补推单枚裸钩，实得 %v", classList(hookFrame.Items))
+	}
+	hook := hookFrame.Items[0]
+	gi := fieldIdxByCS(hook.Class, csGUID)
+	if gi < 0 || gi >= len(hook.Fields) || !strings.EqualFold(hook.Fields[gi].GuidHex(), armHook.GUID) {
+		t.Fatalf("14/9 钩帧推的是 %q，期望中鱼的倒钓臂钩 %s", hook.Fields[gi].GuidHex(), shortGUID(armHook.GUID))
+	}
+	if got := objFlagsOf(t, hook); got&1024 == 0 {
+		t.Fatalf("14/9 中鱼钩未补挂竿位：flags=%d", got)
+	}
+}
+
 // TestHookConfirmSkipsFightSyncWhenDisabled 验证 A/B 关闭分支：
 // fight_hook_full_sync=0 时 14/11 只发钩帧，不再追加全树同步。
 func TestHookConfirmSkipsFightSyncWhenDisabled(t *testing.T) {
