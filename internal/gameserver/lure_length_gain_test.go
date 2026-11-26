@@ -3,8 +3,37 @@ package gameserver
 import (
 	"context"
 	"math"
+	"math/rand"
 	"testing"
+	"time"
+
+	"rf4server/internal/store"
 )
+
+const lureLengthFishKey = "lure_len_db_fish"
+
+func seedLureLengthFixture(t *testing.T) (*Server, *store.DB) {
+	t.Helper()
+	srv, db := newDetachTestServer(t)
+	enableGradeRatio(t, srv, db)
+	for _, query := range []string{
+		`INSERT OR REPLACE INTO loc_alias(alias,loc) VALUES('level_900_rules','lure-len-rules'),('level_012_north_sea','lure-len-rules')`,
+		`INSERT INTO loc_wiki_fish(loc,fish_key,fish_zh) VALUES('lure-len-rules','` + lureLengthFishKey + `','长饵测试鱼')`,
+		`INSERT INTO loc_fish(loc,fish_key,name_zh,catches) VALUES('lure-len-rules','` + lureLengthFishKey + `','长饵测试鱼',100)`,
+		`INSERT OR REPLACE INTO species_weight(fish_key,min_g,max_g,trophy_g,trophy_line_g,super_trophy_line_g) VALUES('` + lureLengthFishKey + `',120,10000,1000,5000,8000)`,
+		`INSERT OR REPLACE INTO fish_grade_lines(fish_key,qualified_g,trophy_g,blue_trophy_g) VALUES('` + lureLengthFishKey + `',1000,5000,8000)`,
+		`INSERT INTO item_def(numeric_id,item_id,category,attrs_json) VALUES
+			(999941,'ll_lure_3',17,'{"mbemakijdeh":6,"hkgndoipdlc":1077936128}'),
+			(999942,'ll_lure_16',17,'{"mbemakijdeh":6,"hkgndoipdlc":1098907648}'),
+			(999943,'ll_lure_38',17,'{"mbemakijdeh":6,"hkgndoipdlc":1108869120}')`,
+		`INSERT INTO item_catalog(item_id,name_zh) VALUES('ll_lure_3','三厘米拟饵'),('ll_lure_16','十六厘米拟饵'),('ll_lure_38','三十八厘米拟饵')`,
+	} {
+		if _, err := db.SQL.Exec(query); err != nil {
+			t.Fatalf("准备拟饵长度夹具失败: %v", err)
+		}
+	}
+	return srv, db
+}
 
 func TestLureLengthFloorFactor(t *testing.T) {
 	if got := lureLengthFloorFactor(2.9); got != 0 {
@@ -152,6 +181,88 @@ func TestWeightModelDBLureLengthRaisesFloor(t *testing.T) {
 	model := srv.weightModelDB(context.Background(), key, 1, 1, 0, c)
 	if model.lower < 900 {
 		t.Fatalf("16cm 拟饵的最小鱼重量应被抬到接近达标线，实得 %.0f", model.lower)
+	}
+}
+
+// 主判鱼路径必须把拟饵长度传进 sampleWeightDB；只测 gradeRatioModel 无法发现接线回退。
+func TestRollFishWithRulesAppliesLureLengthFloor(t *testing.T) {
+	srv, db := seedLureLengthFixture(t)
+	setGradeRatioTunables(t, srv, db, map[string]string{
+		"grade_pct_below":     "100",
+		"grade_pct_qualified": "0",
+		"grade_pct_trophy":    "0",
+		"grade_pct_super":     "0",
+	})
+	ctx := t.Context()
+	val := srv.cachedSettleStatics(ctx, fishRollContext{cache: newFishingRollCache()}, lureLengthFishKey)[0]
+	wantFloor := math.Floor(120 + (float64(val)-120)*0.95)
+	for i := 0; i < 200; i++ {
+		c := fishRollContext{
+			loc: "level_900_rules", rigType: 5, baits: []string{"ll_lure_16"},
+			cache: newFishingRollCache(),
+		}
+		f := srv.rollFishWithRules("level_900_rules", "ll_lure_16", 0, neutralFishingSkillBonus(), c)
+		if f == nil || f.Species != lureLengthFishKey {
+			t.Fatalf("第 %d 次判鱼结果异常: %+v", i, f)
+		}
+		if f.WeightG < int64(wantFloor) {
+			t.Fatalf("16cm 拟饵经真实判鱼仍产出未达标小鱼 %d g，抬升后下界应为 %.0f g", f.WeightG, wantFloor)
+		}
+	}
+}
+
+// 查鱼的达标占比必须经过 weightLawDB 跟随拟饵长度变化。
+func TestFishQueryGradeShareTracksLureLength(t *testing.T) {
+	srv, _ := seedLureLengthFixture(t)
+	gradeShare := func(bait string) float64 {
+		t.Helper()
+		q := &fishQueryCapture{fish: lureLengthFishKey, grade: 2}
+		c := fishRollContext{
+			loc: "level_900_rules", rigType: 5, baits: []string{bait},
+			cache: newFishingRollCache(), query: q,
+		}
+		if f := srv.rollFishWithRules("level_900_rules", bait, 0, neutralFishingSkillBonus(), c); f != nil {
+			t.Fatalf("查鱼路径不应生成鱼: %+v", f)
+		}
+		return q.gradeShare
+	}
+	short := gradeShare("ll_lure_3")
+	mid := gradeShare("ll_lure_16")
+	long := gradeShare("ll_lure_38")
+	if !(short < mid && mid < long && math.Abs(long-1) < 1e-9) {
+		t.Fatalf("查鱼达标占比应随拟饵长度单调上升并在 38cm 达到 1: 3cm=%g 16cm=%g 38cm=%g", short, mid, long)
+	}
+}
+
+// 声呐预览必须通过 rosterSonarSchools 同步压缩未达标档权重。
+func TestSonarGradeWeightsTrackLureLength(t *testing.T) {
+	srv, _ := seedLureLengthFixture(t)
+	grids, err := loadSonarGrids()
+	if err != nil {
+		t.Fatal(err)
+	}
+	grid := grids["loc12_215"]
+	belowWeight := func(bait string) float64 {
+		t.Helper()
+		c := fishRollContext{
+			uid: 1000009, loc: "loc12_215", x: 2260, z: -460, hasPos: true, spot: 7,
+			rigType: 5, baits: []string{bait}, cache: newFishingRollCache(),
+			now: time.Date(2026, 7, 15, 12, 0, 0, 0, time.UTC),
+			weather: fishingWeather{
+				known: true, kind: fishingWeatherClear, airTemp: 18, previousAirTemp: 17, wind: 3,
+			},
+		}
+		schools := srv.rosterSonarSchools(t.Context(), "loc12_215", grid, nil, c, rand.New(rand.NewSource(41)))
+		if len(schools) == 0 {
+			t.Fatal("声呐没有生成鱼群，用例无效")
+		}
+		return schools[0].gradeWeights[0]
+	}
+	short := belowWeight("ll_lure_3")
+	mid := belowWeight("ll_lure_16")
+	long := belowWeight("ll_lure_38")
+	if !(short > mid && mid > long && math.Abs(long) < 1e-9) {
+		t.Fatalf("声呐未达标权重应随拟饵长度单调下降并在 38cm 归零: 3cm=%g 16cm=%g 38cm=%g", short, mid, long)
 	}
 }
 
