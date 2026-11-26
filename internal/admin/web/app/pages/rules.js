@@ -27,6 +27,13 @@ const GRADE_SETS = {
     { prefix: 'two_stage_baited_', title: '打窝后', defs: [1, 92, 6, 1] },
   ],
 };
+// 咬断线组：与「张力超过承力」的常规断线是两条独立通路，默认关。
+const BITE_OFF = [
+  ['bite_off_enabled', '鱼会咬断线组', '狗鱼、哲罗鱼、雀鳝、鼠鲨这类掠食鱼能在搏鱼时咬断引线。关闭后只有常规的张力过载断线。', '0'],
+  ['bite_off_over_pct', '鱼比引线重时的概率', '每次冲刺的咬断概率。官方口径 20%。', '20', 'float', '%', 0, 100],
+  ['bite_off_under_pct', '鱼比引线轻时的概率', '鱼重没到引线承载时仍有小概率咬断。官方口径 4%。', '4', 'float', '%', 0, 100],
+  ['bite_off_sprint_seconds', '冲刺判定间隔', '搏鱼期间两次咬断掷骰的最小间隔。官方「冲刺」是客户端本地机动，服务端用这个节拍近似。', '10', 'float', '秒', 1, 120],
+];
 const OTHER = [
   ['condition_health_enabled', '饥饿和寒冷会掉血', '关闭后生命值始终是满的，药品也不会消耗。', '1'],
   ['condition_fishing_pause_enabled', '钓鱼时精力不恢复', '竿在水里时精力暂停恢复，收竿后再恢复。关闭则一直正常恢复。', '1'],
@@ -143,6 +150,8 @@ export default async function rules(params, scope) {
     blocks = [
       pblock(1, '其他', '活得久不久、精力怎么恢复、鱼钩大小怎么影响出鱼。', [
         ...OTHER.map(([k, l, d, def]) => form.row({ key: k, label: l, help: d, kind: 'bool', def }, val(k, def))),
+        ...BITE_OFF.map(([k, l, d, def, kind, unit, min, max]) => form.row(
+          kind ? { key: k, label: l, help: d, kind, unit, min, max, def } : { key: k, label: l, help: d, kind: 'bool', def }, val(k, def))),
         form.row({ key: 'hook_spawn_match_strength', label: '鱼钩大小影响出鱼', help: '0 表示不影响；1 表示大钩更容易钓到大鱼、小钩更容易钓到小鱼；2 更明显。选「按比例出鱼」时不起作用。', kind: 'float', min: 0, max: 2, def: '0' }, val('hook_spawn_match_strength', '0')),
       ], { id: 'pg-other' }),
       pblock(2, '出鱼档位与等待时间', '这两类在别的页签里。', bullets([
