@@ -73,10 +73,10 @@ if [[ "${WITH_OFFLINE_TOOLS:-0}" == "1" ]]; then
     -o "${STAGE}/启动游戏.exe" ./cmd/local-launcher
 fi
 
-openssl req -x509 -newkey ec -pkeyopt ec_paramgen_curve:prime256v1 -sha256 -nodes \
-  -keyout "${STAGE}/certs/server.key" -out "${STAGE}/certs/server.crt" \
-  -days 3650 -subj "/CN=api.rf4game.ru" \
-  -addext "subjectAltName=DNS:api.rf4game.ru,DNS:api.rf4game.com,DNS:localhost,IP:127.0.0.1" >/dev/null 2>&1
+# Генерируем пару тем же TLS-кодом, которым её загружает gateway.
+# Нативная утилита запускается на хосте сборки, даже при GOOS=windows.
+GOOS="$(go env GOHOSTOS)" GOARCH="$(go env GOHOSTARCH)" go run ./cmd/certgen \
+  -cert "${STAGE}/certs/server.crt" -key "${STAGE}/certs/server.key"
 chmod 600 "${STAGE}/certs/server.key"
 
 sed \
