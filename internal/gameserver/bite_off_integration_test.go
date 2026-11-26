@@ -6,6 +6,8 @@ import (
 	"math"
 	"testing"
 	"time"
+
+	"rf4server/internal/proto"
 )
 
 // biteOffTestTunables 把咬断层参数直接写进缓存，绕过 kv 表与 30 秒刷新。
@@ -291,6 +293,42 @@ func TestBiteOffEscapeUsesOwnReasonCode(t *testing.T) {
 	t.Parallel()
 	if got, ok := escapeTemplateKind["牙齿咬断钓组"]; !ok || got != 10 {
 		t.Fatalf("咬断原因码=%d ok=%v，期望 10", got, ok)
+	}
+}
+
+// TestBiteOffHandlerUsesTeethEscapeTemplate 锁定真实 14/8 handler 接线与原因码：
+// 直接调用生产 hFishingLoad，而不是绕过它去调 maybeBiteOff；关闭嘲讽模板后，
+// 跑鱼播报必须回退官方 kind10（牙齿咬断钓组），不能复用张力断线的 30/6。
+func TestBiteOffHandlerUsesTeethEscapeTemplate(t *testing.T) {
+	t.Parallel()
+	f := newBiteOffFixture(t)
+	sess, peer := newTunnelProbe(t, f.srv)
+	f.sess = sess
+	f.srv.randFloat = fixedRolls(0)
+	biteOffTestTunables(f.srv, 100, 0, 1)
+	f.srv.tunCache["fish_escape_taunt"] = 0
+
+	notified := receiveTestPush(peer, 24, 27)
+	hFishingLoad(biteOffFrame(f.sess, 0.90))
+
+	select {
+	case env := <-notified:
+		dec, _, err := proto.DecodeValue(env.Body, 0, f.srv.Table())
+		if err != nil {
+			t.Fatalf("跑鱼推送不可解码: %v", err)
+		}
+		if dec.Kind != proto.KindArgs || len(dec.Items) == 0 {
+			t.Fatalf("跑鱼推送应为非空 args，实得 %v/%d", dec.Kind, len(dec.Items))
+		}
+		f0 := dec.Items[0].Field(0).Num
+		if f0 == nil || *f0 != 10 {
+			t.Fatalf("咬断跑鱼应使用官方模板 10，实得 %v", f0)
+		}
+	case <-time.After(3 * time.Second):
+		t.Fatal("等待咬断跑鱼推送超时")
+	}
+	if row, _ := f.srv.DB.GetItemByGUID(f.ctx, f.leader); row != nil {
+		t.Fatal("真实 handler 路径未咬断引线")
 	}
 }
 
