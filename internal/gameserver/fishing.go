@@ -150,6 +150,11 @@ type FishState struct {
 	biteOffSeen        bool
 	biteOffLastStamina float64
 	biteOffRollAt      time.Time
+	// biteOffFishGUID 记录上面这份基线属于哪一尾鱼：换鱼必须整体重置，
+	// 否则新鱼会继承上一尾鱼的掷骰时刻与体力基准。
+	biteOffFishGUID string
+	// biteOffDropAccum 是距上次掷骰累计的体力降幅，不是单帧降幅。
+	biteOffDropAccum float64
 }
 
 // effectiveBaitDepthCMLocked 返回当前有效饵深。手杆从落水开始按固定
@@ -3697,6 +3702,7 @@ var escapeTemplateKind = map[string]int{
 	"断竿":     5,
 	"渔线轮超载":  4,
 	"钓组组件断裂": 10,
+	"牙齿咬断钓组": 10,
 }
 
 // fishEscapeTaunts 跑鱼语气词池：随机抽一条拼进跑鱼提示。

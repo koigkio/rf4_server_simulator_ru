@@ -157,21 +157,31 @@ func (s *Server) maybeBiteOff(ctx *Ctx) {
 
 	st.mu.Lock()
 	if !staminaFightActiveLocked(st) {
-		st.biteOffSeen = false
+		st.resetBiteOffLocked()
 		st.mu.Unlock()
 		return
 	}
 	fish := st.Pending
 	if fish == nil || !species[strings.ToLower(strings.TrimSpace(fish.Species))] {
-		st.biteOffSeen = false
+		st.resetBiteOffLocked()
 		st.mu.Unlock()
 		return
 	}
-	// 鱼在休息：体力没掉，这不是冲刺窗口。
-	dropped := st.biteOffLastStamina - stamina
-	lastAt := st.biteOffRollAt
+	// 换鱼后旧的节流时间与体力基线都不再适用：FishGUID 一变就整体重置，
+	// 否则新鱼会继承上一尾鱼的掷骰时刻和体力基准。
+	if st.biteOffFishGUID != fish.FishGUID {
+		st.resetBiteOffLocked()
+		st.biteOffFishGUID = fish.FishGUID
+	}
+	// 冲刺判据是「距上次掷骰累计掉了多少体力」，不是单帧降幅：一条 14/8 约
+	// 2 秒，实测单帧降幅常在 0.001 以下，只比较相邻两帧会让低门槛鱼种永远掷不了骰。
+	if st.biteOffSeen && stamina < st.biteOffLastStamina {
+		st.biteOffDropAccum += st.biteOffLastStamina - stamina
+	}
 	st.biteOffSeen = true
 	st.biteOffLastStamina = stamina
+	dropped := st.biteOffDropAccum
+	lastAt := st.biteOffRollAt
 	if !lastAt.IsZero() && now.Sub(lastAt) < time.Duration(sprintSecs*float64(time.Second)) {
 		st.mu.Unlock()
 		return
@@ -186,18 +196,35 @@ func (s *Server) maybeBiteOff(ctx *Ctx) {
 		return
 	}
 	ids := s.rigGearIDs(s.dbCtx(), uid, rodGUID)
+	spec := s.loadGearSpecForRig(s.dbCtx(), ids, rodGUID)
 	leaderGUID, leaderCat, leaderKg := ids.LeaderGUID, gearCatLeader, 0.0
 	if leaderGUID == "" {
 		leaderGUID, leaderCat = ids.LeadcoreGUID, gearCatLeadcore
 	}
+	// 断件品类必须取实例真实品类，不能按「前导就写 13」猜：rigGearIDs 的
+	// LeaderGUID 优先取 15（钢丝前导），此时 rig_component 的槽位也是 15。
+	// 硬写 13 会让下游集合按 13 展开，前导线自己不在集合里，断完只剩钩饵
+	// 没了、前导线还挂在竿上。
 	if leaderGUID != "" {
-		spec := s.loadGearSpecForRig(s.dbCtx(), ids, rodGUID)
+		if row, rerr := s.DB.GetItemByGUID(s.dbCtx(), leaderGUID); rerr == nil && row != nil {
+			if def, derr := s.itemDefForRow(s.dbCtx(), row); derr == nil && def != nil && def.Category > 0 {
+				leaderCat = def.Category
+			}
+		}
+	}
+	if leaderGUID != "" {
 		switch leaderCat {
 		case gearCatLeadcore:
 			leaderKg = spec.LeadcoreStrengthKg
 		default:
 			leaderKg = spec.LeaderStrengthKg
 		}
+	}
+	// 没有引线/铅芯，或引线承力读不出来时，比较值退到主线承载：
+	// 否则 biteOffChance 直接判「不可判」，规格里「没有挂引线时咬断落在主线上」
+	// 这条路径永远到不了。
+	if leaderKg <= 0 {
+		leaderKg = spec.LineStrengthKg
 	}
 	chance, eligible := biteOffChance(fish.WeightG, leaderKg, overPct, underPct)
 	if !eligible {
@@ -209,6 +236,7 @@ func (s *Server) maybeBiteOff(ctx *Ctx) {
 		return
 	}
 	st.biteOffRollAt = now
+	st.biteOffDropAccum = 0
 	st.mu.Unlock()
 
 	if s.rollBiteOffFloat() >= chance {
@@ -230,7 +258,10 @@ func (s *Server) biteOffLeader(ctx *Ctx, st *FishState, fish *RolledFish, leader
 	var err error
 	part := "leader"
 	if leaderGUID != "" {
-		outcome, err = s.breakComponentTx(pushCtx, uid, rodGUID, leaderGUID, leaderCat)
+		// 与 17/9 同口径：断引线/铅芯走断线事务，按 downstreamLossCategories
+		// 一并删除下游钩、饵、拟饵，并写 line_break / lost_on_line_break 日志。
+		// breakComponentTx 只管终端件本身，用它会把钩饵留在竿上。
+		outcome, err = s.breakLineTxWithLineOut(pushCtx, uid, rodGUID, leaderGUID, leaderCat, 0)
 	} else {
 		// 没有引线：咬断落在主线上。主线走 lineLossTx，按剪线口径丢钩饵。
 		part = "line"
@@ -249,17 +280,13 @@ func (s *Server) biteOffLeader(ctx *Ctx, st *FishState, fish *RolledFish, leader
 	st.CastActive = false
 	st.Hooked = false
 	st.Resolved = true
-	st.biteOffRollAt = time.Time{}
-	st.biteOffLastStamina = 0
-	st.biteOffSeen = false
+	st.resetBiteOffLocked()
 	st.mu.Unlock()
 
 	s.bumpFishingCounter(uid, "line_breaks")
-	reason := "断子线"
-	if part == "line" {
-		reason = "断主线"
-	}
-	s.notifyFishEscape(ctx.Sess, fish, reason)
+	// 咬断有独立原因码（10=牙齿咬断钓组），不能复用张力断线的 30/6：
+	// 客户端按原因码换文案，混用会把「被鱼咬断」显示成「引线断了」。
+	s.notifyFishEscape(ctx.Sess, fish, "牙齿咬断钓组")
 
 	syncGUIDs := append([]string(nil), outcome.RemovedGUIDs...)
 	syncGUIDs = append(syncGUIDs, outcome.StackRefreshGUIDs...)
@@ -276,6 +303,16 @@ func (s *Server) biteOffLeader(ctx *Ctx, st *FishState, fish *RolledFish, leader
 		s.log.Info("咬断线组", "rod", shortGUID(rodGUID), "fish", fish.Species,
 			"weight_g", fish.WeightG, "part", part, "leader_kg", roundTo(leaderKg, 2))
 	}
+}
+
+// resetBiteOffLocked 清空一尾鱼的冲刺窗口状态，调用方必须持有 st.mu。
+// 换鱼、脱钩、判定成功都必须走这里，只清某个字段会留下别的尾巴。
+func (st *FishState) resetBiteOffLocked() {
+	st.biteOffSeen = false
+	st.biteOffLastStamina = 0
+	st.biteOffRollAt = time.Time{}
+	st.biteOffFishGUID = ""
+	st.biteOffDropAccum = 0
 }
 
 // biteOffSprintGate 判断这一帧是否算「鱼在冲刺」。
