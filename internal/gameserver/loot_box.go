@@ -7,6 +7,8 @@ import (
 	"math/rand"
 	"strings"
 	"time"
+
+	"rf4server/internal/names"
 )
 
 // ---- 钓获礼包（开箱） ----
@@ -206,7 +208,7 @@ func (s *Server) grantLootBox(ctx context.Context, sess *Session, def lootBoxDef
 	if display == "" {
 		display = itemID
 	}
-	prefix := "Поймано" + def.Name
+	prefix := "Получен " + def.Name
 	if reason == "Гарантированный" {
 		prefix = "Гарантия за звёздную рыбу: " + def.Name
 	}
@@ -298,7 +300,7 @@ func (s *Server) lootItemName(ctx context.Context, itemID string) string {
 		itemID, itemID).Scan(&name); err != nil || strings.TrimSpace(name) == "" {
 		return itemID
 	}
-	return name
+	return names.Ru(name)
 }
 
 // scheduleLootBox 异步开箱：不阻塞 14/5 入护回包，也不受请求 ctx 取消影响。

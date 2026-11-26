@@ -65,15 +65,15 @@ func TestFishQueryPinyinReply(t *testing.T) {
 	}
 	s.setLevel(uid, mapKey)
 	sess := &Session{Srv: s, Userid: uid}
-	for _, input := range []string{"常见", "changjian", "常见 rules-test", "CHANGJIAN " + mapKey} {
+	for _, input := range []string{"常见", "changjian", "常见 rules-test", "CHANGJIAN " + mapKey, "плот", "ПЛОТВА rules-test"} {
 		t.Run(input, func(t *testing.T) {
 			got := s.fishQueryReply(t.Context(), sess, input)
-			if !strings.HasPrefix(got, "rules-test · 常见拟鲤\n【") || !strings.Contains(got, "\n1. ") {
+			if !strings.HasPrefix(got, "rules-test · Плотва обыкновенная\n[") || !strings.Contains(got, "\n1. ") {
 				t.Fatalf("prefix query did not return the full fish name: %q", got)
 			}
 		})
 	}
-	if !strings.Contains(fishQueryHelp, "拼音前缀") || !strings.Contains(fishQueryHelp, "第一种") {
+	if !strings.Contains(fishQueryHelp, "пиньинем") || !strings.Contains(fishQueryHelp, "берётся первое") {
 		t.Fatalf("help does not explain prefix matching: %s", fishQueryHelp)
 	}
 }

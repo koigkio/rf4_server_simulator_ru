@@ -265,12 +265,12 @@ func TestFishQueryWaterIntegration(t *testing.T) {
 	}
 	reply := formatFishQueryReply("常见拟鲤", result)
 	if mode == "missing_map" {
-		if result.WaterFiltered || result.Regions != len(g.areas) || !strings.Contains(strings.Join(result.Notes, "\n"), "缺少本图水陆数据") {
+		if result.WaterFiltered || result.Regions != len(g.areas) || !strings.Contains(strings.Join(result.Notes, "\n"), "Нет данных вода/суша для этой карты") {
 			t.Fatalf("missing map misrepresented: %+v %s", result, reply)
 		}
 		return
 	}
-	if !result.WaterFiltered || result.Regions != 1 || result.CandidateRegions != 1 || !strings.Contains(strings.Join(result.Notes, "\n"), "五点做水陆粗筛") {
+	if !result.WaterFiltered || result.Regions != 1 || result.CandidateRegions != 1 || !strings.Contains(strings.Join(result.Notes, "\n"), "по центру и четырём углам") {
 		t.Fatalf("water filtering not before shortlist: %+v %s", result, reply)
 	}
 	for _, p := range result.Plans {

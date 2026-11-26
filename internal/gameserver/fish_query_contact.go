@@ -9,12 +9,13 @@ import (
 	"strings"
 	"time"
 
+	"rf4server/internal/names"
 	"rf4server/internal/proto"
 )
 
 // The assistant is a virtual contact, not a player account or an administrator.
 const fishQueryContactUID int64 = 2147483647
-const fishQueryContactName = "查鱼助手"
+const fishQueryContactName = "Помощник по рыбе"
 
 func hSocialMembers(ctx *Ctx) ([]byte, bool) {
 	s := ctx.Sess.Srv
@@ -32,12 +33,12 @@ func hSocialMembers(ctx *Ctx) ([]byte, bool) {
 	return encodeSocialTree(ctx, proto.U32Arr(ids))
 }
 
-const fishQueryHelp = "发送：鱼名 [地图]\n例如：河鲈；河鲈 下通古斯卡河。\n鱼名支持拼音前缀，如“圆腹”或“yuanfu”；多种匹配直接取第一种。\n默认当前地图，按路亚、手杆、底钓分组推荐，每组最多三条方案（区域、鱼饵和钓法）。仅支持已核对坐标的地图；按当前条件估算理论条/小时，不含客户端等待、非实际鱼获。\n查询一般很快；复杂地图请预留约3秒，结果通过个人消息返回。\n\n" +
-	"计算说明：单竿、单饵无窝料，先粗筛区域再配饵，不保证全图最优。区域估算不逐点计算水深、底质和水流。\n" +
-	"水陆说明：有本图数据时做中心与四角五点粗筛，任一点有水即保留；混合格可能含陆地，不保证可达。缺少本图数据时未排除陆地。\n" +
-	"理论速率不含客户端等待、占竿、搏鱼、收鱼、重抛及落水就位保护，不是实际鱼获或未来一小时预测。"
+const fishQueryHelp = "Отправьте: название рыбы [карта]\nНапример: окунь или окунь Нижняя Тунгуска.\nНазвание рыбы можно вводить по началу слова — по-русски, по-китайски или пиньинем; при нескольких совпадениях берётся первое.\nПо умолчанию — текущая карта, рекомендации сгруппированы по спиннингу, поплавку и донке, до трёх вариантов в группе (зона, наживка и способ). Поддерживаются только карты с проверенными координатами; теоретическая скорость рыб/час оценивается по текущим условиям, без ожидания клиента, это не реальный улов.\nЗапрос обычно выполняется быстро; для сложных карт закладывайте около 3 секунд, ответ придёт личным сообщением.\n\n" +
+	"Как считается: одна снасть, одна наживка без прикормки, сначала грубый отбор зон, затем подбор наживки — лучший вариант на всей карте не гарантируется. Оценка зон не учитывает глубину, дно и течение в каждой точке.\n" +
+	"Вода/суша: если есть данные карты, проверяются центр и четыре угла, зона остаётся при воде хотя бы в одной точке; смешанные клетки могут содержать сушу, достижимость не гарантирована. Без данных карты суша не исключается.\n" +
+	"Теоретическая скорость не учитывает ожидание клиента, занятость снасти, вываживание, вытаскивание, перезаброс и защиту при погружении; это не реальный улов и не прогноз на час."
 const fishQueryBudget = 3 * time.Second
-const fishQueryTimeoutReply = "查询超时（计算预算3秒），请稍后重试。"
+const fishQueryTimeoutReply = "Время запроса истекло (лимит расчёта 3 секунды), попробуйте позже."
 
 func (s *Server) fishQueryReply(ctx context.Context, sess *Session, text string) (reply string) {
 	defer func() {
@@ -46,27 +47,21 @@ func (s *Server) fishQueryReply(ctx context.Context, sess *Session, text string)
 		}
 	}()
 	args := strings.Fields(text)
-	if len(args) == 0 || text == "帮助" || text == "菜单" || strings.EqualFold(text, "help") {
+	if len(args) == 0 || fishQueryIsHelp(text) {
 		return fishQueryHelp
 	}
-	if args[0] == "查鱼" || args[0] == "查询" {
+	if fishQueryIsCommand(args[0]) {
 		args = args[1:]
 	}
-	if len(args) == 0 || len(args) > 2 {
+	if len(args) == 0 {
 		return fishQueryHelp
 	}
 	// The contact queries the whole species, without a trophy-grade filter.
 	req := FishQueryRequest{UID: sess.Userid, Map: s.currentLevel(sess.Userid), Grade: 1}
 	var err error
-	req.Fish, err = s.resolveFishQuerySpecies(ctx, args[0])
+	req.Fish, req.Map, err = s.resolveFishQueryArgs(ctx, args, req.Map)
 	if err != nil {
 		return err.Error()
-	}
-	if len(args) == 2 {
-		req.Map, err = s.resolveFishQueryMap(ctx, args[1])
-		if err != nil {
-			return err.Error()
-		}
 	}
 	if s.tunableF("fish_weight_cap", 0) > 0 || s.tunableF("hook_entry_cap", 0) > 0 {
 		st := s.stateFor(req.UID)
@@ -80,17 +75,17 @@ func (s *Server) fishQueryReply(ctx context.Context, sess *Session, text string)
 			return err.Error()
 		}
 		if errors.Is(err, errFishQueryWaterInvalid) {
-			s.log.Warn("查鱼水陆数据无效", "err", err)
+			s.log.Warn("Неверные данные вода/суша для поиска рыбы", "err", err)
 			return errFishQueryWaterInvalid.Error()
 		}
-		s.log.Warn("查鱼失败", "uid", req.UID, "err", err)
+		s.log.Warn("Поиск рыбы не удался", "uid", req.UID, "err", err)
 		if ctx.Err() != nil {
 			return fishQueryTimeoutReply
 		}
 		if req.Gear == "" && (s.tunableF("fish_weight_cap", 0) > 0 || s.tunableF("hook_entry_cap", 0) > 0) {
-			return "装备限重已开启，请先拿起要使用的鱼竿再查询。"
+			return "Ограничение нагрузки снастей включено — сначала возьмите в руки удилище, которым будете ловить."
 		}
-		return "暂时无法查询，请确认地图和鱼种后重试。"
+		return "Сейчас запрос выполнить нельзя, проверьте карту и вид рыбы и повторите."
 	}
 	return formatFishQueryReply(s.speciesZhName(ctx, req.Fish), result)
 }
@@ -98,9 +93,9 @@ func (s *Server) fishQueryReply(ctx context.Context, sess *Session, text string)
 func formatFishQueryReply(fishName string, result *FishQueryResponse) string {
 	fishName = fishQueryName(fishName)
 	if len(result.Plans) == 0 {
-		return fishName + "\n当前地图、当前条件没有可行方案，可指定其他地图。"
+		return fishName + "\nНа текущей карте при текущих условиях подходящих вариантов нет, можно указать другую карту."
 	}
-	lines := []string{result.Plans[0].MapName + " · " + fishName}
+	lines := []string{names.Ru(result.Plans[0].MapName) + " · " + fishName}
 	reference := ""
 	uniform := false
 	missingFamily := false
@@ -120,30 +115,30 @@ func formatFishQueryReply(fishName string, result *FishQueryResponse) string {
 		if len(plans) > fishQueryPlansPerFamily {
 			plans = plans[:fishQueryPlansPerFamily]
 		}
-		lines = append(lines, "【"+family.label()+"】")
+		lines = append(lines, "["+family.label()+"]")
 		for i, plan := range plans {
 			method := fishQueryMethodLabel(plan)
 			if plan.Action == "drift" {
-				method += "·顺水漂流"
+				method += " · сплав по течению"
 			} else if plan.Action == "jig" {
-				method += "·阶梯"
+				method += " · ступенька"
 			}
-			bait := plan.BaitName
+			bait := names.Ru(plan.BaitName)
 			if plan.EquivalentBaits > 1 {
-				bait = fmt.Sprintf("%s（同效饵 %d 个）", bait, plan.EquivalentBaits)
+				bait = fmt.Sprintf("%s (равноценных наживок: %d)", bait, plan.EquivalentBaits)
 			}
-			lines = append(lines, fmt.Sprintf("%d. %s · %s · 理论 %.2f条/小时", i+1, bait, method, plan.TheoreticalPerHour))
+			lines = append(lines, fmt.Sprintf("%d. %s · %s · теор. %.2f рыб/час", i+1, bait, method, plan.TheoreticalPerHour))
 			if plan.Region != nil {
 				lines = append(lines, "   "+formatFishQueryRegion(*plan.Region))
 			} else if plan.X != nil && plan.Z != nil {
-				point := fmt.Sprintf("   世界落点 X %.1f / Z %.1f", *plan.X, *plan.Z)
+				point := fmt.Sprintf("   Точка в мире X %.1f / Z %.1f", *plan.X, *plan.Z)
 				if sonarChartLevel(plan.Map) {
 					if spot := seaGuideSpotForPoint(*plan.X, *plan.Z); spot > 0 {
-						point += fmt.Sprintf("（%d米钓点）", spot)
+						point += fmt.Sprintf(" (точка %d м)", spot)
 					}
 				}
 				if plan.Zone > 0 {
-					point += fmt.Sprintf("（声呐区%d）", plan.Zone)
+					point += fmt.Sprintf(" (зона эхолота %d)", plan.Zone)
 				}
 				lines = append(lines, point)
 			} else if reference == "" && len(plan.References) > 0 {
@@ -153,47 +148,47 @@ func formatFishQueryReply(fishName string, result *FishQueryResponse) string {
 		}
 	}
 	if reference != "" {
-		lines = append(lines, "攻略参考点："+reference+"（未参与概率计算）")
+		lines = append(lines, "Ориентир из гайдов: "+reference+" (не участвует в расчёте вероятности)")
 	}
 	if uniform {
-		lines = append(lines, "鱼群分布未开启，不推荐区域。")
+		lines = append(lines, "Распределение стай выключено, зоны не рекомендуются.")
 	}
 	if missingFamily {
-		lines = append(lines, "仅列出当前条件下有可行方案的钓法。")
+		lines = append(lines, "Показаны только способы ловли, для которых при текущих условиях есть варианты.")
 	}
-	lines = append(lines, "理论速率不计搏鱼、收鱼时间。")
+	lines = append(lines, "Теоретическая скорость не учитывает время вываживания и вытаскивания.")
 	return strings.Join(lines, "\n")
 }
 
 func formatFishQueryRegion(r FishQueryRegion) string {
 	var labels [4]string
-	approx := ""
+	approx := " "
 	for i, value := range [4]float64{r.MinX, r.MinZ, r.MaxX, r.MaxZ} {
 		rounded := math.Round(value*100) / 100
 		if math.Abs(rounded-value) > 1e-9 {
-			approx = "约"
+			approx = " около "
 		}
 		labels[i] = strings.TrimRight(strings.TrimRight(fmt.Sprintf("%.2f", rounded), "0"), ".")
 	}
-	return fmt.Sprintf("区域%s %s:%s～%s:%s（上限不含）", approx, labels[0], labels[1], labels[2], labels[3])
+	return fmt.Sprintf("Зона%s%s:%s–%s:%s (верхняя граница не включена)", approx, labels[0], labels[1], labels[2], labels[3])
 }
 
 func fishQueryMethodLabel(plan FishQueryPlan) string {
 	switch plan.RigType {
 	case 1:
-		return "浮钓"
+		return "Поплавок"
 	case 12:
-		return "底钓"
+		return "Донка"
 	case 5:
-		return "路亚"
+		return "Спиннинг"
 	case 50:
-		return "海钓铁板"
+		return "Морской пилкер"
 	case 51:
-		return "海钓软饵"
+		return "Морская мягкая приманка"
 	case 52:
-		return "海钓鱼肉"
+		return "Морская ловля на рыбу"
 	case 55:
-		return "海钓底钓"
+		return "Морская донная ловля"
 	}
 	return plan.RigName
 }
@@ -212,7 +207,7 @@ func (s *Server) receiveFishQuery(ctx *Ctx, text string) ([]byte, bool) {
 	c := ctx.Sess.pushCtx()
 	tx, err := beginEconomyTx(c, s.DB)
 	if err != nil {
-		ctx.ReplyFailure("System.IO.IOException", "查询回复保存失败")
+		ctx.ReplyFailure("System.IO.IOException", "Не удалось сохранить ответ на запрос")
 		return nil, true
 	}
 	defer func() { _ = tx.Rollback() }()
@@ -221,7 +216,7 @@ func (s *Server) receiveFishQuery(ctx *Ctx, text string) ([]byte, bool) {
 		err = tx.Commit()
 	}
 	if err != nil {
-		ctx.ReplyFailure("System.IO.IOException", "查询回复保存失败")
+		ctx.ReplyFailure("System.IO.IOException", "Не удалось сохранить ответ на запрос")
 		return nil, true
 	}
 	ctx.AfterResponse(func() { s.notifyMail(ctx.Sess.pushCtx(), ctx.Sess.Userid, id) })

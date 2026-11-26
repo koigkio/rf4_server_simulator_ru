@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"rf4server/internal/fishmaps"
+	"rf4server/internal/names"
 	"rf4server/internal/store"
 )
 
@@ -152,8 +153,9 @@ func (s *Server) handleCatalogItems(w http.ResponseWriter, r *http.Request) {
 		limit = 80
 	}
 	like := "%" + q + "%"
-	conditions := []string{"(d.item_id LIKE ? OR COALESCE(c.name_zh,c.name,'') LIKE ?)"}
-	args := []any{like, like}
+	ruOr, ruArgs := names.SQLAnyLike("COALESCE(c.name_zh,c.name,'')", names.Search(q, 40))
+	conditions := []string{"(d.item_id LIKE ? OR COALESCE(c.name_zh,c.name,'') LIKE ?" + ruOr + ")"}
+	args := append([]any{like, like}, ruArgs...)
 	if r.URL.Query().Get("complete_only") == "1" {
 		conditions = append(conditions, completeCatalogCondition())
 	}

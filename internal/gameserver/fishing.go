@@ -10,6 +10,7 @@ import (
 	"sync"
 	"time"
 
+	"rf4server/internal/names"
 	"rf4server/internal/proto"
 	"rf4server/internal/store"
 	"rf4server/internal/wiregen"
@@ -3551,7 +3552,7 @@ func (s *Server) speciesZhName(ctx context.Context, key string) string {
 	if err != nil || name == "" {
 		return key
 	}
-	return name
+	return names.Ru(name)
 }
 
 // formatWeightG 将克重格式化为聊天提示用的显示文本。

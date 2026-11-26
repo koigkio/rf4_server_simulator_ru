@@ -102,29 +102,29 @@ type fishQueryBait struct {
 func (s *Server) QueryFish(ctx context.Context, req FishQueryRequest) (*FishQueryResponse, error) {
 	started := time.Now()
 	if s.DB == nil || req.UID <= 0 || req.Fish == "" {
-		return nil, fmt.Errorf("请选择玩家和目标鱼种")
+		return nil, fmt.Errorf("Выберите игрока и целевой вид рыбы")
 	}
 	if req.Map == "" {
-		return nil, fmt.Errorf("请指定地图，快速查询只计算当前时段")
+		return nil, fmt.Errorf("Укажите карту; быстрый запрос считается только для текущего времени суток")
 	}
 	if req.RigType != 0 && rigTypeNames[req.RigType] == "" {
-		return nil, fmt.Errorf("不支持的钓组")
+		return nil, fmt.Errorf("Неподдерживаемая оснастка")
 	}
 	if req.Grade == 0 {
 		req.Grade = 1
 	}
 	if req.Grade < 1 || req.Grade > 4 || req.DepthCM < 0 || req.DepthCM > 30000 {
-		return nil, fmt.Errorf("等级或钓深无效")
+		return nil, fmt.Errorf("Неверный уровень или глубина ловли")
 	}
 	if (req.X == nil) != (req.Z == nil) || req.X != nil && (req.Map == "" || !finiteSonarNumber(*req.X) || !finiteSonarNumber(*req.Z) || math.Abs(*req.X) > 1e7 || math.Abs(*req.Z) > 1e7) {
-		return nil, fmt.Errorf("手动坐标需要同时指定地图、X 和 Z")
+		return nil, fmt.Errorf("Для ручных координат нужно указать карту, X и Z")
 	}
 	var exists int
 	if err := s.DB.SQL.QueryRowContext(ctx, `SELECT COUNT(*) FROM profile WHERE uid=?`, req.UID).Scan(&exists); err != nil {
 		return nil, err
 	}
 	if exists != 1 {
-		return nil, fmt.Errorf("玩家不存在")
+		return nil, fmt.Errorf("Игрок не существует")
 	}
 	cache := newFishingRollCache()
 	base := fishRollContext{cache: cache, now: started}
@@ -139,7 +139,7 @@ func (s *Server) QueryFish(ctx context.Context, req FishQueryRequest) (*FishQuer
 	response.Maps = len(maps)
 	if len(maps) == 0 {
 		response.Elapsed = time.Since(started).Seconds()
-		response.Notes = []string{"当前地图的服务端鱼种名册没有目标鱼；可指定其他地图再查。"}
+		response.Notes = []string{"В серверном списке видов текущей карты нет этой рыбы; можно указать другую карту."}
 		return response, nil
 	}
 	capKg := 0.0
@@ -147,19 +147,19 @@ func (s *Server) QueryFish(ctx context.Context, req FishQueryRequest) (*FishQuer
 	if req.Gear != "" {
 		gear, err := s.DB.GetItemByGUID(ctx, req.Gear)
 		if err != nil || gear == nil || gear.UID != req.UID {
-			return nil, fmt.Errorf("鱼竿不属于所选玩家")
+			return nil, fmt.Errorf("Удилище не принадлежит выбранному игроку")
 		}
 		def, err := s.DB.GetItemDef(ctx, gear.NumericID)
 		if err != nil || def == nil || def.Category != gearCatRod {
-			return nil, fmt.Errorf("请选择有效鱼竿")
+			return nil, fmt.Errorf("Выберите подходящее удилище")
 		}
 		allowedRigs = rodRigAllowed[rodDefRodType(def)]
 		if req.RigType != 0 && len(allowedRigs) > 0 && !allowedContains(allowedRigs, req.RigType) {
-			return nil, fmt.Errorf("所选鱼竿不支持此钓组")
+			return nil, fmt.Errorf("Выбранное удилище не поддерживает эту оснастку")
 		}
 		capKg, _, _ = s.gearWeightCapForRig(ctx, req.UID, req.Gear)
 	} else if response.Flags["fish_weight_cap"] > 0 || response.Flags["hook_entry_cap"] > 0 {
-		return nil, fmt.Errorf("装备限重已开启，请先选择鱼竿")
+		return nil, fmt.Errorf("Ограничение нагрузки снастей включено, сначала выберите удилище")
 	}
 	baits, count, err := s.fishQueryBaits(ctx, req, base, response.Flags)
 	if err != nil {
@@ -297,18 +297,18 @@ func (s *Server) QueryFish(ctx context.Context, req FishQueryRequest) (*FishQuer
 	}
 	response.Plans = selectFishQueryPlans(candidates)
 	response.Elapsed = time.Since(started).Seconds()
-	response.Notes = []string{"理论条/小时 = 3600 × 单次目标鱼概率 ÷ 平均判鱼间隔；单竿、单饵无窝料，按当前条件折算，不是官服概率或未来一小时预测。不含客户端等待、占竿、搏鱼、收鱼、重抛及落水就位保护，非实际鱼获。", "只查指定地图、当前时段，比较天然饵及拟饵各最多24组与代表钓法；不是全饵、全天候最优解。", "海图比较最多6个有依据的落点，假设已上船；内陆默认岸钓。"}
+	response.Notes = []string{"теор. рыб/час = 3600 × Вероятность целевой рыбы за раз ÷ Средний интервал выбора рыбы; одна снасть, одна наживка без прикормки, пересчитано по текущим условиям — это не вероятность офиц. сервера и не прогноз на час. Не учитывает ожидание клиента, занятость снасти, вываживание, вытаскивание, перезаброс и защиту при погружении; это не реальный улов.", "Только указанная карта и текущее время суток; сравниваются до 24 вариантов натуральных насадок и приманок и основные способы ловли — это не лучший вариант по всем наживкам и погоде.", "Для морской карты сравниваются до 6 обоснованных точек, предполагается ловля с лодки; на внутренних водоёмах по умолчанию — с берега."}
 	if maps[0].regions != nil {
-		response.Notes = append(response.Notes, "区域范围采用游戏显示坐标，左闭右开；代表鱼饵落入的区域，不是角色站位或指定落点。忽略局部水深、底质、水流和结构，实际落点概率会有差异。")
+		response.Notes = append(response.Notes, "Зоны указаны в игровых координатах, левая граница включена, правая нет; это зона падения наживки, а не место персонажа или точка заброса. Местная глубина, дно, течение и рельеф не учитываются, реальная вероятность может отличаться.")
 		if response.WaterFiltered {
-			response.Notes = append(response.Notes, "已按中心与四角五点做水陆粗筛；任一点有水即保留，混合格仍可能含陆地，不保证可达。")
+			response.Notes = append(response.Notes, "Выполнен грубый отбор вода/суша по центру и четырём углам; если вода есть хотя бы в одной точке, зона остаётся — смешанные клетки могут содержать сушу, достижимость не гарантирована.")
 		} else if maps[0].regions.enabled {
-			response.Notes = append(response.Notes, "缺少本图水陆数据，未排除陆地，不保证可达。")
+			response.Notes = append(response.Notes, "Нет данных вода/суша для этой карты, суша не исключена, достижимость не гарантирована.")
 		}
 		if !maps[0].regions.enabled {
-			response.Notes = append(response.Notes, "鱼群分布未开启，不推荐区域；仅比较饵料和钓法。")
+			response.Notes = append(response.Notes, "Распределение стай выключено, зоны не рекомендуются; сравниваются только наживки и способы ловли.")
 		} else {
-			response.Notes = append(response.Notes, fmt.Sprintf("先忽略饵料粗筛最多%d个区域，再比较候选饵料和钓法；按理论条/小时排序，不保证全图最佳组合。", fishQueryCoarseRegionLimit))
+			response.Notes = append(response.Notes, fmt.Sprintf("Сначала без учёта наживки отбирается до %d зон, затем сравниваются наживки и способы ловли; сортировка по теор. рыб/час, лучшая комбинация на всей карте не гарантируется.", fishQueryCoarseRegionLimit))
 		}
 	}
 	return response, nil
@@ -353,13 +353,13 @@ func fishQueryFamilyForRig(rig int64) fishQueryFamily {
 func (f fishQueryFamily) label() string {
 	switch f {
 	case fishQueryFamilyLure:
-		return "路亚"
+		return "Спиннинг"
 	case fishQueryFamilyFloat:
-		return "手杆"
+		return "Поплавок"
 	case fishQueryFamilyBottom:
-		return "底钓"
+		return "Донка"
 	default:
-		return "其他"
+		return "Прочее"
 	}
 }
 

@@ -110,7 +110,7 @@ func (s *Server) weightModelDB(ctx context.Context, key string, modeMult, scale,
 		M = supf * 0.3
 	}
 	if modeMult != 1.0 {
-		M *= modeMult // 饵效命中：峰值锚点向奖杯线右移
+		M *= modeMult // 饵效命中: 峰值锚点向奖杯线右移
 	}
 	// 整体峰值向右上抬 15%，让日常鱼获里更容易出现中大个体。
 	M *= 1.15

@@ -16,6 +16,7 @@ import (
 	"strconv"
 	"strings"
 
+	"rf4server/internal/names"
 	"rf4server/internal/proto"
 	"rf4server/internal/store"
 	"rf4server/internal/wiregen"
@@ -121,9 +122,9 @@ func (s *Server) notifyLevelUpGiftChat(uid, level, skillCat int64) {
 	}
 	parts := make([]string, 0, len(gifts))
 	for _, g := range gifts {
-		parts = append(parts, fmt.Sprintf("%s×%d", g.Name, g.Qty))
+		parts = append(parts, fmt.Sprintf("%s ×%d", names.Ru(g.Name), g.Qty))
 	}
-	text := fmt.Sprintf("Подарок за уровень (%d ур.):%s", level, strings.Join(parts, "、"))
+	text := fmt.Sprintf("Подарок за уровень (%d ур.): %s", level, strings.Join(parts, ", "))
 	for _, sess := range s.sessionsForUID(uid) {
 		sess.pushSystemChat(text)
 	}

@@ -6,6 +6,7 @@ import {
   getToken, loginDialog,
 } from '../core.js';
 import { itemIcon } from '../widgets.js';
+import { ru } from '../names-ru.js';
 
 const TABS = [['profile', 'Профили'], ['items', 'Инвентарь и снаряжение'], ['keepnet', 'Садок'], ['records', 'Записи по рыбам'], ['skills', 'Навыки'], ['mail', 'Почта']];
 const GRADE = ['Не поймана', 'Поймана', 'Зачётная', 'Звёзды', 'Синяя корона'];
@@ -224,7 +225,7 @@ function items(p, reload) {
   let q = '';
   const body = h('tbody');
   const draw = () => {
-    const rows = (p.items || []).filter((x) => !q || `${x.item_id} ${x.name} ${x.guid}`.toLowerCase().includes(q));
+    const rows = (p.items || []).filter((x) => !q || `${x.item_id} ${x.name} ${ru(x.name)} ${x.guid}`.toLowerCase().includes(q));
     body.replaceChildren(...(rows.length ? rows.map((x) => h('tr', {},
       h('td', {}, h('div', { class: 'row', style: { flexWrap: 'nowrap' } }, itemIcon(x.item_id), h('div', {}, h('b', { text: x.name || x.item_id }), h('span', { class: 'sub mono', title: x.guid, text: x.item_id + ' · ' + String(x.guid).slice(-8) })))),
       h('td', { text: x.container === 'equip' ? 'Экипировано' : x.container === 'bag' ? 'Инвентарь' : (x.container || '') }),
@@ -325,7 +326,7 @@ function records(p, reload, setDirty) {
       changes.clear(); sync(); load(e.target.value);
     } }, data.maps.map((m) => h('option', { value: m.level, text: m.name, selected: m.level === data.level })));
     const tbody = h('tbody');
-    const rows = () => tbody.replaceChildren(...data.fish.filter((f) => !q || `${f.name} ${f.fish_key}`.toLowerCase().includes(q)).map((f) => {
+    const rows = () => tbody.replaceChildren(...data.fish.filter((f) => !q || `${f.name} ${ru(f.name)} ${f.fish_key}`.toLowerCase().includes(q)).map((f) => {
       const c = changes.get(f.fish_key) || { fish_key: f.fish_key, grade: f.restored_grade || 0, weight_g: f.restored_weight_g || 0 };
       const sel = h('select', { class: 'select', style: { height: '30px' } }, [0, 1, 2, 3, 4].map((g) => h('option', { value: g, text: g === 0 ? 'Не дополнять' : GRADE[g], selected: +c.grade === g })));
       const w = h('input', { class: 'input num', style: { height: '30px', width: '130px' }, placeholder: 'Авто', value: c.raw ?? (c.weight_g || '') });

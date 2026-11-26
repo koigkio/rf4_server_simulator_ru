@@ -129,7 +129,7 @@ func TestFishQueryReadOnlyAndCatalog(t *testing.T) {
 	if _, err := s.resolveFishQuerySpecies(t.Context(), "%"); err == nil {
 		t.Fatal("punctuation matched a fish")
 	}
-	if reply := s.fishQueryReply(t.Context(), &Session{Srv: s, Userid: uid}, "常见拟鲤 "+mapKey); !strings.Contains(reply, "rules-test") || !strings.Contains(reply, "鱼群分布未开启") || strings.Contains(reply, "67:57") {
+	if reply := s.fishQueryReply(t.Context(), &Session{Srv: s, Userid: uid}, "常见拟鲤 "+mapKey); !strings.Contains(reply, "rules-test") || !strings.Contains(reply, "Распределение стай выключено") || strings.Contains(reply, "67:57") {
 		t.Fatalf("reply=%s", reply)
 	}
 	req.Map = ""
@@ -274,18 +274,18 @@ func TestFishQueryReplyKeepsFamiliesBeforeGlobalLimit(t *testing.T) {
 	}
 
 	reply := s.fishQueryReply(t.Context(), &Session{Srv: s, Userid: uid}, "常见拟鲤 "+mapKey)
-	if !strings.HasPrefix(reply, "rules-test · 常见拟鲤\n") {
+	if !strings.HasPrefix(reply, "rules-test · Плотва обыкновенная\n") {
 		t.Fatalf("unexpected reply header: %s", reply)
 	}
 	lastHeader := -1
-	for _, header := range []string{"【路亚】", "【手杆】", "【底钓】"} {
+	for _, header := range []string{"[Спиннинг]", "[Поплавок]", "[Донка]"} {
 		at := strings.Index(reply, header)
 		if at <= lastHeader {
 			t.Fatalf("missing or misordered %s in reply: %s", header, reply)
 		}
 		lastHeader = at
 	}
-	if strings.Contains(reply, "【其他】") || strings.Contains(reply, "仅列出当前条件下有可行方案的钓法。") {
+	if strings.Contains(reply, "[Прочее]") || strings.Contains(reply, "Показаны только способы ловли") {
 		t.Fatalf("reply invented a missing family: %s", reply)
 	}
 }

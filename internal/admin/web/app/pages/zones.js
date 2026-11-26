@@ -4,6 +4,7 @@
 //   图像像素 = (世界 - 原点) × scale + offset（Z 轴从图片底部往上量，需要翻转）
 //   网格 = floor(世界 / 40)；游戏里看到的坐标 = (世界 - 显示原点) / 5
 import { h, api, apiList, post, toast, errText, badge, btn, empty, svg, confirmDialog, callout, segmented, toggleEl, webURL } from '../core.js';
+import { ru } from '../names-ru.js';
 
 const CELL = 40;
 const SIZE = 2048;
@@ -495,7 +496,7 @@ export function zonesEditor({ area, zones, roster }, scope) {
         items = list.map((x) => ({ key: x.fish_key, name: x.name_zh || x.fish_key, w: 1 }));
       } else {
         const lq = q.trim().toLowerCase();
-        items = (roster || []).filter((f) => !lq || `${f.fish_key} ${f.name_zh}`.toLowerCase().includes(lq)).map((f) => ({ key: f.fish_key, name: f.name_zh || f.fish_key, w: Number(f.base_weight) || 1 }));
+        items = (roster || []).filter((f) => !lq || `${f.fish_key} ${f.name_zh} ${ru(f.name_zh)}`.toLowerCase().includes(lq)).map((f) => ({ key: f.fish_key, name: f.name_zh || f.fish_key, w: Number(f.base_weight) || 1 }));
       }
       items = items.filter((x) => !z.fish.some((f) => f.fish_key === x.key));
       results.replaceChildren(...(items.length ? items.slice(0, 40).map((x) => h('div', {

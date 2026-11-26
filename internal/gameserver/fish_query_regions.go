@@ -12,7 +12,7 @@ import (
 	"rf4server/internal/store"
 )
 
-var errFishQueryRegionMapUnsupported = errors.New("暂不支持该地图的区域查询")
+var errFishQueryRegionMapUnsupported = errors.New("Запрос по зонам для этой карты пока не поддерживается")
 
 const (
 	fishQueryCoarseRegionLimit = 32
@@ -67,14 +67,14 @@ func newFishQueryRegions(loc string, scene fishQueryRegionScene, now time.Time, 
 		!validFishQueryCoordinate(maxWorldX) || !validFishQueryCoordinate(maxWorldZ) ||
 		maxWorldX <= scene.OriginX || maxWorldZ <= scene.OriginZ ||
 		maxCellX-minCellX > fishQueryRegionAxisLimit || maxCellZ-minCellZ > fishQueryRegionAxisLimit {
-		return nil, fmt.Errorf("区域扫描范围无效")
+		return nil, fmt.Errorf("Неверная область сканирования зон")
 	}
 	if p := scene.Paper; p != nil {
 		scale, offsetX, offsetZ := float64(p.Scale), float64(p.OffsetX), float64(p.OffsetZ)
 		if !validFishQueryCoordinate(scale) || scale <= 0 ||
 			!validFishQueryCoordinate(offsetX) || !validFishQueryCoordinate(offsetZ) ||
 			!validFishQueryCoordinate(p.Width) || !validFishQueryCoordinate(p.Height) || p.Width <= 0 || p.Height <= 0 {
-			return nil, fmt.Errorf("纸地图范围无效")
+			return nil, fmt.Errorf("Неверная область бумажной карты")
 		}
 		// Intersect in world space before scoring. Do not clamp a winning result
 		// afterwards: that would move its probability to a different fish cell.
@@ -83,7 +83,7 @@ func newFishQueryRegions(loc string, scene fishQueryRegionScene, now time.Time, 
 		maxWorldX = math.Min(maxWorldX, scene.OriginX+(p.Width-offsetX)/scale)
 		maxWorldZ = math.Min(maxWorldZ, scene.OriginZ+(p.Height-offsetZ)/scale)
 		if minWorldX >= maxWorldX || minWorldZ >= maxWorldZ {
-			return nil, fmt.Errorf("纸地图与地形没有有效交集")
+			return nil, fmt.Errorf("Бумажная карта не пересекается с рельефом")
 		}
 		minCellX, minCellZ = math.Floor(minWorldX/fishQueryAreaSize), math.Floor(minWorldZ/fishQueryAreaSize)
 		maxCellX, maxCellZ = math.Ceil(maxWorldX/fishQueryAreaSize), math.Ceil(maxWorldZ/fishQueryAreaSize)

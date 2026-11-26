@@ -11,7 +11,7 @@ import (
 	"sync"
 )
 
-var errFishQueryWaterInvalid = errors.New("水陆数据无效，请重新生成并重启游戏服务")
+var errFishQueryWaterInvalid = errors.New("Неверные данные вода/суша, сгенерируйте их заново и перезапустите игровой сервис")
 
 type fishQueryWaterGrid struct {
 	Bounds  []float64 `json:"bounds"`
@@ -35,24 +35,24 @@ func parseFishQueryWater(data []byte) (*fishQueryWaterTable, error) {
 		return nil, fmt.Errorf("%w: %v", errFishQueryWaterInvalid, err)
 	}
 	if table.SchemaVersion != 1 || table.CellSize != fishQueryAreaSize || table.Sampling != "center_corners_any" || len(table.Maps) == 0 {
-		return nil, fmt.Errorf("%w: 文件版本或取样规则不匹配", errFishQueryWaterInvalid)
+		return nil, fmt.Errorf("%w: Версия файла или правило выборки не совпадает", errFishQueryWaterInvalid)
 	}
 	for key, grid := range table.Maps {
 		if grid == nil || len(grid.Bounds) != 4 || grid.Width < 1 || grid.Height < 1 || grid.Width > fishQueryRegionAxisLimit || grid.Height > fishQueryRegionAxisLimit || len(grid.Samples) != grid.Width*grid.Height {
-			return nil, fmt.Errorf("%w: %s 网格尺寸无效", errFishQueryWaterInvalid, key)
+			return nil, fmt.Errorf("%w: %s Неверный размер сетки", errFishQueryWaterInvalid, key)
 		}
 		for _, value := range grid.Bounds {
 			if !validFishQueryCoordinate(value) {
-				return nil, fmt.Errorf("%w: %s 边界无效", errFishQueryWaterInvalid, key)
+				return nil, fmt.Errorf("%w: %s Неверные границы", errFishQueryWaterInvalid, key)
 			}
 		}
 		b := grid.Bounds
 		if b[0] >= b[2] || b[1] >= b[3] || int(math.Floor(b[0]/fishQueryAreaSize)) != grid.MinX || int(math.Floor(b[1]/fishQueryAreaSize)) != grid.MinZ || int(math.Ceil(b[2]/fishQueryAreaSize))-grid.MinX != grid.Width || int(math.Ceil(b[3]/fishQueryAreaSize))-grid.MinZ != grid.Height {
-			return nil, fmt.Errorf("%w: %s 边界与网格不一致", errFishQueryWaterInvalid, key)
+			return nil, fmt.Errorf("%w: %s Границы не совпадают с сеткой", errFishQueryWaterInvalid, key)
 		}
 		for _, sample := range grid.Samples {
 			if sample < 0 || sample > 31 {
-				return nil, fmt.Errorf("%w: %s 五点标记无效", errFishQueryWaterInvalid, key)
+				return nil, fmt.Errorf("%w: %s Неверные отметки пяти точек", errFishQueryWaterInvalid, key)
 			}
 		}
 	}
@@ -71,7 +71,7 @@ func readFishQueryWater(path string) (*fishQueryWaterTable, error) {
 		return nil, err
 	}
 	if len(data) > limit {
-		return nil, fmt.Errorf("%w: 文件过大", errFishQueryWaterInvalid)
+		return nil, fmt.Errorf("%w: Файл слишком большой", errFishQueryWaterInvalid)
 	}
 	return parseFishQueryWater(data)
 }
@@ -115,11 +115,11 @@ func (g *fishQueryRegions) filterWater(grid *fishQueryWaterGrid) error {
 		return nil
 	}
 	if len(grid.Bounds) != 4 || grid.MinX != g.minCellX || grid.MinZ != g.minCellZ || grid.Width != g.width || grid.Height != g.height || len(grid.Samples) != len(g.areas) || len(g.factors) != 0 {
-		return fmt.Errorf("%w: 地图网格不匹配", errFishQueryWaterInvalid)
+		return fmt.Errorf("%w: Сетка карты не совпадает", errFishQueryWaterInvalid)
 	}
 	for i, value := range grid.Bounds {
 		if !validFishQueryCoordinate(value) || math.Abs(value-g.worldBounds[i]) > 1e-7 {
-			return fmt.Errorf("%w: 地图裁剪范围已变化", errFishQueryWaterInvalid)
+			return fmt.Errorf("%w: Область обрезки карты изменилась", errFishQueryWaterInvalid)
 		}
 	}
 	areas := make([]string, 0, len(g.areas))

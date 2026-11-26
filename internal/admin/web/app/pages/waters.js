@@ -4,6 +4,7 @@ import {
   h, api, apiList, post, toast, errText, pageHead, pageTabs, work, ib, h2s, h3s, hint, note, kv, bullets, pill, badge, btn, empty, loading,
   searchBox, debounce, sidePage, confirmDialog, navigate, Form, savebar, render, webURL, fmt, setCrumbTail,
 } from '../core.js';
+import { ru } from '../names-ru.js';
 
 const ORDER = ['克马羚诺也湖', '埃尔克湖', '惟有诺克河', '旧奥斯特罗格湖', '白河', '廓里湖', '梅德韦杰湖', '沃尔霍夫河', '北顿涅茨河', '苏拉河', '拉多加湖', '琥珀湖', '拉多加湖群岛', '阿赫图巴河', '铜湖', '下通古斯卡河', '亚马河', '挪威海'];
 
@@ -126,7 +127,7 @@ function fishView(cfg, baitByKey, scope) {
   let q = '';
   const tbody = h('tbody');
   const total = () => fish.filter((f) => f.enabled && Number(f.weight) > 0).reduce((n, f) => n + Number(f.weight), 0) || 1;
-  const matching = () => fish.filter(f => !q || `${f.fish_key} ${f.name_zh}`.toLowerCase().includes(q));
+  const matching = () => fish.filter(f => !q || `${f.fish_key} ${f.name_zh} ${ru(f.name_zh)}`.toLowerCase().includes(q));
   const bulk = [true, false].map(enabled => btn('', () => { matching().forEach(f => { f.enabled = enabled; }); touch(); draw(); }, 'ghost sm'));
   const draw = () => {
     const sum = total();

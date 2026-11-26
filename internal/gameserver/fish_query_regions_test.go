@@ -165,7 +165,7 @@ func TestFishQueryUnsupportedMapDoesNotReturnReferences(t *testing.T) {
 		}
 		query := "常见拟鲤 " + mapKey
 		reply := s.fishQueryReply(t.Context(), &Session{Srv: s, Userid: uid}, query)
-		if !strings.Contains(reply, "暂不支持该地图") || strings.Contains(reply, "参考") || strings.Contains(reply, "67:57") {
+		if !strings.Contains(reply, "для этой карты пока не поддерживается") || strings.Contains(reply, "Ориентир") || strings.Contains(reply, "67:57") {
 			t.Fatalf("query=%s caps=%s unsupported reply=%s", query, caps, reply)
 		}
 	}
@@ -410,7 +410,7 @@ func TestFishQueryVerifiedMapQueries(t *testing.T) {
 				}
 				for _, query := range []string{"常见拟鲤 " + mapKey, "常见拟鲤"} {
 					reply := s.fishQueryReply(t.Context(), &Session{Srv: s, Userid: uid}, query)
-					if strings.Contains(reply, "不支持") || !strings.Contains(reply, "区域 ") {
+					if strings.Contains(reply, "не поддерживается") || !strings.Contains(reply, "Зона ") {
 						t.Fatalf("islands query=%s reply=%s", query, reply)
 					}
 				}
@@ -532,7 +532,7 @@ func TestFishQueryLadogaIslandsCoordinates(t *testing.T) {
 		if key != area {
 			continue
 		}
-		if got := formatFishQueryRegion(g.bounds[i]); got != "区域 124:580～132:588（上限不含）" {
+		if got := formatFishQueryRegion(g.bounds[i]); got != "Зона 124:580–132:588 (верхняя граница не включена)" {
 			t.Fatalf("wrong display origin: %s", got)
 		}
 		return
@@ -544,23 +544,23 @@ func TestFishQueryReplyRegionRange(t *testing.T) {
 	result := &FishQueryResponse{Plans: []FishQueryPlan{{MapName: "下通古斯卡河", BaitName: "蚯蚓", RigName: rigNameForType(1), Chance: .183, TheoreticalPerHour: 65.88,
 		RigType: 1, CoordinateKind: "inland_region", Region: &FishQueryRegion{MinX: 80, MinZ: 96, MaxX: 88, MaxZ: 104}}}}
 	reply := formatFishQueryReply("河鲈", result)
-	if !strings.Contains(reply, "80:96～88:104（上限不含）") || !strings.Contains(reply, "蚯蚓 · 浮钓 · 理论 65.88条/小时") || !strings.Contains(reply, "理论速率不计搏鱼、收鱼时间。") || strings.Contains(reply, "世界落点") || strings.Contains(reply, "攻略") {
+	if !strings.Contains(reply, "80:96–88:104 (верхняя граница не включена)") || !strings.Contains(reply, "Червь · Поплавок · теор. 65.88 рыб/час") || !strings.Contains(reply, "Теоретическая скорость не учитывает время вываживания и вытаскивания.") || strings.Contains(reply, "Точка в мире") || strings.Contains(reply, "гайд") || !strings.HasPrefix(reply, "Река Нижняя Тунгуска · ") {
 		t.Fatalf("region reply=%s", reply)
 	}
 }
 
 func TestFishQueryReplyFractionalRegion(t *testing.T) {
 	region := FishQueryRegion{MinX: 1.4800003051757813, MinZ: 25.38000030517578, MaxX: 9.480000305175781, MaxZ: 33.380000305175784}
-	if got := formatFishQueryRegion(region); got != "区域约 1.48:25.38～9.48:33.38（上限不含）" {
+	if got := formatFishQueryRegion(region); got != "Зона около 1.48:25.38–9.48:33.38 (верхняя граница не включена)" {
 		t.Fatalf("fractional region reply=%s", got)
 	}
-	if got := formatFishQueryRegion(FishQueryRegion{MaxX: 1.5, MaxZ: 8}); got != "区域 0:0～1.5:8（上限不含）" {
+	if got := formatFishQueryRegion(FishQueryRegion{MaxX: 1.5, MaxZ: 8}); got != "Зона 0:0–1.5:8 (верхняя граница не включена)" {
 		t.Fatalf("exact region unnecessarily marked approximate: %s", got)
 	}
 }
 
 func TestFishQueryMethodLabels(t *testing.T) {
-	for rig, want := range map[int64]string{1: "浮钓", 12: "底钓", 5: "路亚", 50: "海钓铁板", 51: "海钓软饵", 52: "海钓鱼肉", 55: "海钓底钓"} {
+	for rig, want := range map[int64]string{1: "Поплавок", 12: "Донка", 5: "Спиннинг", 50: "Морской пилкер", 51: "Морская мягкая приманка", 52: "Морская ловля на рыбу", 55: "Морская донная ловля"} {
 		if got := fishQueryMethodLabel(FishQueryPlan{RigType: rig, RigName: rigNameForType(rig)}); got != want {
 			t.Fatalf("rig %d: label=%s want=%s", rig, got, want)
 		}

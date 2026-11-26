@@ -3,6 +3,8 @@ package gameserver
 import (
 	"fmt"
 	"strings"
+
+	"rf4server/internal/names"
 )
 
 // takeHookedChatFishLocked 在 st.mu 内按鱼领取一次播报；Hooked 被拒收重置时保留标记。
@@ -55,7 +57,7 @@ func (s *Server) hookedRodLabel(uid int64, rod string) string {
 		LEFT JOIN rig r ON r.guid=i.guid AND r.uid=i.uid
 		LEFT JOIN item_catalog c ON c.item_id=i.item_id
 		WHERE i.uid=? AND i.guid=?`, uid, rod).Scan(&name); err == nil && name != "" {
-		return fmt.Sprintf("%s (%s)", name, shortGUID(rod))
+		return fmt.Sprintf("%s (%s)", names.Ru(name), shortGUID(rod))
 	}
 	return label
 }

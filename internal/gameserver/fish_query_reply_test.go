@@ -16,12 +16,12 @@ func TestFishQueryReplyCompactReference(t *testing.T) {
 		{MapName: "旧奥斯特罗格湖", BaitName: "蛆", RigType: 12, RigName: "底钓", Chance: .125, TheoreticalPerHour: 45,
 			References: []FishQueryReference{{Coordinate: "45:12", Catches: 100}}},
 	}}
-	want := "旧奥斯特罗格湖 · 河鲈\n" +
-		"【路亚】\n1. 亮片 · 路亚 · 理论 80.00条/小时\n" +
-		"【手杆】\n1. 蚯蚓（同效饵 3 个） · 浮钓 · 理论 65.88条/小时\n" +
-		"【底钓】\n1. 蛆 · 底钓 · 理论 45.00条/小时\n" +
-		"攻略参考点：45:12（未参与概率计算）\n" +
-		"理论速率不计搏鱼、收鱼时间。"
+	want := "Озеро Старый Острог · 河鲈\n" +
+		"[Спиннинг]\n1. Блесна · Спиннинг · теор. 80.00 рыб/час\n" +
+		"[Поплавок]\n1. Червь (равноценных наживок: 3) · Поплавок · теор. 65.88 рыб/час\n" +
+		"[Донка]\n1. 蛆 · Донка · теор. 45.00 рыб/час\n" +
+		"Ориентир из гайдов: 45:12 (не участвует в расчёте вероятности)\n" +
+		"Теоретическая скорость не учитывает время вываживания и вытаскивания."
 	if got := formatFishQueryReply("河鲈", result); got != want {
 		t.Fatalf("reply = %q; want %q", got, want)
 	}
@@ -34,39 +34,39 @@ func TestFishQueryReplyKeepsCalculatedLocationsSeparate(t *testing.T) {
 			CoordinateKind: "manual", References: []FishQueryReference{{Coordinate: "99:99"}}},
 	}}
 	reply := formatFishQueryReply("河鲈", result)
-	if !strings.Contains(reply, "路亚·阶梯") || !strings.Contains(reply, "世界落点 X 425.0 / Z 495.0") ||
-		strings.Contains(reply, "声呐") || strings.Contains(reply, "米钓点") || strings.Contains(reply, "99:99") {
+	if !strings.Contains(reply, "Спиннинг · ступенька") || !strings.Contains(reply, "Точка в мире X 425.0 / Z 495.0") ||
+		strings.Contains(reply, "эхолот") || strings.Contains(reply, "(точка") || strings.Contains(reply, "99:99") {
 		t.Fatalf("manual position mixed with a chart zone or reference: %s", reply)
 	}
 	result.Plans[0].MapName, result.Plans[0].Zone, result.Plans[0].CoordinateKind = "挪威海", 7, "sea_grid"
-	if reply := formatFishQueryReply("鳕鱼", result); !strings.Contains(reply, "声呐区7") || strings.Contains(reply, "米钓点") {
+	if reply := formatFishQueryReply("鳕鱼", result); !strings.Contains(reply, "(зона эхолота 7)") || strings.Contains(reply, "(точка") {
 		t.Fatalf("missing chart zone: %s", reply)
 	}
 	x, z = 3282, -925
 	result.Plans[0].Map, result.Plans[0].Zone = "level_012_north_sea", 252
-	if reply := formatFishQueryReply("剑鱼", result); !strings.Contains(reply, "80米钓点") {
+	if reply := formatFishQueryReply("剑鱼", result); !strings.Contains(reply, "(точка 80 м)") {
 		t.Errorf("未展示玩家在海图上看到的钓点：%s", reply)
 	}
 }
 
 func TestFishQueryReplyLimitedAndNoInventedCoordinate(t *testing.T) {
 	result := &FishQueryResponse{}
-	if got := formatFishQueryReply("河鲈", result); got != "河鲈\n当前地图、当前条件没有可行方案，可指定其他地图。" {
+	if got := formatFishQueryReply("河鲈", result); got != "河鲈\nНа текущей карте при текущих условиях подходящих вариантов нет, можно указать другую карту." {
 		t.Fatalf("empty reply = %s", got)
 	}
 	for range 4 {
 		result.Plans = append(result.Plans, FishQueryPlan{MapName: "测试湖", BaitName: "饵", RigType: 1, RigName: "浮钓", Chance: .001, TheoreticalPerHour: .36, Action: "drift"})
 	}
 	got := formatFishQueryReply("河鲈", result)
-	if strings.Contains(got, "4.") || !strings.Contains(got, "3. 饵 · 浮钓·顺水漂流 · 理论 0.36条/小时") ||
-		!strings.Contains(got, "仅列出当前条件下有可行方案的钓法。") ||
-		strings.Contains(got, "参考点") || strings.Contains(got, "落点") || strings.Contains(got, "饵深") {
+	if strings.Contains(got, "4.") || !strings.Contains(got, "3. 饵 · Поплавок · сплав по течению · теор. 0.36 рыб/час") ||
+		!strings.Contains(got, "Показаны только способы ловли, для которых при текущих условиях есть варианты.") ||
+		strings.Contains(got, "Ориентир") || strings.Contains(got, "Точка") || strings.Contains(got, "глубин") {
 		t.Fatalf("too many plans, unnecessary fields or invented position: %s", got)
 	}
 }
 
 func TestFishQueryHelpWaitNotice(t *testing.T) {
-	if !strings.Contains(fishQueryHelp, "约3秒") || !strings.Contains(fishQueryHelp, "个人消息返回") {
+	if !strings.Contains(fishQueryHelp, "около 3 секунд") || !strings.Contains(fishQueryHelp, "личным сообщением") {
 		t.Fatalf("help does not explain query wait: %s", fishQueryHelp)
 	}
 }
@@ -74,21 +74,21 @@ func TestFishQueryHelpWaitNotice(t *testing.T) {
 func TestFishQueryReplyExplanationsMovedToHelp(t *testing.T) {
 	result := &FishQueryResponse{WaterFiltered: true, Plans: []FishQueryPlan{{MapName: "铜湖", BaitName: "饵", RigType: 5, CoordinateKind: "inland_region", Region: &FishQueryRegion{MinX: 40, MinZ: 48, MaxX: 48, MaxZ: 56}}}}
 	got := formatFishQueryReply("绯写锦鲤", result)
-	for _, detail := range []string{"粗筛", "不保证", "五点", "混合格", "预测", "单竿"} {
+	for _, detail := range []string{"грубый отбор", "не гарантир", "четыре угла", "смешанные клетки", "прогноз", "одна снасть"} {
 		if strings.Contains(got, detail) || !strings.Contains(fishQueryHelp, detail) {
 			t.Fatalf("detail %q should be help-only: reply=%s help=%s", detail, got, fishQueryHelp)
 		}
 	}
-	if !strings.HasSuffix(got, "理论速率不计搏鱼、收鱼时间。") {
+	if !strings.HasSuffix(got, "Теоретическая скорость не учитывает время вываживания и вытаскивания.") {
 		t.Fatalf("missing short rate explanation: %s", got)
 	}
 }
 
 func TestFishQuerySpeciesOnlyHelp(t *testing.T) {
-	if !strings.HasPrefix(fishQueryHelp, "发送：鱼名 [地图]\n") {
+	if !strings.HasPrefix(fishQueryHelp, "Отправьте: название рыбы [карта]\n") {
 		t.Fatalf("help does not describe species-only syntax: %s", fishQueryHelp)
 	}
-	for _, removed := range []string{"普通", "达标", "星", "奖杯", "蓝", "档位"} {
+	for _, removed := range []string{"обычная", "зачётн", "звёзд", "трофе", "синяя", "категори"} {
 		if strings.Contains(fishQueryHelp, removed) {
 			t.Fatalf("help still advertises grade %q: %s", removed, fishQueryHelp)
 		}
@@ -107,20 +107,21 @@ func TestFishQuerySpeciesOnlyCommands(t *testing.T) {
 	}
 	s.setLevel(uid, mapKey)
 	sess := &Session{Srv: s, Userid: uid}
-	for _, text := range []string{"常见拟鲤", "常见拟鲤 rules-test", "查鱼 常见拟鲤", "查询 常见拟鲤 " + mapKey} {
+	for _, text := range []string{"常见拟鲤", "常见拟鲤 rules-test", "查鱼 常见拟鲤", "查询 常见拟鲤 " + mapKey,
+		"плотва обыкновенная", "рыба плотва", "Плотва обыкновенная rules-test", "поиск плотва " + mapKey} {
 		t.Run(text, func(t *testing.T) {
 			got := s.fishQueryReply(t.Context(), sess, text)
-			if !strings.HasPrefix(got, "rules-test · 常见拟鲤\n【") || !strings.Contains(got, "\n1. ") || strings.Contains(got, "及以上") {
+			if !strings.HasPrefix(got, "rules-test · Плотва обыкновенная\n[") || !strings.Contains(got, "\n1. ") || strings.Contains(got, "及以上") {
 				t.Fatalf("species-only query returned %q", got)
 			}
 		})
 	}
 	for _, grade := range []string{"普通", "达标", "星", "奖杯", "蓝", "蓝冠"} {
 		t.Run("removed/"+grade, func(t *testing.T) {
-			if got := s.fishQueryReply(t.Context(), sess, "常见拟鲤 "+grade); got != "地图未识别，请用地图全名或level编号" {
+			if got := s.fishQueryReply(t.Context(), sess, "常见拟鲤 "+grade); got != "Карта не распознана, используйте полное название карты или номер level" {
 				t.Fatalf("grade suffix is still interpreted as a filter: %q", got)
 			}
-			if got := s.fishQueryReply(t.Context(), sess, "常见拟鲤 "+mapKey+" "+grade); got != fishQueryHelp {
+			if got := s.fishQueryReply(t.Context(), sess, "常见拟鲤 "+mapKey+" "+grade); strings.HasPrefix(got, "rules-test · ") {
 				t.Fatalf("extra grade argument is still accepted: %q", got)
 			}
 		})
@@ -133,7 +134,7 @@ func TestFishQueryReplyExpiredDeadline(t *testing.T) {
 	defer cancel()
 	// A timeout during name resolution must not be reported as unavailable data.
 	got := s.fishQueryReply(ctx, &Session{Srv: s, Userid: 1000001}, "常见拟鲤")
-	if want := "查询超时（计算预算3秒），请稍后重试。"; got != want {
+	if want := "Время запроса истекло (лимит расчёта 3 секунды), попробуйте позже."; got != want {
 		t.Fatalf("timeout reply=%q, want %q", got, want)
 	}
 }

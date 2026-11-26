@@ -99,7 +99,7 @@ func TestHookedChatUsesEachRodsShortcutAndFishOnce(t *testing.T) {
 		hFishingHooked(ctx)
 	}
 	want := []string{
-		"[Засечка] Удилище в слоте 3: 鲈鱼 1.234kg",
+		"[Засечка] Удилище в слоте 3: Окунь 1.234kg",
 		"[Засечка] Удилище в слоте 1: 狗鱼 0.567kg",
 		"[Засечка] Удилище в слоте 2: 鲤鱼 23.456kg",
 	}

@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"rf4server/internal/gameserver"
+	"rf4server/internal/names"
 	"rf4server/internal/store"
 )
 
@@ -171,6 +172,9 @@ func (s *Server) handleBaitPrefs(w http.ResponseWriter, r *http.Request) {
 		limit = 400
 	}
 	like := "%" + q + "%"
+	ruOr, ruArgs := names.SQLAnyLike("w.fish_zh", names.Search(q, 40))
+	args := append([]any{q, like, like}, ruArgs...)
+	args = append(args, loc, loc, limit)
 
 	// 1) 鱼清单 + 中文名（优先 wiki 名，退回 loc_fish.name_zh）
 	rows, err := s.db.SQL.QueryContext(r.Context(), `
@@ -180,12 +184,12 @@ func (s *Server) handleBaitPrefs(w http.ResponseWriter, r *http.Request) {
 			       COALESCE(MAX(NULLIF(w.fish_zh,'')), MAX(NULLIF(l.name_zh,'')), w.fish_key) AS name_zh
 			FROM loc_wiki_fish w
 			LEFT JOIN loc_fish l ON l.fish_key = w.fish_key
-			WHERE (? = '' OR w.fish_key LIKE ? OR w.fish_zh LIKE ?)
+			WHERE (? = '' OR w.fish_key LIKE ? OR w.fish_zh LIKE ?`+ruOr+`)
 			  AND (? = '' OR w.loc = ?)
 			GROUP BY w.fish_key
 		) x
 		ORDER BY x.fish_key
-		LIMIT ?`, q, like, like, loc, loc, limit)
+		LIMIT ?`, args...)
 	if err != nil {
 		httpError(w, 500, err.Error())
 		return

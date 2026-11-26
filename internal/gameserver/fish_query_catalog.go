@@ -29,11 +29,11 @@ func (s *Server) fishQueryMaps(ctx context.Context, req FishQueryRequest, c fish
 	rows.Close()
 	if req.Map != "" {
 		if _, ok := names[req.Map]; !ok {
-			return nil, fmt.Errorf("不支持的地图")
+			return nil, fmt.Errorf("Неподдерживаемая карта")
 		}
 		_, supported := fishQueryRegionScenes[req.Map]
 		if req.X == nil && !sonarChartLevel(req.Map) && !supported {
-			return nil, fmt.Errorf("%w：%s", errFishQueryRegionMapUnsupported, names[req.Map])
+			return nil, fmt.Errorf("%w: %s", errFishQueryRegionMapUnsupported, names[req.Map])
 		}
 	}
 	current, err := s.DB.GetPlayerLocation(ctx, req.UID)
@@ -99,7 +99,7 @@ func (s *Server) fishQueryMaps(ctx context.Context, req FishQueryRequest, c fish
 		}
 		limit := 6
 		if isSea {
-			limit = 100 // 过滤旧声呐网格号后仍要保留足够的海图标深参考点。
+			limit = 100 // 过滤旧声呐网格号后仍要保留足够的海图标深参考点.
 		}
 		refs, err := s.DB.SQL.QueryContext(ctx, `SELECT spot,SUM(catches) FROM spot_fish WHERE loc=? AND fish_key=? GROUP BY spot ORDER BY SUM(catches) DESC,spot LIMIT ?`, statLoc, req.Fish, limit)
 		if err != nil {
@@ -270,7 +270,7 @@ func (s *Server) fishQueryBaits(ctx context.Context, req FishQueryRequest, c fis
 	}
 	rows.Close()
 	if req.Bait != "" && len(all) == 0 {
-		return nil, 0, fmt.Errorf("鱼饵不存在")
+		return nil, 0, fmt.Errorf("Наживка не существует")
 	}
 	exactGroups := flags["fish_bait_rules_enabled"] != 1 && flags["fish_ecology_enabled"] != 1
 	// With strict bait rules/ecology disabled, only category (skill family) and
