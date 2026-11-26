@@ -76,7 +76,7 @@ fi
 openssl req -x509 -newkey ec -pkeyopt ec_paramgen_curve:prime256v1 -sha256 -nodes \
   -keyout "${STAGE}/certs/server.key" -out "${STAGE}/certs/server.crt" \
   -days 3650 -subj "/CN=api.rf4game.ru" \
-  -addext "subjectAltName=DNS:api.rf4game.ru,DNS:localhost,IP:127.0.0.1" >/dev/null 2>&1
+  -addext "subjectAltName=DNS:api.rf4game.ru,DNS:api.rf4game.com,DNS:localhost,IP:127.0.0.1" >/dev/null 2>&1
 chmod 600 "${STAGE}/certs/server.key"
 
 sed \

@@ -48,7 +48,7 @@ func EnsureCert(certFile, keyFile, loginDomain string) error {
 		KeyUsage:              x509.KeyUsageDigitalSignature | x509.KeyUsageKeyEncipherment,
 		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
 		BasicConstraintsValid: true,
-		DNSNames:              []string{loginDomain, "localhost"},
+		DNSNames:              certDNSNames(loginDomain),
 		IPAddresses:           []net.IP{net.ParseIP("127.0.0.1"), net.ParseIP("::1")},
 	}
 	der, err := x509.CreateCertificate(rand.Reader, &tmpl, &tmpl, &priv.PublicKey, priv)
@@ -68,4 +68,19 @@ func EnsureCert(certFile, keyFile, loginDomain string) error {
 		return err
 	}
 	return nil
+}
+
+// certDNSNames — имена в сертификате: основной домен входа, оба официальных
+// домена RF4 (клиент Steam может входить через api.rf4game.com) и localhost.
+func certDNSNames(loginDomain string) []string {
+	names := []string{}
+	seen := map[string]bool{}
+	for _, n := range []string{loginDomain, "api.rf4game.ru", "api.rf4game.com", "localhost"} {
+		if n == "" || seen[n] {
+			continue
+		}
+		seen[n] = true
+		names = append(names, n)
+	}
+	return names
 }
