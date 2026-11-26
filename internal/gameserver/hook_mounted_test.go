@@ -1,7 +1,9 @@
 package gameserver
 
 import (
+	"strings"
 	"testing"
+	"time"
 
 	"rf4server/internal/logging"
 	"rf4server/internal/proto"
@@ -81,6 +83,125 @@ func TestBuildHookTreeByGUIDMarksOnlyItsOwnHook(t *testing.T) {
 	if got := hookFlagsOut(t, otherTree); got&hookMountedFlag != 0 {
 		t.Fatalf("只该影响自己那枚钩，另一枚却被改了：flags=%d", got)
 	}
+}
+
+// 14/11 中鱼钩帧必须按本杆实际中鱼的钩位推送。
+//
+// 实机 2026-11-26 23:49（rig 50，倒钓臂 250/1001/1005/1009）：thynnus_t 咬
+// 1005，但 14/11 只给线末端钩 250 补了挂竿位，客户端把鱼挂到 250 上——收线后
+// 250/1001 出水，1005 与鱼模型被拉在水下。这里锁定 4/22 必须指向 fish.HookGUID。
+func TestPushFightHookMountedUsesFishHookGUID(t *testing.T) {
+	t.Parallel()
+	srv, _ := newDetachTestServer(t)
+	ctx := t.Context()
+	const uid = int64(1000001)
+	rod, err := srv.CreateItem(ctx, uid, "boatr_10213_012", "backpack", 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !srv.rigSetType(ctx, uid, rod.GUID, 50) {
+		t.Fatal("rigSetType 50 失败")
+	}
+	mainHook, err := srv.CreateItem(ctx, uid, "c_hook_20712", "backpack", 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	armHook, err := srv.CreateItem(ctx, uid, "c_hook_20712", "backpack", 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, m := range []struct {
+		guid  string
+		extra int64
+	}{{mainHook.GUID, 250}, {armHook.GUID, 1001}} {
+		res := srv.rigSetComponent(ctx, uid, rod.GUID, catHook, m.guid, m.extra,
+			rigSetOpts{ParentType: familyRod, EnforceCategory: true})
+		if res.Rejected || res.MountedGUID == "" {
+			t.Fatalf("装钩(extra=%d) 被拒: %+v", m.extra, res)
+		}
+	}
+
+	conn, peer := cleanupTestTunnel(t, "fight-hook-mounted")
+	live := registerBiteTestSession(t, srv, 404, conn)
+	received := receiveTestPush(peer, 4, 22)
+	live.pushFightHookMounted(rod.GUID, &RolledFish{HookGUID: armHook.GUID})
+
+	var env *proto.Envelope
+	select {
+	case env = <-received:
+	case <-time.After(2 * time.Second):
+		t.Fatal("4/22 挂载推送超时")
+	}
+	dec, _, err := proto.DecodeValue(env.Body, 0, srv.Table())
+	if err != nil || dec.ArgCodeStr() != "61" {
+		t.Fatalf("4/22 应为 args(61): %v", err)
+	}
+	if len(dec.Items) != 1 {
+		t.Fatalf("按钩 GUID 推送应只有 1 棵树，实得 %d（%v）", len(dec.Items), classList(dec.Items))
+	}
+	got := dec.Items[0]
+	gi := fieldIdxByCS(got.Class, csGUID)
+	if gi < 0 || gi >= len(got.Fields) || !strings.EqualFold(got.Fields[gi].GuidHex(), armHook.GUID) {
+		t.Fatalf("4/22 推的是 %q，期望本次中鱼的倒钓臂钩 %s", got.Fields[gi].GuidHex(), shortGUID(armHook.GUID))
+	}
+	if flags := objFlagsOf(t, got); flags&hookMountedFlag == 0 {
+		t.Fatalf("中鱼钩未补挂竿位：flags=%d", flags)
+	}
+}
+
+// 取不到咬钩钩的独立物品行（内置钩/悬空引用）时回退线末端钩形状，
+// 不能因为多钩改动把原有单钩/路亚中鱼帧发空。
+func TestPushFightHookMountedFallsBackToMountedHook(t *testing.T) {
+	t.Parallel()
+	srv, _ := newDetachTestServer(t)
+	ctx := t.Context()
+	const uid = int64(1000001)
+	rod, err := srv.CreateItem(ctx, uid, "boatr_10213_012", "backpack", 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !srv.rigSetType(ctx, uid, rod.GUID, 50) {
+		t.Fatal("rigSetType 50 失败")
+	}
+	mainHook, err := srv.CreateItem(ctx, uid, "c_hook_20712", "backpack", 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	res := srv.rigSetComponent(ctx, uid, rod.GUID, catHook, mainHook.GUID, 250,
+		rigSetOpts{ParentType: familyRod, EnforceCategory: true})
+	if res.Rejected || res.MountedGUID == "" {
+		t.Fatalf("装钩(extra=250) 被拒: %+v", res)
+	}
+
+	conn, peer := cleanupTestTunnel(t, "fight-hook-fallback")
+	live := registerBiteTestSession(t, srv, 405, conn)
+	received := receiveTestPush(peer, 4, 22)
+	live.pushFightHookMounted(rod.GUID, &RolledFish{HookGUID: "00112233445566778899aabbccddeeff"})
+
+	var env *proto.Envelope
+	select {
+	case env = <-received:
+	case <-time.After(2 * time.Second):
+		t.Fatal("4/22 挂载推送超时")
+	}
+	dec, _, err := proto.DecodeValue(env.Body, 0, srv.Table())
+	if err != nil || dec.ArgCodeStr() != "61" || len(dec.Items) != 1 {
+		t.Fatalf("回退帧应为单钩 args(61): err=%v items=%d", err, len(dec.Items))
+	}
+	got := dec.Items[0]
+	gi := fieldIdxByCS(got.Class, csGUID)
+	if gi < 0 || gi >= len(got.Fields) || !strings.EqualFold(got.Fields[gi].GuidHex(), mainHook.GUID) {
+		t.Fatalf("回退应推线末端钩 %s，实得 %q", shortGUID(mainHook.GUID), got.Fields[gi].GuidHex())
+	}
+	if flags := objFlagsOf(t, got); flags&hookMountedFlag == 0 {
+		t.Fatalf("回退钩未补挂竿位：flags=%d", flags)
+	}
+}
+
+// 空会话/空鱼不得 panic。
+func TestPushFightHookMountedNilSafe(t *testing.T) {
+	var nilSess *Session
+	nilSess.pushFightHookMounted("", nil)
 }
 
 // 空会话/空 GUID 不得 panic。

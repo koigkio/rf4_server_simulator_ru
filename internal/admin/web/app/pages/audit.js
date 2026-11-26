@@ -35,7 +35,7 @@ export default async function audit() {
     }) : [h('tr', {}, h('td', { colspan: 5 }, empty('没有记录')))]));
   };
   draw();
-  const filters = h('div', { class: 'seg' }, KINDS.map(([k, l]) => h('button', { type: 'button', class: k === kind ? 'on' : '', onclick: (ev) => { kind = k; [...filters.children].forEach((b) => b.classList.toggle('on', b === ev.currentTarget)); draw(); } }, l)));
+  const filters = h('div', { class: 'seg audit-kind-options' }, KINDS.map(([k, l]) => h('button', { type: 'button', class: k === kind ? 'on' : '', onclick: (ev) => { kind = k; [...filters.children].forEach((b) => b.classList.toggle('on', b === ev.currentTarget)); draw(); } }, l)));
   const statDl = h('dl');
   const refreshStat = () => {
     const byKind = KINDS.slice(1).map(([k, l, re]) => [l, String(list.filter((e) => re.test(e.Action ?? e.action)).length)]);
@@ -57,7 +57,7 @@ export default async function audit() {
     work([
       h2s('操作记录'),
       hint('按类型筛选，或者搜对象名、内容。'),
-      h('div', { style: { display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap', margin: '0 0 12px' } },
+      h('div', { class: 'audit-toolbar', style: { display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap', margin: '0 0 12px' } },
         filters,
         h('div', { style: { flex: '1 1 180px', minWidth: '140px', maxWidth: '280px' } }, searchBox('搜索对象或内容', (v) => { q = v.toLowerCase(); draw(); })),
         h('span', { style: { flex: '1 1 auto' } }), count),

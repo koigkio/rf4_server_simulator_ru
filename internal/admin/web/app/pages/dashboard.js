@@ -1,6 +1,6 @@
-import { h, api, apiList, fmt, tsNum, timeText, clockText, icon, navigate, empty, pageHead, work, ib, h2s, h3s, hint, note, kv, bullets, pill, brief, tbl, logsBlock, startGrid, searchBox, btn, render, setPageCleanup } from '../core.js';
+import { h, api, apiList, fmt, tsNum, timeText, clockText, icon, navigate, empty, pageHead, work, ib, h2s, h3s, hint, note, kv, bullets, pill, brief, tbl, logsBlock, startGrid, searchBox, btn, render } from '../core.js';
 import { auditLabel } from '../labels.js';
-import { updateBanner, buildLabel } from '../main.js';
+import { updateBanner, buildLabel, themeMenu } from '../main.js';
 
 // 演示页的「从这里开始」是一条一条完整流程：看现状 → 改 → 核对。
 const STARTS = [
@@ -23,7 +23,6 @@ export default async function dashboard() {
     api('/api/fish/bite_mode').catch(() => ({})),
     apiList('/api/stores').catch(() => []),
   ]);
-  setPageCleanup(null);
 
   const modeName = { realistic: '真实鱼汛', legacy: '全随机（旧版）', mixed: '自定义' }[mode.mode] || '未上报';
   const on = (k) => (tuns[k] === undefined ? k === 'happy_hour_enabled' : tuns[k] === '1');
@@ -70,12 +69,14 @@ export default async function dashboard() {
   updateBanner(d.update, updSlot);
 
   return [
-    pageHead('总览', '服务器现在什么状态、当前生效的是哪套参数、最近动过什么。', h('a', {
-      class: 'btn primary home-link',
-      href: '/',
-      target: '_top',
-      title: '控制中心：开始游戏、停止服务、看进程状态和日志',
-    }, '控制中心 →')),
+    pageHead('总览', '服务器现在什么状态、当前生效的是哪套参数、最近动过什么。',
+      h('a', {
+        class: 'btn primary home-link',
+        href: '/',
+        target: '_top',
+        title: '控制中心：开始游戏、停止服务、看进程状态和日志',
+      }, '控制中心 →'),
+      themeMenu()),
     work([
       updSlot,
       brief([
@@ -92,7 +93,7 @@ export default async function dashboard() {
       }))),
       h3s('运行日志'),
       hint('后台审计表里最近的记录，可以按动作、对象或管理员筛。', { margin: '0 0 8px' }),
-      h('div', { class: 'search' },
+      h('div', { class: 'search logs-toolbar' },
         searchBox('搜动作、对象或管理员', (v) => { search.q = v; drawLogs(); }),
         btn('刷新', () => render(), 'ghost')),
       logsBox,

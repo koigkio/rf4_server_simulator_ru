@@ -50,6 +50,14 @@ test('grade ratio grips share the numeric draft and explicit save', async () => 
     const firstGripBox = await grips.first().boundingBox();
     assert.ok(firstGripBox.width >= 44, `grip width ${firstGripBox.width}`);
     assert.ok(firstGripBox.height >= 44, `grip height ${firstGripBox.height}`);
+    for (const theme of ['light', 'dark']) {
+      await page.evaluate(t => { document.documentElement.dataset.theme = t; }, theme);
+      const painted = await grips.evaluateAll(els => els.map(el => {
+        const hit = getComputedStyle(el), thumb = getComputedStyle(el, '::after');
+        return [hit.backgroundColor, hit.borderTopWidth, thumb.width, thumb.height];
+      }));
+      assert.deepEqual(painted, Array.from({ length: 3 }, () => ['rgba(0, 0, 0, 0)', '0px', '14px', '24px']), theme);
+    }
     await track.evaluate(el => { el.style.width = '500px'; });
     await drag(1, -0.1, async () => {
       assert.deepEqual(await values(), [0, 50, 35, 15]);

@@ -464,6 +464,13 @@ func (s *Server) handleTunableSet(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
+	if strings.HasPrefix(req.Key, "skill_grade_mult_") {
+		v, err := strconv.ParseFloat(strings.TrimSpace(req.Value), 64)
+		if err != nil || math.IsNaN(v) || math.IsInf(v, 0) || v < 0 || v > 20 {
+			httpError(w, 400, "鱼获档位熟练度倍数必须在 0 ~ 20 之间")
+			return
+		}
+	}
 	if strings.HasPrefix(req.Key, "skill_gain_pct_") {
 		v, err := strconv.ParseFloat(strings.TrimSpace(req.Value), 64)
 		if err != nil || math.IsNaN(v) || math.IsInf(v, 0) || v < 0 || v > 100 {
@@ -636,16 +643,17 @@ func (s *Server) handleSkillGainModeSet(w http.ResponseWriter, r *http.Request) 
 // ---- 玩家管理 ----
 
 type playerRow struct {
-	UID     int64   `json:"uid"`
-	Name    string  `json:"name"`
-	Level   int64   `json:"level"`
-	XP      int64   `json:"xp"`
-	Silver  int64   `json:"silver"`
-	Gold    int64   `json:"gold"`
-	Bank    int64   `json:"bank"`
-	Banned  bool    `json:"banned"`
-	Online  bool    `json:"online"`
-	Updated float64 `json:"updated_ts"`
+	UID         int64   `json:"uid"`
+	Name        string  `json:"name"`
+	Level       int64   `json:"level"`
+	XP          int64   `json:"xp"`
+	Silver      int64   `json:"silver"`
+	Gold        int64   `json:"gold"`
+	Bank        int64   `json:"bank"`
+	Banned      bool    `json:"banned"`
+	Online      bool    `json:"online"`
+	OnlineKnown bool    `json:"online_known"`
+	Updated     float64 `json:"updated_ts"`
 }
 
 func (s *Server) handlePlayers(w http.ResponseWriter, r *http.Request) {
@@ -668,6 +676,7 @@ func (s *Server) handlePlayers(w http.ResponseWriter, r *http.Request) {
 	online := s.onlineUIDs(ctx)
 	for i := range rows {
 		rows[i].Online = online[rows[i].UID]
+		rows[i].OnlineKnown = online != nil
 	}
 	writeJSON(w, rows)
 }

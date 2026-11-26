@@ -84,15 +84,18 @@ try { token = localStorage.getItem('rf4_admin_token') || ''; } catch (e) {}
 const authListeners = [];
 export function getToken() { return token; }
 export function setToken(t) {
+  if ((t || '') === token) return;
   token = t || '';
   try { t ? localStorage.setItem('rf4_admin_token', t) : localStorage.removeItem('rf4_admin_token'); } catch (e) {}
-  if (!token) cleanupPage();
+  if (!token) { leaveSidePages(true); cleanupPage(); }
   authListeners.forEach((fn) => fn(!!token));
 }
 export function onAuth(fn) { authListeners.push(fn); }
 export function webURL(p) { return BASE + p; }
 
-export async function api(path, opt = {}) {
+export async function api(path, { preserveSession = false, ...opt } = {}) {
+  const requestToken = token;
+  const editingSide = sidePages.at(-1);
   const r = await fetch(BASE + path, {
     ...opt,
     headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token, ...(opt.headers || {}) },
@@ -103,8 +106,9 @@ export async function api(path, opt = {}) {
   if (!r.status.toString().startsWith('2')) {
     // 未登录时只读接口不该把令牌清掉；写操作给出可照做的提示，而不是「未认证」四个字。
     const isWrite = String(opt.method || 'GET').toUpperCase() !== 'GET';
-    if (r.status === 401 && !isWrite) setToken('');
-    const msg = r.status === 401 && isWrite ? '这一步需要登录：点右上角「登录」后再保存'
+    if (!preserveSession && r.status === 401 && !isWrite && requestToken && token === requestToken) setToken('');
+    if (r.status === 401 && isWrite && editingSide && sidePages.includes(editingSide)) editingSide.offerLogin();
+    const msg = r.status === 401 && isWrite ? '这一步需要登录，登录后请重新保存。'
       : (data.error || ('请求失败（HTTP ' + r.status + '）'));
     const err = new Error(msg);
     err.status = r.status;
@@ -157,7 +161,7 @@ export function relTime(ts) {
 export function toast(msg, type = 'ok') {
   let box = $('.toasts');
   if (!box) { box = h('div', { class: 'toasts' }); document.body.append(box); }
-  const t = h('div', { class: 'toast ' + type, text: msg });
+  const t = h('div', { class: 'toast ' + type, role: type === 'bad' ? 'alert' : 'status', text: msg });
   box.append(t);
   setTimeout(() => { t.style.opacity = '0'; setTimeout(() => t.remove(), 220); }, type === 'bad' ? 5000 : 2800);
 }
@@ -168,28 +172,51 @@ export async function guard(fn, okMsg) {
 }
 
 // ---------- 弹窗 / 抽屉 ----------
+function mountOverlay(overlay, close) {
+  const previous = document.activeElement;
+  const controls = () => [...overlay.querySelectorAll('button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled), a[href], [tabindex="0"]')].filter(el => el.getClientRects().length);
+  const onKey = e => {
+    if ([...document.querySelectorAll('.overlay')].pop() !== overlay) return;
+    if (e.key === 'Escape') { e.preventDefault(); close(); return; }
+    if (e.key !== 'Tab') return;
+    const list = controls(), first = list[0], last = list[list.length - 1];
+    if (e.shiftKey && (document.activeElement === first || !overlay.contains(document.activeElement))) { e.preventDefault(); last?.focus(); }
+    else if (!e.shiftKey && (document.activeElement === last || !overlay.contains(document.activeElement))) { e.preventDefault(); first?.focus(); }
+  };
+  document.body.append(overlay);
+  document.addEventListener('keydown', onKey);
+  const list = controls();
+  (list.find(el => el.matches('input,select,textarea')) || list[0])?.focus();
+  return () => {
+    document.removeEventListener('keydown', onKey);
+    overlay.remove();
+    if (previous?.isConnected) previous.focus();
+  };
+}
+function closeButton(close, back = false) {
+  const label = back ? '返回' : '关闭';
+  return h('button', {type:'button', class:'btn ghost icon sm panel-dismiss', title:label, 'aria-label':label, onclick:close}, icon(back ? 'back' : 'x',16));
+}
 export function dialog({ title, desc, body, actions = [], size = '', onClose } = {}) {
-  const close = () => { overlay.remove(); document.removeEventListener('keydown', onKey); onClose && onClose(); };
-  const onKey = (e) => { if (e.key === 'Escape') close(); };
+  const close = () => { if (!overlay.isConnected) return; unmount(); onClose?.(); };
   const foot = h('div', { class: 'dialog-foot' }, actions.map((a) => h('button', {
     class: 'btn ' + (a.kind || ''), disabled: a.disabled,
     onclick: async (e) => {
       if (!a.onClick) return close();
-      e.currentTarget.disabled = true;
+      const button = e.currentTarget;
+      button.disabled = true;
       try { const keep = await a.onClick(close); if (keep !== true) close(); }
       catch (err) { toast(errText(err), 'bad'); }
-      finally { if (e.currentTarget) e.currentTarget.disabled = false; }
+      finally { button.disabled = false; }
     },
   }, a.label)));
-  const box = h('div', { class: 'dialog ' + size, role: 'dialog', 'aria-modal': 'true' },
+  const box = h('div', { class: 'dialog ' + size, role: 'dialog', 'aria-label': title, 'aria-modal': 'true' },
     h('div', { class: 'dialog-head' }, h('div', { class: 'grow' }, h('h3', { text: title }), desc ? h('p', { text: desc }) : null),
-      h('button', { class: 'btn ghost icon sm', 'aria-label': '关闭', onclick: close }, icon('x'))),
+      closeButton(close)),
     body ? h('div', { class: 'dialog-body' }, body) : null,
     actions.length ? foot : null);
   const overlay = h('div', { class: 'overlay', onmousedown: (e) => { if (e.target === overlay) close(); } }, box);
-  document.body.append(overlay);
-  document.addEventListener('keydown', onKey);
-  setTimeout(() => { const f = box.querySelector('input,select,textarea'); if (f) f.focus(); }, 30);
+  const unmount = mountOverlay(overlay, close);
   return { close, box };
 }
 export function confirmDialog({ title, desc, confirm = '确定', danger = false }) {
@@ -210,7 +237,7 @@ export function confirmDialog({ title, desc, confirm = '确定', danger = false 
 export function loginDialog({ desc, onDone } = {}) {
   const user = h('input', { id: 'lu', value: 'admin', autocomplete: 'username' });
   const pass = h('input', { id: 'lp', type: 'password', autocomplete: 'current-password' });
-  const err = h('p', { class: 'alert', hidden: true });
+  const err = h('p', { class: 'alert', role: 'alert', hidden: true });
   const body = h('div', {},
     err,
     h('label', { class: 'field' }, h('span', { text: '账号' }), user),
@@ -243,18 +270,68 @@ export function loginDialog({ desc, onDone } = {}) {
   });
 }
 
-export function drawer({ title, sub, body, foot, onClose, width } = {}) {
-  const close = () => { overlay.remove(); document.removeEventListener('keydown', onKey); onClose && onClose(); };
-  const onKey = (e) => { if (e.key === 'Escape' && !document.querySelector('.overlay:not(.drawer-overlay)')) close(); };
-  const panel = h('div', { class: 'drawer', style: width ? { width } : null },
-    h('div', { class: 'drawer-head' }, h('div', { class: 'grow' }, h('h3', { text: title }), sub ? h('div', { class: 'muted small', text: sub }) : null),
-      h('button', { class: 'btn ghost icon sm', 'aria-label': '关闭', onclick: close }, icon('x'))),
-    h('div', { class: 'drawer-body' }, body),
-    foot ? h('div', { class: 'drawer-foot' }, foot) : null);
-  const overlay = h('div', { class: 'overlay drawer-overlay', onmousedown: (e) => { if (e.target === overlay) close(); } }, panel);
-  document.body.append(overlay);
-  document.addEventListener('keydown', onKey);
-  return { close, panel, body: panel.querySelector('.drawer-body') };
+const sidePages = [];
+const narrowSide = matchMedia('(max-width:700px)');
+const reduceSideMotion = matchMedia('(prefers-reduced-motion:reduce)');
+let exitingSide = null;
+function syncSideLayout() {
+  document.body.classList.toggle('has-side-page', !!sidePages.length);
+  const app = $('#app');
+  if (app) app.inert = narrowSide.matches && !!sidePages.length;
+}
+narrowSide.addEventListener('change', syncSideLayout);
+function leaveSidePages(force = false) {
+  if (!force && sidePages.some(p => !p.canLeave())) return false;
+  exitingSide?.remove();
+  while (sidePages.length) sidePages.at(-1).remove(false);
+  return true;
+}
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Escape' || e.defaultPrevented || document.querySelector('.overlay') || !sidePages.length) return;
+  e.preventDefault(); sidePages.at(-1).close();
+});
+export function sidePage({ title, sub, desc, body, actions = [], foot, effect, beforeClose, isDirty, nested = false }) {
+  if (!nested && !leaveSidePages()) return { close() {} };
+  const parent = sidePages.at(-1), previous = document.activeElement;
+  if (parent) parent.panel.hidden = true;
+  let pending = false;
+  const canLeave = () => !pending && (!beforeClose || beforeClose());
+  const remove = (animate = true) => {
+    if (sidePages.at(-1) !== entry) return;
+    sidePages.pop();
+    if (animate && !reduceSideMotion.matches) {
+      exitingSide?.remove(); exitingSide = panel;
+      panel.inert = true;
+      panel.setAttribute('aria-hidden', 'true');
+      panel.classList.remove('is-open');
+      const finish = () => { panel.remove(); if (exitingSide === panel) exitingSide = null; };
+      Promise.allSettled(panel.getAnimations().map(animation => animation.finished)).then(finish);
+    } else panel.remove();
+    if (parent) parent.panel.hidden = false;
+    syncSideLayout();
+    if (previous?.isConnected) previous.focus({preventScroll:true});
+  };
+  const close = () => { if (canLeave()) remove(); };
+  const tools = foot || actions.map(a => h('button', {type:'button', class:'btn ' + (a.kind || ''), onclick:async () => {
+    if (!a.onClick) return close();
+    if (pending) return;
+    pending = panel.inert = true;
+    try { if (await a.onClick() !== true) remove(); }
+    catch (e) { toast(errText(e), 'bad'); }
+    finally { pending = false; if (sidePages.at(-1) === entry) panel.inert = false; }
+  }}, a.label));
+  const signin = h('button', {class:'btn ghost',type:'button',hidden:!!getToken(), onclick:() => loginDialog({onDone:() => { signin.hidden = true; }})}, '登录管理后台');
+  const panel = h('section', {class:'side-page', 'aria-label':title},
+    h('header', {class:'side-page-head'}, h('div', {}, h('h2', {text:title}), (sub || desc) ? h('small', {text:sub || desc}) : null),
+      signin, closeButton(close, !!parent)),
+    h('div', {class:'side-page-body'}, body), tools.length ? h('footer', {class:'side-page-foot'}, effect ? hint(effect, {flexBasis:'100%', margin:0}) : null, tools) : null);
+  const entry = {panel, close, remove, canLeave, isDirty:() => pending || !!isDirty?.(), offerLogin:() => { signin.hidden = false; }};
+  sidePages.push(entry); document.body.append(panel);
+  // Establish the offscreen position before starting both layout and panel transitions.
+  getComputedStyle(panel).transform;
+  panel.classList.add('is-open'); syncSideLayout();
+  panel.querySelector('.panel-dismiss').focus({preventScroll:true});
+  return entry;
 }
 
 // ---------- 通用片段 ----------
@@ -290,7 +367,10 @@ const HPOS = {
 // 另加 .hero-fade（底部羽化，皮肤靠它把照片压进纸面）。
 export function pageHead(title, desc, a3, a4, a5) {
   let opts = {};
-  if (a3 && a3.nodeType) opts = { actions: a3, facts: a4, nums: a5 };
+  // 主操作行允许同时挂多个控件（例如「控制中心 →」+ 主题切换），
+  // 这时第 4 个参数才是 facts，而不是被当成 facts 丢掉。
+  if (a3 && a3.nodeType && a4 && a4.nodeType) opts = { actions: [a3, a4], facts: a5 };
+  else if (a3 && a3.nodeType) opts = { actions: a3, facts: a4, nums: a5 };
   else if (Array.isArray(a3)) opts = { facts: a3 };
   else if (a3 && typeof a3 === 'object') opts = a3;
   const port = location.port && location.port !== '80' ? location.port : '9500';
@@ -298,17 +378,12 @@ export function pageHead(title, desc, a3, a4, a5) {
   const cells = Array.isArray(opts.nums) && opts.nums.length
     ? opts.nums.map(([v, u]) => [String(v), u])
     : [
-      [String(s.sessions != null ? s.sessions : 0), '在线玩家'],
-      [String(s.players != null ? s.players : 0), '档案'],
-      [String(s.tunables != null ? s.tunables : 0), '可调参数'],
+      [fmt(s.sessions), '在线玩家'],
+      [fmt(s.players), '档案'],
+      [fmt(s.tunables), '可调参数'],
       [String(port), '后台端口'],
     ];
-  const strip = Array.isArray(opts.facts) && opts.facts.length ? opts.facts : [
-    ['生效', '保存后 30 秒'],
-    ['作用范围', '全部水域'],
-    ['要重登', '不需要'],
-    ['上次保存', s.last_save ? relTime(s.last_save) : '—'],
-  ];
+  const strip = Array.isArray(opts.facts) ? opts.facts : [];
   const route = currentRoute() || 'dashboard';
   return h('div', { class: 'hero', style: { '--hpos': opts.hpos || HPOS[route] || '52% 62%' } },
     h('div', { class: 'hero-in' },
@@ -316,12 +391,12 @@ export function pageHead(title, desc, a3, a4, a5) {
         h('span', { class: 'eyebrow', id: 'eyebrow', text: opts.eyebrow || '' }),
         h('h1', { id: 'title', text: title }),
         desc ? h('p', { class: 'lede', id: 'lede', text: desc }) : null,
-        opts.actions ? h('div', { class: 'hero-acts' }, opts.actions) : null),
+        opts.actions ? h('div', { class: 'hero-acts' }, ...[].concat(opts.actions)) : null),
       h('div', { class: 'hero-side', 'aria-label': '服务器要点' },
         ...cells.map(([v, u], i) => h('div', { class: i === 0 ? 'k1' : '' }, h('b', { text: v }), h('i', { text: u })))),
-      h('div', { class: 'factbar' },
+      strip.length ? h('div', { class: 'factbar' },
         h('dl', { class: 'facts' },
-          ...strip.map(([k, v]) => h('div', {}, h('dt', { text: k }), h('dd', { text: v })))))),
+          ...strip.map(([k, v]) => h('div', {}, h('dt', { text: k }), h('dd', { text: v }))))) : null),
     h('div', { class: 'hero-fade' }));
 }
 
@@ -451,7 +526,9 @@ export function segmented(options, value, onChange) {
   const render = (v) => {
     box.replaceChildren(...options.map(([val, label]) => h('button', {
       type: 'button', class: String(val) === String(v) ? 'on' : '', role: 'radio', 'aria-checked': String(String(val) === String(v)),
-      onclick: () => { render(val); onChange(val); },
+      // 分段按钮常被放进 <label class="row"> 里：label 会把点击转发给第一个可标注控件，
+      // 导致「点第二项又跳回第一项」。阻止默认行为与冒泡，避免被 label 再点一次。
+      onclick: (e) => { e.preventDefault(); e.stopPropagation(); render(val); onChange(val); },
     }, label)));
   };
   render(value);
@@ -643,38 +720,47 @@ function setError(f, msg) {
 // 保存条：默认是右下角浮层（一页一个）；传 inline 时渲染到指定容器里，
 // 用于「改完就在内容底部核对并保存」的页面（演示页是这种内联按钮）。
 let savebarEl = null;
-export function savebar(form, { onSave, label, inline } = {}) {
+// 浮层保存条全局只有一个：记下当前持有者，旧页面迟到的保存结果不能再把它点亮或借它提交。
+let savebarOwner = null;
+export function savebar(form, { onSave, label, inline, effect } = {}) {
+  const owner = {};
+  if (!inline) savebarOwner = owner;
+  const live = () => !!inline || savebarOwner === owner;
   let bar = inline || null;
   if (!bar) {
     if (!savebarEl) { savebarEl = h('div', { class: 'savebar', role: 'status' }); document.body.append(savebarEl); }
     bar = savebarEl;
   }
   const count = h('span');
+  let saving = false;
   const saveBtn = btn('保存修改', async () => {
     const keys = form.dirtyKeys();
+    if (saving || !keys.length || !live()) return;
     if (!form.validate(keys)) { toast('有填写不正确的项，请检查标红的输入框', 'bad'); return; }
-    saveBtn.disabled = true;
-    try { await onSave(form.values(keys), keys); form.commit(form.values(keys)); toast('已保存'); }
+    const values = form.values(keys);
+    saving = saveBtn.disabled = true;
+    try { await onSave(values, keys); form.commit(values); toast(effect ? '已保存。' + effect : '已保存'); }
     catch (e) { toast(errText(e), 'bad'); }
-    finally { saveBtn.disabled = false; }
+    finally { saving = false; update(); }
   }, 'primary sm');
   bar.replaceChildren(count, btn('放弃', () => form.reset(), 'ghost sm'), saveBtn);
   const update = () => {
+    if (!live()) return;
     const n = form.dirtyKeys().length;
     if (inline && n === 0) count.replaceChildren(h('span', { class: 'hint', text: '没有改动' }));
     else count.replaceChildren((label || ''), h('b', { text: n }), ' 项修改尚未保存');
-    saveBtn.disabled = n === 0;
+    if (effect) count.append(h('small', {style:{display:'block'}, text:effect}));
+    saveBtn.disabled = saving || n === 0;
     bar.classList.toggle('on', n > 0);
   };
   form.onChange = update;
   update();
   return update;
 }
-export function hideSavebar() { if (savebarEl) savebarEl.classList.remove('on'); }
+export function hideSavebar() { savebarOwner = null; if (savebarEl) savebarEl.classList.remove('on'); }
 
 // 页面生命周期：切换路由或重新渲染前释放定时器、监听器。
 let pageCleanup = null;
-export function setPageCleanup(fn) { pageCleanup = typeof fn === 'function' ? fn : null; }
 function cleanupPage() {
   const fn = pageCleanup;
   pageCleanup = null;
@@ -688,7 +774,6 @@ let current = null;
 let guardFn = null;
 export function route(name, def) { routes.set(name, def); }
 export function routeDefs() { return routes; }
-export function setLeaveGuard(fn) { guardFn = fn; }
 export function currentRoute() { return current; }
 export function parseHash() {
   const raw = location.hash.replace(/^#\/?/, '');
@@ -703,33 +788,47 @@ export function replaceHash(hash) {
   history.replaceState(null, '', hash);
   lastHash = location.hash;
 }
+// 页内切换保留浏览器历史，但不触发整页路由重绘。
+export function pushHash(hash) {
+  if (location.hash !== hash) history.pushState(null, '', hash);
+  lastHash = location.hash;
+}
+let renderID = 0;
 export async function render() {
   const { name, params } = parseHash();
   const def = routes.get(name) || routes.get('dashboard');
   const key = routes.has(name) ? name : 'dashboard';
   if (!$('#view')) return; // 还在登录页或框架未建好，boot 完成后会再渲染
+  if (!leaveSidePages()) return;
+  const id = ++renderID;
   cleanupPage();
   hideSavebar();
   guardFn = null;
   current = key;
   document.dispatchEvent(new CustomEvent('rf4:route', { detail: { name: key } }));
   const root = $('#view');
+  root.inert = true;
   // 不先把页面清空。上一次这里是 replaceChildren(loading)：旧页立刻消失、新页还要等模块加载，
   // 于是 hero 照片整块闪一下。现在旧内容原地留着并轻微压暗，新内容算好之后一次换掉。
   // 先不压暗：模块已经预取过时切换只要一两帧，压暗反而像闪。超过 130ms 才提示「在换」。
-  const busyTimer = setTimeout(() => { if (current === key) root.classList.add('is-busy'); }, 130);
+  const busyTimer = setTimeout(() => { if (renderID === id) root.classList.add('is-busy'); }, 130);
   try {
-    const node = await def.render(params);
+    const scope = {
+      isCurrent: () => renderID === id,
+      setLeaveGuard: fn => { if (renderID === id) guardFn = fn; },
+      setPageCleanup: fn => { if (renderID === id) pageCleanup = fn; else fn?.(); },
+    };
+    const node = await def.render(params, scope);
     clearTimeout(busyTimer);
-    if (current !== key) { root.classList.remove('is-busy'); return; }
+    if (renderID !== id) return;
     const kids = Array.isArray(node) ? node.filter(Boolean) : [node];
     // 演示页即使没有二级页签也留一个 #tabs 占位（hero 与 .work 之间的 18px 留白）。
     if (!kids.some((n) => n && n.id === 'tabs')) kids.splice(1, 0, h('div', { id: 'tabs' }));
-    const swap = () => { root.replaceChildren(...kids); window.scrollTo(0, 0); };
+    const swap = () => { if (renderID !== id) return; root.replaceChildren(...kids); root.inert = false; window.scrollTo(0, 0); };
     const reduce = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
     if (typeof document.startViewTransition === 'function' && !reduce) {
       // 支持 View Transitions 的浏览器用一次 180ms 交叉淡入，避免硬切。
-      const done = () => { clearTimeout(busyTimer); root.classList.remove('is-busy'); };
+      const done = () => { if (renderID === id) root.classList.remove('is-busy'); };
       document.startViewTransition(swap).finished.then(done, done);
     } else {
       swap();
@@ -737,18 +836,33 @@ export async function render() {
     }
   } catch (e) {
     clearTimeout(busyTimer);
+    if (renderID !== id) return;
+    root.inert = false;
     root.classList.remove('is-busy');
     if (e && e.status === 401) return;
     root.replaceChildren(h('div', { class: 'work solo' }, h('section', {}, callout('bad', ['页面加载失败：', errText(e)]))));
   }
 }
-window.addEventListener('beforeunload', (e) => { if (guardFn && guardFn()) { e.preventDefault(); e.returnValue = ''; } });
+let unloadConfirmed = false;
+const sideDirty = () => sidePages.some(p => p.isDirty());
+window.addEventListener('beforeunload', (e) => {
+  if (unloadConfirmed) return;
+  if ((guardFn && guardFn()) || sideDirty()) { e.preventDefault(); e.returnValue = ''; }
+});
+// 「刷新本页」：主页面和侧页的未保存修改都要先确认，确认过后不再弹浏览器自带的离开提示。
+export function reloadPage() {
+  if (!sidePages.every(p => p.canLeave())) return;
+  if (guardFn && guardFn() && !confirm('有修改还没保存，确定刷新吗？')) return;
+  unloadConfirmed = true;
+  location.reload();
+}
 let lastHash = location.hash;
 window.addEventListener('hashchange', () => {
   if (guardFn && guardFn() && !confirm('有修改还没保存，确定离开吗？')) {
     history.replaceState(null, '', lastHash);
     return;
   }
+  if (!leaveSidePages()) { history.replaceState(null, '', lastHash); return; }
   lastHash = location.hash;
   render();
 });

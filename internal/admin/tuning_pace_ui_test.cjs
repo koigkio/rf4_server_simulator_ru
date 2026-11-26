@@ -57,7 +57,7 @@ test('tuning shows pace rows when enabled and saves through tunables API',async(
   assert.equal(await page.getByText('开启后这里才会出现好饵').count(),0,'开启后不应显示提示');
   await page.locator('[id^=f_pace_good_max_]').fill('45');
   await page.getByRole('button',{name:'保存修改',exact:true}).click();
-  await page.getByText('已保存',{exact:true}).waitFor({timeout:5000});
+  await page.getByText('已保存。服务端最多 30 秒生效。',{exact:true}).waitFor({timeout:5000});
   const hit=posts.find(p=>p&&p.key==='pace_good_max');
   assert.ok(hit,'应 POST pace_good_max');
   assert.equal(String(hit.value),'45');

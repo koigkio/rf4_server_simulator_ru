@@ -50,6 +50,55 @@ func TestCatchSkillFloatResidueHidesSkillRow(t *testing.T) {
 	}
 }
 
+func TestCatchSettlementAppliesGradeGainMultiplier(t *testing.T) {
+	// 档位倍数会把 0.1/0.2 基础增量移出 0.1 网格；这里锁定量化后的落值。
+	if got := store.QuantizeSkillPoints(1.5 * 0.1); math.Abs(got-0.2) > 1e-9 {
+		t.Fatalf("QuantizeSkillPoints(1.5*0.1)=%v, want 0.2", got)
+	}
+
+	cases := []struct {
+		name       string
+		grade      int64
+		multKey    string
+		mult       float64
+		amountRoll float64
+		want       float64
+	}{
+		// 固定 100% 命中；amountRoll=0.5 取 0.2 大增量，0.99 取 0.1 小增量。
+		{"蓝冠8倍", 4, "skill_grade_mult_4", 8, 0.5, 1.6},
+		{"未达标对照", 1, "skill_grade_mult_1", 1, 0.5, 0.2},
+		{"非整数倍量化", 4, "skill_grade_mult_4", 1.5, 0.99, 0.2},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			srv, db := newProgressSrv(t)
+			ctx := context.Background()
+			const uid = int64(1000001)
+			if _, err := db.EnsureProfile(ctx, uid); err != nil {
+				t.Fatal(err)
+			}
+			setSkillGainCache(srv, "skill_gain_pct_2", 100)
+			srv.tunMu.Lock()
+			srv.tunCache[tc.multKey] = tc.mult
+			srv.tunMu.Unlock()
+			srv.randFloat = fixedRolls(0.9999, tc.amountRoll)
+			fish := &RolledFish{FishGUID: newFishGUID(), Species: "perch", Grade: tc.grade, WeightG: 642}
+
+			result := srv.settleCatchXP(ctx, uid, fish, 5)
+			if result == nil || result.skillID != 2 {
+				t.Fatalf("结算结果异常: %+v", result)
+			}
+			if math.Abs(result.skillGain-tc.want) > 1e-9 {
+				t.Fatalf("grade=%d 倍数=%g 结算增量=%v, want %v", tc.grade, tc.mult, result.skillGain, tc.want)
+			}
+			got, err := db.GetSkillPoints(ctx, uid, 2)
+			if err != nil || math.Abs(got-tc.want) > 1e-9 {
+				t.Fatalf("写库熟练度=%v err=%v, want %v", got, err, tc.want)
+			}
+		})
+	}
+}
+
 func TestCatchSettlementOnceAcrossCallsAndRestart(t *testing.T) {
 	srv, db := newDetachTestServer(t)
 	ctx := context.Background()

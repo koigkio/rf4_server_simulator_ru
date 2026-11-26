@@ -1,6 +1,6 @@
 // 数值调整：所有可调数字按主题分组。开关类玩法在「玩法规则」页。
-import { h, api, post, toast, errText, pageHead, pageTabs, work, ib, pblock, h2s, h3s, hint, note, kv, bullets, pill, section, callout, badge, btn, Form, savebar, setLeaveGuard, replaceHash, render, confirmDialog, segmented, empty, icon, setCrumbTail, navigate } from '../core.js';
-import { itemIcon, pickItem } from '../widgets.js';
+import { h, api, post, toast, errText, pageHead, pageTabs, work, ib, pblock, h2s, h3s, hint, note, kv, bullets, pill, section, callout, badge, btn, Form, savebar, replaceHash, render, confirmDialog, segmented, empty, icon, setCrumbTail, navigate } from '../core.js';
+import { eventView } from './event-gifts.js';
 
 // [key, 标签, 说明, 默认值, 类型, 单位, 最小, 最大]
 const G = {
@@ -126,7 +126,7 @@ const TAB_GROUPS = { gameplay: ['bite', 'bait', 'fish', 'wear'], reward: ['rewar
 const TAB_DESC = {
   gameplay: '玩法手感、钩型咬口、电轮与磨损、负载与角色状态。改完最多 30 秒生效，不用重启服务。',
   reward: '经验、熟练度与聊天提示。改完最多 30 秒生效；技能概率模式切换是独立保存的。',
-  event: '新年与周年活动。活动设置只在玩家重新登录时下发。',
+  event: '新年与周年活动。玩家须重启游戏客户端并重新登录，才能看到活动变化。',
 };
 // 旧地址兼容：#tuning/bite 之类的老链接落到对应页签
 const OLD_TAB = { bite: 'gameplay', bait: 'gameplay', fish: 'gameplay', wear: 'gameplay', chat: 'reward' };
@@ -141,6 +141,13 @@ const SKILL_GAIN_KEYS = [
   ['skill_gain_pct_8', '制作拟饵', '路亚手工制作熟练度。'],
 ];
 const SKILL_GAIN_MODES = [['native', '原版概率'], ['fixed100', '百分百'], ['custom', '自定义']];
+// 鱼获档位对熟练度增量的倍数。1..4 对应 grade 枚举；填 1 表示该档位不加成。
+const SKILL_GRADE_KEYS = [
+  ['skill_grade_mult_1', '未达标鱼', '协议里的 grade 1。填 1 = 不加成。'],
+  ['skill_grade_mult_2', '合格鱼', '协议里的 grade 2，绝大多数渔获是这一档。'],
+  ['skill_grade_mult_3', '奖杯鱼', '协议里的 grade 3，即「上星」的鱼。'],
+  ['skill_grade_mult_4', '蓝冠鱼', '协议里的 grade 4，超级稀有。'],
+];
 let CAT = 'gameplay';
 
 function skillGainModeOf(t) {
@@ -168,28 +175,39 @@ function skillGainSection(form, t, val, no = 90) {
   }, label)));
   const fields = mode === 'custom' ? h('div', { class: 'stack', style: { marginTop: '14px' } }, SKILL_GAIN_KEYS.map(([key, label, help]) =>
     form.row({ key, label, help, kind: 'float', min: 0, max: 100, unit: '%', def: 0 }, val(key, 0)))) : null;
+  // 鱼获档位倍数作为本区块的第二段：它同样按「涨多少」调节熟练度，
+  // 和上面的「涨不涨」是同一件事的两个维度，不另起一个区块。
+  const gradeFields = SKILL_GRADE_KEYS.map(([key, label, help]) =>
+    form.row({ key, label, help, kind: 'float', min: 0, max: 20, unit: '倍', def: 1 }, val(key, 1)));
   return pblock(no, '技能升级概率', '一键切换全部技能：原版概率、全部百分百，或逐项自定义。0=原版公式，100=必定增长。',
     [h('div', { class: 'span-2', style: { gridColumn: '1 / -1' } }, buttons,
       h('p', { class: 'hint', style: { margin: '8px 0 0' }, text: '百分百模式会让每次符合条件的钓获、挖饵或制作都获得熟练度；固定百分比模式不叠加欢乐时光对原版概率的修正。' })),
-    ...(fields ? [...fields.childNodes] : [])], { id: 'pg-skill' });
+    ...(fields ? [...fields.childNodes] : []),
+    h('div', { class: 'span-2', style: { gridColumn: '1 / -1', marginTop: '14px', paddingTop: '12px', borderTop: '1px solid var(--line)' } },
+      h('p', { style: { margin: '0 0 2px', fontWeight: '600' }, text: '按鱼获档位加成' }),
+      h('p', { class: 'hint', style: { margin: '0 0 8px' }, text: '钓到越稀有的鱼，单次熟练度涨得越多。倍数只放大增量，不改变上面「这次涨不涨」的概率，两种模式都叠加。基础增量是 0.1 或 0.2，乘以倍数后四舍五入到 0.1——建议用 1/2/4/8 这类整数倍，避免 0.15 被进位成 0.2。填 0 让该档完全不涨。制作和挖饵没有鱼档位，始终按 1 倍。' })),
+    ...gradeFields], { id: 'pg-skill' });
 }
 
-export default async function tuning(params) {
+export default async function tuning(params, scope) {
   if (params[0]) {
     const want = OLD_TAB[params[0]] || params[0];
     if (CATS.some(([k]) => k === want)) CAT = want;
   }
   const t = await api('/api/tunables');
+  if (!scope.isCurrent()) return [];
   const val = (k, d) => (t[k] === undefined || t[k] === '' ? String(d) : t[k]);
   const form = new Form();
-  savebar(form, {
+  const event = CAT === 'event' ? eventView(t) : null;
+  if (!event) savebar(form, {
+    effect:'服务端最多 30 秒生效。',
     onSave: async (values) => {
       for (const [key, value] of Object.entries(values)) await post('/api/tunables', { key, value: String(value) });
-      toast(CAT === 'event' ? '已保存。玩家需要完全退出游戏再登录才能看到变化。' : '已保存，约 30 秒内生效');
       render();
     },
   });
-  setLeaveGuard(() => form.isDirty());
+  const isDirty = event ? event.isDirty : () => form.isDirty();
+  scope.setLeaveGuard(isDirty);
   const spec = ([key, label, help, def, kind, unit, min, max]) => ({ key, label, help, def: kind === 'bool' ? String(def) : def, kind, unit, min, max });
   const rows = (list) => list.map((d) => form.row(spec(d), val(d[0], d[3])));
 
@@ -198,7 +216,7 @@ export default async function tuning(params) {
   const paceOn = String(t.bite_pace_enabled ?? '0') === '1';
   const paceVisible = (d) => paceOn || !d[0].startsWith('pace_');
   let body;
-  if (CAT === 'event') body = eventView(form, t, val);
+  if (event) body = event.blocks;
   else {
     // 一个页签 = 若干主题，每个主题一个 01/02/03… 的 .pblock，页面才不会只有一屏
     const out = [];
@@ -227,7 +245,13 @@ export default async function tuning(params) {
   const blocks = Array.isArray(body) ? body : [body];
   const tabsEl = pageTabs(CATS, CAT, async (k) => {
     if (k === CAT) return;
-    if (form.isDirty() && !(await confirmDialog({ title: '有修改还没保存', desc: '切换分类会放弃这些修改。', confirm: '放弃并切换' }))) return;
+    if (event?.busy() || (isDirty() && !(await confirmDialog({ title: '有修改还没保存', desc: '切换分类会放弃这些修改。', confirm: '放弃并切换' })))) {
+      // pageTabs 在点击时先高亮目标；取消后仍应标记实际页签。
+      queueMicrotask(() => tabsEl.querySelectorAll('a').forEach((a) => {
+        if (a.hash === '#tuning/' + CAT) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
+      }));
+      return;
+    }
     CAT = k; replaceHash('#tuning/' + k); render();
   });
   setCrumbTail((CATS.find(([k]) => k === CAT) || [])[1] || '');
@@ -246,127 +270,13 @@ export default async function tuning(params) {
         }, h('b', { text: a.no }), h('span', {}, h('span', { text: a.title }), h('em', { style: { display: 'block', fontStyle: 'normal', fontSize: '12.4px', color: 'var(--muted)', marginTop: '2px' }, text: `${a.n} 项` }))))),
       hint('只滚动主栏，不改地址栏，所以不会丢掉还没保存的草稿。', { margin: '10px 0 0' })),
     ib('生效说明', null,
-      kv([['作用范围', '全服'], ['生效时间', '最多 30 秒'], ['已改动项', String(form.dirtyKeys().length)], ['参数总数', String(Object.keys(t).length)]]),
+      kv([['作用范围', '全服'], ['服务端更新', '最多 30 秒'], ...(event ? [['客户端更新', '重启游戏客户端并重新登录']] : [['已改动项', String(form.dirtyKeys().length)]]), ['参数总数', String(Object.keys(t).length)]]),
       h3s('相关页面'),
-      h('div', { class: 'pills' }, h('a', { class: 'pill', href: '#hooks/fight', text: '搏鱼参数在钩子手感 ›' }))),
+      h('div', { class: 'pills' }, h('a', { class: 'pill', href: '#hooks/fight', text: '定位到玩法与钓组的搏鱼参数' }))),
   ];
   return [
     pageHead('游戏参数', TAB_DESC[CAT] || TAB_DESC.gameplay),
     tabsEl,
     work(blocks, aside),
   ];
-}
-
-// ---------- 限时活动 ----------
-const BRANCHES = [
-  ['2024 新年', [[9, 'MMXXIV'], [10, 'MMXXIV EXTRA']]], ['7 周年', [[11, 'VII'], [12, 'VII EXTRA']]],
-  ['2025 新年', [[13, 'MMXXV'], [14, '2025 EXTRA']]], ['8 周年', [[15, 'VIII'], [16, 'VIII EXTRA']]],
-  ['2026 新年', [[17, 'MMXXVI'], [18, '2026 特别奖']]], ['9 周年', [[19, 'IX'], [20, 'IX EXTRA']]],
-];
-const BRANCH_NAME = Object.fromEntries(BRANCHES.flatMap(([y, list]) => list.map(([id, n]) => [id, y + ' · ' + n])));
-const DEFAULT_BRANCHES = '9,10,11,12,13,14,15,16,17,18,19,20';
-const stageCount = (b) => ([14, 18].includes(Number(b)) ? 10 : 7);
-
-function eventView(form, t, val) {
-  const ny = val('event_newyear_enabled', 1) === '1', an = val('event_anniversary_enabled', 0) === '1';
-  const which = ny ? 'newyear' : an ? 'anniversary' : 'off';
-  const mode = segmented([['off', '不开启'], ['newyear', '新年活动'], ['anniversary', '周年活动']], which, async (v) => {
-    try {
-      if (v === 'off') { await post('/api/tunables', { key: 'event_newyear_enabled', value: '0' }); await post('/api/tunables', { key: 'event_anniversary_enabled', value: '0' }); }
-      else await post('/api/tunables', { key: v === 'newyear' ? 'event_newyear_enabled' : 'event_anniversary_enabled', value: '1' });
-      toast('已切换。玩家需要完全退出游戏再登录。');
-      render();
-    } catch (e) { toast(errText(e), 'bad'); }
-  });
-
-  // 分支：用勾选代替手填逗号列表
-  const branchField = form.field({ key: 'event_branches', label: '活动分支', kind: 'string' }, val('event_branches', DEFAULT_BRANCHES));
-  const chosen = new Set(String(branchField.original).split(',').map((x) => Number(x.trim())).filter(Boolean));
-  branchField.input = h('input', { type: 'hidden', value: branchField.original });
-  const syncBranches = () => { branchField.input.value = [...chosen].sort((a, b) => a - b).join(','); form.refresh(); };
-  const branchGrid = h('div', { class: 'grid-3', style: { gap: '10px' } }, BRANCHES.map(([year, list]) => h('div', { class: 'card', style: { padding: '12px 14px', background: 'var(--surface-2)' } },
-    h('b', { class: 'small', text: year }),
-    list.map(([id, name]) => {
-      const box = h('input', { type: 'checkbox', onchange: (e) => { e.target.checked ? chosen.add(id) : chosen.delete(id); syncBranches(); } });
-      box.checked = chosen.has(id);
-      return h('label', { class: 'row small', style: { marginTop: '6px', cursor: 'pointer' } }, box, name);
-    }))));
-  branchField.row = h('div', {}, branchGrid, branchField.input);
-
-  // 结束时间：本地时间选择，存 UTC 秒
-  const endField = form.field({ key: 'event_anniversary_end_unix', label: '结束时间', kind: 'string' }, val('event_anniversary_end_unix', 1825632000));
-  const toLocal = (ts) => { const d = new Date(Number(ts) * 1000); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0, 16); };
-  const picker = h('input', { type: 'datetime-local', class: 'input', value: toLocal(endField.original), style: { width: '260px' } });
-  endField.input = h('input', { type: 'hidden', value: endField.original });
-  picker.addEventListener('change', () => { const ts = Math.floor(new Date(picker.value).getTime() / 1000); if (ts > 0) { endField.input.value = String(ts); form.refresh(); } });
-  endField.row = h('div', { class: 'setting' },
-    h('div', {}, h('div', { class: 's-label', text: '活动结束时间' }), h('div', { class: 's-help', text: '新年和周年活动面板上的倒计时终点。按你电脑的时区显示。' })),
-    h('div', { class: 's-control' }, picker, endField.input));
-
-  return [
-    note('活动设置只在玩家重新登录时下发。', '改完之后，玩家需要完全退出游戏再登录才能看到变化。'),
-    pblock(1, '当前活动', '同一时间只能开一个活动。点击立即切换。', h('div', { class: 'span-2', style: { gridColumn: '1 / -1' } }, mode)),
-    pblock(2, '活动分支', '选择活动面板里出现哪些任务线。都不选表示不下发任何活动任务。', h('div', { class: 'span-2', style: { gridColumn: '1 / -1' } }, branchField.row), { id: 'pg-branch' }),
-    pblock(3, '时间', '新年和周年活动面板上的倒计时终点。按你电脑的时区显示。', endField.row, { id: 'pg-time' }),
-    giftsSection(t, [...chosen], which !== 'off'),
-  ];
-}
-
-// 阶段奖励：按分支、阶段配置额外奖励物品
-function giftsSection(t, branches, active) {
-  let data = {};
-  try { data = JSON.parse(t.event_stage_gifts || '{}') || {}; } catch (e) { data = {}; }
-  const names = {};
-  let branch = branches.includes(13) ? 13 : branches[0];
-  let stage = 1;
-  let dirty = false;
-  const box = h('div');
-  const saveBtn = btn('保存阶段奖励', async () => {
-    for (const [b, stages] of Object.entries(data)) for (const [s, gifts] of Object.entries(stages)) {
-      if (!gifts.length) delete data[b][s];
-    }
-    for (const b of Object.keys(data)) if (!Object.keys(data[b]).length) delete data[b];
-    try {
-      await post('/api/tunables', { key: 'event_stage_gifts', value: Object.keys(data).length ? JSON.stringify(data, null, 2) : '' });
-      dirty = false;
-      toast('已保存。玩家需要重启游戏并重新登录才能看到。');
-      draw();
-    } catch (e) { toast(errText(e), 'bad'); }
-  }, 'primary');
-  const gifts = () => ((data[branch] || {})[stage] || []);
-  const setGifts = (list) => { data[branch] = data[branch] || {}; data[branch][stage] = list; dirty = true; draw(); };
-  const hydrate = async () => {
-    const ids = new Set();
-    for (const st of Object.values(data)) for (const list of Object.values(st)) for (const g of list) if (!names[g.item]) ids.add(g.item);
-    for (const id of ids) {
-      try { const r = await api('/api/catalog/items?limit=5&q=' + encodeURIComponent(id)); const hit = r.find((x) => x.item_id === id); names[id] = hit ? hit.name : id; } catch (e) { names[id] = id; }
-    }
-    if (ids.size) draw();
-  };
-  function draw() {
-    if (!active || !branches.length) {
-      box.replaceChildren(empty(!active ? '还没有开启活动' : '还没有选择活动分支', !active ? '先在上面选择新年或周年活动。' : '先在上面勾选至少一个分支并保存。'));
-      return;
-    }
-    const branchSel = h('select', { class: 'select', style: { width: '240px' }, onchange: (e) => { branch = Number(e.target.value); stage = 1; draw(); } },
-      branches.map((b) => h('option', { value: b, text: BRANCH_NAME[b] || b, selected: b === branch })));
-    const stageTabs = h('div', { class: 'seg' }, Array.from({ length: stageCount(branch) }, (_, i) => {
-      const n = i + 1, count = ((data[branch] || {})[n] || []).length;
-      return h('button', { type: 'button', class: n === stage ? 'on' : '', onclick: () => { stage = n; draw(); } }, '阶段 ' + n, count ? h('span', { class: 'muted', text: ' · ' + count }) : null);
-    }));
-    const list = gifts();
-    const rows = list.length ? h('div', { class: 'card' }, h('div', { class: 'list' }, list.map((g, i) => h('div', { class: 'list-item' },
-      itemIcon(g.item), h('div', { class: 'grow' }, h('div', { class: 'title', text: names[g.item] || g.item }), h('div', { class: 'sub mono', text: g.item })),
-      h('label', { class: 'row small muted' }, '数量', h('input', { class: 'input num', style: { width: '72px', height: '30px' }, value: g.qty, oninput: (e) => { g.qty = Math.max(1, Math.min(99, Math.round(Number(e.target.value) || 1))); dirty = true; } })),
-      btn('', () => setGifts(list.filter((_, j) => j !== i)), 'ghost icon sm', { icon: 'trash', 'aria-label': '移除' })))))
-      : empty('这个阶段没有额外奖励', '完成这个阶段时只发游戏自带的奖励。');
-    box.replaceChildren(h('div', { class: 'stack' },
-      h('div', { class: 'row' }, branchSel, h('div', { style: { overflowX: 'auto', maxWidth: '100%' } }, stageTabs)),
-      rows,
-      h('div', { class: 'row' }, btn('添加物品', () => pickItem({ title: '选择奖励物品', completeOnly: true, onPick: (x) => { names[x.item_id] = x.name; setGifts([...list, { item: x.item_id, qty: 1 }]); } }), '', { icon: 'plus' }),
-        h('span', { class: 'spacer' }), saveBtn)));
-  }
-  draw();
-  hydrate();
-  return pblock(4, '阶段奖励', '完成活动某个阶段时，额外发放的物品。', box, { id: 'pg-gifts' });
 }
