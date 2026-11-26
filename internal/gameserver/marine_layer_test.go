@@ -162,10 +162,10 @@ func TestMarineRigWaterLayerUsesStateOnlyWhenEnabled(t *testing.T) {
 	c50 := fishRollContext{rigType: 50, marineLayer: 0.42, marineLayerKnown: true}
 	c55 := fishRollContext{rigType: 55, marineLayer: 0.42, marineLayerKnown: true}
 
-	if got := s.rigWaterLayer(c50); !marineLayerNear(got, 0.42) {
+	if got, known := s.rigWaterLayer(c50); !known || !marineLayerNear(got, 0.42) {
 		t.Fatalf("50 海钓层=%f，期望 0.42", got)
 	}
-	if got := s.rigWaterLayer(c55); !marineLayerNear(got, 0.42) {
+	if got, known := s.rigWaterLayer(c55); !known || !marineLayerNear(got, 0.42) {
 		t.Fatalf("55 海钓层=%f，期望 0.42", got)
 	}
 
@@ -174,10 +174,10 @@ func TestMarineRigWaterLayerUsesStateOnlyWhenEnabled(t *testing.T) {
 	// 这里显式模拟，验证 rigWaterLayer 会回退旧分支。
 	c50.marineLayerKnown = false
 	c55.marineLayerKnown = false
-	if got := s.rigWaterLayer(c50); !marineLayerNear(got, 0.5) {
+	if got, known := s.rigWaterLayer(c50); !known || !marineLayerNear(got, 0.5) {
 		t.Fatalf("关闭后 50 应回退 effectiveLureLayer，得到 %f", got)
 	}
-	if got := s.rigWaterLayer(c55); !marineLayerNear(got, 0.93) {
+	if got, known := s.rigWaterLayer(c55); !known || !marineLayerNear(got, 0.93) {
 		t.Fatalf("关闭后 55 应回退 0.93，得到 %f", got)
 	}
 }
