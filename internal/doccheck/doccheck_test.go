@@ -40,7 +40,7 @@ func TestCleanTreeHasNoIssues(t *testing.T) {
 		"specs/changes/a/spec.md": "Status: in-progress\n\n见 `docs/mechanism.md`。\n",
 		"specs/changes/b/spec.md": "Status: done\n",
 		"specs/capabilities/c.md": "# 契约\n\n见 `docs/mechanism.md`。\n",
-		"CLAUDE.md":               "# 入口\n\n见 `docs/mechanism.md`。\n",
+		"CONTRIBUTING.md":         "# 入口\n\n见 `docs/mechanism.md`。\n",
 	})
 	report, err := Run(root)
 	if err != nil {

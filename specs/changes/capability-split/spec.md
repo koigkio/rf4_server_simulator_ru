@@ -47,7 +47,7 @@ Status: in-progress
   - `runtime-and-launch.md` ← 装配唯一入口、初始化四步、静态库只读、地址来自配置、启动期依赖
 - 不复制的部分：轮换实现细节只在 `bite-bait-and-spawn.md` 写一次，后台侧只引用；
   发奖幂等只写在 `settlement-and-idempotency.md`，经济侧引用。
-- 引用更新点：`CLAUDE.md` 事实入口表、`docs/agents/domain.md` 对账表、`docs/README.md` 契约清单、
+- 引用更新点：`CONTRIBUTING.md` 事实入口表、`docs/agents/domain.md` 对账表、`docs/README.md` 契约清单、
   以及各契约之间的交叉引用。`docs/mechanism-map.md` 不变（它指代码，不指契约）。
 - 不改任何 ✅/❌ 的语义、不改数值、不新增约束判定。
 
@@ -63,13 +63,13 @@ Status: in-progress
 
 ## Out of Scope
 
-- 不重组 `CLAUDE.md` 的红线（那是另一件事，需单独评审）。
+- 不重组 `CONTRIBUTING.md` 的红线（那是另一件事，需单独评审）。
 - 不把 `docs/gameplay.md` 按机制拆成多份（它现在是可用的总纲）。
 - 不新增协议字段、不改任何运行时行为。
 
 ## Further Notes
 
 - 依据 `[事实]`：`fishing-and-settlement.md` 拆分前 102 行、9 个小节，引用点 4 处
-  （`CLAUDE.md`、`docs/agents/domain.md`、`gear-and-line-load.md`、`rig-assembly.md`）。
+  （`CONTRIBUTING.md`、`docs/agents/domain.md`、`gear-and-line-load.md`、`rig-assembly.md`）。
 - 外部参照：能力契约按主题拆小、单份控制在数十行，是多仓库协作项目的通行做法；
   超过约 150 行后追加内容的收益递减，且更难判断"改这里要不要同步"。

@@ -56,7 +56,7 @@
 |---|---|---|---|
 | L1 | `.githooks/`（`tools/hooks.ps1` 或 `make hooks` 启用） | pre-commit: doccheck；pre-push: build + vet | 已入库，需自行启用 |
 | L2 | `.github/workflows/ci.yml` | gofmt + build + vet + test（含 `internal/doccheck` 仓库断言） | PR 触发，无 paths 过滤 |
-| L3 | `CLAUDE.md` 红线 + 能力契约 + 评审 | 语义类约束 | 靠人 |
+| L3 | `CONTRIBUTING.md` 红线 + 能力契约 + 评审 | 语义类约束 | 靠人 |
 
 **gofmt 以 CI 判定为准**：Windows 检出为 CRLF 时本地 `gofmt -l` 会把每个文件判成未格式化；
 CI 在 Linux 检出为 LF，判定才有意义。

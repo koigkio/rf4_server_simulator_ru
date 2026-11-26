@@ -210,7 +210,7 @@ static.sqlite3 `loc_fish` 表为准。
   值不入锚点，仅钉表参数）；
   crucian K0=15.05 与 v1 spec 精确一致、f5 每 g 2.297 vs 2.29 双指标自校验通过。
 - 全量门禁：gameserver 包仅剩既有基线失败 TestCafeNativeFlowPaysAndPushesRemoval
-  （单跑过、时序敏感，口径同 AGENTS.md）；其余包 2 失败均为环境/工作区既有问题
+  （单跑过、时序敏感，口径同 CONTRIBUTING.md）；其余包 2 失败均为环境/工作区既有问题
   （launcher GOTMPDIR 路径分隔符、docs 索引缺 2026-11-16 解码文档登记），与本分支无关。
 
 ### v2.1 增补：未实测种全覆盖归组 + 皮肤变种别名（2026-11-17）

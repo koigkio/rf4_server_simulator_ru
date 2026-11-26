@@ -33,7 +33,7 @@ Status: in-progress
 ## Implementation Decisions
 
 - 新包 `internal/doccheck`：`Run(root)` 返回 `[]Issue` + 统计；规则常量独立，便于以后增删。
-- 校验范围：`docs/**/*.md`、`specs/**/*.md`，加根目录 `CLAUDE.md`、`CONTEXT.md`、`CONTRIBUTING.md`。
+- 校验范围：`docs/**/*.md`、`specs/**/*.md`，加根目录 `CONTRIBUTING.md`、`CONTEXT.md`、`CONTRIBUTING.md`。
 - 五条规则：
   1. `doc-index`：`docs/` 根目录每份 `.md`（除 `README.md`）必须在 `docs/README.md` 中出现文件名。
   2. `spec-status`：`specs/changes/*/spec.md` 首屏 `Status:` 必须是五态枚举之一。
@@ -64,5 +64,5 @@ Status: in-progress
 ## Further Notes
 
 - 证据：`docs/README.md` 缺 10 份文档、2 处自由文本状态，均为 2026-11-10 实测 `[事实]`。
-- 外部参照：`AGENTS.md` 生态的共识是"能被工具强制的规则不要写进指令文件"，本改动即把三条文档规则从"靠人"移到"靠工具"。
+- 外部参照：`CONTRIBUTING.md` 生态的共识是"能被工具强制的规则不要写进指令文件"，本改动即把三条文档规则从"靠人"移到"靠工具"。
 - 若未来需要第五类规则（如能力契约必须在 README 枚举），在 `internal/doccheck` 加常量与该规则的夹具即可，不新建包。

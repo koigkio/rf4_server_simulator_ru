@@ -90,7 +90,6 @@
 
 ## 工程约定
 
-- [仓库入口](../CLAUDE.md)：硬约束（红线）与事实入口表，Agent 必读。
 - [术语表](../CONTEXT.md)：跨模块共享术语，每条带反例。
 - [工程工作流](agents/workflow.md)：快速路径与约束路径的分级、门禁级别。
 - [变更记录约定](agents/issue-tracker.md)：`specs/changes` 目录与状态流转。

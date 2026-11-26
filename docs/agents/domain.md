@@ -6,7 +6,7 @@
 
 | 问题 | 唯一归属 |
 |---|---|
-| 要什么去哪找、硬约束 | `CLAUDE.md` |
+| 要什么去哪找、硬约束 | `CONTRIBUTING.md` |
 | 这个词什么意思 | `CONTEXT.md` |
 | 这个能力长期怎么工作 | `specs/capabilities/` |
 | 这次改什么、在哪个接缝测 | `specs/changes/<slug>/spec.md` |

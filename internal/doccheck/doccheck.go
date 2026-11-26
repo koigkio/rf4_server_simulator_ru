@@ -43,7 +43,7 @@ var (
 	linkPattern   = regexp.MustCompile(`\[[^\]]*\]\(([^)]+)\)`)
 	refPattern    = regexp.MustCompile(`(?:^|[^A-Za-z0-9_./-])((?:docs|specs)/[A-Za-z0-9_./-]+\.md)`)
 	skipPrefixes  = []string{"http://", "https://", "mailto:", "#", "/"}
-	rootExtraDocs = []string{"CLAUDE.md", "CONTEXT.md", "CONTRIBUTING.md"}
+	rootExtraDocs = []string{"CONTEXT.md", "CONTRIBUTING.md"}
 )
 
 // Issue 是一条违规。Path 为相对仓库根的斜杠路径。

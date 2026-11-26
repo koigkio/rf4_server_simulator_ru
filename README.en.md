@@ -75,7 +75,7 @@ See [release notes](https://github.com/OpenFisherCommunity/rf4_server_simulator/
 
 The QQ group information comes from the project release announcements. When reporting a problem, include the release version, client version, reproduction steps, and logs or screenshots with account IDs, tokens, and personal paths removed.
 
-Pull requests are welcome for code, documentation, and regression coverage. Please read the [contribution guide](CONTRIBUTING.md); repository conventions are documented in [CLAUDE.md](CLAUDE.md).
+Pull requests are welcome for code, documentation, and regression coverage. Please read the [contribution guide](CONTRIBUTING.md).
 
 ## Documentation
 
