@@ -14,7 +14,7 @@ func TestMigrationConditionEnergyMax(t *testing.T) {
 
 	cases := []struct {
 		name string
-		seed string // 迁移前写进 tunables 的值；空表示没有这一行
+		seed string // 迁移前写进 tunables 的值; 空表示没有这一行
 		want string
 		ok   bool // 迁移后是否应存在该行
 	}{
@@ -62,12 +62,12 @@ func TestMigrationConditionEnergyMax(t *testing.T) {
 					t.Fatalf("迁移后应存在该行: %v", err)
 				}
 				if got != tc.want {
-					t.Fatalf("值应为 %q，实得 %q", tc.want, got)
+					t.Fatalf("值应为 %q, 实得 %q", tc.want, got)
 				}
 				return
 			}
 			if err == nil {
-				t.Fatalf("不该凭空创建该行，实得 %q", got)
+				t.Fatalf("不该凭空创建该行, 实得 %q", got)
 			}
 		})
 	}

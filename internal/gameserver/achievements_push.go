@@ -27,7 +27,7 @@ func achievementStatePushObject(id int64) *proto.Value {
 		0: proto.U32(uint32(id)),
 		1: proto.U32(1), // unlocked
 		2: proto.F32(1), // progress
-		3: proto.U32(1), // claimed：客户端实测只有这一位会点亮图标
+		3: proto.U32(1), // claimed: 客户端实测只有这一位会点亮图标
 		4: proto.U64(uint64(proto.WindowsFiletimeNow())),
 	})
 }
@@ -56,7 +56,7 @@ func (s *Server) queueAchievementUnlockPushes(ctx *Ctx, ids []int64) {
 			}
 		}
 		if log != nil {
-			log.Info("成就解锁推送", "uid", sess.Userid, "count", len(ids), "ids", ids)
+			log.Info("Отправка разблокировки достижения", "uid", sess.Userid, "count", len(ids), "ids", ids)
 		}
 	})
 }
@@ -81,7 +81,7 @@ func (s *Session) pushAchievementProbe(variant string, achID int64, notifyType i
 		s.Push2_9(byte(notifyType), 0)
 	case "chat":
 		// 已验证能显示的对照通道，用于确认推送链路确实到达客户端。
-		s.pushSystemChat(fmt.Sprintf("成就推送探针 id=%d", achID))
+		s.pushSystemChat(fmt.Sprintf("Проба отправки достижения id=%d", achID))
 	default:
 		return false
 	}

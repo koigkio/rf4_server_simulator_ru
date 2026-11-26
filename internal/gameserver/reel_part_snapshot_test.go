@@ -185,7 +185,7 @@ func TestReelPartSnapshotWorkshop(t *testing.T) {
 				}
 				wantSilver, _ := srv.partPrice(ctx, id, partDef.Category)
 				if balanceBefore.Silver-balanceAfter.Silver != wantSilver {
-					t.Fatalf("工坊扣费=%d，期望服务端价格=%d",
+					t.Fatalf("工坊扣费=%d, 期望服务端价格=%d",
 						balanceBefore.Silver-balanceAfter.Silver, wantSilver)
 				}
 				fresh := assertReelSnapshot(t, srv, reel.GUID, id, drag)
@@ -504,7 +504,7 @@ func TestReelPartSnapshotBatchAndUnrelatedParts(t *testing.T) {
 			// 新口径：响应里的轮根=规格×轴承耐久（与摩擦片值解耦）。
 			// 本夹具轴承耐久被置 0（受保护状态），轮根按公式应为 0。
 			if got := snapshotFloat(reply.Fields, reply.Class, csStrength); got != 0 {
-				t.Fatalf("response root=%g, want 0（夹具轴承耐久=0）", got)
+				t.Fatalf("response root=%g, want 0 (夹具轴承耐久=0)", got)
 			}
 			_, replyGear := snapshotPart(t, srv, reply.Fields, 52)
 			if replyGear.ItemID != "rgm_ef_spark10021" {

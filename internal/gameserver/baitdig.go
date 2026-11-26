@@ -237,7 +237,7 @@ func (s *Server) tryBaitDig(ctx *Ctx) ([]byte, bool) {
 
 	mastery, err := s.DB.GetSkillPoints(cctx, ctx.Sess.Userid, captureBaitSkillID)
 	if err != nil {
-		return s.replyBaitDigFailed(ctx, "读取捕获鱼饵熟练度失败: "+err.Error()), true
+		return s.replyBaitDigFailed(ctx, "Не удалось прочитать мастерство добычи наживки: "+err.Error()), true
 	}
 	if mastery < 0 {
 		mastery = 0
@@ -247,17 +247,17 @@ func (s *Server) tryBaitDig(ctx *Ctx) ([]byte, bool) {
 	}
 	loot := rollBaitDigLoot(tool.ItemID, mastery, rand.Intn)
 	if len(loot) == 0 {
-		return s.replyBaitDigFailed(ctx, "熟练度未解锁任何可挖饵料"), true
+		return s.replyBaitDigFailed(ctx, "Мастерство пока не открывает ни одну наживку для копания"), true
 	}
 
 	prepared := make([]*store.Item, 0, len(loot))
 	for _, drop := range loot {
 		it, err := s.prepareNewItem(cctx, ctx.Sess.Userid, drop.Key, "backpack", 1, "")
 		if err != nil {
-			return s.replyBaitDigFailed(ctx, "饵记录构造失败: "+err.Error()), true
+			return s.replyBaitDigFailed(ctx, "Ошибка создания записи наживки: "+err.Error()), true
 		}
 		if err := setPreparedItemQuantity(it, drop.Qty); err != nil {
-			return s.replyBaitDigFailed(ctx, "饵数量写入失败: "+err.Error()), true
+			return s.replyBaitDigFailed(ctx, "Ошибка записи количества наживки: "+err.Error()), true
 		}
 		prepared = append(prepared, it)
 	}
@@ -269,7 +269,7 @@ func (s *Server) tryBaitDig(ctx *Ctx) ([]byte, bool) {
 
 	tx, err := beginEconomyTx(cctx, s.DB)
 	if err != nil {
-		return s.replyBaitDigFailed(ctx, "挖饵事务开启失败: "+err.Error()), true
+		return s.replyBaitDigFailed(ctx, "Не удалось начать транзакцию копания: "+err.Error()), true
 	}
 	defer func() { _ = tx.Rollback() }()
 	// 体力扣减与饵入包同事务：任一侧失败整体回滚，不会出现"白挖"或"白扣"。
@@ -277,28 +277,28 @@ func (s *Server) tryBaitDig(ctx *Ctx) ([]byte, bool) {
 	spent, err := spendEnergyTx(cctx, tx, ctx.Sess.Userid, condParams, condEnv, condCost)
 	if err != nil {
 		if errors.Is(err, errEnergyNotEnough) {
-			ctx.Log.Info("9/3 挖饵被拒：精力不足", "tool", tool.ItemID,
+			ctx.Log.Info("9/3 Копание отклонено: не хватает энергии", "tool", tool.ItemID,
 				"cost", condCost, "enabled", condParams.Enabled)
-			return s.replyBaitDigFailed(ctx, "精力不足以挖饵"), true
+			return s.replyBaitDigFailed(ctx, "Не хватает энергии для копания наживки"), true
 		}
-		return s.replyBaitDigFailed(ctx, "挖饵精力结算失败: "+err.Error()), true
+		return s.replyBaitDigFailed(ctx, "Ошибка расчёта энергии копания: "+err.Error()), true
 	}
 	granted := make([]*store.Item, 0, len(prepared))
 	parts := make([]string, 0, len(prepared))
 	for i, it := range prepared {
 		row, merged, err := grantPreparedItemTx(cctx, tx, it, true)
 		if err != nil {
-			return s.replyBaitDigFailed(ctx, "饵入包失败: "+err.Error()), true
+			return s.replyBaitDigFailed(ctx, "Не удалось положить наживку в инвентарь: "+err.Error()), true
 		}
 		granted = append(granted, row)
 		parts = append(parts, fmt.Sprintf("%s x%d merged=%t", loot[i].Key, loot[i].Qty, merged))
 	}
 	if err := addTxnTx(cctx, tx, ctx.Sess.Userid, "baitdig", loot[0].Key, granted[0].GUID, 0, 0,
 		fmt.Sprintf("tool=%s baits=%s", tool.ItemID, strings.Join(parts, ","))); err != nil {
-		return s.replyBaitDigFailed(ctx, "挖饵流水写入失败: "+err.Error()), true
+		return s.replyBaitDigFailed(ctx, "Ошибка записи журнала копания: "+err.Error()), true
 	}
 	if err := tx.Commit(); err != nil {
-		return s.replyBaitDigFailed(ctx, "挖饵事务提交失败: "+err.Error()), true
+		return s.replyBaitDigFailed(ctx, "Не удалось зафиксировать транзакцию копания: "+err.Error()), true
 	}
 
 	after := mastery
@@ -312,7 +312,7 @@ func (s *Server) tryBaitDig(ctx *Ctx) ([]byte, bool) {
 			masteryStep := math.Min(baitMasteryStep, baitMasteryCap-mastery)
 			after = math.Min(baitMasteryCap, math.Round((mastery+masteryStep)*10)/10)
 			if err := s.DB.AddSkillPoints(cctx, ctx.Sess.Userid, captureBaitSkillID, masteryStep); err != nil {
-				ctx.Log.Warn("捕获鱼饵熟练度写入失败", "err", err)
+				ctx.Log.Warn("Ошибка записи мастерства добычи наживки", "err", err)
 				after = mastery
 			}
 		}
@@ -325,16 +325,16 @@ func (s *Server) tryBaitDig(ctx *Ctx) ([]byte, bool) {
 	for i, row := range granted {
 		tree, err := s.ItemToTree(cctx, row)
 		if err != nil {
-			return s.replyBaitDigFailed(ctx, "饵物品树构造失败: "+err.Error()), true
+			return s.replyBaitDigFailed(ctx, "Ошибка создания дерева предметов наживки: "+err.Error()), true
 		}
 		// 803.f1 是"本次获得"预览，数量用本次增量；803.f6/f7 是背包快照，用堆总数。
 		previewRow := *row
 		if err := setPreparedItemQuantity(&previewRow, loot[i].Qty); err != nil {
-			return s.replyBaitDigFailed(ctx, "饵获得数量构造失败: "+err.Error()), true
+			return s.replyBaitDigFailed(ctx, "Ошибка создания количества полученной наживки: "+err.Error()), true
 		}
 		preview, err := s.ItemToTree(cctx, &previewRow)
 		if err != nil {
-			return s.replyBaitDigFailed(ctx, "饵获得预览构造失败: "+err.Error()), true
+			return s.replyBaitDigFailed(ctx, "Ошибка создания предпросмотра полученной наживки: "+err.Error()), true
 		}
 		previews = append(previews, preview)
 		trees = append(trees, tree)
@@ -349,11 +349,11 @@ func (s *Server) tryBaitDig(ctx *Ctx) ([]byte, bool) {
 	for _, row := range granted {
 		stacks = append(stacks, fmt.Sprintf("%s=%d", row.ItemID, stackCountFromRow(row)))
 	}
-	ctx.Log.Info("9/3 挖饵", "tool", tool.ItemID, "baits", strings.Join(parts, ","),
+	ctx.Log.Info("9/3 Копание наживки", "tool", tool.ItemID, "baits", strings.Join(parts, ","),
 		"stacks", strings.Join(stacks, ","), "mastery", fmt.Sprintf("%.1f->%.1f", mastery, after),
 		"energy_spent", spent)
 	ctx.AfterResponse(func() {
-		ctx.Sess.Push2_4SkillTree("挖饵 " + strings.Join(keys, ","))
+		ctx.Sess.Push2_4SkillTree("Копание наживки " + strings.Join(keys, ","))
 		for _, tree := range trees {
 			ctx.Sess.Push(4, 22, proto.Args(proto.S("61"), tree))
 		}
@@ -371,7 +371,7 @@ func (s *Server) tryBaitDig(ctx *Ctx) ([]byte, bool) {
 
 func setPreparedItemQuantity(it *store.Item, qty int64) error {
 	if it == nil || qty < 1 {
-		return fmt.Errorf("无效数量 %d", qty)
+		return fmt.Errorf("Неверное количество %d", qty)
 	}
 	fields, err := FieldsFromJSON(it.FieldsJSON)
 	if err != nil {
@@ -379,7 +379,7 @@ func setPreparedItemQuantity(it *store.Item, qty int64) error {
 	}
 	idx := stackQtyFieldIdx(it.WireClass)
 	if idx < 0 || idx >= len(fields) {
-		return fmt.Errorf("物品 %s 没有数量字段", it.ItemID)
+		return fmt.Errorf("У предмета %s нет поля количества", it.ItemID)
 	}
 	fields[idx].Num = ptrU64(uint64(qty))
 	bumpCreatedTicks(fields, it.WireClass)
@@ -420,14 +420,14 @@ func (s *Server) replyBaitDigResult(ctx *Ctx, previews, trees []*proto.Value, ma
 	obj.Fields[3].Val = s.buildSingleSkill312(ctx.Sess.pushCtx(), ctx.Sess.Userid, captureBaitSkillID)
 	body, err := proto.EncodeValue(obj, ctx.Sess.Table())
 	if err != nil {
-		ctx.Log.Warn("挖饵 803 编码失败", "err", err)
+		ctx.Log.Warn("Ошибка кодирования 803 при копании", "err", err)
 		return nil, false
 	}
 	return body, true
 }
 
 func (s *Server) replyBaitDigFailed(ctx *Ctx, reason string) []byte {
-	ctx.Log.Warn("9/3 挖饵失败", "reason", reason)
+	ctx.Log.Warn("9/3 Не удалось накопать наживку", "reason", reason)
 	obj := wiregen.MustMakeObj("beckiiffkem", map[int]*proto.Value{
 		0: proto.U32(0), 1: proto.Args(proto.S("61")), 2: proto.Null(),
 	})
@@ -456,7 +456,7 @@ func masteryGainValue(skillID int64, gain float64) *proto.Value {
 func (s *Session) Push2_4SkillTree(why string) {
 	tree, err := s.Srv.BuildSkillTree311(s.pushCtx(), s.Userid, ^uint64(0))
 	if err != nil {
-		s.log.Warn("2/4 技能树构造失败", "why", why, "err", err)
+		s.log.Warn("2/4 Ошибка создания дерева навыков", "why", why, "err", err)
 		return
 	}
 	s.Push(2, 4, proto.Args524(tree))

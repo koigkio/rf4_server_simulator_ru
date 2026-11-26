@@ -38,7 +38,7 @@ func TestTravelLockedVoucherMapRejected(t *testing.T) {
 	}
 	target := "level_012_north_sea"
 	if body, ok := hTravel(tripReviewCtx(srv, uid, proto.Args524(proto.StrVal(target)))); !ok || body != nil {
-		t.Fatalf("无资格 1/14 应业务拒绝（nil body），实得 body=%v ok=%v", body != nil, ok)
+		t.Fatalf("无资格 1/14 应业务拒绝 (nil body), 实得 body=%v ok=%v", body != nil, ok)
 	}
 	if loc, err := db.GetPlayerLocation(ctx, uid); err == nil && loc != nil && loc.LevelKey == target {
 		t.Fatal("拒绝后位置不应改为凭证地图")
@@ -141,7 +141,7 @@ func TestPlaceTripGoldPriceMissingRejected(t *testing.T) {
 	buyCtx := &Ctx{Sess: tripReviewCtx(srv, uid, nil).Sess, Main: 3, Sub: 38,
 		Tree: tripArgs("level_018_moskitnoe", true, 45), DecodeOK: true, Log: logging.Discard()}
 	if body, handled := hPlaceTripTx(buyCtx); !handled || body != nil {
-		t.Fatalf("未实抓币种应业务拒绝（nil body）: handled=%v body=%v", handled, body != nil)
+		t.Fatalf("未实抓币种应业务拒绝 (nil body): handled=%v body=%v", handled, body != nil)
 	}
 	var silver, gold int64
 	if err := db.SQL.QueryRow(`SELECT silver, gold FROM profile WHERE uid=?`, uid).Scan(&silver, &gold); err != nil {
@@ -174,7 +174,7 @@ func TestTripExpiryCompensationRevokesResidualAccess(t *testing.T) {
 	}
 
 	if !srv.tripLevelLocked(ctx0, uid, place) {
-		t.Fatal("残留 access（remaining=0）应判锁定")
+		t.Fatal("残留 access (remaining=0)应判锁定")
 	}
 
 	sess := &Session{ID: 1, Userid: uid, Srv: srv, log: logging.Discard()}
@@ -182,7 +182,7 @@ func TestTripExpiryCompensationRevokesResidualAccess(t *testing.T) {
 	sess.closed.Store(true)
 	sess.consumeTripTimes(time.Now())
 	if n := tripAccessCount(t, srv, uid, place); n != 0 {
-		t.Fatalf("补偿分支应删除残留 access，实存 %d", n)
+		t.Fatalf("补偿分支应删除残留 access, 实存 %d", n)
 	}
 	if !srv.tripLevelLocked(ctx0, uid, place) {
 		t.Fatal("回收后仍应锁定")
@@ -266,13 +266,13 @@ func TestPlaceAccessListBuyoutOnly(t *testing.T) {
 		t.Fatal(err)
 	}
 	if len(places) != 1 || places[0] != "level_018_moskitnoe" {
-		t.Fatalf("f22 应只含买断，实得 %v", places)
+		t.Fatalf("f22 应只含买断, 实得 %v", places)
 	}
 	houses, err := db.HouseAccessList(ctx, uid)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if len(houses) != 1 || houses[0] != "housestore_003" {
-		t.Fatalf("f20 应含房屋，实得 %v", houses)
+		t.Fatalf("f20 应含房屋, 实得 %v", houses)
 	}
 }

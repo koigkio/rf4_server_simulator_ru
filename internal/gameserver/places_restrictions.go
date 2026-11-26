@@ -57,7 +57,7 @@ func loadPlacesRestrictions() map[string]placeRestriction {
 			Levels map[string]placeRestriction `json:"levels"`
 		}
 		if err := json.Unmarshal(placesRestrictionsJSON, &doc); err != nil {
-			panic(fmt.Sprintf("places_restrictions.json 解析失败: %v", err))
+			panic(fmt.Sprintf("places_restrictions.json Ошибка разбора: %v", err))
 		}
 		placesRestrictions = doc.Levels
 	})
@@ -105,7 +105,7 @@ func placeGearViolationReason(def *store.ItemDef, rules []placeGearRule) string 
 			if rule.Note != "" {
 				return rule.Note
 			}
-			return fmt.Sprintf("类别%d子类%d受本水域限制", rule.Category, rule.Subtype)
+			return fmt.Sprintf("Категория %d, подкатегория %d ограничена на этом водоёме", rule.Category, rule.Subtype)
 		}
 	}
 	return ""

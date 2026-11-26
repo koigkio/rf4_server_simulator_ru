@@ -48,7 +48,7 @@ func TestWorkshopRodReplacementSurvivesSnapshot(t *testing.T) {
 	for name, tree := range map[string]*proto.Value{"reply": reply, "reload": reloaded} {
 		child := tree.Fields[1].Val
 		if got := reelChildDurability(child); got != 1 {
-			t.Fatalf("%s 新手柄耐久=%v，期望 1", name, got)
+			t.Fatalf("%s 新手柄耐久=%v, 期望 1", name, got)
 		}
 		if got := srv.childSystemID(ctx, child); got != "hand_kgf_sage_pick" {
 			t.Fatalf("%s 恢复了出厂手柄: %s", name, got)

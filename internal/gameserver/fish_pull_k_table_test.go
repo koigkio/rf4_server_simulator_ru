@@ -14,7 +14,7 @@ import (
 var officialPullAnchors = []struct {
 	species string
 	weightG int64
-	pullN   float64 // 官方 f8（牛）
+	pullN   float64 // 官方 f8 (牛)
 	tolPct  float64 // 允许偏差
 }{
 	{"crucian", 611, 9.0919, 2},
@@ -109,7 +109,7 @@ func TestFishPullMatchesOfficialAnchors(t *testing.T) {
 		got := srv.fishFightPullFor(f)
 		tol := a.pullN * a.tolPct / 100
 		if math.Abs(got-a.pullN) > tol {
-			t.Errorf("%s %dg f8=%.4fN，官服=%.4fN（±%v%%）", a.species, a.weightG, got, a.pullN, a.tolPct)
+			t.Errorf("%s %dg f8=%.4fN, 官服=%.4fN (±%v%%)", a.species, a.weightG, got, a.pullN, a.tolPct)
 		}
 	}
 }
@@ -123,20 +123,20 @@ func TestFishPullGroupFallback(t *testing.T) {
 		group   string
 		wantK   float64
 	}{
-		{"riv_rb_trout", "salmonid", 20.11},  // v2.2：组值按实测成员 a_char/gc_smelt 的 K0 均值标定
-		{"lm_b_bass", "predator", 17.30},     // v2：组值锚 n.pike 实测
-		{"din_m_carp", "carp_mid", 16.50},    // v2：组值锚 carp
-		{"karasekarp", "still_carp", 15.05},  // v2：组值锚 crucian
-		{"shemaya", "small_forage", 18.64},   // v2：移出 roach_run，同黑海欧白鱼实测族
-		{"cetorhinus_m", "apex", 25.53},      // v2 新组：鲨/剑鱼/金枪鱼（纯推断）
-		{"carp_albino", "alias→carp", 16.50}, // v2 别名：皮肤变种继承宿主 carp
-		{"crawfish", "weak_silver", 13.00},   // v2.1 修正（PR #516）：虾无拉力数据按体型归贝/蛙组，不再落 salmonid
-		{"pinagor", "marine_rock", 17.66},    // v2.1 修正（PR #516）：圆鳍鱼仅挪威海，海底层归 marine_rock，与 f5/f6 marine 判定自洽
+		{"riv_rb_trout", "salmonid", 20.11},  // v2.2: 组值按实测成员 a_char/gc_smelt 的 K0 均值标定
+		{"lm_b_bass", "predator", 17.30},     // v2: 组值锚 n.pike 实测
+		{"din_m_carp", "carp_mid", 16.50},    // v2: 组值锚 carp
+		{"karasekarp", "still_carp", 15.05},  // v2: 组值锚 crucian
+		{"shemaya", "small_forage", 18.64},   // v2: 移出 roach_run, 同黑海欧白鱼实测族
+		{"cetorhinus_m", "apex", 25.53},      // v2 新组: 鲨/剑鱼/金枪鱼 (纯推断)
+		{"carp_albino", "alias→carp", 16.50}, // v2 别名: 皮肤变种继承宿主 carp
+		{"crawfish", "weak_silver", 13.00},   // v2.1 修正 (PR #516): 虾无拉力数据按体型归贝/蛙组, 不再落 salmonid
+		{"pinagor", "marine_rock", 17.66},    // v2.1 修正 (PR #516): 圆鳍鱼仅挪威海, 海底层归 marine_rock, 与 f5/f6 marine 判定自洽
 		{"not_in_calib", "fallback", 17.5},
 	}
 	for _, c := range cases {
 		if got := srv.fishPullK0For(c.species); math.Abs(got-c.wantK) > 1e-9 {
-			t.Errorf("%s K0=%f，期望 %s 组 %f", c.species, got, c.group, c.wantK)
+			t.Errorf("%s K0=%f, 期望 %s 组 %f", c.species, got, c.group, c.wantK)
 		}
 		// 官方 k 实测域 [12.59, 25.53]（v2：s.bream~cha_herring；v1 的 [12.6, 20.6]
 		// 被恒 k 海鱼实证推翻）。1kg 时 ln 项为 0，k 即 K0。
@@ -152,29 +152,29 @@ func TestFishPullGroupFallback(t *testing.T) {
 	carp2kg := srv.fishFightPullFor(&RolledFish{Species: "carp", WeightG: 2000})
 	alias2kg := srv.fishFightPullFor(&RolledFish{Species: "carp_albino", WeightG: 2000})
 	if carp2kg != alias2kg {
-		t.Errorf("carp_albino 2kg f8=%f 应逐位等于宿主 carp %f（斜率继承）", alias2kg, carp2kg)
+		t.Errorf("carp_albino 2kg f8=%f 应逐位等于宿主 carp %f (斜率继承)", alias2kg, carp2kg)
 	}
 	if want := math.Round(2*(16.50+0.49*math.Log(2))*10000) / 10000; carp2kg != want {
-		t.Errorf("carp 2kg f8=%f 应为 K0+0.49·ln2 外推 %f（斜率参与计算）", carp2kg, want)
+		t.Errorf("carp 2kg f8=%f 应为 K0+0.49·ln2 外推 %f (斜率参与计算)", carp2kg, want)
 	}
 	// v2 升实测的种必须优先命中逐鱼种表（组表已移除其映射）。
 	if got := srv.fishPullK0For("coalfish"); math.Abs(got-21.58) > 1e-9 {
-		t.Errorf("coalfish 应走实测表 K0=21.58，实得 %f（v2 前=组 19.7）", got)
+		t.Errorf("coalfish 应走实测表 K0=21.58, 实得 %f (v2 前=组 19.7)", got)
 	}
 	if got := srv.fishPullK0For("n_carp"); math.Abs(got-16.53) > 1e-9 {
-		t.Errorf("n_carp 应走实测表 K0=16.53，实得 %f（v2 前=组 16.7）", got)
+		t.Errorf("n_carp 应走实测表 K0=16.53, 实得 %f (v2 前=组 16.7)", got)
 	}
 	// v2.2 升实测的鲑科两种：同样优先命中逐鱼种表。
 	if got := srv.fishPullK0For("a_char"); math.Abs(got-20.07) > 1e-9 {
-		t.Errorf("a_char 应走实测表 K0=20.07，实得 %f（v2.2 前=组 18.0）", got)
+		t.Errorf("a_char 应走实测表 K0=20.07, 实得 %f (v2.2 前=组 18.0)", got)
 	}
 	if got := srv.fishPullK0For("gc_smelt"); math.Abs(got-20.15) > 1e-9 {
-		t.Errorf("gc_smelt 应走实测表 K0=20.15，实得 %f（v2.2 前=组 18.0）", got)
+		t.Errorf("gc_smelt 应走实测表 K0=20.15, 实得 %f (v2.2 前=组 18.0)", got)
 	}
 	// m_carp 的 4 个单样本 f8 锚点已入 officialPullAnchors（v2.2 自断电抢救包
 	// 恢复，重拟合仍是 {16.27, 0.59}）；此处钉表参数防误改。
 	if got := srv.fishPullParamFor("m_carp"); got != (fishPullParam{K0: 16.27, Slope: 0.59}) {
-		t.Errorf("m_carp 参数应为 {16.27, 0.59}，实得 %+v", got)
+		t.Errorf("m_carp 参数应为 {16.27, 0.59}, 实得 %+v", got)
 	}
 }
 
@@ -188,32 +188,32 @@ func TestFishPullLnSlopeTunable(t *testing.T) {
 	srv.tunCache = map[string]float64{"fish_pull_ln_slope": 0}
 	srv.tunAt = time.Now()
 	if got := srv.fishPullK0For("not_in_calib"); got != 17.5 {
-		t.Fatalf("fallback K0 应为 17.5，实得 %f", got)
+		t.Fatalf("fallback K0 应为 17.5, 实得 %f", got)
 	}
 	// tunable 置 0 抹平未标定种斜率：2kg fallback = 2×K0。
 	// 若 tunable 未接线，会是 2×(17.5+0.35·ln2)≈36.192。
 	if got := srv.fishFightPullFor(&RolledFish{Species: "not_in_calib", WeightG: 2000}); math.Abs(got-2*17.5) > 1e-6 {
-		t.Fatalf("斜率置 0 后 2kg fallback 应恰为 2×17.5=35.0，实得 %f", got)
+		t.Fatalf("斜率置 0 后 2kg fallback 应恰为 2×17.5=35.0, 实得 %f", got)
 	}
 	// 自拟合斜率不吃 tunable：置 0 后 2kg perch 仍带 0.38·ln2 项
 	// （期望值先按实现口径 round 到 1e-4）。
 	want := math.Round(2*(17.6+0.38*ln2)*10000) / 10000
 	if got := srv.fishFightPullFor(&RolledFish{Species: "perch", WeightG: 2000}); got != want {
-		t.Fatalf("斜率置 0 不应影响自拟合的 perch，2kg 应为 %f，实得 %f", want, got)
+		t.Fatalf("斜率置 0 不应影响自拟合的 perch, 2kg 应为 %f, 实得 %f", want, got)
 	}
 	// 恒 k 类（Slope=0）不吃 tunable。
 	if got := srv.fishFightPullFor(&RolledFish{Species: "coalfish", WeightG: 2000}); math.Abs(got-2*21.58) > 1e-6 {
-		t.Fatalf("恒 k 的 coalfish 2kg 应恒为 2×21.58=43.16（Slope=0 不吃 tunable），实得 %f", got)
+		t.Fatalf("恒 k 的 coalfish 2kg 应恒为 2×21.58=43.16 (Slope=0 不吃 tunable), 实得 %f", got)
 	}
 	// merlang v2.2 改判恒 k（k=20.60=2.1×9.81，落恒 k 离散档）：同样不吃 tunable。
 	if got := srv.fishFightPullFor(&RolledFish{Species: "merlang", WeightG: 2000}); math.Abs(got-2*20.60) > 1e-6 {
-		t.Fatalf("恒 k 的 merlang 2kg 应恒为 2×20.60=41.20，实得 %f", got)
+		t.Fatalf("恒 k 的 merlang 2kg 应恒为 2×20.60=41.20, 实得 %f", got)
 	}
 	// tunable=1：未标定种斜率取 1，2kg fallback = 2×(K0+1·ln2)。
 	srv.tunCache = map[string]float64{"fish_pull_ln_slope": 1.0}
 	srv.tunAt = time.Now()
 	want1 := math.Round(2*(17.5+ln2)*10000) / 10000
 	if got := srv.fishFightPullFor(&RolledFish{Species: "not_in_calib", WeightG: 2000}); got != want1 {
-		t.Fatalf("斜率 tunable=1 时 fallback 2kg 应为 2×(17.5+ln2)=%f，实得 %f", want1, got)
+		t.Fatalf("斜率 tunable=1 时 fallback 2kg 应为 2×(17.5+ln2)=%f, 实得 %f", want1, got)
 	}
 }

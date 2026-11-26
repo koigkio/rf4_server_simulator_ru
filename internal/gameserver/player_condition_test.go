@@ -67,7 +67,7 @@ func TestAdvancePlayerConditionHandComputed(t *testing.T) {
 	}
 	// 舒适度无环境输入时不动；健康无饥寒压力时已在 0（满血），自愈被地板钳住。
 	if next.Comfort != cur.Comfort || next.LuckPenalty != 0 {
-		t.Fatalf("舒适度应透传、健康应停在地板 0: comfort=%v luck=%v", next.Comfort, next.LuckPenalty)
+		t.Fatalf("舒适度应透传, 健康应停在地板 0: comfort=%v luck=%v", next.Comfort, next.LuckPenalty)
 	}
 }
 
@@ -509,7 +509,7 @@ func TestAdvanceEnergyRegenConsumesFood(t *testing.T) {
 	next := advancePlayerCondition(cur, 1000+1800, p, conditionEnv{})
 	gained := next.Primary - cur.Primary
 	if gained <= 0 {
-		t.Fatalf("精力应上升，实得 %v -> %v", cur.Primary, next.Primary)
+		t.Fatalf("精力应上升, 实得 %v -> %v", cur.Primary, next.Primary)
 	}
 	// 先按 natural decay 掉 0.24*0.5，再按回复量扣 0.5*系数。
 	want := 1.0 - p.HungerDecayPerHour*0.5 - gained*p.EnergyRegenFoodCost

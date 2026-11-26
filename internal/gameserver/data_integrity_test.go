@@ -23,7 +23,7 @@ func TestEnsurePlayerStarterGUIDsArePerUID(t *testing.T) {
 			t.Fatal(err)
 		}
 		if n != 33 {
-			t.Fatalf("UID %d starter 物品=%d，期望 33", uid, n)
+			t.Fatalf("UID %d starter 物品=%d, 期望 33", uid, n)
 		}
 
 		items := make(map[string]bool)
@@ -84,7 +84,7 @@ func TestEnsurePlayerStarterGUIDsArePerUID(t *testing.T) {
 			t.Fatal(err)
 		}
 		if shortcuts != 4 {
-			t.Fatalf("UID %d 快捷栏=%d，期望 4", uid, shortcuts)
+			t.Fatalf("UID %d 快捷栏=%d, 期望 4", uid, shortcuts)
 		}
 	}
 

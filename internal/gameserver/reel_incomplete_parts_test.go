@@ -35,7 +35,7 @@ func TestEveryIncompleteReelDefinitionHasFallbackParts(t *testing.T) {
 		}
 	}
 	if incomplete == 0 {
-		t.Fatal("测试数据中没有占位轮型，无法覆盖本修复")
+		t.Fatal("测试数据中没有占位轮型, 无法覆盖本修复")
 	}
 }
 

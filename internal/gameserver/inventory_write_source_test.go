@@ -29,7 +29,7 @@ func TestCreateRodPersistsFactoryPartsAndF5(t *testing.T) {
 		t.Fatalf("持久化竿 f5 钓组缺失: %#v", f5)
 	}
 	if got := int64(u64Of(f5.Field(1).Num)); got != 12 {
-		t.Fatalf("持久化 f5.f1=%d，期望默认 BottomSimple(12)", got)
+		t.Fatalf("持久化 f5.f1=%d, 期望默认 BottomSimple(12)", got)
 	}
 }
 
@@ -63,7 +63,7 @@ func TestFactoryPartsStateFlagsMatchPartDefs(t *testing.T) {
 		part := fields[i].Val
 		si := fieldIdxByCS(part.Class, csStateEnum)
 		if got := u64Of(part.Field(si).Num); got != want {
-			t.Fatalf("f%d %s 状态=0x%X，期望部件定义值 0x%X", i, partID, got, want)
+			t.Fatalf("f%d %s 状态=0x%X, 期望部件定义值 0x%X", i, partID, got, want)
 		}
 	}
 }
@@ -79,7 +79,7 @@ func TestCountableQuantityMatchesField(t *testing.T) {
 	fields, _ := FieldsFromJSON(it.FieldsJSON)
 	qi := fieldIdxByCS(it.WireClass, csQty)
 	if got, want := it.Qty, int64(u64Of(fields[qi].Num)); got != want || got != 60 {
-		t.Fatalf("新堆 row.qty=%d field.qty=%d，期望60/60", got, want)
+		t.Fatalf("新堆 row.qty=%d field.qty=%d, 期望60/60", got, want)
 	}
 	if _, stacked, err := srv.AddToStack(ctx, 1000001, "worm_01", "backpack", 1); err != nil || !stacked {
 		t.Fatalf("AddToStack: stacked=%v err=%v", stacked, err)
@@ -88,7 +88,7 @@ func TestCountableQuantityMatchesField(t *testing.T) {
 	fields, _ = FieldsFromJSON(row.FieldsJSON)
 	// units 语义为「件数」：并堆 1 件 = 60 + 1 = 61（不再加一份定义单位量 30）。
 	if got, want := row.Qty, int64(u64Of(fields[qi].Num)); got != want || got != 61 {
-		t.Fatalf("并堆后 row.qty=%d field.qty=%d，期望61/61", got, want)
+		t.Fatalf("并堆后 row.qty=%d field.qty=%d, 期望61/61", got, want)
 	}
 }
 
@@ -111,7 +111,7 @@ func TestNestedReelChildrenUseRigContainerEnum(t *testing.T) {
 			t.Fatalf("f%d %s 缺容器枚举", i, sub.Class)
 		}
 		if got := u64Of(sub.Field(si).Num); got != 4 {
-			t.Fatalf("f%d %s 容器=%d，期望 rig(4)", i, sub.Class, got)
+			t.Fatalf("f%d %s 容器=%d, 期望 rig(4)", i, sub.Class, got)
 		}
 	}
 }

@@ -37,7 +37,7 @@ func (s *Server) repairLureHookSlots(ctx context.Context) (int, error) {
 		return 0, nil
 	}
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
-		return 0, fmt.Errorf("读取拟饵钩槽迁移标记: %w", err)
+		return 0, fmt.Errorf("Чтение отметки миграции слотов крючков приманок: %w", err)
 	}
 	rows, err := s.DB.SQL.QueryContext(ctx, `SELECT guid FROM item WHERE wire_class=?`, lureWireClass)
 	if err != nil {
@@ -107,10 +107,10 @@ func (s *Server) repairLureHookSlots(ctx context.Context) (int, error) {
 			return fixed, uerr
 		}
 		fixed++
-		s.log.Info("拟饵钩槽数组残留已剥离", "guid", guid, "item", row.ItemID, "dropped", dropped, "kept", len(stripped))
+		s.log.Info("Остатки массива слотов крючков приманок удалены", "guid", guid, "item", row.ItemID, "dropped", dropped, "kept", len(stripped))
 	}
 	if err := s.DB.KVSet(ctx, lureHookSlotsMigrationKey, "done"); err != nil {
-		return fixed, fmt.Errorf("写入拟饵钩槽迁移标记: %w", err)
+		return fixed, fmt.Errorf("Запись отметки миграции слотов крючков приманок: %w", err)
 	}
 	return fixed, nil
 }
@@ -127,7 +127,7 @@ func (s *Server) migrateLegacyZeroDragForce(ctx context.Context) (int, error) {
 		return 0, nil
 	}
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
-		return 0, fmt.Errorf("读取摩擦片迁移标记: %w", err)
+		return 0, fmt.Errorf("Чтение отметки миграции шайб фрикциона: %w", err)
 	}
 	rows, err := s.DB.SQL.QueryContext(ctx, `SELECT guid FROM item WHERE wire_class=?`, "dgjinoebdop")
 	if err != nil {
@@ -185,7 +185,7 @@ func (s *Server) migrateLegacyZeroDragForce(ctx context.Context) (int, error) {
 		fixed++
 	}
 	if err := s.DB.KVSet(ctx, reelFrictionZeroMigrationKey, "done"); err != nil {
-		return fixed, fmt.Errorf("写入摩擦片迁移标记: %w", err)
+		return fixed, fmt.Errorf("Запись отметки миграции шайб фрикциона: %w", err)
 	}
 	return fixed, nil
 }
@@ -204,54 +204,54 @@ func (s *Server) migrateLegacyZeroDragForce(ctx context.Context) (int, error) {
 // 失败时保留上一次成功标记。
 func (s *Server) RepairItemPhysics(ctx context.Context) error {
 	if s.DB == nil {
-		return fmt.Errorf("物品物理状态修复：数据库未连接")
+		return fmt.Errorf("Исправление физического состояния предметов: база не подключена")
 	}
 	// 必须先于常规扫描：常规扫描只会补齐缺失字段，不会改写已存在的 0。
 	if _, err := s.migrateLegacyZeroDragForce(ctx); err != nil {
-		return fmt.Errorf("物品物理状态修复：摩擦片存量零值迁移: %w", err)
+		return fmt.Errorf("Исправление физического состояния предметов: миграция нулевых шайб фрикциона: %w", err)
 	}
 	// 旧拆钩逻辑缩短数组的存量损坏：常规扫描的拟饵投影只处理 f0 为
 	// nil/null 的实例，空数组/长度不足只有这里能修。
 	if fixed, err := s.repairLureHookSlots(ctx); err != nil {
-		return fmt.Errorf("物品物理状态修复：拟饵钩槽迁移: %w", err)
+		return fmt.Errorf("Исправление физического состояния предметов: миграция слотов крючков приманок: %w", err)
 	} else if fixed > 0 {
-		s.log.Info("拟饵钩槽迁移完成", "lures_fixed", fixed)
+		s.log.Info("Миграция слотов крючков приманок завершена", "lures_fixed", fixed)
 	}
 
 	// 梦鱼优惠券存量补偿：数量塌陷的券行按发放审计 + 制作流水补回余量。
 	// 放在常规扫描之前——常规扫描只对齐字段结构，不会把 qty=1 抬回真实余量。
 	if fixed, err := s.repairCouponGrantQuantities(ctx); err != nil {
-		return fmt.Errorf("物品物理状态修复：梦鱼券存量补偿: %w", err)
+		return fmt.Errorf("Исправление физического состояния предметов: компенсация остатков купонов на чучело: %w", err)
 	} else if fixed > 0 {
-		s.log.Info("梦鱼券存量补偿完成", "coupons_fixed", fixed)
+		s.log.Info("Компенсация остатков купонов на чучело завершена", "coupons_fixed", fixed)
 	}
 
 	// 梦鱼券「一张一个实例」展开：券类没有客户端数量槽，一行多张显示不出张数。
 	// 必须在数量补偿之后——先让总张数正确，再按张数铺成多行。
 	if fixed, err := s.repairCouponRowLayout(ctx); err != nil {
-		return fmt.Errorf("物品物理状态修复：梦鱼券展开: %w", err)
+		return fmt.Errorf("Исправление физического состояния предметов: разворачивание купонов на чучело: %w", err)
 	} else if fixed > 0 {
-		s.log.Info("梦鱼券展开完成", "players_fixed", fixed)
+		s.log.Info("Разворачивание купонов на чучело завершено", "players_fixed", fixed)
 	}
 
 	rows, err := s.DB.SQL.QueryContext(ctx, `SELECT guid FROM item ORDER BY guid`)
 	if err != nil {
-		return fmt.Errorf("物品物理状态修复：列出物品: %w", err)
+		return fmt.Errorf("Исправление физического состояния предметов: список предметов: %w", err)
 	}
 	var guids []string
 	for rows.Next() {
 		var guid string
 		if err := rows.Scan(&guid); err != nil {
 			_ = rows.Close()
-			return fmt.Errorf("物品物理状态修复：读取 guid: %w", err)
+			return fmt.Errorf("Исправление физического состояния предметов: чтение guid: %w", err)
 		}
 		guids = append(guids, guid)
 	}
 	if err := rows.Close(); err != nil {
-		return fmt.Errorf("物品物理状态修复：关闭查询: %w", err)
+		return fmt.Errorf("Исправление физического состояния предметов: закрытие запроса: %w", err)
 	}
 	if err := rows.Err(); err != nil {
-		return fmt.Errorf("物品物理状态修复：遍历物品: %w", err)
+		return fmt.Errorf("Исправление физического состояния предметов: обход предметов: %w", err)
 	}
 
 	changed := 0
@@ -261,7 +261,7 @@ func (s *Server) RepairItemPhysics(ctx context.Context) error {
 	for _, guid := range guids {
 		it, err := s.DB.GetItemByGUID(ctx, guid)
 		if err != nil {
-			return fmt.Errorf("物品物理状态修复：读取 %s: %w", guid, err)
+			return fmt.Errorf("Исправление физического состояния предметов: чтение %s: %w", guid, err)
 		}
 		if it == nil {
 			continue
@@ -269,7 +269,7 @@ func (s *Server) RepairItemPhysics(ctx context.Context) error {
 		if def, derr := s.DB.GetItemDef(ctx, it.NumericID); derr == nil && def != nil {
 			rewritten, rerr := s.reclassifyStoredItem(ctx, it, def)
 			if rerr != nil {
-				return fmt.Errorf("物品物理状态修复：改写类别 %s: %w", guid, rerr)
+				return fmt.Errorf("Исправление физического состояния предметов: смена категории %s: %w", guid, rerr)
 			}
 			if rewritten {
 				changed++
@@ -278,19 +278,19 @@ func (s *Server) RepairItemPhysics(ctx context.Context) error {
 		}
 		fields, err := FieldsFromJSON(it.FieldsJSON)
 		if err != nil {
-			return fmt.Errorf("物品物理状态修复：解析 %s: %w", guid, err)
+			return fmt.Errorf("Исправление физического состояния предметов: разбор %s: %w", guid, err)
 		}
 		fields = alignFieldsToOps(it, fields)
 		leaderChanged, invalidLeader, lerr := s.repairCraftedLeaderWire(ctx, it, fields)
 		if lerr != nil {
-			return fmt.Errorf("物品物理状态修复：修复引线 %s: %w", guid, lerr)
+			return fmt.Errorf("Исправление физического состояния предметов: исправление поводков %s: %w", guid, lerr)
 		}
 		if invalidLeader {
 			if err := s.DB.UpdateItemContainer(ctx, it.GUID, craftedLeaderQuarantineContainer); err != nil {
-				return fmt.Errorf("物品物理状态修复：隔离无效引线 %s: %w", guid, err)
+				return fmt.Errorf("Исправление физического состояния предметов: изоляция неверных поводков %s: %w", guid, err)
 			}
 			quarantined++
-			s.log.Warn("无效自制引线已隔离", "guid", guid, "item", it.ItemID)
+			s.log.Warn("Неверные самодельные поводки изолированы", "guid", guid, "item", it.ItemID)
 			continue
 		}
 		if it.Container == craftedLeaderQuarantineContainer {
@@ -301,18 +301,18 @@ func (s *Server) RepairItemPhysics(ctx context.Context) error {
 				restore = "rig"
 			}
 			if err := s.DB.UpdateItemContainer(ctx, it.GUID, restore); err != nil {
-				return fmt.Errorf("物品物理状态修复：解除引线隔离 %s: %w", guid, err)
+				return fmt.Errorf("Исправление физического состояния предметов: снятие изоляции поводков %s: %w", guid, err)
 			}
 			if restore == "backpack" {
 				if slot, serr := s.DB.NextFreeSlot(ctx, it.UID, "backpack"); serr == nil && slot >= 0 {
 					if uerr := s.DB.SetItemSlot(ctx, it.GUID, slot); uerr != nil {
-						return fmt.Errorf("物品物理状态修复：分配引线背包槽位 %s: %w", guid, uerr)
+						return fmt.Errorf("Исправление физического состояния предметов: выделение слотов инвентаря для поводков %s: %w", guid, uerr)
 					}
 				}
 			}
 			restored++
 			it.Container = restore
-			s.log.Info("自制引线已解除隔离", "guid", guid, "item", it.ItemID, "container", restore)
+			s.log.Info("Изоляция самодельных поводков снята", "guid", guid, "item", it.ItemID, "container", restore)
 		}
 		before, _ := FieldsToJSON(fields)
 		obj := proto.Obj(it.WireClass, uint32(it.TypeID), fields...)
@@ -331,7 +331,7 @@ func (s *Server) RepairItemPhysics(ctx context.Context) error {
 				hasRodCreated = true
 			}
 			if err := s.rebuildRod(ctx, it, obj); err != nil {
-				return fmt.Errorf("物品物理状态修复：重建鱼竿 %s: %w", guid, err)
+				return fmt.Errorf("Исправление физического состояния предметов: пересборка удилищ %s: %w", guid, err)
 			}
 			fields = obj.Fields
 			// f16 是每次下发都会刷新的动态时间戳，不参与持久化变化判断；
@@ -378,10 +378,10 @@ func (s *Server) RepairItemPhysics(ctx context.Context) error {
 			bumpCreatedTicks(fields, it.WireClass)
 			fj, err := FieldsToJSON(fields)
 			if err != nil {
-				return fmt.Errorf("物品物理状态修复：编码 %s: %w", guid, err)
+				return fmt.Errorf("Исправление физического состояния предметов: кодирование %s: %w", guid, err)
 			}
 			if err := s.DB.UpdateItemFields(ctx, it.GUID, fj, it.Qty, it.Durability, it.Workmanship, it.RigGUID); err != nil {
-				return fmt.Errorf("物品物理状态修复：写回 %s: %w", guid, err)
+				return fmt.Errorf("Исправление физического состояния предметов: запись %s: %w", guid, err)
 			}
 			changed++
 		}
@@ -395,9 +395,9 @@ func (s *Server) RepairItemPhysics(ctx context.Context) error {
 	marker := fmt.Sprintf("done;version=%s;scanned=%d;changed=%d;rods=%d;quarantined=%d;leaders_restored=%d",
 		itemPhysicsRepairVersion, len(guids), changed, rigsRepaired, quarantined, restored)
 	if err := s.DB.KVSet(ctx, itemPhysicsRepairKey, marker); err != nil {
-		return fmt.Errorf("物品物理状态修复：写完成标记: %w", err)
+		return fmt.Errorf("Исправление физического состояния предметов: запись отметки завершения: %w", err)
 	}
-	s.log.Info("物品物理状态修复完成", "version", itemPhysicsRepairVersion,
+	s.log.Info("Исправление физического состояния предметов завершено", "version", itemPhysicsRepairVersion,
 		"items_changed", changed, "rods_repaired", rigsRepaired,
 		"quarantined", quarantined, "leaders_restored", restored, "total", len(guids))
 	return nil

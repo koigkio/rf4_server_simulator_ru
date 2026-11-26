@@ -11,9 +11,9 @@ func completedCatchPending(st *FishState) bool {
 
 func (s *Server) pendingCatchAllowsCast(ctx *Ctx, st *FishState) bool {
 	if err := s.recoverCompletedCatch(ctx.Sess.Userid, ctx.Sess); err != nil {
-		message := "待处理渔获尚未入护，请稍后重试"
+		message := "Ожидающий улов ещё не помещён в садок, попробуйте позже"
 		if errors.Is(err, store.ErrKeepnetFull) {
-			message = "护网已满，请先腾出位置，待处理渔获会自动入护"
+			message = "Садок полон — освободите место, и ожидающий улов попадёт в садок автоматически"
 		}
 		ctx.ReplyFailure("System.InvalidOperationException", message)
 		return false
@@ -25,7 +25,7 @@ func (s *Server) pendingCatchAllowsCast(ctx *Ctx, st *FishState) bool {
 		rod.mu.Unlock()
 	}
 	if blocked {
-		ctx.ReplyFailure("System.InvalidOperationException", "请先将本次渔获入护或放生")
+		ctx.ReplyFailure("System.InvalidOperationException", "Сначала поместите текущий улов в садок или отпустите")
 	}
 	return !blocked
 }

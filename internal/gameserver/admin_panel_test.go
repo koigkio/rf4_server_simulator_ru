@@ -76,14 +76,14 @@ func TestAdminFishConfigChangesRollAndBite(t *testing.T) {
 	for i := 0; i < 30; i++ {
 		f := srv.rollFishFromDB(level, "worm_01")
 		if f == nil || f.Species != "perch" {
-			t.Fatalf("鱼口覆盖后应只 roll 出 perch，实测 %+v", f)
+			t.Fatalf("鱼口覆盖后应只 roll 出 perch, 实测 %+v", f)
 		}
 	}
 	if got := srv.biteProbabilityForLoc(level); got != 0.35 {
-		t.Fatalf("水域上鱼概率=%v，期望 0.35", got)
+		t.Fatalf("水域上鱼概率=%v, 期望 0.35", got)
 	}
 	st := &FishState{Loc: level, RigType: 1}
 	if got := srv.biteDelay(st, neutralFishingSkillBonus()); got != 1.25 {
-		t.Fatalf("水域固定发鱼延迟=%v，期望 1.25", got)
+		t.Fatalf("水域固定发鱼延迟=%v, 期望 1.25", got)
 	}
 }

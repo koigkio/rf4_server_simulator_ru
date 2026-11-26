@@ -39,7 +39,7 @@ func TestFishingState48UpgradeAndRollback(t *testing.T) {
 		t.Fatal(err)
 	}
 	if len(states) != 1 {
-		t.Fatalf("旧记录数量=%d，期望 1", len(states))
+		t.Fatalf("旧记录数量=%d, 期望 1", len(states))
 	}
 	got := states[0]
 	if got.RodGUID != "rod-a" || got.DepthCM != 37 || !got.CastActive || got.CastM != 0 {

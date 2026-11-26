@@ -81,7 +81,7 @@ func hItemSetFlag(ctx *Ctx) ([]byte, bool) {
 			_ = srv.DB.UpdateItemFields(cctx, row.GUID, fj, row.Qty, row.Durability, row.Workmanship, row.RigGUID)
 		}
 	}
-	ctx.Log.Info("4/9 标记", "count", len(guids), "flag", fmt.Sprintf("0x%x", flag), "op", op)
+	ctx.Log.Info("4/9 Отметка", "count", len(guids), "flag", fmt.Sprintf("0x%x", flag), "op", op)
 	return srv.rigSnapshot800(ctx), true
 }
 
@@ -115,7 +115,7 @@ func hItemSetSlot(ctx *Ctx) ([]byte, bool) {
 	cctx := ctx.Sess.pushCtx()
 	row, err := srv.DB.GetItemByGUID(cctx, guid)
 	if err != nil || row == nil || row.UID != ctx.Sess.Userid {
-		ctx.Log.Info("4/10 物品不存在，忽略", "guid", guidShort(guid))
+		ctx.Log.Info("4/10 Предмет не существует, пропущено", "guid", guidShort(guid))
 		return nil, true
 	}
 	cname := containerEnumName(uint64(container))
@@ -123,7 +123,7 @@ func hItemSetSlot(ctx *Ctx) ([]byte, bool) {
 	// 有 UNIQUE 约束，因此先删除目标物品的旧绑定再插入新绑定。
 	tx, err := srv.DB.SQL.BeginTx(cctx, nil)
 	if err != nil {
-		ctx.Log.Warn("4/10 开启事务失败", "err", err)
+		ctx.Log.Warn("4/10 Не удалось начать транзакцию", "err", err)
 		return nil, true
 	}
 	defer func() { _ = tx.Rollback() }()
@@ -134,33 +134,33 @@ func hItemSetSlot(ctx *Ctx) ([]byte, bool) {
 		if _, err := tx.ExecContext(cctx,
 			`UPDATE item SET container='backpack', slot=0 WHERE uid=? AND guid=?`,
 			ctx.Sess.Userid, prev); err != nil {
-			ctx.Log.Warn("4/10 解绑旧占用者失败", "err", err)
+			ctx.Log.Warn("4/10 Не удалось отвязать прежнего владельца", "err", err)
 			return nil, true
 		}
 	}
 	if _, err := tx.ExecContext(cctx,
 		`DELETE FROM container_slot WHERE uid=? AND guid=?`, ctx.Sess.Userid, guid); err != nil {
-		ctx.Log.Warn("4/10 清理物品旧格位失败", "err", err)
+		ctx.Log.Warn("4/10 Не удалось очистить старую ячейку предмета", "err", err)
 		return nil, true
 	}
 	if _, err := tx.ExecContext(cctx, `
 		INSERT INTO container_slot(uid, container, slot, guid) VALUES(?,?,?,?)
 		ON CONFLICT (uid, container, slot) DO UPDATE SET guid=?`,
 		ctx.Sess.Userid, container, slot, guid, guid); err != nil {
-		ctx.Log.Warn("4/10 绑定落库失败", "err", err)
+		ctx.Log.Warn("4/10 Не удалось сохранить привязку", "err", err)
 		return nil, true
 	}
 	if _, err := tx.ExecContext(cctx,
 		`UPDATE item SET container=?, slot=? WHERE uid=? AND guid=?`, cname, slot, ctx.Sess.Userid, guid); err != nil {
-		ctx.Log.Warn("4/10 更新物品位置失败", "err", err)
+		ctx.Log.Warn("4/10 Не удалось обновить положение предмета", "err", err)
 		return nil, true
 	}
 	if err := tx.Commit(); err != nil {
-		ctx.Log.Warn("4/10 提交事务失败", "err", err)
+		ctx.Log.Warn("4/10 Не удалось зафиксировать транзакцию", "err", err)
 		return nil, true
 	}
-	ctx.Log.Info("4/10 绑定", "guid", guidShort(guid), "container", container, "slot", slot)
-	return nil, true // fire-and-forget，不返回响应
+	ctx.Log.Info("4/10 Привязка", "guid", guidShort(guid), "container", container, "slot", slot)
+	return nil, true // fire-and-forget, 不返回响应
 }
 
 func guidShort(g string) string {
@@ -189,10 +189,10 @@ func hChangeName(ctx *Ctx) ([]byte, bool) {
 	if _, err := srv.DB.SQL.ExecContext(cctx,
 		`UPDATE profile SET name=?, updated_ts=? WHERE uid=?`,
 		name, float64(time.Now().Unix()), ctx.Sess.Userid); err != nil {
-		ctx.Log.Warn("3/20 改名落库失败", "err", err)
+		ctx.Log.Warn("3/20 Не удалось сохранить новое имя", "err", err)
 		return nil, false
 	}
-	ctx.Log.Info("3/20 改名", "name", name)
+	ctx.Log.Info("3/20 Переименование", "name", name)
 	return replyProfile307(ctx)
 }
 
@@ -207,9 +207,9 @@ func hChangeRegion(ctx *Ctx) ([]byte, bool) {
 		if _, err := srv.DB.SQL.ExecContext(ctx.Sess.pushCtx(),
 			`UPDATE profile SET region=?, updated_ts=? WHERE uid=?`,
 			region, float64(time.Now().Unix()), ctx.Sess.Userid); err != nil {
-			ctx.Log.Warn("3/21 换区落库失败", "err", err)
+			ctx.Log.Warn("3/21 Не удалось сохранить смену региона", "err", err)
 		} else {
-			ctx.Log.Info("3/21 换区", "region", region)
+			ctx.Log.Info("3/21 Смена региона", "region", region)
 		}
 	}
 	return replyProfile307(ctx)
@@ -251,12 +251,12 @@ func hVerifyEmail(ctx *Ctx) ([]byte, bool) {
 		if _, err := srv.DB.SQL.ExecContext(cctx,
 			`UPDATE profile SET email=?, updated_ts=? WHERE uid=?`,
 			email, float64(time.Now().Unix()), ctx.Sess.Userid); err != nil {
-			ctx.Log.Warn("3/23 邮箱落库失败", "err", err)
+			ctx.Log.Warn("3/23 Не удалось сохранить почту", "err", err)
 		}
 	}
 	ctx.Sess.SetState("email_pending", nil) // 清除挂起邮箱
 	ctx.Sess.SetState("email_verified", true)
-	ctx.Log.Info("3/23 邮箱验证 -> 回档案", "token", token, "hasCode", code != "")
+	ctx.Log.Info("3/23 Подтверждение почты -> Ответ профилем", "token", token, "hasCode", code != "")
 	return replyProfile307(ctx)
 }
 
@@ -265,7 +265,7 @@ func replyProfile307(ctx *Ctx) ([]byte, bool) {
 	tree, err := ctx.Sess.Srv.BuildProfile307W(ctx.Sess.pushCtx(), ctx.Sess.Userid,
 		worldTotalGameMin(time.Now()))
 	if err != nil {
-		ctx.Log.Warn("307 构造失败", "err", err)
+		ctx.Log.Warn("307 Ошибка создания", "err", err)
 		return nil, false
 	}
 	body, err := proto.EncodeValue(tree, ctx.Sess.Table())
@@ -359,32 +359,32 @@ func (s *Session) pushChatProbe(channel, kind int, text string, kv *proto.Value)
 	haveOuter := false
 	outerEmpty := false
 	switch kind {
-	case -26: // 探测专用：重量裸值放 f2
+	case -26: // 探测专用: 重量裸值放 f2
 		kind = 26
 		f2 = 7777
-	case -27: // 探测专用：重量按 f32 位模式放 f2
+	case -27: // 探测专用: 重量按 f32 位模式放 f2
 		kind = 26
 		f2 = proto.F32Bits(7777)
-	case -28: // 探测专用：等级按 f32 位模式放 f2（k00"达到X级别"）
+	case -28: // 探测专用: 等级按 f32 位模式放 f2 (k00"达到X级别")
 		kind = 0
 		f2 = proto.F32Bits(34)
 	case -29: // 外层=鱼名(中文)+重量f32位
 		kind, outerStr, outerU32, haveOuter = 26, "丁鱵", proto.F32Bits(7777), true
 	case -30: // 外层=鱼名(key)+重量f32位
 		kind, outerStr, outerU32, haveOuter = 26, "g_tench", proto.F32Bits(7777), true
-	case -31: // k03 普通钓获：外层=鱼名(中文)+重量f32位
+	case -31: // k03 普通钓获: 外层=鱼名(中文)+重量f32位
 		kind, outerStr, outerU32, haveOuter = 3, "丁鱵", proto.F32Bits(7777), true
-	case -32: // 外层=频道名+重量f32位（str 保持合法频道名）
+	case -32: // 外层=频道名+重量f32位 (str 保持合法频道名)
 		kind, outerU32, haveOuter = 26, proto.F32Bits(7777), true
 	case -33: // 外层=频道名+重量裸值
 		kind, outerU32, haveOuter = 26, 7777, true
-	case -34: // f1=重量数字文本，k26 奖杯模板
+	case -34: // f1=重量数字文本, k26 奖杯模板
 		kind = 26
-	case -35: // f1=重量数字文本，k25 稀有奖杯（蓝冠）模板
+	case -35: // f1=重量数字文本, k25 稀有奖杯 (蓝冠)模板
 		kind = 25
-	case -36: // f1=重量数字文本，k03 普通钓获模板
+	case -36: // f1=重量数字文本, k03 普通钓获模板
 		kind = 3
-	case -37: // 探测专用：外层 locationId 传空串。客户端 ibopligjjbo.peilhchjenn
+	case -37: // 探测专用: 外层 locationId 传空串. 客户端 ibopligjjbo.peilhchjenn
 		// 对 locationId 与当前频道名做严格相等校验，仅空串无条件放行
 		// （反编译 Assembly-CSharp/ibopligjjbo.cs 2026-11-04 核对）。
 		kind = 0
@@ -699,7 +699,7 @@ func hSocialCurrent(ctx *Ctx) ([]byte, bool) {
 	}
 	obj := wiregen.MustMakeObj("godhiicbgng", map[int]*proto.Value{
 		0: proto.StrVal(ch.Name),
-		1: proto.StrVal("公共频道"),
+		1: proto.StrVal("Общий канал"),
 		2: proto.StrVal(ch.Region),
 		3: proto.U32(uint32(users)),
 		4: proto.U32(0), // 0=Public
@@ -745,7 +745,7 @@ func hSocialPublic(ctx *Ctx) ([]byte, bool) {
 		return nil, true // 空消息不返回响应也不广播
 	}
 	if strings.HasPrefix(msg, "/") {
-		ctx.Log.Info("24/10 GM 指令（Go 未实现，不回显）", "text", msg)
+		ctx.Log.Info("24/10 GM Команда (не реализована в Go, без эха)", "text", msg)
 		return nil, true
 	}
 	ch := sessChannel(ctx.Sess)
@@ -773,7 +773,7 @@ func hSocialPublic(ctx *Ctx) ([]byte, bool) {
 	for _, sess := range peers {
 		sess.Push(24, 27, buildChatEchoPush(loc, msg, uint64(ctx.Sess.Userid), uint32(users)))
 	}
-	return nil, true // fire-and-forget，不返回响应
+	return nil, true // fire-and-forget, 不返回响应
 }
 
 // ---------------------------------------------------------------------------

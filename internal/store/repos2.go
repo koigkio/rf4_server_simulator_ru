@@ -862,7 +862,7 @@ func (d *DB) SpawnModeSet(ctx context.Context, mode, updatedBy string) error {
 	case "two_stage":
 		values["two_stage_hunt_enabled"] = "1"
 	default:
-		return fmt.Errorf("未知发鱼模式: %s", mode)
+		return fmt.Errorf("Неизвестный режим выдачи рыбы: %s", mode)
 	}
 	now := float64(time.Now().Unix())
 	tx, err := d.SQL.BeginTx(ctx, nil)
@@ -939,7 +939,7 @@ func (d *DB) SkillGainModeSet(ctx context.Context, mode, updatedBy string) error
 		pct = "100"
 	case "custom":
 	default:
-		return fmt.Errorf("未知技能升级概率模式: %s", mode)
+		return fmt.Errorf("Неизвестный режим вероятности навыков: %s", mode)
 	}
 	now := float64(time.Now().Unix())
 	tx, err := d.SQL.BeginTx(ctx, nil)
@@ -976,7 +976,7 @@ func (d *DB) BiteModeSet(ctx context.Context, mode, updatedBy string) error {
 		value = "1"
 	case "legacy":
 	default:
-		return fmt.Errorf("未知鱼汛模式: %s", mode)
+		return fmt.Errorf("Неизвестный режим клёва: %s", mode)
 	}
 	now := float64(time.Now().Unix())
 	tx, err := d.SQL.BeginTx(ctx, nil)

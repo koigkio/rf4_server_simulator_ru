@@ -4,11 +4,11 @@ import "encoding/binary"
 
 // Envelope 解出的 RPC 信封。
 type Envelope struct {
-	Marker  int32  // -1 请求/服务器推送；-2 响应
-	CallID  uint32 // 响应回显请求 call_id；推送用服务器独立计数器
+	Marker  int32  // -1 请求/服务器推送; -2 响应
+	CallID  uint32 // 响应回显请求 call_id; 推送用服务器独立计数器
 	Main    uint8  // 仅 marker==-1
 	Sub     uint8  // 仅 marker==-1
-	Expect  *uint8 // 仅 marker==-1：body 尾字节 0x00 期望响应 / 0x01 fire-and-forget
+	Expect  *uint8 // 仅 marker==-1: body 尾字节 0x00 期望响应 / 0x01 fire-and-forget
 	Body    []byte // 去掉尾字节后的 body
 	Raw     []byte // 原始 payload
 	HasTail bool   // Expect 是否存在

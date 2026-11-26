@@ -25,15 +25,15 @@ var mapDefsJSON []byte
 
 // 游戏时间换算常量。
 const (
-	worldDayEpochUnix   = 1438387200 // 2015-08-01 00:00:00 UTC（游戏历元）
+	worldDayEpochUnix   = 1438387200 // 2015-08-01 00:00:00 UTC (游戏历元)
 	gameHoursPerRealHr  = 24         // 1 真实小时 = 24 游戏小时
 	realSecPerGameHour  = 150        // 150 真实秒 = 1 游戏小时
 	spawnLevelKey       = "level_001_lake"
 	spawnScene          = "loc1_01"
 	dobClassID          = 205
 	spawnLocatorClassID = 206
-	forecastClass       = "bleinjfhebp" // 逐日预报，f0=日号
-	hourPlanClass       = "odnlikfnhnl" // 逐小时计划，f0=日号 f1=小时
+	forecastClass       = "bleinjfhebp" // 逐日预报, f0=日号
+	hourPlanClass       = "odnlikfnhnl" // 逐小时计划, f0=日号 f1=小时
 )
 
 var (
@@ -48,7 +48,7 @@ func loadMapDefs() (map[string]json.RawMessage, error) {
 			Maps map[string]json.RawMessage `json:"maps"`
 		}
 		if err := json.Unmarshal(mapDefsJSON, &raw); err != nil {
-			mapErr = fmt.Errorf("map_defs.json 解析: %w", err)
+			mapErr = fmt.Errorf("map_defs.json Разбор: %w", err)
 			return
 		}
 		mapDefs = raw.Maps
@@ -68,7 +68,7 @@ func worldDayAndHour(nowUnix int64) (day, hour int64) {
 type irField struct {
 	F   string          `json:"f"` // byte/opt/str/u32/u64/u16/guid/optguid/val/…
 	V   json.RawMessage `json:"v"` // 标量原样
-	Sub *irNode         `json:"-"` // val 内嵌树（物化后，供原位改写）
+	Sub *irNode         `json:"-"` // val 内嵌树 (物化后, 供原位改写)
 }
 
 // irNode IR 树节点（obj / args / null）。
@@ -92,20 +92,20 @@ func irToValue(n *irNode) (*proto.Value, error) {
 	switch n.T {
 	case "obj":
 		if n.Class == "" || n.TypeID == nil {
-			return nil, fmt.Errorf("obj 节点缺 class/type_id")
+			return nil, fmt.Errorf("obj В узле нет class/type_id")
 		}
 		ops := wiregen.ClassOps[n.Class]
 		if len(ops) == 0 {
-			return nil, fmt.Errorf("类 %s 不在 ops 表", n.Class)
+			return nil, fmt.Errorf("Класса %s нет в таблице ops", n.Class)
 		}
 		if len(n.Fields) != len(ops) {
-			return nil, fmt.Errorf("类 %s 字段数 %d ≠ ops %d", n.Class, len(n.Fields), len(ops))
+			return nil, fmt.Errorf("Количество полей класса %s %d ≠ ops %d", n.Class, len(n.Fields), len(ops))
 		}
 		fields := make([]proto.Field, len(n.Fields))
 		for i, f := range n.Fields {
 			pf, err := irFieldToProto(f, ops[i])
 			if err != nil {
-				return nil, fmt.Errorf("类 %s 字段 %d: %w", n.Class, i, err)
+				return nil, fmt.Errorf("Поле класса %s %d: %w", n.Class, i, err)
 			}
 			fields[i] = pf
 		}
@@ -121,7 +121,7 @@ func irToValue(n *irNode) (*proto.Value, error) {
 		}
 		return proto.Args(n.Code, items...), nil
 	default:
-		return nil, fmt.Errorf("未知 IR 节点 t=%q", n.T)
+		return nil, fmt.Errorf("Неизвестный узел IR t=%q", n.T)
 	}
 }
 
@@ -131,25 +131,25 @@ func irFieldToProto(f irField, op string) (proto.Field, error) {
 	case "u32", "byte", "u16", "u64", "opt":
 		var v uint64
 		if err := json.Unmarshal(f.V, &v); err != nil {
-			return pf, fmt.Errorf("数值字段解析: %w", err)
+			return pf, fmt.Errorf("Разбор числового поля: %w", err)
 		}
 		pf.Num = ptrU64(v)
 	case "str":
 		var s *string
 		if err := json.Unmarshal(f.V, &s); err != nil {
-			return pf, fmt.Errorf("字符串字段解析: %w", err)
+			return pf, fmt.Errorf("Разбор строкового поля: %w", err)
 		}
 		pf.Str = s
 	case "guid":
 		var g string
 		if err := json.Unmarshal(f.V, &g); err != nil {
-			return pf, fmt.Errorf("guid 字段解析: %w", err)
+			return pf, fmt.Errorf("guid Разбор поля: %w", err)
 		}
 		pf.Hex = g
 	case "optguid":
 		var g *string
 		if err := json.Unmarshal(f.V, &g); err != nil {
-			return pf, fmt.Errorf("optguid 字段解析: %w", err)
+			return pf, fmt.Errorf("optguid Разбор поля: %w", err)
 		}
 		if g != nil {
 			pf.Hex = *g
@@ -165,7 +165,7 @@ func irFieldToProto(f irField, op string) (proto.Field, error) {
 		}
 		pf.Val = v
 	default:
-		return pf, fmt.Errorf("暂不支持的 IR 字段类型 %q", f.F)
+		return pf, fmt.Errorf("Тип поля IR пока не поддерживается %q", f.F)
 	}
 	return pf, nil
 }
@@ -182,7 +182,7 @@ func materializeIR(n *irNode) error {
 		}
 		var sub *irNode
 		if err := json.Unmarshal(n.Fields[i].V, &sub); err != nil {
-			return fmt.Errorf("val 内嵌树解析: %w", err)
+			return fmt.Errorf("val Разбор вложенного дерева: %w", err)
 		}
 		n.Fields[i].Sub = sub
 		n.Fields[i].V = nil
@@ -258,11 +258,11 @@ func (s *Server) buildSpawnLocatorBody(uid int64, levelKey, scene string, nowUni
 	}
 	raw, ok := maps[levelKey]
 	if !ok {
-		return nil, fmt.Errorf("地图表缺 %s", levelKey)
+		return nil, fmt.Errorf("В таблице карт нет %s", levelKey)
 	}
 	var dob irNode
 	if err := json.Unmarshal(raw, &dob); err != nil {
-		return nil, fmt.Errorf("dob 解析: %w", err)
+		return nil, fmt.Errorf("dob Разбор: %w", err)
 	}
 	if err := materializeIR(&dob); err != nil {
 		return nil, err
@@ -288,11 +288,11 @@ func (s *Server) buildMapDobBody(uid int64, key string, nowUnix int64) ([]byte, 
 	}
 	raw, ok := maps[key]
 	if !ok {
-		return nil, fmt.Errorf("地图表缺 %s", key)
+		return nil, fmt.Errorf("В таблице карт нет %s", key)
 	}
 	var dob irNode
 	if err := json.Unmarshal(raw, &dob); err != nil {
-		return nil, fmt.Errorf("dob 解析: %w", err)
+		return nil, fmt.Errorf("dob Разбор: %w", err)
 	}
 	if err := materializeIR(&dob); err != nil {
 		return nil, err
@@ -320,7 +320,7 @@ func (s *Server) buildTravelBodyAt(sess *Session, key string, nowUnix int64) ([]
 	}
 	dobVal, _, err := proto.DecodeValue(dobBody, 0, s.Table())
 	if err != nil {
-		return nil, fmt.Errorf("dob 解码: %w", err)
+		return nil, fmt.Errorf("dob Декодирование: %w", err)
 	}
 	// 护网快照 800：args(61)[护网鱼...] + null + null
 	ctx := sess.pushCtx()

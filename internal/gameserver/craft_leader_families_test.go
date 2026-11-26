@@ -30,7 +30,7 @@ func TestCraftAllLeaderRecipesWithBothLineCategories(t *testing.T) {
 		t.Fatal(err)
 	}
 	if len(recipeIDs) != 52 {
-		t.Fatalf("应覆盖 52 个引线配方，实际 %d", len(recipeIDs))
+		t.Fatalf("应覆盖 52 个引线配方, 实际 %d", len(recipeIDs))
 	}
 	recipeIDs = sampleForShort(t, recipeIDs, 4)
 	uid := int64(2100000)

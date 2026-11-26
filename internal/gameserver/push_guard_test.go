@@ -29,7 +29,7 @@ func TestPushGuardGuidArrAndUnknownPattern(t *testing.T) {
 		}
 	}()
 	body := proto.Args524(proto.U32(1))
-	if reason := checkPushArgsStrict(99, 99, body); reason == "" || !strings.Contains(reason, "未知推送合同模式") {
+	if reason := checkPushArgsStrict(99, 99, body); reason == "" || !strings.Contains(reason, "Неизвестный режим контракта отправки") {
 		t.Fatalf("未知合同模式未被拒绝: %q", reason)
 	}
 }

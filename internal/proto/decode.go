@@ -7,12 +7,12 @@ import "fmt"
 // 编码时按类的 ops 序列逐位对应（Op 仅信息性，真正决定线型的是 ops 表位置），
 // U16STR/U32N 解码后都归为 Str，重编码由 ops 决定前缀宽度。
 type Field struct {
-	Op    string  // 信息性：U32 U64 BYTE STR U16 U16STR U32N VAL BYTES GUID16 OPTGUID OPT FLOAT DOUBLE DICT ARGLIST ARRAY U32ARR STR3 KV
-	Num   *uint64 // U32/U64/BYTE/U16/OPT（U16 null → nil）
-	Str   *string // STR/U16STR/U32N（null → nil）
-	Hex   string  // GUID16/OPTGUID/BYTES（OPTGUID null → ""）
+	Op    string  // 信息性: U32 U64 BYTE STR U16 U16STR U32N VAL BYTES GUID16 OPTGUID OPT FLOAT DOUBLE DICT ARGLIST ARRAY U32ARR STR3 KV
+	Num   *uint64 // U32/U64/BYTE/U16/OPT (U16 null → nil)
+	Str   *string // STR/U16STR/U32N (null → nil)
+	Hex   string  // GUID16/OPTGUID/BYTES (OPTGUID null → "")
 	Val   *Value  // VAL/DICT/ARGLIST/ARRAY/U32ARR/STR3/KV
-	Float float64 // FLOAT/DOUBLE（FLOAT 编码时转 float32）
+	Float float64 // FLOAT/DOUBLE (FLOAT 编码时转 float32)
 }
 
 type reader struct {
@@ -91,7 +91,7 @@ func (r *reader) shortStr(what string) (*string, error) {
 	if err != nil {
 		return nil, err
 	}
-	s := string(raw) // 协议串为 ASCII；非法 UTF-8 时原样保留字节
+	s := string(raw) // 协议串为 ASCII; 非法 UTF-8 时原样保留字节
 	return &s, nil
 }
 

@@ -1,11 +1,11 @@
-﻿# hosts.ps1 - 在"本地服"和"官方服"之间切换 api.rf4game.ru 的解析
+﻿# hosts.ps1 — переключение api.rf4game.ru между локальным и официальным сервером
 #
-# 用法：
-#   .\tools\hosts.ps1 local      # 指向 127.0.0.1（我们的网关）
-#   .\tools\hosts.ps1 official   # 注释掉本项目的行，恢复官方解析
-#   .\tools\hosts.ps1 status     # 查看当前状态
+# Использование:
+#   .\tools\hosts.ps1 local      # направить на 127.0.0.1 (наш шлюз)
+#   .\tools\hosts.ps1 official   # закомментировать строки проекта, вернуть официальные адреса
+#   .\tools\hosts.ps1 status     # показать текущее состояние
 #
-# 每次修改前会备份到 hosts.rf4s-backup-<时间戳>，可用 -Restore <文件> 还原。
+# Перед каждым изменением создаётся копия hosts.rf4s-backup-<время>; восстановить: -Restore <файл>.
 param(
     [Parameter(Position = 0)][ValidateSet('local', 'official', 'status')][string]$Mode = 'status',
     [string]$Restore = ''
@@ -33,12 +33,12 @@ function Show-Status {
     $active = @($current | Where-Object { $_ -match '^\s*127\.0\.0\.1\s+api\.rf4game\.' })
     $disabled = @($current | Where-Object { $_ -match ('^\s*' + [regex]::Escape($marker)) })
     if ($active.Count -gt 0) {
-        Write-Host '当前: 本地服（api.rf4game.ru -> 127.0.0.1）' -ForegroundColor Yellow
+        Write-Host 'Сейчас: локальный сервер (api.rf4game.ru -> 127.0.0.1)' -ForegroundColor Yellow
         $active | ForEach-Object { Write-Host ('  ' + $_) }
     } else {
-        Write-Host '当前: 官方服（本项目的 hosts 行已注释/不存在）' -ForegroundColor Green
+        Write-Host 'Сейчас: официальный сервер (строки этого проекта в hosts закомментированы или отсутствуют)' -ForegroundColor Green
     }
-    if ($disabled.Count -gt 0) { Write-Host ('已注释行: ' + $disabled.Count) -ForegroundColor DarkGray }
+    if ($disabled.Count -gt 0) { Write-Host ('Закомментировано строк: ' + $disabled.Count) -ForegroundColor DarkGray }
 }
 
 if ($Mode -eq 'status') { Show-Status; return }
@@ -61,7 +61,7 @@ if ($Mode -eq 'local') {
         $out += $lines
     }
     [IO.File]::WriteAllText($hosts, (($out -join "`r`n") + "`r`n"), (New-Object Text.UTF8Encoding($false)))
-    Write-Host '已切换: 本地服' -ForegroundColor Yellow
+    Write-Host 'Переключено: локальный сервер' -ForegroundColor Yellow
 } else {
     $out = @()
     foreach ($ln in $current) {
@@ -69,7 +69,7 @@ if ($Mode -eq 'local') {
         else { $out += $ln }
     }
     [IO.File]::WriteAllText($hosts, (($out -join "`r`n") + "`r`n"), (New-Object Text.UTF8Encoding($false)))
-    Write-Host '已切换: 官方服（用自己的账号正常登录即可）' -ForegroundColor Green
+    Write-Host 'Переключено: официальный сервер (входите своим аккаунтом как обычно)' -ForegroundColor Green
 }
 Write-Host ''
 Show-Status

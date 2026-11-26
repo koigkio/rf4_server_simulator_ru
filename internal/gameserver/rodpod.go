@@ -218,7 +218,7 @@ func hRodPodSetSlot(ctx *Ctx) ([]byte, bool) {
 	}
 	row, fields, ok := rodPodRowFor(ctx, guid)
 	if !ok {
-		ctx.Log.Info("18/1 竿架不存在或不属于本玩家", "竿架", shortGUID(guid))
+		ctx.Log.Info("18/1 Подставка для удилищ не существует или не принадлежит игроку", "Подставка для удилищ", shortGUID(guid))
 		return nil, true
 	}
 	idx := fieldIdxByCS(row.WireClass, rodPodSlotsCS)
@@ -239,7 +239,7 @@ func hRodPodSetSlot(ctx *Ctx) ([]byte, bool) {
 	items[slot] = normalizeRodPodSlot(obj)
 	fields[idx] = proto.FVal("VAL", buildRodPodSlotsArray(items))
 	ctx.Sess.Srv.saveItemFields(ctx.Sess.pushCtx(), row, fields)
-	ctx.Log.Info("18/1 竿位报警器设置", "竿架", shortGUID(guid), "竿位", slot)
+	ctx.Log.Info("18/1 Настройка сигнализатора", "Подставка для удилищ", shortGUID(guid), "Позиция удилища", slot)
 	return nil, true
 }
 
@@ -264,6 +264,6 @@ func hRodPodSetMaster(ctx *Ctx) ([]byte, bool) {
 	}
 	fields[idx].Num = ptrU64(value)
 	ctx.Sess.Srv.saveItemFields(ctx.Sess.pushCtx(), row, fields)
-	ctx.Log.Info("18/2 竿架主设置", "竿架", shortGUID(guid), "值", value)
+	ctx.Log.Info("18/2 Основные настройки подставки", "Подставка для удилищ", shortGUID(guid), "Значение", value)
 	return nil, true
 }

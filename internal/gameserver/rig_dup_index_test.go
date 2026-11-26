@@ -42,8 +42,8 @@ func TestDuplicateRigIndexIsReturnedByProjection(t *testing.T) {
 	if err != nil {
 		t.Fatalf("造竿失败: %v", err)
 	}
-	if !srv.rigSetType(ctx, uid, rod.GUID, 50) { // rig_MarinePilker：前导只有 175 一个槽
-		t.Fatal("rigSetType 失败")
+	if !srv.rigSetType(ctx, uid, rod.GUID, 50) { // rig_MarinePilker: 前导只有 175 一个槽
+		t.Fatal("rigSetType Ошибка")
 	}
 	kept, err := srv.CreateItem(ctx, uid, "sh_leader_40815", "backpack", 1)
 	if err != nil {
@@ -210,7 +210,7 @@ func TestRigDedupeAcrossMutuallyExclusiveCategories(t *testing.T) {
 		}
 	}
 	if count != 1 {
-		t.Fatalf("钩/拟饵同槽 252 应去重为 1 条，实得 %d 条: %+v", count, stored)
+		t.Fatalf("钩/拟饵同槽 252 应去重为 1 条, 实得 %d 条: %+v", count, stored)
 	}
 }
 
@@ -307,14 +307,14 @@ func TestRigMountReplacesCrossCategorySharedSlot(t *testing.T) {
 		}
 	}
 	if occupant == nil || occupant.GUID != lure.GUID || occupant.Category != 17 {
-		t.Fatalf("最后一次装配的拟饵应占槽252，实得 %+v comps=%+v", occupant, comps)
+		t.Fatalf("最后一次装配的拟饵应占槽252, 实得 %+v comps=%+v", occupant, comps)
 	}
 	hookRow, err := db.GetItemByGUID(ctx, hook.GUID)
 	if err != nil || hookRow == nil {
 		t.Fatal(err)
 	}
 	if hookRow.Container != "backpack" || hookRow.RigGUID != "" {
-		t.Fatalf("被替换的钩应退回背包，实得 container=%q rig=%q", hookRow.Container, hookRow.RigGUID)
+		t.Fatalf("被替换的钩应退回背包, 实得 container=%q rig=%q", hookRow.Container, hookRow.RigGUID)
 	}
 	foundReleased := false
 	for _, rel := range res.Released {

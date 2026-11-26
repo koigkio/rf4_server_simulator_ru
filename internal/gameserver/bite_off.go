@@ -269,7 +269,7 @@ func (s *Server) biteOffLeader(ctx *Ctx, st *FishState, fish *RolledFish, leader
 	}
 	if err != nil || outcome == nil {
 		if s.log != nil {
-			s.log.Warn("咬断线组未完成", "rod", shortGUID(rodGUID),
+			s.log.Warn("Перекус поводка не завершён", "rod", shortGUID(rodGUID),
 				"part", part, "leader_kg", roundTo(leaderKg, 2), "err", err)
 		}
 		return
@@ -286,7 +286,7 @@ func (s *Server) biteOffLeader(ctx *Ctx, st *FishState, fish *RolledFish, leader
 	s.bumpFishingCounter(uid, "line_breaks")
 	// 咬断有独立原因码（10=牙齿咬断钓组），不能复用张力断线的 30/6：
 	// 客户端按原因码换文案，混用会把「被鱼咬断」显示成「引线断了」。
-	s.notifyFishEscape(ctx.Sess, fish, "牙齿咬断钓组")
+	s.notifyFishEscape(ctx.Sess, fish, "Рыба перекусила оснастку зубами")
 
 	syncGUIDs := append([]string(nil), outcome.RemovedGUIDs...)
 	syncGUIDs = append(syncGUIDs, outcome.StackRefreshGUIDs...)
@@ -296,11 +296,11 @@ func (s *Server) biteOffLeader(ctx *Ctx, st *FishState, fish *RolledFish, leader
 	if len(syncGUIDs) > 0 {
 		ctx.Sess.Push4_22ItemGUIDs(syncGUIDs)
 	}
-	ctx.Sess.pushSystemChat(fmt.Sprintf("牙齿咬断了%s，鱼跑了", map[string]string{
-		"leader": "引线", "line": "主线",
+	ctx.Sess.pushSystemChat(fmt.Sprintf("Рыба перекусила %s зубами и ушла", map[string]string{
+		"leader": "引线", "line": "основную леску",
 	}[part]))
 	if s.log != nil {
-		s.log.Info("咬断线组", "rod", shortGUID(rodGUID), "fish", fish.Species,
+		s.log.Info("Перекус поводка", "rod", shortGUID(rodGUID), "fish", fish.Species,
 			"weight_g", fish.WeightG, "part", part, "leader_kg", roundTo(leaderKg, 2))
 	}
 }

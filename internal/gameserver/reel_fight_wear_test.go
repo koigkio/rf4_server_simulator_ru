@@ -36,25 +36,25 @@ func TestFightReelStressBilledWithoutSlip(t *testing.T) {
 	w := newFightWearForTest(7.7, 5, 5, 1)
 	ticks, slip, stressSecs, slipSecs := srv.fightReelTickWear(w, tick)
 	if ticks != 0 || slip != 0 || slipSecs != 0 {
-		t.Fatalf("拉力不超泄力不应打滑，实得 ticks=%d slip=%v", ticks, slip)
+		t.Fatalf("拉力不超泄力不应打滑, 实得 ticks=%d slip=%v", ticks, slip)
 	}
 	if stressSecs != tick {
-		t.Fatalf("无打滑也要记受力秒 %.2f，实得 %.2f", tick, stressSecs)
+		t.Fatalf("无打滑也要记受力秒 %.2f, 实得 %.2f", tick, stressSecs)
 	}
 	// 拉力等于门槛以下边界（1.04×，官服零磨损样本）：不打滑。
 	w = newFightWearForTest(7.7, 5, 5*1.04, 1)
 	if ticks, slip, _, _ := srv.fightReelTickWear(w, tick); ticks != 0 || slip != 0 {
-		t.Fatalf("1.04× 泄力不应记打滑（官服实测零磨损），实得 ticks=%d slip=%v", ticks, slip)
+		t.Fatalf("1.04× 泄力不应记打滑 (官服实测零磨损), 实得 ticks=%d slip=%v", ticks, slip)
 	}
 	// 超过门槛（1.5×）：记一次打滑。
 	w = newFightWearForTest(7.7, 5, 7.5, 1)
 	ticks, slip, _, slipSecs = srv.fightReelTickWear(w, tick)
 	if ticks != 1 || slip <= 0 || slipSecs != tick {
-		t.Fatalf("超泄力应记一次打滑，实得 ticks=%d slip=%v secs=%v", ticks, slip, slipSecs)
+		t.Fatalf("超泄力应记一次打滑, 实得 ticks=%d slip=%v secs=%v", ticks, slip, slipSecs)
 	}
 	// 零时长上报什么都不记。
 	if ticks, slip, stress, secs := srv.fightReelTickWear(w, 0); ticks != 0 || slip != 0 || stress != 0 || secs != 0 {
-		t.Fatalf("零时长不该产生任何账：ticks=%d slip=%v stress=%v secs=%v", ticks, slip, stress, secs)
+		t.Fatalf("零时长不该产生任何账: ticks=%d slip=%v stress=%v secs=%v", ticks, slip, stress, secs)
 	}
 }
 
@@ -69,16 +69,16 @@ func TestLongHugeFishSlipWearNoOverloadScaling(t *testing.T) {
 	for i := 0; i < 38; i++ {
 		ticks, slip, _, _ := srv.fightReelTickWear(w, reelSlipCalibrationSeconds)
 		if ticks != 1 {
-			t.Fatalf("第 %d 次应只记打滑，实得 ticks=%d", i+1, ticks)
+			t.Fatalf("第 %d 次应只记打滑, 实得 ticks=%d", i+1, ticks)
 		}
 		total += slip
 	}
 	want := 38 * reelSlipWear * 0.9
 	if math.Abs(total-want) > 1e-12 {
-		t.Fatalf("38 次打滑应累计 %.4f，实得 %.4f", want, total)
+		t.Fatalf("38 次打滑应累计 %.4f, 实得 %.4f", want, total)
 	}
 	if total > 0.005 {
-		t.Fatalf("38 次未锁轮打滑不应超过 0.5%%，实得 %.4f", total)
+		t.Fatalf("38 次未锁轮打滑不应超过 0.5%%, 实得 %.4f", total)
 	}
 }
 
@@ -90,7 +90,7 @@ func TestFightReelSlipWearFlatAcrossSettings(t *testing.T) {
 		w.setting = setting
 		_, slip, _, _ := srv.fightReelTickWear(w, reelSlipCalibrationSeconds)
 		if math.Abs(slip-reelSlipWear) > 1e-12 {
-			t.Fatalf("%d 档打滑磨损=%v，期望统一基准 %v", setting, slip, reelSlipWear)
+			t.Fatalf("%d 档打滑磨损=%v, 期望统一基准 %v", setting, slip, reelSlipWear)
 		}
 	}
 }
@@ -110,12 +110,12 @@ func TestFightReelSlipWearMatchesOfficial(t *testing.T) {
 	// 0.027% = 0.00027 寿命比例；官服单样本，给 ±25% 容差。
 	const want = 0.00027
 	if math.Abs(total-want) > want*0.25 {
-		t.Fatalf("112s 重度打滑应磨 %.5f（官服 W5 实测 0.027%%），实得 %.5f", want, total)
+		t.Fatalf("112s 重度打滑应磨 %.5f (官服 W5 实测 0.027%%), 实得 %.5f", want, total)
 	}
 	// 换算口径：连续打滑烧完一套摩擦片约 115 小时，不再是旧的 5 小时。
 	hours := 1 / (total / 112) / 3600
 	if hours < 60 || hours > 180 {
-		t.Fatalf("摩擦片按打滑小时数寿命应落在 60~180h（官服口径），实得 %.0fh", hours)
+		t.Fatalf("摩擦片按打滑小时数寿命应落在 60~180h (官服口径), 实得 %.0fh", hours)
 	}
 }
 
@@ -130,11 +130,11 @@ func TestFightReelOilLowersSlipWear(t *testing.T) {
 	w.oilWear = 3
 	_, worst, _, _ := srv.fightReelTickWear(w, tick)
 	if !(best < normal && normal < worst) {
-		t.Fatalf("轮油应改变打滑磨损：最佳 %.6f 常规 %.6f 最差 %.6f", best, normal, worst)
+		t.Fatalf("轮油应改变打滑磨损: 最佳 %.6f 常规 %.6f 最差 %.6f", best, normal, worst)
 	}
 	baseWear := reelSlipWear
 	if math.Abs(best-baseWear*0.8) > 1e-12 || math.Abs(worst-baseWear*1.2) > 1e-12 {
-		t.Fatalf("轮油系数应被收进 0.8~1.2，实得 best=%.6f worst=%.6f", best, worst)
+		t.Fatalf("轮油系数应被收进 0.8~1.2, 实得 best=%.6f worst=%.6f", best, worst)
 	}
 }
 
@@ -150,13 +150,13 @@ func TestFightReelLockedUsesSameSlipChannel(t *testing.T) {
 	unlocked := newFightWearForTest(7.7, 5, 7.5, 1)
 	_, unlockedSlip, unlockedStress, _ := srv.fightReelTickWear(unlocked, reelSlipCalibrationSeconds)
 	if math.Abs(lockedSlip-reelSlipWear) > 1e-12 {
-		t.Fatalf("锁轮打滑应按统一基准磨损 %.6f，实得 %.6f", reelSlipWear, lockedSlip)
+		t.Fatalf("锁轮打滑应按统一基准磨损 %.6f, 实得 %.6f", reelSlipWear, lockedSlip)
 	}
 	if lockedStress != unlockedStress || lockedStress != reelSlipCalibrationSeconds {
-		t.Fatalf("锁轮受力秒照记，实得 %v", lockedStress)
+		t.Fatalf("锁轮受力秒照记, 实得 %v", lockedStress)
 	}
 	if math.Abs(lockedSlip-unlockedSlip) > 1e-12 {
-		t.Fatalf("拍平后锁轮/未锁轮应同速率：locked=%.6f unlocked=%.6f", lockedSlip, unlockedSlip)
+		t.Fatalf("拍平后锁轮/未锁轮应同速率: locked=%.6f unlocked=%.6f", lockedSlip, unlockedSlip)
 	}
 }
 
@@ -168,7 +168,7 @@ func TestFightReelSlipWearScalesByElapsedSeconds(t *testing.T) {
 	_, short, _, _ := srv.fightReelTickWear(w, reelSlipCalibrationSeconds/2)
 	_, long, _, _ := srv.fightReelTickWear(w, reelSlipCalibrationSeconds)
 	if math.Abs(long-2*short) > 1e-12 {
-		t.Fatalf("打滑磨损应按真实秒数线性累计：半节拍 %.9f，整节拍 %.9f", short, long)
+		t.Fatalf("打滑磨损应按真实秒数线性累计: 半节拍 %.9f, 整节拍 %.9f", short, long)
 	}
 }
 
@@ -181,7 +181,7 @@ func TestFightReelDedicatedOilReducesWearRate(t *testing.T) {
 	w.oilMatch = reelOilMatchDedicated
 	_, dedicated, _, _ := srv.fightReelTickWear(w, reelSlipCalibrationSeconds)
 	if math.Abs(dedicated-mismatch*0.5) > 1e-12 {
-		t.Fatalf("品牌专用油应把打滑磨损降到一半：不匹配 %.9f 专用 %.9f", mismatch, dedicated)
+		t.Fatalf("品牌专用油应把打滑磨损降到一半: 不匹配 %.9f 专用 %.9f", mismatch, dedicated)
 	}
 }
 
@@ -230,12 +230,12 @@ func TestFightReelSettleWearsWasherAndLowersDrag(t *testing.T) {
 		t.Fatalf("重建轮子物理参数失败: %v", perr)
 	}
 	if math.Abs(after.BaseDragKg-before.BaseDragKg*0.5) > before.BaseDragKg*0.02 {
-		t.Fatalf("烧掉一半寿命后泄力应约减半：before=%.3f after=%.3f", before.BaseDragKg, after.BaseDragKg)
+		t.Fatalf("烧掉一半寿命后泄力应约减半: before=%.3f after=%.3f", before.BaseDragKg, after.BaseDragKg)
 	}
 	// 统一口径：锁轮承力=规格×轴承耐久，不随摩擦片寿命衰减（规格表收录的轮子）；
 	// 摩擦片基准制动（1~29 档泄力）已在上面的断言里验证减半。
 	if math.Abs(after.LockedDragKg-before.LockedDragKg) > 1e-9 {
-		t.Fatalf("锁轮承力不应随摩擦片磨损变化：before=%.3f after=%.3f", before.LockedDragKg, after.LockedDragKg)
+		t.Fatalf("锁轮承力不应随摩擦片磨损变化: before=%.3f after=%.3f", before.LockedDragKg, after.LockedDragKg)
 	}
 
 	// 每竿一次：重复结算不得再扣一次。
@@ -249,7 +249,7 @@ func TestFightReelSettleWearsWasherAndLowersDrag(t *testing.T) {
 		t.Fatalf("重建轮子物理参数失败: %v", perr)
 	}
 	if math.Abs(again.BaseDragKg-after.BaseDragKg) > 1e-9 {
-		t.Fatalf("重复结算不应重复扣耐久：%.6f -> %.6f", after.BaseDragKg, again.BaseDragKg)
+		t.Fatalf("重复结算不应重复扣耐久: %.6f -> %.6f", after.BaseDragKg, again.BaseDragKg)
 	}
 
 	// 烧穿：制动力归零，泄力与锁轮承力都失效，只能剪线后修。
@@ -268,7 +268,7 @@ func TestFightReelSettleWearsWasherAndLowersDrag(t *testing.T) {
 		t.Fatalf("重建轮子物理参数失败: %v", perr)
 	}
 	if dead.BaseDragKg > 1e-9 || dead.LockedDragKg > 1e-9 {
-		t.Fatalf("摩擦片烧穿后泄力应失效，实得 base=%.6f locked=%.6f", dead.BaseDragKg, dead.LockedDragKg)
+		t.Fatalf("摩擦片烧穿后泄力应失效, 实得 base=%.6f locked=%.6f", dead.BaseDragKg, dead.LockedDragKg)
 	}
 }
 
@@ -281,7 +281,7 @@ func TestFightReelWearWithoutReelIsSafe(t *testing.T) {
 		t.Fatalf("造手竿失败: %v", err)
 	}
 	if got := srv.fightReelCache(ctx, uid, handRod.GUID, &RolledFish{FishGUID: "fishx"}); got.valid {
-		t.Fatal("手竿没有渔轮，不应生成磨损账")
+		t.Fatal("手竿没有渔轮, 不应生成磨损账")
 	}
 	// 空账与空 GUID 都不该写库、不该 panic。
 	srv.settleFightReelWear(ctx, uid, handRod.GUID, "14/4")
@@ -297,7 +297,7 @@ func TestFightReelLoadTickUsesRealGaps(t *testing.T) {
 	base := time.Date(2026, 11, 8, 12, 0, 0, 0, time.UTC)
 	w := fightReelWear{}
 	if got := w.loadTickSecondsLocked(base, defaultReelLoadTickSeconds, defaultReelLoadMaxTickSeconds); got != defaultReelLoadTickSeconds {
-		t.Fatalf("首条上报应按兜底节拍 %.2fs 起算，实得 %.2fs", defaultReelLoadTickSeconds, got)
+		t.Fatalf("首条上报应按兜底节拍 %.2fs 起算, 实得 %.2fs", defaultReelLoadTickSeconds, got)
 	}
 	w.lastLoadAt = base
 	cases := []struct {
@@ -313,7 +313,7 @@ func TestFightReelLoadTickUsesRealGaps(t *testing.T) {
 	for _, tc := range cases {
 		got := w.loadTickSecondsLocked(base.Add(tc.offset), defaultReelLoadTickSeconds, defaultReelLoadMaxTickSeconds)
 		if math.Abs(got-tc.want) > 1e-9 {
-			t.Fatalf("%s: 应折算 %.2fs，实得 %.2fs", tc.name, tc.want, got)
+			t.Fatalf("%s: 应折算 %.2fs, 实得 %.2fs", tc.name, tc.want, got)
 		}
 	}
 }
@@ -373,7 +373,7 @@ func TestFightReelStressSecondsFollowRealGaps(t *testing.T) {
 	}
 	// 首条 1.9 秒兜底，其余 7 条真实间隔 0.5 秒。
 	if want := defaultReelLoadTickSeconds + 7*0.5; math.Abs(secs-want) > 1e-9 {
-		t.Fatalf("受力秒应按真实时长 %.2fs 累加，实得 %.2fs", want, secs)
+		t.Fatalf("受力秒应按真实时长 %.2fs 累加, 实得 %.2fs", want, secs)
 	}
 	// 同样的 8 条上报，按旧口径一律折 1.9 秒会多记近三倍时长，磨损必须更狠。
 	fixed := newFightWearForTest(7.7, 5, 7.5, 1)
@@ -384,13 +384,13 @@ func TestFightReelStressSecondsFollowRealGaps(t *testing.T) {
 		fixedStress += stress
 	}
 	if !(secs < fixedStress && slip < fixedSlip) {
-		t.Fatalf("密集上报按真实时长结算应更省：受力 %.2f vs %.2f，打滑 %.6f vs %.6f",
+		t.Fatalf("密集上报按真实时长结算应更省: 受力 %.2f vs %.2f, 打滑 %.6f vs %.6f",
 			secs, fixedStress, slip, fixedSlip)
 	}
 	// 同一瞬间的重复上报不带时长，也就一分账都不该记。
 	dup := newFightWearForTest(7.7, 5, 7.5, 1)
 	if ticks, slipWear, stress, slipSecs := srv.fightReelTickWear(dup, 0); ticks != 0 || slipWear != 0 || stress != 0 || slipSecs != 0 {
-		t.Fatalf("零时长上报不该产生任何账：ticks=%d slip=%v stress=%v secs=%v",
+		t.Fatalf("零时长上报不该产生任何账: ticks=%d slip=%v stress=%v secs=%v",
 			ticks, slipWear, stress, slipSecs)
 	}
 }
@@ -406,10 +406,10 @@ func TestFishFightPullKgfMatchesKTable(t *testing.T) {
 	const tol = 1e-4
 	wantN := 0.461 * (17.60 + 0.38*math.Log(0.461))
 	if got, want := srv.fishFightPullFor(f), wantN; math.Abs(got-want) > tol {
-		t.Fatalf("27.f8 应为 K 表牛数 %.6f，实得 %.6f", want, got)
+		t.Fatalf("27.f8 应为 K 表牛数 %.6f, 实得 %.6f", want, got)
 	}
 	if got, want := srv.fishFightPullKgfFor(f), wantN/newtonPerKgf; math.Abs(got-want) > tol {
-		t.Fatalf("公斤力拉力应为牛数/newtonPerKgf %.6f，实得 %.6f", want, got)
+		t.Fatalf("公斤力拉力应为牛数/newtonPerKgf %.6f, 实得 %.6f", want, got)
 	}
 }
 
@@ -421,7 +421,7 @@ func TestFightReelWearBoundaryUsesKgfNotNewton(t *testing.T) {
 	f := &RolledFish{FishGUID: "fish0000000000000000000000000002", Species: "perch", WeightG: 461, Grade: 2}
 	oldWay := newFightWearForTest(3.2, 1.87, srv.fishFightPullFor(f), 1.175)
 	if ticks, slip, _, _ := srv.fightReelTickWear(oldWay, defaultReelLoadTickSeconds); ticks != 1 || slip <= 0 {
-		t.Fatalf("对照失效：牛当公斤的旧口径应判打滑，实得 ticks=%d slip=%v", ticks, slip)
+		t.Fatalf("对照失效: 牛当公斤的旧口径应判打滑, 实得 ticks=%d slip=%v", ticks, slip)
 	}
 	newWay := newFightWearForTest(3.2, 1.87, srv.fishFightPullKgfFor(f), 1.175)
 	ticks, slip, stress, slipSecs := srv.fightReelTickWear(newWay, defaultReelLoadTickSeconds)
@@ -429,7 +429,7 @@ func TestFightReelWearBoundaryUsesKgfNotNewton(t *testing.T) {
 		t.Fatalf("461g 鱼对 1.87kg 泄力不应打滑: ticks=%d slip=%v secs=%v", ticks, slip, slipSecs)
 	}
 	if stress != defaultReelLoadTickSeconds {
-		t.Fatalf("不打滑也要记受力秒 %.2f，实得 %.2f", defaultReelLoadTickSeconds, stress)
+		t.Fatalf("不打滑也要记受力秒 %.2f, 实得 %.2f", defaultReelLoadTickSeconds, stress)
 	}
 }
 
@@ -462,10 +462,10 @@ func TestFightReelCachePullKgfNoSlipForSmallFish(t *testing.T) {
 		t.Fatalf("拉力不超泄力应零打滑: ticks=%d slip=%v secs=%v", ticks, slip, slipSecs)
 	}
 	if stress != defaultReelLoadTickSeconds {
-		t.Fatalf("受力秒应照记 %.2f，实得 %.2f", defaultReelLoadTickSeconds, stress)
+		t.Fatalf("受力秒应照记 %.2f, 实得 %.2f", defaultReelLoadTickSeconds, stress)
 	}
 	if pullN := srv.fishFightPullFor(f); pullN <= cached.dragKg {
-		t.Fatalf("正控失效：f8 牛数 %.4f 应高于泄力 %.2f，否则测不出旧 bug", pullN, cached.dragKg)
+		t.Fatalf("正控失效: f8 牛数 %.4f 应高于泄力 %.2f, 否则测不出旧 bug", pullN, cached.dragKg)
 	}
 }
 

@@ -26,7 +26,7 @@ test('expired sessions can re-enter and confirm the original debited order with 
     if(key==='session'&&req.method()==='POST'){assert.equal(req.headers().authorization,undefined);expired=false;return route.fulfill({json:{token:'fixture-'+(++session)}});}
     assert.equal(req.headers().authorization,'Bearer fixture-'+session);
     if(expired)return route.fulfill({status:401,body:'expired'});
-    if(key==='profile')return route.fulfill({json:{userId:uid,nickname:'玩家'+uid,username:'fixture',level:1,goldMinor:gold(),silverMinor:1000}});
+    if(key==='profile')return route.fulfill({json:{userId:uid,nickname:'Игрок'+uid,username:'fixture',level:1,goldMinor:gold(),silverMinor:1000}});
     if(key==='membership')return route.fulfill({json:membership()});
     if(key==='membership/purchase'){
       const body=req.postDataJSON();requests.push(body);assert.equal(uid,42);
@@ -39,24 +39,24 @@ test('expired sessions can re-enter and confirm the original debited order with 
     throw Error('Unexpected request: '+req.method()+' '+key);
   });
   const login=async()=>{
-    const enter=page.getByRole('button',{name:'进入个人中心',exact:true});await enter.focus();await page.keyboard.press('Enter');
-    const submit=page.getByRole('button',{name:'登录',exact:true});await submit.focus();await page.keyboard.press('Space');
-    await page.getByRole('heading',{name:'玩家'+uid}).waitFor();
+    const enter=page.getByRole('button',{name:'Войти в личный кабинет',exact:true});await enter.focus();await page.keyboard.press('Enter');
+    const submit=page.getByRole('button',{name:'Войти',exact:true});await submit.focus();await page.keyboard.press('Space');
+    await page.getByRole('heading',{name:'Игрок'+uid}).waitFor();
   };
-  await page.goto(origin+'/portal/');await login();await page.getByRole('link',{name:'个人中心',exact:true}).click();
-  await page.getByRole('heading',{name:'玩家42'}).waitFor();assert.equal(session,1);
-  await page.getByRole('button',{name:'购买会员',exact:true}).click();
-  const retry=page.getByRole('button',{name:'确认原单回执'});
-  await page.waitForFunction(()=>[...document.querySelectorAll('#local-plans button')].some(b=>!b.disabled&&b.textContent==='确认原单回执'));
+  await page.goto(origin+'/portal/');await login();await page.getByRole('link',{name:'Личный кабинет',exact:true}).click();
+  await page.getByRole('heading',{name:'Игрок42'}).waitFor();assert.equal(session,1);
+  await page.getByRole('button',{name:'Купить премиум',exact:true}).click();
+  const retry=page.getByRole('button',{name:'Проверить квитанцию заказа'});
+  await page.waitForFunction(()=>[...document.querySelectorAll('#local-plans button')].some(b=>!b.disabled&&b.textContent==='Проверить квитанцию заказа'));
   assert.equal(await page.locator('.local-plan button').nth(1).isDisabled(),true);
-  await page.getByRole('button',{name:'刷新账户'}).click();await page.waitForFunction(()=>account_gold_score.textContent==='0.00');
+  await page.getByRole('button',{name:'Обновить аккаунт'}).click();await page.waitForFunction(()=>account_gold_score.textContent==='0.00');
   assert.equal(await retry.isEnabled(),true);assert.equal(requests.length,1);
-  expired=true;await page.getByRole('button',{name:'刷新账户'}).click();await page.getByText('会话已过期，请重新进入个人中心。',{exact:true}).waitFor();
+  expired=true;await page.getByRole('button',{name:'Обновить аккаунт'}).click();await page.getByText('Сессия истекла, войдите в личный кабинет снова.',{exact:true}).waitFor();
   assert.equal(await page.locator('#account_gold_score').textContent(),'—');assert.equal(await retry.count(),0);
   uid=77;await login();assert.equal(await retry.count(),0);
-  expired=true;await page.getByRole('button',{name:'退出',exact:true}).focus();await page.keyboard.press('Space');
-  await page.getByText('会话已过期，请重新进入个人中心。',{exact:true}).waitFor();
-  uid=42;await login();await retry.click();await page.getByText('购买已处理，未重复扣款。').waitFor();
+  expired=true;await page.getByRole('button',{name:'Выйти',exact:true}).focus();await page.keyboard.press('Space');
+  await page.getByText('Сессия истекла, войдите в личный кабинет снова.',{exact:true}).waitFor();
+  uid=42;await login();await retry.click();await page.getByText('Покупка уже обработана, повторного списания нет.').waitFor();
   assert.deepEqual(requests,[{planID:'one',requestID:requests[0].requestID},{planID:'one',requestID:requests[0].requestID}]);assert.ok(requests[0].requestID);
   assert.equal(gold(),0);assert.equal(sql('select count(*) n from receipt')[0].n,1);assert.deepEqual(errors,[]);
 });

@@ -12,7 +12,7 @@ import (
 // UpsertRigComponentAt 精确写某品类的第 ordinal 个槽。
 func (d *DB) UpsertRigComponentAt(ctx context.Context, rigGUID string, slot, ordinal int64, guid string, extra int64) error {
 	if ordinal < 0 {
-		return fmt.Errorf("rig_component ordinal 不能为负: %d", ordinal)
+		return fmt.Errorf("rig_component ordinal не может быть отрицательным: %d", ordinal)
 	}
 	_, err := d.SQL.ExecContext(ctx, `
 		INSERT INTO rig_component(rig_guid, slot, ordinal, guid, extra)
@@ -80,7 +80,7 @@ func (d *DB) ReplaceRigComponentsTx(ctx context.Context, tx *sql.Tx, rigGUID str
 	for _, c := range comps {
 		key := [2]int64{c.Slot, c.Ordinal}
 		if seen[key] {
-			return fmt.Errorf("rig_component 重复槽: slot=%d ordinal=%d", c.Slot, c.Ordinal)
+			return fmt.Errorf("rig_component Повторяющийся слот: slot=%d ordinal=%d", c.Slot, c.Ordinal)
 		}
 		seen[key] = true
 	}

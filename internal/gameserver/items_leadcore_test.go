@@ -41,16 +41,16 @@ func TestLeadcoreDefinitionsCarryLengthAndRigidity(t *testing.T) {
 		total++
 		var attrs map[string]any
 		if err := json.Unmarshal([]byte(attrsJSON), &attrs); err != nil {
-			t.Errorf("%s attrs_json 解析失败: %v", itemID, err)
+			t.Errorf("%s attrs_json Ошибка разбора: %v", itemID, err)
 			continue
 		}
 		length, _ := attrs["ljnnpokapig"].(float64)
 		if length <= 0 {
-			t.Errorf("%s 缺少长度 ljnnpokapig（当前 %v）：客户端会渲染成空白卡并按无效物品过滤", itemID, attrs["ljnnpokapig"])
+			t.Errorf("%s 缺少长度 ljnnpokapig (当前 %v): 客户端会渲染成空白卡并按无效物品过滤", itemID, attrs["ljnnpokapig"])
 		}
 		rigidity, _ := attrs["lgjeahdobch"].(float64)
 		if rigidity <= 0 {
-			t.Errorf("%s 缺少刚性 lgjeahdobch（当前 %v）", itemID, attrs["lgjeahdobch"])
+			t.Errorf("%s 缺少刚性 lgjeahdobch (当前 %v)", itemID, attrs["lgjeahdobch"])
 		}
 	}
 	if err := rows.Err(); err != nil {
@@ -70,16 +70,16 @@ func TestLeadcoreUsesWeightQuantityClass(t *testing.T) {
 	t.Parallel()
 	entry, ok := categoryWireClass[57]
 	if !ok {
-		t.Fatal("categoryWireClass 缺少 57（铅芯线）")
+		t.Fatal("categoryWireClass 缺少 57 (铅芯线)")
 	}
 	if entry.Class != "fmaajjlcdmc" || entry.TypeID != 167 {
-		t.Fatalf("铅芯线映射 = %s/%d，期望 fmaajjlcdmc/167", entry.Class, entry.TypeID)
+		t.Fatalf("铅芯线映射 = %s/%d, 期望 fmaajjlcdmc/167", entry.Class, entry.TypeID)
 	}
 	if got := wiregen.ClassTypeID["fmaajjlcdmc"]; got != 167 {
-		t.Fatalf("fmaajjlcdmc type_id = %d，期望 167", got)
+		t.Fatalf("fmaajjlcdmc type_id = %d, 期望 167", got)
 	}
 	if idx := fieldIdxByCS("fmaajjlcdmc", csStrength); idx != 0 {
-		t.Fatalf("fmaajjlcdmc 强度字段下标 = %d，期望 0", idx)
+		t.Fatalf("fmaajjlcdmc 强度字段下标 = %d, 期望 0", idx)
 	}
 }
 
@@ -94,7 +94,7 @@ func TestReclassifyLeadcoreFromFallback(t *testing.T) {
 		t.Skip("静态库缺 lc_40246 定义: ", err)
 	}
 	if def.Category != 57 {
-		t.Fatalf("lc_40246 品类 = %d，期望 57", def.Category)
+		t.Fatalf("lc_40246 品类 = %d, 期望 57", def.Category)
 	}
 
 	guid := "00112233445566778899aabbccddeeff"
@@ -134,14 +134,14 @@ func TestReclassifyLeadcoreFromFallback(t *testing.T) {
 		t.Fatal("改写后读取失败: ", err)
 	}
 	if fresh.WireClass != "fmaajjlcdmc" || fresh.TypeID != 167 {
-		t.Fatalf("改写后 = %s/%d，期望 fmaajjlcdmc/167", fresh.WireClass, fresh.TypeID)
+		t.Fatalf("改写后 = %s/%d, 期望 fmaajjlcdmc/167", fresh.WireClass, fresh.TypeID)
 	}
 	freshFields, err := FieldsFromJSON(fresh.FieldsJSON)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if len(freshFields) != len(wiregen.ClassOps["fmaajjlcdmc"]) {
-		t.Fatalf("字段数 = %d，期望 %d", len(freshFields), len(wiregen.ClassOps["fmaajjlcdmc"]))
+		t.Fatalf("字段数 = %d, 期望 %d", len(freshFields), len(wiregen.ClassOps["fmaajjlcdmc"]))
 	}
 	if freshFields[0].Num == nil || *freshFields[0].Num == 0 {
 		t.Error("改写后强度字段为空")

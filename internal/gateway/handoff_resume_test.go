@@ -49,10 +49,10 @@ func TestHandoffResumeKeepsKeystream(t *testing.T) {
 		time.Sleep(20 * time.Millisecond)
 	}
 	if handoffWireID == 0 {
-		t.Fatal("断线后没有落库 handoff：重连将无从承接")
+		t.Fatal("断线后没有落库 handoff: 重连将无从承接")
 	}
 	if handoffWireID < 4 {
-		t.Fatalf("handoff next_wire_id=%d，至少应越过已发出的 3 个数据帧", handoffWireID)
+		t.Fatalf("handoff next_wire_id=%d, 至少应越过已发出的 3 个数据帧", handoffWireID)
 	}
 
 	// 重连：复用同一条客户端（同 token、同 RC4 流、同 wire 计数）。
@@ -63,6 +63,6 @@ func TestHandoffResumeKeepsKeystream(t *testing.T) {
 		t.Fatalf("重连后下行解不出正确信封: call=%d marker=%d body=%x", env.CallID, env.Marker, env.Body)
 	}
 	if c.WireBad != 0 {
-		t.Fatalf("重连后 wire_id 出现回退 %d 次，客户端会判定乱序", c.WireBad)
+		t.Fatalf("重连后 wire_id 出现回退 %d 次, 客户端会判定乱序", c.WireBad)
 	}
 }

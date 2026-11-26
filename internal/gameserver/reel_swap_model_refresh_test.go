@@ -134,13 +134,13 @@ func TestReelSwapToPlainPushesRodModelRefresh(t *testing.T) {
 	respVer := treeCreatedVersion(t, respRod)
 
 	if len(c.afterResponse) != 1 {
-		t.Fatalf("换轮后应注册一次竿建模刷新，实得 %d", len(c.afterResponse))
+		t.Fatalf("换轮后应注册一次竿建模刷新, 实得 %d", len(c.afterResponse))
 	}
 	c.afterResponse[0]()
 
 	pushed := awaitRodModelPush(t, gc, rod.GUID, respVer)
 	if got := reelFieldGUID(pushed); got != plain.GUID {
-		t.Fatalf("推送竿树 f4=%s, want %s（旧电轮应已摘掉）", got, plain.GUID)
+		t.Fatalf("推送竿树 f4=%s, want %s (旧电轮应已摘掉)", got, plain.GUID)
 	}
 }
 
@@ -181,13 +181,13 @@ func TestReelRemovePushesRodModelRefresh(t *testing.T) {
 	respVer := treeCreatedVersion(t, respRod)
 
 	if len(c.afterResponse) != 1 {
-		t.Fatalf("拆轮后应注册一次竿建模刷新，实得 %d", len(c.afterResponse))
+		t.Fatalf("拆轮后应注册一次竿建模刷新, 实得 %d", len(c.afterResponse))
 	}
 	c.afterResponse[0]()
 
 	pushed := awaitRodModelPush(t, gc, rod.GUID, respVer)
 	if got := reelFieldGUID(pushed); got != "" {
-		t.Fatalf("推送竿树 f4=%s, want 空（电轮已拆）", got)
+		t.Fatalf("推送竿树 f4=%s, want 空 (电轮已拆)", got)
 	}
 }
 
@@ -230,7 +230,7 @@ func TestRodSetCompReelPushesRodModelRefresh(t *testing.T) {
 	respVer := treeCreatedVersion(t, respRod)
 
 	if len(c.afterResponse) != 1 {
-		t.Fatalf("装轮后应注册一次竿建模刷新，实得 %d", len(c.afterResponse))
+		t.Fatalf("装轮后应注册一次竿建模刷新, 实得 %d", len(c.afterResponse))
 	}
 	c.afterResponse[0]()
 

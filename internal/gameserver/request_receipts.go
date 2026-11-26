@@ -112,10 +112,10 @@ func (d *Dispatch) executeRequest(ctx *Ctx, interceptReplies bool) requestExecut
 						nativeFailure: true, errorText: nativeFailureReceipt}
 				}
 				if duplicates > 0 {
-					ctx.Log.Warn("同一请求调用了多次 Ctx.Reply；仅保留首个响应", "duplicates", duplicates)
+					ctx.Log.Warn("Один запрос вызвал Ctx.Reply несколько раз; сохраняется только первый ответ", "duplicates", duplicates)
 				}
 				if handled && body != nil {
-					ctx.Log.Warn("handler 同时 Ctx.Reply 与返回 body；以 Ctx.Reply 为准，避免双回包")
+					ctx.Log.Warn("handler Одновременно Ctx.Reply и возврат body; используется Ctx.Reply, чтобы не было двойного ответа")
 				}
 				return d.finishHandlerResponse(ctx, captured)
 			}
@@ -132,7 +132,7 @@ func (d *Dispatch) executeRequest(ctx *Ctx, interceptReplies bool) requestExecut
 	if body, kind := d.srv.fallbackFor(ctx.Main, ctx.Sub); body != nil {
 		gsFallbacks.WithLabelValues(kind).Inc()
 		if traceCmds {
-			ctx.Sess.log.Info("TRACE 回(兜底)", "cmd", ctx.Key(), "kind", kind, "len", len(body),
+			ctx.Sess.log.Info("TRACE Ответ (заглушка)", "cmd", ctx.Key(), "kind", kind, "len", len(body),
 				"hex", traceHexHead(body, traceHexMax))
 		}
 		return requestExecutionResult{body: body, hasResponse: true}
@@ -140,18 +140,18 @@ func (d *Dispatch) executeRequest(ctx *Ctx, interceptReplies bool) requestExecut
 		gsFallbacks.WithLabelValues(kind).Inc()
 		return noResponseResult()
 	}
-	ctx.Sess.log.Warn("无兜底可回（跳过）", "cmd", ctx.Key())
+	ctx.Sess.log.Warn("Нет заглушки для ответа (пропуск)", "cmd", ctx.Key())
 	return failedRequestResult("no handler or fallback")
 }
 
 func (d *Dispatch) finishHandlerResponse(ctx *Ctx, body []byte) requestExecutionResult {
 	if reason := d.checkRegisteredResponse(uint8(ctx.Main), uint8(ctx.Sub), body, d.srv.table); reason != "" {
 		gsFallbacks.WithLabelValues("contract_rejected").Inc()
-		ctx.Sess.log.Error("拒发响应：顶层合同不符", "cmd", ctx.Key(), "reason", reason)
+		ctx.Sess.log.Error("Отказ в отправке ответа: не соответствует контракту верхнего уровня", "cmd", ctx.Key(), "reason", reason)
 		return failedRequestResult("response contract rejected: " + reason)
 	}
 	if traceCmds {
-		ctx.Sess.log.Info("TRACE 回", "cmd", ctx.Key(), "len", len(body),
+		ctx.Sess.log.Info("TRACE Ответ", "cmd", ctx.Key(), "len", len(body),
 			"hex", traceHexHead(body, traceHexMax))
 	}
 	return requestExecutionResult{body: append([]byte(nil), body...), hasResponse: true}
@@ -206,7 +206,7 @@ func (s *Server) dispatchRequest(ctx *Ctx) {
 		waitCtx, key, bodySHA, ctx.ExpectResponse, time.Now().Add(-requestReceiptStaleAfter))
 	if err != nil {
 		cancelWait()
-		ctx.Log.Error("请求回执抢占失败；为避免重复副作用，拒绝执行", "err", err)
+		ctx.Log.Error("Не удалось занять квитанцию запроса; выполнение отклонено во избежание повторных побочных эффектов", "err", err)
 		return
 	}
 
@@ -215,7 +215,7 @@ func (s *Server) dispatchRequest(ctx *Ctx) {
 	for !claimed {
 		if rec.BodySHA256 != bodySHA || rec.ExpectResponse != ctx.ExpectResponse {
 			cancelWait()
-			ctx.Log.Error("请求回执冲突：同一 call_id 收到了不同请求，拒绝执行",
+			ctx.Log.Error("Конфликт квитанции запроса: на один call_id пришли разные запросы, выполнение отклонено",
 				"existing_body_sha256", rec.BodySHA256, "body_sha256", bodySHA,
 				"existing_expect", rec.ExpectResponse, "expect", ctx.ExpectResponse)
 			return
@@ -227,26 +227,26 @@ func (s *Server) dispatchRequest(ctx *Ctx) {
 			return
 		case store.RequestReceiptFailed:
 			cancelWait()
-			ctx.Log.Warn("请求已执行但响应失败；按幂等策略不重复执行",
+			ctx.Log.Warn("Запрос выполнен, но ответ не удался; по правилам идемпотентности повторно не выполняется",
 				"error", rec.ErrorText)
 			return
 		case store.RequestReceiptProcessing:
 			select {
 			case <-deadline.C:
 				cancelWait()
-				ctx.Log.Error("等待同 key 请求回执落定超时；拒绝重复执行")
+				ctx.Log.Error("Истекло ожидание квитанции запроса с тем же ключом; повторное выполнение отклонено")
 				return
 			case <-time.After(requestReceiptPoll):
 			}
 			rec, err = s.DB.GetRequestReceipt(waitCtx, key)
 			if err != nil {
 				cancelWait()
-				ctx.Log.Error("轮询请求回执失败；拒绝重复执行", "err", err)
+				ctx.Log.Error("Ошибка опроса квитанции запроса; повторное выполнение отклонено", "err", err)
 				return
 			}
 		default:
 			cancelWait()
-			ctx.Log.Error("请求回执状态非法；拒绝执行", "status", rec.Status)
+			ctx.Log.Error("Недопустимое состояние квитанции запроса; выполнение отклонено", "status", rec.Status)
 			return
 		}
 	}
@@ -262,15 +262,15 @@ func (s *Server) dispatchRequest(ctx *Ctx) {
 		completeCtx, key, bodySHA, status, result.body, result.hasResponse, result.errorText)
 	cancelComplete()
 	if err != nil {
-		ctx.Log.Error("请求回执落库失败；不发送响应，等待客户端安全重试", "err", err)
+		ctx.Log.Error("Не удалось сохранить квитанцию запроса; ответ не отправлен, ждём безопасного повтора от клиента", "err", err)
 		return
 	}
 	if !affected {
-		ctx.Log.Error("请求回执已被其他执行者接管；不发送本次响应")
+		ctx.Log.Error("Квитанцию запроса уже взял другой исполнитель; ответ не отправлен")
 		return
 	}
 	if status == store.RequestReceiptFailed {
-		ctx.Log.Warn("请求执行完成但无可重放响应", "error", result.errorText)
+		ctx.Log.Warn("Запрос выполнен, но ответа для повтора нет", "error", result.errorText)
 		return
 	}
 	s.sendRequestResult(ctx, result)
@@ -283,7 +283,7 @@ func (s *Server) replayRequestReceipt(ctx *Ctx, rec *store.RequestReceipt) {
 	result := requestExecutionResult{body: rec.ResponseBody, hasResponse: true,
 		nativeFailure: rec.ErrorText == nativeFailureReceipt}
 	if traceCmds {
-		ctx.Log.Info("TRACE 回(回执重放)", "cmd", ctx.Key(), "len", len(result.body),
+		ctx.Log.Info("TRACE Ответ (повтор квитанции)", "cmd", ctx.Key(), "len", len(result.body),
 			"hex", traceHexHead(result.body, 160))
 	}
 	s.sendRequestResult(ctx, result)

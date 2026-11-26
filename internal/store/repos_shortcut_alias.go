@@ -60,12 +60,12 @@ func loadShortcutBindings(ctx context.Context, tx *sql.Tx, uid int64) (map[int64
 	}
 	var aliases map[string]string
 	if err = json.Unmarshal([]byte(raw), &aliases); err != nil {
-		return nil, fmt.Errorf("快捷栏别名无效: %w", err)
+		return nil, fmt.Errorf("Неверный псевдоним панели быстрого доступа: %w", err)
 	}
 	for key, guid := range aliases {
 		slot, err := strconv.ParseInt(key, 10, 32)
 		if err != nil || slot < 0 {
-			return nil, fmt.Errorf("快捷栏槽位无效")
+			return nil, fmt.Errorf("Неверный слот панели быстрого доступа")
 		}
 		if _, ok := bindings[slot]; ok {
 			continue
@@ -86,14 +86,14 @@ func SaveShortcutsTx(ctx context.Context, tx *sql.Tx, uid int64, bindings map[in
 	for slot, guid := range bindings {
 		bytes, err := hex.DecodeString(guid)
 		if slot < 0 || slot > 2147483647 || err != nil || len(bytes) != 16 || guid == strings.Repeat("0", 32) {
-			return fmt.Errorf("快捷栏绑定无效")
+			return fmt.Errorf("Неверная привязка панели быстрого доступа")
 		}
 		available, err := shortcutItemAvailable(ctx, tx, uid, guid)
 		if err != nil {
 			return err
 		}
 		if !available {
-			return fmt.Errorf("物品不在当前角色背包中")
+			return fmt.Errorf("Предмета нет в инвентаре текущего персонажа")
 		}
 	}
 	if _, err := tx.ExecContext(ctx, "DELETE FROM container_slot WHERE uid=? AND container=0", uid); err != nil {

@@ -109,6 +109,6 @@ func TestLoadFishingStateMissing(t *testing.T) {
 		t.Fatal(err)
 	}
 	if got != nil {
-		t.Fatalf("无记录应返回 nil，实得 %+v", got)
+		t.Fatalf("无记录应返回 nil, 实得 %+v", got)
 	}
 }

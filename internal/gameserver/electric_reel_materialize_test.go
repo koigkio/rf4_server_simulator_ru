@@ -25,7 +25,7 @@ func TestElectricReelMotorMaterialized(t *testing.T) {
 	}
 	motor := fields[idx].Val
 	if motor.Class != "kbpmmclfipg" || motor.TypeID != 1470 {
-		t.Fatalf("f14 电机类=%s/%d，期望 kbpmmclfipg/1470", motor.Class, motor.TypeID)
+		t.Fatalf("f14 电机类=%s/%d, 期望 kbpmmclfipg/1470", motor.Class, motor.TypeID)
 	}
 	def, err := srv.DB.GetItemDef(ctx, it.NumericID)
 	if err != nil || def == nil {
@@ -46,7 +46,7 @@ func TestElectricReelMotorMaterialized(t *testing.T) {
 			t.Fatalf("定义 %s 缺失", attr)
 		}
 		if got := u64Of(motor.Fields[fi].Num); got != uint64(raw) {
-			t.Fatalf("电机 %s=%d，期望定义值 %d", cs, got, uint64(raw))
+			t.Fatalf("电机 %s=%d, 期望定义值 %d", cs, got, uint64(raw))
 		}
 	}
 }

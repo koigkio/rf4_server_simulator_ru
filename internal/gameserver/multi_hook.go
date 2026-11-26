@@ -21,11 +21,11 @@ import (
 // multiHookConfig 是多钩闸门参数。Enabled=false 时所有调用方都应退化为单鱼。
 type multiHookConfig struct {
 	Enabled   bool
-	MaxTotal  int     // 本杆最多鱼数（含主鱼）
+	MaxTotal  int     // 本杆最多鱼数 (含主鱼)
 	BiteProb  float64 // 每个额外钩位的独立咬口概率
-	BudgetK   float64 // 总重预算系数：预算 = K × 钓组最弱环
-	SizeDecay float64 // 逐条降档：第 i 条单条上限 × α^(i-1)
-	PullK     float64 // 总拉力预算系数：κ × 最弱环
+	BudgetK   float64 // 总重预算系数: 预算 = K × 钓组最弱环
+	SizeDecay float64 // 逐条降档: 第 i 条单条上限 × α^(i-1)
+	PullK     float64 // 总拉力预算系数: κ × 最弱环
 }
 
 // multiHookConfig 读取运行参数；参数缺省即旧行为（关闭）。
@@ -109,8 +109,8 @@ func (s *Server) deferExtrasUntilStrike(st *FishState, gear string) {
 	n := len(st.Extra)
 	st.mu.Unlock()
 	if n > 0 {
-		s.log.Info("多钩额外鱼入队等待刺鱼", "rod", shortGUID(gear), "条数", n,
-			"派实体", s.extraEntityPushEnabled())
+		s.log.Info("Доп. рыба с нескольких крючков поставлена в очередь до подсечки", "rod", shortGUID(gear), "Количество", n,
+			"Отправка сущности", s.extraEntityPushEnabled())
 	}
 }
 
@@ -154,7 +154,7 @@ func (s *Server) pushExtrasAtStrike(sess *Session, st *FishState, gear string, r
 	if !s.extraEntityPushEnabled() {
 		return
 	}
-	s.log.Info("多钩刺鱼后补派额外鱼", "rod", shortGUID(gear))
+	s.log.Info("После подсечки досылается доп. рыба с нескольких крючков", "rod", shortGUID(gear))
 	s.pushExtraFish(sess, st, gear, rigType)
 }
 
@@ -211,9 +211,9 @@ func (s *Server) rollExtraFishForRig(ctx context.Context, uid int64, gearGUID, l
 		rigType := s.rigTypeForWrite(ctx, gearGUID)
 		comps := s.storedRigComponents(ctx, gearGUID)
 		if slots := hookPositionsIn(rigType, comps); slots >= 2 {
-			s.log.Info("多钩未生效：只有一个钩位挂了饵", "rod", shortGUID(gearGUID),
-				"钩位", slots, "已挂饵钩位", len(groups),
-				"钩位明细", hookExtraDetail(comps), "饵位明细", baitExtraDetail(ctx, s, gearGUID, comps))
+			s.log.Info("Несколько крючков не сработали: наживка только на одном крючке", "rod", shortGUID(gearGUID),
+				"Крючок", slots, "Крючки с наживкой", len(groups),
+				"Подробности по крючкам", hookExtraDetail(comps), "Подробности по наживкам", baitExtraDetail(ctx, s, gearGUID, comps))
 		}
 		return nil
 	}
@@ -225,8 +225,8 @@ func (s *Server) rollExtraFishForRig(ctx context.Context, uid int64, gearGUID, l
 	}
 	// 每次多钩判定都留一条明细，方便对照"钩位几个、几个真的挂了饵"。
 	if slots := hookPositionsIn(s.rigTypeForWrite(ctx, gearGUID), s.storedRigComponents(ctx, gearGUID)); slots >= 2 {
-		s.log.Info("多钩判定", "rod", shortGUID(gearGUID), "钩位", slots,
-			"已挂饵钩位", len(groups), "总重预算kg", math.Round(budget*10)/10)
+		s.log.Info("Расчёт нескольких крючков", "rod", shortGUID(gearGUID), "Крючок", slots,
+			"Крючки с наживкой", len(groups), "Бюджет общего весаkg", math.Round(budget*10)/10)
 	}
 
 	used := map[string]bool{}
@@ -367,10 +367,10 @@ func (s *Server) pushExtraFish(sess *Session, st *FishState, gear string, rigTyp
 		if sess.Push14_14(f, f.HookGUID, gear, rigType) {
 			sent[f.FishGUID] = true
 			pushed = append(pushed, f)
-			s.log.Info("14/14 发额外鱼", "rod", shortGUID(gear), "fish", shortGUID(f.FishGUID),
-				"hook", shortGUID(f.HookGUID), "鱼种", f.Species, "重量_g", f.WeightG)
+			s.log.Info("14/14 Выдача доп. рыбы", "rod", shortGUID(gear), "fish", shortGUID(f.FishGUID),
+				"hook", shortGUID(f.HookGUID), "Вид рыбы", f.Species, "Вес_g", f.WeightG)
 			if mountExtra && sess.Push4_22HookGUID(f.HookGUID, true) {
-				s.log.Info("14/14 额外鱼钩挂竿位", "rod", shortGUID(gear),
+				s.log.Info("14/14 Позиция доп. рыбы на снасти", "rod", shortGUID(gear),
 					"fish", shortGUID(f.FishGUID), "hook", shortGUID(f.HookGUID))
 			}
 		}
@@ -456,8 +456,8 @@ func (s *Server) repushPromotedAfterTakeover(sess *Session, st *FishState) {
 	if !ready {
 		return
 	}
-	s.log.Info("多钩接管重派鱼", "rod", shortGUID(gear), "fish", shortGUID(f.FishGUID),
-		"hook", shortGUID(f.HookGUID), "鱼种", f.Species, "重量_g", f.WeightG)
+	s.log.Info("Несколько крючков: повторная выдача рыбы", "rod", shortGUID(gear), "fish", shortGUID(f.FishGUID),
+		"hook", shortGUID(f.HookGUID), "Вид рыбы", f.Species, "Вес_g", f.WeightG)
 	s.pushPendingBite(sess, st, f, gear, generation)
 }
 
@@ -509,13 +509,13 @@ func (s *Server) settleExtraOnReelIn(sess *Session, ctx context.Context, uid int
 		// 已在 Batch，只恢复资格回执，不再重复推扣饵帧。
 		if !replayBatch {
 			if err := s.consumeHookedBait(sess, f, gear); err != nil {
-				s.log.Warn("14/4 多钩额外鱼扣饵失败", "fish", shortGUID(f.FishGUID), "err", err)
+				s.log.Warn("14/4 Не удалось списать наживку доп. рыбы с нескольких крючков", "fish", shortGUID(f.FishGUID), "err", err)
 			}
 		}
 		res, _ := s.settleCatchXPWithQualifications(ctx, uid, f, rigType, &ev)
 		if res == nil {
-			s.log.Warn("14/4 多钩额外鱼结算失败，按脱落处理",
-				"fish", shortGUID(f.FishGUID), "鱼种", f.Species, "重量_g", f.WeightG)
+			s.log.Warn("14/4 Не удалось рассчитать доп. рыбу с нескольких крючков, считается сошедшей",
+				"fish", shortGUID(f.FishGUID), "Вид рыбы", f.Species, "Вес_g", f.WeightG)
 			continue
 		}
 		settled = append(settled, f)
@@ -536,8 +536,8 @@ func (s *Server) settleExtraOnReelIn(sess *Session, ctx context.Context, uid int
 		parts = append(parts, fmt.Sprintf("%s/%dg", f.Species, f.WeightG))
 		totalG += f.WeightG
 	}
-	s.log.Info("14/4 多钩一并结算", "rod", shortGUID(gear), "条数", len(settled),
-		"合计_g", totalG, "明细", strings.Join(parts, ","))
+	s.log.Info("14/4 Совместный расчёт нескольких крючков", "rod", shortGUID(gear), "Количество", len(settled),
+		"Итого_g", totalG, "Подробности", strings.Join(parts, ","))
 	return settled, results
 }
 
@@ -654,7 +654,7 @@ func multiHookKeepChat(kept []*store.KeepnetEntry) string {
 		}
 		totalG += e.WeightG
 	}
-	return fmt.Sprintf("多钩：另入护 %d 尾，合计 %.2f kg", len(kept), float64(totalG)/1000)
+	return fmt.Sprintf("Несколько крючков: ещё %d рыб в садок, итого %.2f kg", len(kept), float64(totalG)/1000)
 }
 
 // extraSettleGifts 汇总额外鱼结算里新发的全部礼物（升级礼物 / 两族奖座 / 水域奖杯），

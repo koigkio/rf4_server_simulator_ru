@@ -26,7 +26,7 @@ func (s *Server) fishingState(uid int64) *FishState {
 			var err error
 			saved, err = s.DB.LoadFishingStates(s.dbCtx(), uid)
 			if err != nil {
-				s.log.Warn("读取多竿状态失败", "uid", uid, "err", err)
+				s.log.Warn("Не удалось прочитать состояние нескольких удилищ", "uid", uid, "err", err)
 			}
 		}
 		for i, snapshot := range saved {

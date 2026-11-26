@@ -29,7 +29,7 @@ var castSkillEffectSeeds = []struct {
 	GateType    int64
 }{
 	// ---- 竿侧：+5%/级 ----
-	{1, 501, "cast_distance", 5, "rod", 3},    // 用手竿钓鱼（手竿=telescope）
+	{1, 501, "cast_distance", 5, "rod", 3},    // 用手竿钓鱼 (手竿=telescope)
 	{1, 503, "cast_distance", 5, "rod", 4},    // 使用博洛尼亚钓竿
 	{1, 507, "cast_distance", 5, "rod", 5},    // 用赛竿钓鱼
 	{2, 702, "cast_distance", 5, "rod", 1},    // 用纺车竿钓鱼
@@ -38,7 +38,7 @@ var castSkillEffectSeeds = []struct {
 	{3, 302, "cast_distance", 5, "rod", 10},   // 用飞德钓竿捕钓
 	{3, 307, "cast_distance", 5, "rod", 9},    // 用PICKER竿钓鱼
 	{3, 310, "cast_distance", 5, "rod", 11},   // 使用鲤鱼竿捕钓
-	{3, 315, "cast_distance", 5, "rod", 13},   // 使用打窝竿（SPOD）
+	{3, 315, "cast_distance", 5, "rod", 13},   // 使用打窝竿 (SPOD)
 	{3, 316, "cast_distance", 5, "rod", 14},   // 使用测竿
 	{11, 1001, "cast_distance", 5, "rod", 15}, // 使用柳叶亮片鱼竿 (pilker rod)
 	{11, 1010, "cast_distance", 5, "rod", 16}, // 使用轻型船用鱼竿
@@ -46,15 +46,15 @@ var castSkillEffectSeeds = []struct {
 	{11, 1023, "cast_distance", 5, "rod", 16}, // 使用重型船用鱼竿
 	// ---- 轮侧：+5%/级，跨钓法大类生效 ----
 	{1, 514, "cast_distance", 5, "reel", 1},   // 使用纺车轮
-	{2, 701, "cast_distance", 5, "reel", 1},   // 使用纺车轮（与 514 同义，按大类各留一行）
+	{2, 701, "cast_distance", 5, "reel", 1},   // 使用纺车轮 (与 514 同义, 按大类各留一行)
 	{3, 313, "cast_distance", 5, "reel", 1},   // 使用带有纺车轮的鱼竿
 	{11, 1002, "cast_distance", 5, "reel", 1}, // 高速轮(纺车式)的使用
-	{2, 709, "cast_distance", 5, "reel", 3},   // 使用动力辅助轮（鼓轮）= Baitcastrolle Round
+	{2, 709, "cast_distance", 5, "reel", 3},   // 使用动力辅助轮 (鼓轮)= Baitcastrolle Round
 	{2, 717, "cast_distance", 5, "reel", 2},   // 使用水滴轮 = Low-Profile Baitcastrolle
-	{2, 718, "cast_distance", 5, "reel", 4},   // 使用轻型传统轮（Conventional）
-	{2, 721, "cast_distance", 5, "reel", 4},   // 使用重型传统轮（Conventional）
-	{11, 1008, "cast_distance", 5, "reel", 4}, // 使用轻型传统轮（海钓）
-	{11, 1020, "cast_distance", 5, "reel", 4}, // 使用重型传统轮（海钓）
+	{2, 718, "cast_distance", 5, "reel", 4},   // 使用轻型传统轮 (Conventional)
+	{2, 721, "cast_distance", 5, "reel", 4},   // 使用重型传统轮 (Conventional)
+	{11, 1008, "cast_distance", 5, "reel", 4}, // 使用轻型传统轮 (海钓)
+	{11, 1020, "cast_distance", 5, "reel", 4}, // 使用重型传统轮 (海钓)
 }
 
 // ensureCastSkillEffects 启动路径种子官方抛投技能效果；可重复执行。
@@ -104,7 +104,7 @@ func (s *Server) ensureCastSkillEffects(ctx context.Context) (int, error) {
 		return inserted, err
 	}
 	if n, err := res.RowsAffected(); err == nil && n > 0 {
-		s.log.Info("清理已确认抛投技能节点的自造鱼口效果行", "rows", n)
+		s.log.Info("Очистка искусственных строк эффектов клёва для подтверждённых узлов навыка заброса", "rows", n)
 	}
 	return inserted, nil
 }

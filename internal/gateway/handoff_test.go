@@ -18,7 +18,7 @@ func waitTunnelUp(t *testing.T, stub *testutil.StubGameServer) {
 		}
 		time.Sleep(10 * time.Millisecond)
 	}
-	t.Fatal("隧道在 5 秒内没有建立（未收到 OPEN）")
+	t.Fatal("隧道在 5 秒内没有建立 (未收到 OPEN)")
 }
 
 // TestHandoffPersistedOnClose 关闭网关必须等会话把 RC4 流与 wire_id 落库。
@@ -43,16 +43,16 @@ func TestHandoffPersistedOnClose(t *testing.T) {
 
 	// Close 必须阻塞到会话收尾完成；返回后 handoff 必须已经可读。
 	if err := gw.RT.Close(); err != nil {
-		t.Logf("Close 返回（容忍 listener 已关）: %v", err)
+		t.Logf("Close 返回 (容忍 listener 已关): %v", err)
 	}
 	h, err := gw.Store.LoadHandoff(context.Background(), token)
 	if err != nil {
 		t.Fatalf("读取 handoff 失败: %v", err)
 	}
 	if h == nil {
-		t.Fatal("关闭后没有 handoff：写者收尾前进程就退出了，重连必然承接失败")
+		t.Fatal("关闭后没有 handoff: 写者收尾前进程就退出了, 重连必然承接失败")
 	}
 	if h.NextWireID < 2 {
-		t.Fatalf("handoff 的 next_wire_id=%d，至少应推进到 2（发出过数据帧）", h.NextWireID)
+		t.Fatalf("handoff 的 next_wire_id=%d, 至少应推进到 2 (发出过数据帧)", h.NextWireID)
 	}
 }

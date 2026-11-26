@@ -39,7 +39,7 @@ func (s *SQLiteStore) SaveToken(ctx context.Context, token string, info TokenInf
 
 func (s *SQLiteStore) LookupToken(ctx context.Context, token string) (TokenInfo, bool, error) {
 	var infoJSON string
-	var expiresF float64 // gw_token.expires 列是 REAL，SQLite 读回 float64
+	var expiresF float64 // gw_token.expires 列是 REAL, SQLite 读回 float64
 	err := s.DB.SQL.QueryRowContext(ctx,
 		`SELECT info_json, expires FROM gw_token WHERE token=?`, token).Scan(&infoJSON, &expiresF)
 	if err != nil {

@@ -47,7 +47,7 @@ func TestTripResponseHex(t *testing.T) {
 	// f23 容器 code 契约（2026-11-06 审查定案：保留 181，见
 	// profilebuild.go BuildProfile307W f23 注释的实机验证依据）。
 	if code := p.Fields[23].Val.ArgCodeStr(); code != "181" {
-		t.Fatalf("307.f23 容器 code 应 181，实得 %q", code)
+		t.Fatalf("307.f23 容器 code 应 181, 实得 %q", code)
 	}
 	// 单独编码 307 全量（太长，只看 f23 段落定位）
 	full, err := proto.EncodeValue(p, srv.Table())

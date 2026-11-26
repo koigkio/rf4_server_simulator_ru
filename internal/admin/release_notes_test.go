@@ -17,7 +17,7 @@ func TestReleaseNotesReadsPackageFile(t *testing.T) {
 	srv := NewServer(config.Admin{JWTSecret: "test"}, testDB(t), logging.Discard(), nil)
 	dir := t.TempDir()
 	srv.releaseNotesPath = filepath.Join(dir, releaseNotesFilename)
-	if err := os.WriteFile(srv.releaseNotesPath, []byte("# 发布说明\n\n- 本地内容"), 0o644); err != nil {
+	if err := os.WriteFile(srv.releaseNotesPath, []byte("# Список изменений\n\n- 本地内容"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 

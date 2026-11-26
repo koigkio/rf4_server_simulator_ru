@@ -43,7 +43,7 @@ func gbAge(t *testing.T, s *Server, uid int64, gameHours float64) {
 	_, err := s.DB.SQL.Exec(`UPDATE groundbait_deposit SET deposit_hour=deposit_hour-?
 		WHERE uid=? AND loc='gb-test-loc'`, gameHours, uid)
 	if err != nil {
-		t.Fatalf(" aging 失败: %v", err)
+		t.Fatalf(" aging Ошибка: %v", err)
 	}
 }
 
@@ -76,23 +76,23 @@ func TestGroundbaitLedgerPortionTimeAndOverdose(t *testing.T) {
 	gbDeposit(t, s, uid, "feed_karp", 10, "catapult", "gb:t1")
 	st := gbSpotState(t, s, uid)
 	if got := st.units; got < 9.99 || got > 10.01 {
-		t.Fatalf("10 份窝料应得 N=10，实得 %.3f", got)
+		t.Fatalf("10 份窝料应得 N=10, 实得 %.3f", got)
 	}
 	if got := st.hoursLeft; got < 5.99 || got > 6.01 {
-		t.Fatalf("10 份窝料应得 T=6 游戏小时（产品口径：10 份=6 小时），实得 %.3f", got)
+		t.Fatalf("10 份窝料应得 T=6 游戏小时 (产品口径: 10 份=6 小时), 实得 %.3f", got)
 	}
 	if p := s.groundbaitOverdoseP(st.units); p != 1 {
-		t.Fatalf("15 份以内不该死窝，实得 P=%.2f", p)
+		t.Fatalf("15 份以内不该死窝, 实得 P=%.2f", p)
 	}
 	if gate := s.groundbaitBiteGate(ctx, uid, "gb-test-loc", 100, 100, true, 7, 1); gate != 1 {
-		t.Fatalf("正常窝的咬钩闸门应为 1，实得 %.2f", gate)
+		t.Fatalf("正常窝的咬钩闸门应为 1, 实得 %.2f", gate)
 	}
 
 	// 幂等：同一条上报重复投 3 次，只算一次。
 	gbDeposit(t, s, uid, "feed_karp", 10, "catapult", "gb:t1")
 	gbDeposit(t, s, uid, "feed_karp", 10, "catapult", "gb:t1")
 	if n := gbCount(t, s, uid); n != 1 {
-		t.Fatalf("同 txn_guid 重复上报应只入账一次，实得 %d 批", n)
+		t.Fatalf("同 txn_guid 重复上报应只入账一次, 实得 %d 批", n)
 	}
 
 	// 死窝：再堆 12 份，N=22 → 开口率归零。
@@ -101,10 +101,10 @@ func TestGroundbaitLedgerPortionTimeAndOverdose(t *testing.T) {
 	// 上限卡死 22（重复上报不能多算）；下限留一点余量：读窝的每一次都会推进
 	// 玩家游戏钟，窝按比例稀释，整包并发跑时几次数据库往返就是秒级误差。
 	if st2.units < 21.9 || st2.units > 22.01 {
-		t.Fatalf("堆完应为 N=22，实得 %.3f", st2.units)
+		t.Fatalf("堆完应为 N=22, 实得 %.3f", st2.units)
 	}
 	if gate := s.groundbaitBiteGate(ctx, uid, "gb-test-loc", 100, 100, true, 7, 1); gate > 0.001 {
-		t.Fatalf("22 份以上这个格子应完全不开口，实得 P=%.3f", gate)
+		t.Fatalf("22 份以上这个格子应完全不开口, 实得 P=%.3f", gate)
 	}
 	// 路亚族豁免死窝闸门（拟饵不是被窝料喂出来的口）。
 	if gate := s.groundbaitBiteGate(ctx, uid, "gb-test-loc", 100, 100, true, 7, rigSpinningTypeTest()); gate == 0 {
@@ -115,13 +115,13 @@ func TestGroundbaitLedgerPortionTimeAndOverdose(t *testing.T) {
 	gbAge(t, s, uid, 7)
 	st3 := gbSpotState(t, s, uid)
 	if st3.units != 0 {
-		t.Fatalf("超过 6 游戏小时后窝应归零，实得 %.3f", st3.units)
+		t.Fatalf("超过 6 游戏小时后窝应归零, 实得 %.3f", st3.units)
 	}
 	if n := gbCount(t, s, uid); n != 0 {
-		t.Fatalf("过期批次应被清理，实得 %d 行", n)
+		t.Fatalf("过期批次应被清理, 实得 %d 行", n)
 	}
 	if gate := s.groundbaitBiteGate(ctx, uid, "gb-test-loc", 100, 100, true, 7, 1); gate != 1 {
-		t.Fatalf("死窝应随窝时耗尽自动解除，实得 %.2f", gate)
+		t.Fatalf("死窝应随窝时耗尽自动解除, 实得 %.2f", gate)
 	}
 }
 
@@ -150,16 +150,16 @@ func TestGroundbaitWeightRaisesPreyNotPredator(t *testing.T) {
 	s.applyGroundbaitWeight(t.Context(), &c, keys, wts)
 
 	if wts[0] <= 100 {
-		t.Fatalf("喂鲤鱼的窝料应抬高普通鲤鱼权重，实得 %.2f", wts[0])
+		t.Fatalf("喂鲤鱼的窝料应抬高普通鲤鱼权重, 实得 %.2f", wts[0])
 	}
 	if wts[1] != 100 {
-		t.Fatalf("掠食性鱼种（常见狗鱼）必须 x1.00 不蹭窝，实得 %.2f", wts[1])
+		t.Fatalf("掠食性鱼种 (常见狗鱼)必须 x1.00 不蹭窝, 实得 %.2f", wts[1])
 	}
 	if wts[2] != 100 {
-		t.Fatalf("无名册鱼种不该被窝料改动，实得 %.2f", wts[2])
+		t.Fatalf("无名册鱼种不该被窝料改动, 实得 %.2f", wts[2])
 	}
 	if wts[0] > 100*2.6001 {
-		t.Fatalf("窝料乘子必须封顶 2.60，实得 %.3f", wts[0]/100)
+		t.Fatalf("窝料乘子必须封顶 2.60, 实得 %.3f", wts[0]/100)
 	}
 }
 
@@ -200,13 +200,13 @@ func TestGroundbaitWeatherSofteningLiftsWithinBaseline(t *testing.T) {
 		hotM, hotBase := mult(warm)
 		coldM, coldBase := mult(cold)
 		if coldM <= coldBase {
-			t.Fatalf("%s: 烂天气里软化应把乘子抬起来：软化后 %.3f vs 关闭 %.3f", season.name, coldM, coldBase)
+			t.Fatalf("%s: 烂天气里软化应把乘子抬起来: 软化后 %.3f vs 关闭 %.3f", season.name, coldM, coldBase)
 		}
 		if hotM < hotBase-1e-9 {
-			t.Fatalf("%s: 软化不能把天气带来的优势吃掉：暖 %.3f < 关软化 %.3f", season.name, hotM, hotBase)
+			t.Fatalf("%s: 软化不能把天气带来的优势吃掉: 暖 %.3f < 关软化 %.3f", season.name, hotM, hotBase)
 		}
 		if coldM > hotM {
-			t.Fatalf("%s: 「烂天气 + 一锅好料」不能打过「好天气」：冷 %.3f > 暖 %.3f", season.name, coldM, hotM)
+			t.Fatalf("%s: «烂天气 + 一锅好料»不能打过«好天气»: 冷 %.3f > 暖 %.3f", season.name, coldM, hotM)
 		}
 	}
 }
@@ -218,7 +218,7 @@ func TestGroundbaitDisabledLeavesRollUntouched(t *testing.T) {
 	const uid = int64(1000001)
 	gbDeposit(t, s, uid, "feed_karp", 30, "feeder", "gb:off")
 	if n := gbCount(t, s, uid); n != 0 {
-		t.Fatalf("开关关闭时不该记账，实得 %d 批", n)
+		t.Fatalf("开关关闭时不该记账, 实得 %d 批", n)
 	}
 	c := fishRollContext{uid: uid, loc: "gb-test-loc", x: 100, z: 100, hasPos: true, spot: 7,
 		now: time.Now(), rigType: 1, depthCM: 100, cache: newFishingRollCache()}
@@ -226,10 +226,10 @@ func TestGroundbaitDisabledLeavesRollUntouched(t *testing.T) {
 	wts := []float64{100}
 	s.applyGroundbaitWeight(t.Context(), &c, keys, wts)
 	if wts[0] != 100 {
-		t.Fatalf("开关关闭时权重不该变，实得 %.2f", wts[0])
+		t.Fatalf("开关关闭时权重不该变, 实得 %.2f", wts[0])
 	}
 	if gate := s.groundbaitBiteGate(t.Context(), uid, "gb-test-loc", 100, 100, true, 7, 1); gate != 1 {
-		t.Fatalf("开关关闭时闸门应为 1，实得 %.2f", gate)
+		t.Fatalf("开关关闭时闸门应为 1, 实得 %.2f", gate)
 	}
 }
 
@@ -275,7 +275,7 @@ func TestGroundbaitCatapultThrowDepositsSpot(t *testing.T) {
 	// 默认 1 份 0.6 游戏小时会按剩余时间稀释到约 0.989。精确份数由
 	// 账本字段断言，这里只要求它确实落在目标格且没有被放大。
 	if gate.units <= 0 || gate.units > 1.000001 {
-		t.Fatalf("弹弓一弹应投进目标窝点，实得 %.3f", gate.units)
+		t.Fatalf("弹弓一弹应投进目标窝点, 实得 %.3f", gate.units)
 	}
 	var channel, itemID, matsJSON string
 	var portions, unitsLeft float64
@@ -286,7 +286,7 @@ func TestGroundbaitCatapultThrowDepositsSpot(t *testing.T) {
 		t.Fatalf("投放通道/物品不符: %s %s", channel, itemID)
 	}
 	if portions != 1 || unitsLeft != 1 {
-		t.Fatalf("弹弓一弹应入账 1 份且未消耗，实得 portions=%.3f units_left=%.3f", portions, unitsLeft)
+		t.Fatalf("弹弓一弹应入账 1 份且未消耗, 实得 portions=%.3f units_left=%.3f", portions, unitsLeft)
 	}
 	mats := groundbaitDecodeMaterials(matsJSON)
 	if len(mats) != 3 || mats[0] != "mix_groundpeas" || mats[1] != "feedadds_corn" || mats[2] != "aroma_vanila" {
@@ -414,7 +414,7 @@ func TestGroundbaitSpodDeductsOnSplashDown(t *testing.T) {
 
 	fall143()
 	if got := qty(); got != 1 {
-		t.Fatalf("打窝器入水应扣掉 1 份（2→1），实得 %d", got)
+		t.Fatalf("打窝器入水应扣掉 1 份 (2→1), 实得 %d", got)
 	}
 	var (
 		ch, itemID     string
@@ -428,22 +428,22 @@ func TestGroundbaitSpodDeductsOnSplashDown(t *testing.T) {
 	}
 	wantBX, wantBZ := groundbaitCell(100, 100)
 	if ch != "spod" || itemID != "feed_dry" || portions != 1 {
-		t.Fatalf("窝账应是 spod 通道 1 份 feed_dry，实得 %s / %s / %.2f", ch, itemID, portions)
+		t.Fatalf("窝账应是 spod 通道 1 份 feed_dry, 实得 %s / %s / %.2f", ch, itemID, portions)
 	}
 	if hasPos != 1 || bx != wantBX || bz != wantBZ {
-		t.Fatalf("窝应记在落点格 (%d,%d)，实得 has_pos=%d (%d,%d)", wantBX, wantBZ, hasPos, bx, bz)
+		t.Fatalf("窝应记在落点格 (%d,%d), 实得 has_pos=%d (%d,%d)", wantBX, wantBZ, hasPos, bx, bz)
 	}
 	if got := s.groundbaitSpot(ctx, uid, "gb-test-loc", wantBX, wantBZ).units; got < 0.99 || got > 1.01 {
-		t.Fatalf("打窝器那份窝应全额生效，实得 %.3f", got)
+		t.Fatalf("打窝器那份窝应全额生效, 实得 %.3f", got)
 	}
 
 	// 客户端重复上报同一次落水不能再扣（幂等键沿用本次抛竿）。
 	fall143()
 	if got := qty(); got != 1 {
-		t.Fatalf("重复上报不该再扣，实得 %d", got)
+		t.Fatalf("重复上报不该再扣, 实得 %d", got)
 	}
 	if n := gbCount(t, s, uid); n != 1 {
-		t.Fatalf("重复上报不该多记窝，实得 %d 批", n)
+		t.Fatalf("重复上报不该多记窝, 实得 %d 批", n)
 	}
 }
 
@@ -474,33 +474,33 @@ func TestGroundbaitUnknownLandingStillWorks(t *testing.T) {
 		wts := []float64{100, 100}
 		s.applyGroundbaitWeight(ctx, &c, keys, wts)
 		if wts[1] != 100 {
-			t.Fatalf("掠食者任何时候都不该蹭窝，实得 %.2f", wts[1])
+			t.Fatalf("掠食者任何时候都不该蹭窝, 实得 %.2f", wts[1])
 		}
 		return wts[0]
 	}
 
 	diffuse := roll(uidUnknown)
 	if diffuse <= 100 {
-		t.Fatalf("落点未知的窝也应在浮标格生效，实得 %.2f", diffuse)
+		t.Fatalf("落点未知的窝也应在浮标格生效, 实得 %.2f", diffuse)
 	}
 	full := roll(uidKnown)
 	if full <= diffuse {
-		t.Fatalf("落点未知的抬升（%.2f）必须低于同份数落点已知的窝（%.2f）", diffuse, full)
+		t.Fatalf("落点未知的抬升 (%.2f)必须低于同份数落点已知的窝 (%.2f)", diffuse, full)
 	}
 
 	// 落点未知的批次要能在状态里看出来，现场日志靠这两个数分辨窝打没打上。
 	st := s.groundbaitSpot(ctx, uidUnknown, "gb-test-loc", int64(300/groundbaitCellSizeM), int64(300/groundbaitCellSizeM))
 	if st.batches != 1 || st.diffuse != 1 {
-		t.Fatalf("应看到 1 批落点未知的窝，实得 batches=%d diffuse=%d", st.batches, st.diffuse)
+		t.Fatalf("应看到 1 批落点未知的窝, 实得 batches=%d diffuse=%d", st.batches, st.diffuse)
 	}
 	if st.units < 3.19 || st.units > 3.21 {
-		t.Fatalf("8 份落点未知按 0.40 衰减应得 N=3.2，实得 %.3f", st.units)
+		t.Fatalf("8 份落点未知按 0.40 衰减应得 N=3.2, 实得 %.3f", st.units)
 	}
 
 	// 衰减调成 0：退回「只认同格」，浮标格彻底看不见这份窝。
 	setWeatherTestTunable(t, s, "groundbait_diffuse_fall", "0")
 	if back := roll(uidUnknown); back != 100 {
-		t.Fatalf("衰减=0 时落点未知的窝不该影响浮标格，实得 %.2f", back)
+		t.Fatalf("衰减=0 时落点未知的窝不该影响浮标格, 实得 %.2f", back)
 	}
 	setWeatherTestTunable(t, s, "groundbait_diffuse_fall", "0.40")
 
@@ -511,7 +511,7 @@ func TestGroundbaitUnknownLandingStillWorks(t *testing.T) {
 		t.Fatal(err)
 	}
 	if left < 6.99 || left > 7.01 {
-		t.Fatalf("咬口应从没落点的窝行里扣掉 1 份（8→7），实得 %.3f", left)
+		t.Fatalf("咬口应从没落点的窝行里扣掉 1 份 (8→7), 实得 %.3f", left)
 	}
 }
 
@@ -542,7 +542,7 @@ func TestGroundbaitNeighborCellCountsWeaker(t *testing.T) {
 		wts := []float64{100, 100}
 		s.applyGroundbaitWeight(ctx, &c, keys, wts)
 		if wts[1] != 100 {
-			t.Fatalf("掠食者任何时候都不该蹭窝，实得 %.2f", wts[1])
+			t.Fatalf("掠食者任何时候都不该蹭窝, 实得 %.2f", wts[1])
 		}
 		return wts[0]
 	}
@@ -551,22 +551,22 @@ func TestGroundbaitNeighborCellCountsWeaker(t *testing.T) {
 	same := roll(uidSame)
 	far := roll(uidFar)
 	if near <= 100 {
-		t.Fatalf("相邻一格的窝也应在浮标格生效，实得 %.2f", near)
+		t.Fatalf("相邻一格的窝也应在浮标格生效, 实得 %.2f", near)
 	}
 	if far != 100 {
-		t.Fatalf("隔四格的窝不该影响浮标格，实得 %.2f", far)
+		t.Fatalf("隔四格的窝不该影响浮标格, 实得 %.2f", far)
 	}
 	if near >= same {
-		t.Fatalf("邻格抬升（%.2f）必须低于同份数本格窝（%.2f）", near, same)
+		t.Fatalf("邻格抬升 (%.2f)必须低于同份数本格窝 (%.2f)", near, same)
 	}
 
 	st := s.groundbaitSpotAt(ctx, uidNear, "gb-test-loc", 300, 300, true, 7)
 	if st.batches != 1 || st.near != 1 || st.diffuse != 0 {
-		t.Fatalf("应看到 1 批距离衰减窝且不算落点未知，实得 batches=%d near=%d diffuse=%d", st.batches, st.near, st.diffuse)
+		t.Fatalf("应看到 1 批距离衰减窝且不算落点未知, 实得 batches=%d near=%d diffuse=%d", st.batches, st.near, st.diffuse)
 	}
 	// (305,302) 距浮标 sqrt(5²+2²)=5.385m，圆形权重约 0.815。
 	if st.units < 6.5 || st.units > 6.55 {
-		t.Fatalf("8 份 5.385m 外窝按圆形衰减应得 N≈6.52，实得 %.3f", st.units)
+		t.Fatalf("8 份 5.385m 外窝按圆形衰减应得 N≈6.52, 实得 %.3f", st.units)
 	}
 
 	// 把影响半径压到 0，验证范围外彻底无关。
@@ -574,7 +574,7 @@ func TestGroundbaitNeighborCellCountsWeaker(t *testing.T) {
 	setWeatherTestTunable(t, s, "groundbait_range_mid_m", "0")
 	setWeatherTestTunable(t, s, "groundbait_range_outer_m", "0")
 	if back := roll(uidNear); back != 100 {
-		t.Fatalf("影响半径=0 时范围外窝不该影响浮标格，实得 %.2f", back)
+		t.Fatalf("影响半径=0 时范围外窝不该影响浮标格, 实得 %.2f", back)
 	}
 	setWeatherTestTunable(t, s, "groundbait_range_core_m", "4")
 	setWeatherTestTunable(t, s, "groundbait_range_mid_m", "7")
@@ -593,10 +593,10 @@ func TestGroundbaitNeighborCellCountsWeaker(t *testing.T) {
 		t.Fatal(err)
 	}
 	if sameLeft > 0.001 {
-		t.Fatalf("咬口应先扣掉本格那 1 份，实得剩余 %.3f", sameLeft)
+		t.Fatalf("咬口应先扣掉本格那 1 份, 实得剩余 %.3f", sameLeft)
 	}
 	if nearLeft < 7.99 || nearLeft > 8.01 {
-		t.Fatalf("邻格那 8 份此刻不该被扣，实得 %.3f", nearLeft)
+		t.Fatalf("邻格那 8 份此刻不该被扣, 实得 %.3f", nearLeft)
 	}
 }
 
@@ -635,7 +635,7 @@ func TestGroundbaitThrowFallsBackToPlayerCell(t *testing.T) {
 		hctx := &Ctx{Sess: sess, Main: 13, Sub: 5, CallID: callID, Tree: req,
 			DecodeOK: true, ExpectResponse: true, Log: logging.Discard()}
 		if _, ok := hDynamicHanditemThrow(hctx); !ok {
-			t.Fatalf("13/5 未处理（call=%d）", callID)
+			t.Fatalf("13/5 未处理 (call=%d)", callID)
 		}
 	}
 
@@ -650,11 +650,11 @@ func TestGroundbaitThrowFallsBackToPlayerCell(t *testing.T) {
 	}
 	wantBX, wantBZ := groundbaitCell(101, 99)
 	if hasPosRow != 1 || bx != wantBX || bz != wantBZ {
-		t.Fatalf("没抛过竿时应记在玩家脚下格子，期望 has_pos=1 (%d,%d)，实得 has_pos=%d (%d,%d)",
+		t.Fatalf("没抛过竿时应记在玩家脚下格子, 期望 has_pos=1 (%d,%d), 实得 has_pos=%d (%d,%d)",
 			wantBX, wantBZ, hasPosRow, bx, bz)
 	}
 	if got := s.groundbaitSpot(ctx, uid, "gb-test-loc", wantBX, wantBZ).units; got < 0.99 || got > 1.01 {
-		t.Fatalf("玩家格上的窝应全额生效 1 份，实得 %.3f", got)
+		t.Fatalf("玩家格上的窝应全额生效 1 份, 实得 %.3f", got)
 	}
 
 	// 兜底关掉：退回原来的「整个钓点一格」落点未知。
@@ -665,7 +665,7 @@ func TestGroundbaitThrowFallsBackToPlayerCell(t *testing.T) {
 		t.Fatalf("第二弹没落账: %v", err)
 	}
 	if hasPosRow != 0 {
-		t.Fatalf("兜底关闭后应退回落点未知，实得 has_pos=%d", hasPosRow)
+		t.Fatalf("兜底关闭后应退回落点未知, 实得 has_pos=%d", hasPosRow)
 	}
 }
 
@@ -699,7 +699,7 @@ func TestGroundbaitInstanceCarriesUnitWeight(t *testing.T) {
 			t.Fatalf("第 %d 个 %s 建实例失败: %v", i+1, c.item, err)
 		}
 		if row.WireClass != "cilmgoaoofg" {
-			t.Fatalf("窝料实例类应为 cilmgoaoofg，实得 %s", row.WireClass)
+			t.Fatalf("窝料实例类应为 cilmgoaoofg, 实得 %s", row.WireClass)
 		}
 		fields, err := FieldsFromJSON(row.FieldsJSON)
 		if err != nil {
@@ -710,7 +710,7 @@ func TestGroundbaitInstanceCarriesUnitWeight(t *testing.T) {
 			t.Fatalf("%s 没有重量字段 %s", row.WireClass, castAttrWaterWeight)
 		}
 		if got := math.Float32frombits(uint32(u64Of(fields[idx].Num))); got != c.grams {
-			t.Fatalf("第 %d 个 %s 的实例克重应为 %.1f，实得 %.4f", i+1, c.item, c.grams, got)
+			t.Fatalf("第 %d 个 %s 的实例克重应为 %.1f, 实得 %.4f", i+1, c.item, c.grams, got)
 		}
 	}
 }
@@ -732,7 +732,7 @@ func TestGroundbaitRepairBackfillsZeroWeight(t *testing.T) {
 	if idx < 0 || idx >= len(fields) {
 		t.Fatalf("%s 没有重量字段", row.WireClass)
 	}
-	fields[idx].Num = ptrU64(0) // 模拟旧版本照抄定义产生的「0 克」实例
+	fields[idx].Num = ptrU64(0) // 模拟旧版本照抄定义产生的«0 克»实例
 	fj, err := FieldsToJSON(fields)
 	if err != nil {
 		t.Fatal(err)
@@ -755,7 +755,7 @@ func TestGroundbaitRepairBackfillsZeroWeight(t *testing.T) {
 		t.Fatal(err)
 	}
 	if got := math.Float32frombits(uint32(u64Of(fields[idx].Num))); got != 45 {
-		t.Fatalf("启动修复应把窝料实例克重补成 45 克，实得 %.4f", got)
+		t.Fatalf("启动修复应把窝料实例克重补成 45 克, 实得 %.4f", got)
 	}
 }
 
@@ -777,7 +777,7 @@ func TestGroundbaitKeepaliveAdvancesOnlineClock(t *testing.T) {
 		t.Fatal(err)
 	}
 	if acc < 1.10 || acc > 1.16 {
-		t.Fatalf("在线 20 秒应推进约 0.133 游戏小时，实得 %.3f", acc)
+		t.Fatalf("在线 20 秒应推进约 0.133 游戏小时, 实得 %.3f", acc)
 	}
 }
 
@@ -833,25 +833,25 @@ func TestGroundbaitHandThrowConsumesAndDeposits(t *testing.T) {
 			FROM groundbait_deposit WHERE uid=? AND txn_guid LIKE ?`, uid, "%hand:feedcompleted:%:"+callID).
 			Scan(&ch, &itemID, &portions, &hasPos, &bx, &bz)
 		if err != nil {
-			t.Fatalf("手抛没记进窝账（call=%s）: %v", callID, err)
+			t.Fatalf("手抛没记进窝账 (call=%s): %v", callID, err)
 		}
 		return itemID, portions, int(hasPos), bx, bz
 	}
 
 	throw(9201, 6.108, stack.GUID)
 	if got := qty(); got != 2 {
-		t.Fatalf("手抛一发应扣掉 1 份（3→2），实得 %d", got)
+		t.Fatalf("手抛一发应扣掉 1 份 (3→2), 实得 %d", got)
 	}
 	itemID, portions, hasPos, bx, bz := depositRow("9201")
 	wantBX, wantBZ := groundbaitCell(100, 100)
 	if itemID != "feedcompleted" || portions != 1 {
-		t.Fatalf("窝账应是 1 份 feedcompleted，实得 %s / %.2f", itemID, portions)
+		t.Fatalf("窝账应是 1 份 feedcompleted, 实得 %s / %.2f", itemID, portions)
 	}
 	if hasPos != 1 || bx != wantBX || bz != wantBZ {
-		t.Fatalf("有浮标落点时应记在浮标格 (%d,%d)，实得 has_pos=%d (%d,%d)", wantBX, wantBZ, hasPos, bx, bz)
+		t.Fatalf("有浮标落点时应记在浮标格 (%d,%d), 实得 has_pos=%d (%d,%d)", wantBX, wantBZ, hasPos, bx, bz)
 	}
 	if got := s.groundbaitSpot(ctx, uid, "gb-test-loc", wantBX, wantBZ).units; got < 0.99 || got > 1.01 {
-		t.Fatalf("手抛那份窝应全额生效，实得 %.3f", got)
+		t.Fatalf("手抛那份窝应全额生效, 实得 %.3f", got)
 	}
 
 	// 一竿都没抛过时记在玩家脚下格（浮标落点清掉，玩家坐标仍在）。
@@ -860,24 +860,24 @@ func TestGroundbaitHandThrowConsumesAndDeposits(t *testing.T) {
 	st.mu.Unlock()
 	throw(9202, 7.567, stack.GUID)
 	if got := qty(); got != 1 {
-		t.Fatalf("第二发应再扣 1 份（2→1），实得 %d", got)
+		t.Fatalf("第二发应再扣 1 份 (2→1), 实得 %d", got)
 	}
 	_, _, hasPos, bx, bz = depositRow("9202")
 	pBX, pBZ := groundbaitCell(60, 60)
 	if hasPos != 1 || bx != pBX || bz != pBZ {
-		t.Fatalf("没抛过竿时应记在玩家脚下格 (%d,%d)，实得 has_pos=%d (%d,%d)", pBX, pBZ, hasPos, bx, bz)
+		t.Fatalf("没抛过竿时应记在玩家脚下格 (%d,%d), 实得 has_pos=%d (%d,%d)", pBX, pBZ, hasPos, bx, bz)
 	}
 
 	// 最后一份：库里整堆没了，但这一发照样算进窝账。
 	throw(9203, 5.5, stack.GUID)
 	if got := qty(); got != -1 {
-		t.Fatalf("第三发后整堆应被删掉，实得 qty=%d", got)
+		t.Fatalf("第三发后整堆应被删掉, 实得 qty=%d", got)
 	}
 	if _, _, _, _, bz := depositRow("9203"); bz == 0 {
 		t.Fatal("最后一发也应记进窝账")
 	}
 	if rows := gbCount(t, s, uid); rows != 3 {
-		t.Fatalf("三发应各记一批，实得 %d 批", rows)
+		t.Fatalf("三发应各记一批, 实得 %d 批", rows)
 	}
 
 	// 非窝料物件（弹弓本身）不该被窝料通道吃掉。
@@ -887,13 +887,13 @@ func TestGroundbaitHandThrowConsumesAndDeposits(t *testing.T) {
 	}
 	throw(9204, 6.0, tool.GUID)
 	if n := gbDepositCount(t, s, uid, "9204"); n != 0 {
-		t.Fatalf("非窝料品类不该记进窝账，实得 %d 批", n)
+		t.Fatalf("非窝料品类不该记进窝账, 实得 %d 批", n)
 	}
 	row, rerr := s.DB.GetItemByGUID(ctx, tool.GUID)
 	if rerr != nil || row == nil {
 		t.Fatal("非窝料物件不该被扣掉")
 	}
 	if got := s.stackCountOf(ctx, row); got != 1 {
-		t.Fatalf("非窝料物件数量应不变，实得 %d", got)
+		t.Fatalf("非窝料物件数量应不变, 实得 %d", got)
 	}
 }

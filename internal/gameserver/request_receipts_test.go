@@ -105,7 +105,7 @@ func waitReceiptResponse(t *testing.T, h *receiptTestSession) *proto.Envelope {
 		}
 		return env
 	case <-time.After(2 * time.Second):
-		t.Fatal("等待响应超时")
+		t.Fatal("Истекло ожидание ответа")
 		return nil
 	}
 }
@@ -114,7 +114,7 @@ func assertNoReceiptResponse(t *testing.T, h *receiptTestSession) {
 	t.Helper()
 	select {
 	case env := <-h.responses:
-		t.Fatalf("不应收到响应，实得 marker=%d call=%d body=%x", env.Marker, env.CallID, env.Body)
+		t.Fatalf("不应收到响应, 实得 marker=%d call=%d body=%x", env.Marker, env.CallID, env.Body)
 	case <-time.After(200 * time.Millisecond):
 	}
 }
@@ -156,7 +156,7 @@ func TestRequestReceiptReplayAcrossReconnectAndRestart(t *testing.T) {
 		t.Fatalf("重连重放响应不符: %x", resp.Body)
 	}
 	if got := calls1.Load(); got != 1 {
-		t.Fatalf("handler 执行次数=%d，期望 1", got)
+		t.Fatalf("handler 执行次数=%d, 期望 1", got)
 	}
 
 	sess1.peer.Close()
@@ -181,7 +181,7 @@ func TestRequestReceiptReplayAcrossReconnectAndRestart(t *testing.T) {
 		t.Fatalf("重启后重放响应不符: call=%d body=%x", resp.CallID, resp.Body)
 	}
 	if got := calls2.Load(); got != 0 {
-		t.Fatalf("重启后 handler 不应执行，实得 %d", got)
+		t.Fatalf("重启后 handler 不应执行, 实得 %d", got)
 	}
 
 	key, bodySHA := requestReceiptKey(&Ctx{
@@ -214,7 +214,7 @@ func TestRequestReceiptCallIDConflictDoesNotExecute(t *testing.T) {
 	sess.send(250, 2, 88, []byte{0x03, 0x04, 0x00}, 0x00)
 	assertNoReceiptResponse(t, sess)
 	if got := calls.Load(); got != 1 {
-		t.Fatalf("冲突 call_id 不应再次执行，次数=%d", got)
+		t.Fatalf("冲突 call_id 不应再次执行, 次数=%d", got)
 	}
 }
 
@@ -257,7 +257,7 @@ func TestRequestReceiptConcurrentSameKeyExecutesOnce(t *testing.T) {
 		}
 	}
 	if got := calls.Load(); got != 1 {
-		t.Fatalf("并发同 key handler 执行次数=%d，期望 1", got)
+		t.Fatalf("并发同 key handler 执行次数=%d, 期望 1", got)
 	}
 }
 
@@ -275,7 +275,7 @@ func TestRequestReceiptFireAndForgetDeduplicatesWithoutReply(t *testing.T) {
 	sess.send(250, 4, 100, emptyArgsBody(), 0x01)
 	assertNoReceiptResponse(t, sess)
 	if got := calls.Load(); got != 1 {
-		t.Fatalf("fire-and-forget 重复请求不应再次执行，次数=%d", got)
+		t.Fatalf("fire-and-forget 重复请求不应再次执行, 次数=%d", got)
 	}
 
 	bodySHA := func() string {
@@ -355,7 +355,7 @@ func TestRequestReceiptConcurrentAcrossServerInstancesExecutesOnce(t *testing.T)
 	wg.Wait()
 
 	if got := calls.Load(); got != 1 {
-		t.Fatalf("双 Server 并发 handler 执行次数=%d，期望 1", got)
+		t.Fatalf("双 Server 并发 handler 执行次数=%d, 期望 1", got)
 	}
 	for i, sess := range []*receiptTestSession{sess1, sess2} {
 		if resp := waitReceiptResponse(t, sess); string(resp.Body) != string(want) {

@@ -30,7 +30,7 @@ func mailAcceptFailureEnvelope(callID uint32, message string) []byte {
 // overCapClaimMessage 是超限礼盒附件在测试库里的完整失败文案：
 // qty = maxBundlePreparedItems+1，item = giftBoxID。
 func overCapClaimMessage() string {
-	return fmt.Sprintf("邮件附件领取失败：礼盒附件数量 %d 超过上限 %d: %s。邮件已保留，请联系服主处理。",
+	return fmt.Sprintf("Не удалось получить вложение письма: Количество подарочных коробок во вложении (%d) превышает предел %d: %s. Письмо сохранено, обратитесь к администратору сервера.",
 		maxBundlePreparedItems+1, maxBundlePreparedItems, giftBoxID)
 }
 

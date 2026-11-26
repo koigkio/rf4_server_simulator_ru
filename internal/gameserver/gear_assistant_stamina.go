@@ -58,7 +58,7 @@ func readKVFlag(ctx context.Context, db overloadProtectionReader, key string) (b
 	case "0":
 		return false, nil
 	default:
-		return false, fmt.Errorf("开关设置无效")
+		return false, fmt.Errorf("Неверное значение переключателя")
 	}
 }
 
@@ -177,12 +177,12 @@ func (s *Server) maybeReportStamina(ctx *Ctx, st *FishState, now time.Time) {
 	if !allowed {
 		return
 	}
-	text := fmt.Sprintf("[耐力] %.1f%%", value*100)
+	text := fmt.Sprintf("[Выносливость] %.1f%%", value*100)
 	// 超载依赖两件事：帧内上报的钓组最弱环，以及该鱼种的标定拉力。任一缺失
 	// （坏帧、未知鱼种）就只报耐力，不猜。
 	if limit, ok := fishRigLimitFromLoad(ctx.Body); ok {
 		if pct, ok := fishOverloadPct(limit, pull, value); ok {
-			text += fmt.Sprintf(" · [超载] %.0f%%", pct)
+			text += fmt.Sprintf(" · [Перегрузка] %.0f%%", pct)
 		}
 	}
 	ctx.Sess.Push(24, 27, buildChatEchoPush("", text, uint64(uid), 1))

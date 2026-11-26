@@ -59,19 +59,19 @@ func TestGradeRatioSamplingMatchesDefaultPercent(t *testing.T) {
 	t.Logf("档位占比: 未达标 %.1f%% 合格 %.1f%% 奖杯 %.1f%% 蓝冠 %.1f%%",
 		pct(1), pct(2), pct(3), pct(4))
 	if got := pct(1); got < 0.8 || got > 6 {
-		t.Fatalf("未达标占比 %.1f%%，期望约 3%%", got)
+		t.Fatalf("未达标占比 %.1f%%, 期望约 3%%", got)
 	}
 	if got := pct(2); got < 83 || got > 92 {
-		t.Fatalf("合格占比 %.1f%%，期望约 87.5%%", got)
+		t.Fatalf("合格占比 %.1f%%, 期望约 87.5%%", got)
 	}
 	if got := pct(3); got < 6 || got > 12 {
-		t.Fatalf("奖杯占比 %.1f%%，期望约 9%%", got)
+		t.Fatalf("奖杯占比 %.1f%%, 期望约 9%%", got)
 	}
 	if got := pct(4); got < 0.05 || got > 2 {
-		t.Fatalf("蓝冠占比 %.1f%%，期望约 0.5%%", got)
+		t.Fatalf("蓝冠占比 %.1f%%, 期望约 0.5%%", got)
 	}
 	if total := pct(1) + pct(2) + pct(3) + pct(4); total < 99.9 || total > 100.1 {
-		t.Fatalf("四档合计 %.1f%%，应为 100%%", total)
+		t.Fatalf("四档合计 %.1f%%, 应为 100%%", total)
 	}
 }
 
@@ -107,7 +107,7 @@ func TestGradeRatioSamplingFollowsTunables(t *testing.T) {
 		}
 	}
 	if got := float64(trophy) * 100 / n; got < 25 || got > 35 {
-		t.Fatalf("奖杯占比 %.1f%%，配置为 30%% 时应落在 25~35%%", got)
+		t.Fatalf("奖杯占比 %.1f%%, 配置为 30%% 时应落在 25~35%%", got)
 	}
 }
 
@@ -143,7 +143,7 @@ func TestGradeRatioDisabledReturnsFallback(t *testing.T) {
 	srv.tunMu.Unlock()
 	lines := cachedGradeLines{val: ptrI64(1000), trophy: ptrI64(5000), blue: ptrI64(8000)}
 	if w, ok := srv.sampleWeightByGradeRatio(lines, 1, 1, 0); ok || w != 0 {
-		t.Fatalf("关闭时应返回 (0,false)，实得 (%d,%v)", w, ok)
+		t.Fatalf("关闭时应返回 (0,false), 实得 (%d,%v)", w, ok)
 	}
 }
 
@@ -153,7 +153,7 @@ func TestGradeRatioUnreachableTrophyWithGearCap(t *testing.T) {
 	enableGradeRatio(t, srv, db)
 	lines := cachedGradeLines{val: ptrI64(1000), trophy: ptrI64(50000), blue: ptrI64(80000)}
 	if w, ok := srv.sampleWeightByGradeRatio(lines, 1, 1, 1000); !ok || w != 0 {
-		t.Fatalf("上限 1kg 够不到 50kg 奖杯线，应返回 (0,true)，实得 (%d,%v)", w, ok)
+		t.Fatalf("上限 1kg 够不到 50kg 奖杯线, 应返回 (0,true), 实得 (%d,%v)", w, ok)
 	}
 }
 
@@ -163,7 +163,7 @@ func TestGradeRatioEnabledByDefault(t *testing.T) {
 	lines := cachedGradeLines{val: ptrI64(1000), trophy: ptrI64(5000), blue: ptrI64(8000)}
 	w, ok := srv.sampleWeightByGradeRatio(lines, 1, 1, 0)
 	if !ok || w <= 0 {
-		t.Fatalf("默认应开启档位比例，实得 (%d,%v)", w, ok)
+		t.Fatalf("默认应开启档位比例, 实得 (%d,%v)", w, ok)
 	}
 }
 
@@ -177,11 +177,11 @@ func TestGradeRatioOverridesHookSpawnMatchStrength(t *testing.T) {
 		tunAt: time.Now(),
 	}
 	if got := srv.effectiveHookSpawnMatchStrength(); got != 0 {
-		t.Fatalf("档位比例开启时钩型软匹配强度应为 0，实得 %g", got)
+		t.Fatalf("档位比例开启时钩型软匹配强度应为 0, 实得 %g", got)
 	}
 	srv.tunCache["grade_ratio_enabled"] = 0
 	if got := srv.effectiveHookSpawnMatchStrength(); got != 2 {
-		t.Fatalf("关闭档位比例后应恢复钩型软匹配强度 2，实得 %g", got)
+		t.Fatalf("关闭档位比例后应恢复钩型软匹配强度 2, 实得 %g", got)
 	}
 }
 
@@ -204,7 +204,7 @@ func TestGradeRatioOverridesFishHuntStageWeights(t *testing.T) {
 			t.Fatalf("第 %d 次抽样没有结果", i)
 		}
 		if grade != 2 {
-			t.Fatalf("档位比例配置为 100%% 合格，实得 weight=%d grade=%d stage=%d", weight, grade, readiness.Stage)
+			t.Fatalf("档位比例配置为 100%% 合格, 实得 weight=%d grade=%d stage=%d", weight, grade, readiness.Stage)
 		}
 	}
 }
@@ -233,7 +233,7 @@ func TestGradeRatioGradeWeightsMatchConfiguredShares(t *testing.T) {
 			total := weights[0] + weights[1] + weights[2] + weights[3]
 			for i, weight := range weights {
 				if got := weight / total; math.Abs(got-tc.want[i]) > 1e-9 {
-					t.Fatalf("第 %d 档占比=%g，期望 %g", i+1, got, tc.want[i])
+					t.Fatalf("第 %d 档占比=%g, 期望 %g", i+1, got, tc.want[i])
 				}
 			}
 		})
@@ -286,6 +286,6 @@ func TestGradeRatioSamplingUsesSettlementGradeLines(t *testing.T) {
 		}
 	}
 	if below != 0 {
-		t.Fatalf("最终判档使用了抽样线而不是 settleStatics，出现 %d 尾未达标", below)
+		t.Fatalf("最终判档使用了抽样线而不是 settleStatics, 出现 %d 尾未达标", below)
 	}
 }

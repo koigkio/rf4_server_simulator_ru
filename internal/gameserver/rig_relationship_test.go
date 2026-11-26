@@ -55,11 +55,11 @@ func TestOtherBottomRigsMountLeaderKeepExplicitType(t *testing.T) {
 			}
 			name, rigType, ok := rigIdentity(rigStoredF5(t, row))
 			if !ok || name != tc.rigName || rigType != tc.rigType {
-				t.Fatalf("重复装引线后钓组身份=%q/%d/%v，期望 %q/%d/true",
+				t.Fatalf("重复装引线后钓组身份=%q/%d/%v, 期望 %q/%d/true",
 					name, rigType, ok, tc.rigName, tc.rigType)
 			}
 			if projected, found, err := db.GetRigType(ctx, rod.GUID); err != nil || !found || projected != tc.rigType {
-				t.Fatalf("rig_type=%d found=%v err=%v，期望 %d", projected, found, err, tc.rigType)
+				t.Fatalf("rig_type=%d found=%v err=%v, 期望 %d", projected, found, err, tc.rigType)
 			}
 			mounted, err := db.GetItemByGUID(ctx, leader.GUID)
 			if err != nil || mounted.Container != "rig" || mounted.RigGUID != rod.GUID || mounted.Qty != beforeQty {
@@ -80,7 +80,7 @@ func TestOtherBottomRigsMountLeaderKeepExplicitType(t *testing.T) {
 				}
 			}
 			if leaders != 1 {
-				t.Fatalf("引线投影数量=%d，期望 1: %+v", leaders, rows)
+				t.Fatalf("引线投影数量=%d, 期望 1: %+v", leaders, rows)
 			}
 		})
 	}

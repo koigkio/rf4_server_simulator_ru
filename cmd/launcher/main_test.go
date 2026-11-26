@@ -22,7 +22,7 @@ func TestHandleAdminNotReady(t *testing.T) {
 	if rr.Code != http.StatusServiceUnavailable {
 		t.Fatalf("code=%d, want %d", rr.Code, http.StatusServiceUnavailable)
 	}
-	if !strings.Contains(rr.Body.String(), "管理后台尚未就绪") {
+	if !strings.Contains(rr.Body.String(), "Админ-панель ещё не готова") {
 		t.Fatalf("unexpected body: %q", rr.Body.String())
 	}
 }
@@ -55,7 +55,7 @@ func TestUpdateTrayIconBeforeTrayReady(t *testing.T) {
 	a := &app{sup: supervisor.New(t.TempDir(), "config.yaml", "")}
 	updateTrayIcon(a)
 	if a.trayColor != 2 {
-		t.Fatalf("trayColor=%d, want 2（已停止）", a.trayColor)
+		t.Fatalf("trayColor=%d, want 2 (已停止)", a.trayColor)
 	}
 	if a.trayReady {
 		t.Fatal("trayReady 不应在 systray.Run 之前被置位")
@@ -103,10 +103,10 @@ func TestOverviewReportsAdminCounts(t *testing.T) {
 		t.Fatalf("unexpected identity fields: %+v", out)
 	}
 	if out.Players != 0 || out.Items != 0 || out.Mails != 0 || out.Audits != 0 {
-		t.Fatalf("新库计数应为 0，实得 %+v", out)
+		t.Fatalf("新库计数应为 0, 实得 %+v", out)
 	}
 	if out.Tunables == 0 {
-		t.Fatalf("可调参数条数应大于 0，实得 %d", out.Tunables)
+		t.Fatalf("可调参数条数应大于 0, 实得 %d", out.Tunables)
 	}
 }
 

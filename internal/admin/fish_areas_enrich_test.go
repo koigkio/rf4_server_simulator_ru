@@ -74,7 +74,7 @@ func TestFishAreasEnrichment(t *testing.T) {
 		t.Fatalf("grid 行定位字段错误: %v", grid)
 	}
 	if grid["texture"] != "maps/map_level_004_torfyanoe.webp" {
-		t.Fatalf("grid 行贴图名错误（特例映射）: %v", grid["texture"])
+		t.Fatalf("grid 行贴图名错误 (特例映射): %v", grid["texture"])
 	}
 	cal, ok := grid["calibration"].(map[string]any)
 	if !ok {

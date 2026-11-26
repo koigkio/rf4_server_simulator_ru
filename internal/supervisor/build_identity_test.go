@@ -13,7 +13,7 @@ import (
 
 // metricsBody 返回一段最小的 /metrics 文本，含 rf4_build_info。
 func metricsBody(version, buildts, commit, source string) string {
-	return "# HELP rf4_build_info 构建信息\n" +
+	return "# HELP rf4_build_info Сведения о сборке\n" +
 		`rf4_build_info{process="gameserver",version="` + version + `",buildts="` + buildts +
 		`",commit="` + commit + `",source="` + source + `"} 1` + "\n"
 }

@@ -42,8 +42,8 @@ func TestMarineFirstHookLureKeepsClientIndex(t *testing.T) {
 	} {
 		got := canonicalIndexForOrdinal(catLure, tc.clientExtra, tc.rigType, 0)
 		if got != tc.clientExtra {
-			t.Fatalf("rig %d：客户端上报拟饵钩位索引 %d，被改写成 %d；"+
-				"改写后与模板拟饵索引撞车，会让亮片被挤出、整组判无效",
+			t.Fatalf("rig %d: 客户端上报拟饵钩位索引 %d, 被改写成 %d; "+
+				"改写后与模板拟饵索引撞车, 会让亮片被挤出, 整组判无效",
 				tc.rigType, tc.clientExtra, got)
 		}
 	}
@@ -62,7 +62,7 @@ func TestMarineFirstHookLureDoesNotEvictPilker(t *testing.T) {
 		t.Fatal(err)
 	}
 	if !s.rigSetType(ctx, uid, rod.GUID, 50) {
-		t.Fatal("rigSetType(50) 失败")
+		t.Fatal("rigSetType(50) Ошибка")
 	}
 
 	mount := func(cat, extra int64, itemID string) string {
@@ -102,19 +102,19 @@ func TestMarineFirstHookLureDoesNotEvictPilker(t *testing.T) {
 	for guid, extra := range want {
 		c, ok := byGUID[guid]
 		if !ok {
-			t.Fatalf("组件 %s 被挤出钓组（实机症状：柳叶亮片掉落）", shortGUID(guid))
+			t.Fatalf("组件 %s 被挤出钓组 (实机症状: 柳叶亮片掉落)", shortGUID(guid))
 		}
 		if c.Extra != extra {
-			t.Fatalf("组件 %s 索引 = %d，期望 %d（1000+ 客户端钩位子槽被改写会让索引撞车）",
+			t.Fatalf("组件 %s 索引 = %d, 期望 %d (1000+ 客户端钩位子槽被改写会让索引撞车)",
 				shortGUID(guid), c.Extra, extra)
 		}
 		if prev, dup := seen[c.Extra]; dup {
-			t.Fatalf("索引 %d 被两条组件占用: %s / %s（客户端按索引渲染，重复即整组变黑）",
+			t.Fatalf("索引 %d 被两条组件占用: %s / %s (客户端按索引渲染, 重复即整组变黑)",
 				c.Extra, prev, shortGUID(guid))
 		}
 		seen[c.Extra] = guid
 	}
 	if n := len(rigCompKeysOfCategory(comps, catLure)); n != 4 {
-		t.Fatalf("拟饵族组件 = %d 个，期望 4 个", n)
+		t.Fatalf("拟饵族组件 = %d 个, 期望 4 个", n)
 	}
 }

@@ -23,7 +23,7 @@ type FishZone struct {
 	Name       string     `json:"name"`
 	Kind       string     `json:"kind"`
 	SeaZone    int64      `json:"sea_zone"`
-	SeaZones   []int64    `json:"sea_zones,omitempty"` // 海图区号集合（图上框选）；空=旧单区号 sea_zone
+	SeaZones   []int64    `json:"sea_zones,omitempty"` // 海图区号集合 (图上框选); 空=旧单区号 sea_zone
 	GX0        int64      `json:"gx0"`
 	GZ0        int64      `json:"gz0"`
 	GX1        int64      `json:"gx1"`
@@ -53,51 +53,51 @@ type FishZoneFish struct {
 
 func (z FishZone) Validate() error {
 	if strings.TrimSpace(z.Loc) == "" {
-		return fmt.Errorf("水域不能为空")
+		return fmt.Errorf("Водоём не может быть пустым")
 	}
 	switch z.Kind {
 	case "sea_zone":
 		if len(z.SeaZones) > 0 {
 			if len(z.SeaZones) > 300 {
-				return fmt.Errorf("海图区号最多 300 个")
+				return fmt.Errorf("Не более 300 номеров зон морской карты")
 			}
 			for _, n := range z.SeaZones {
 				if n <= 0 {
-					return fmt.Errorf("海图区号必须是正整数")
+					return fmt.Errorf("Номер зоны морской карты должен быть положительным целым")
 				}
 			}
 		} else if z.SeaZone <= 0 {
-			return fmt.Errorf("海图区号必须是正整数")
+			return fmt.Errorf("Номер зоны морской карты должен быть положительным целым")
 		}
 	case "grid_rect":
 		if z.GX0 > z.GX1 || z.GZ0 > z.GZ1 {
-			return fmt.Errorf("网格矩形坐标颠倒：需要 gx0<=gx1、gz0<=gz1")
+			return fmt.Errorf("Координаты прямоугольника сетки перепутаны: нужно gx0<=gx1, gz0<=gz1")
 		}
 	case "grid_cells":
 		if len(z.Cells) == 0 {
-			return fmt.Errorf("格子区域至少要涂一个 40m 格子")
+			return fmt.Errorf("В клеточной зоне должна быть закрашена хотя бы одна клетка 40 м")
 		}
 		if len(z.Cells) > 2048 {
-			return fmt.Errorf("格子区域最多 2048 格")
+			return fmt.Errorf("Клеточная зона — не более 2048 клеток")
 		}
 	case "circle":
 		if z.Radius < 2 || z.Radius > 500 {
-			return fmt.Errorf("圆形区域半径需在 2~500 米")
+			return fmt.Errorf("Радиус круговой зоны должен быть 2~500 м")
 		}
 	default:
-		return fmt.Errorf("区域类型只能是 grid_rect、grid_cells、circle 或 sea_zone")
+		return fmt.Errorf("Тип зоны может быть только grid_rect, grid_cells, circle или sea_zone")
 	}
 	switch z.Mode {
 	case "exclusive", "boost":
 	default:
-		return fmt.Errorf("模式只能是 exclusive 或 boost")
+		return fmt.Errorf("Режим может быть только exclusive или boost")
 	}
 	// 乘数离谱的增益区等于变相关区/爆权重：与 UI 输入约束同口径。
 	if z.Boost < 0.1 || z.Boost > 100 {
-		return fmt.Errorf("名单内乘数需在 0.1~100")
+		return fmt.Errorf("Множитель для рыбы из списка должен быть в пределах 0.1~100")
 	}
 	if z.KeepOthers < 0 || z.KeepOthers > 1 {
-		return fmt.Errorf("名单外保留系数需在 0~1")
+		return fmt.Errorf("Коэффициент сохранения для рыбы вне списка должен быть в пределах 0~1")
 	}
 	return nil
 }
@@ -287,7 +287,7 @@ func nullableCircle(z FishZone, col string) any {
 
 func (d *DB) DeleteFishZone(ctx context.Context, id int64) error {
 	if id <= 0 {
-		return fmt.Errorf("区域 ID 无效")
+		return fmt.Errorf("Неверный ID зоны")
 	}
 	tx, err := d.SQL.BeginTx(ctx, nil)
 	if err != nil {

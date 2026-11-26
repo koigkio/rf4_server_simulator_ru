@@ -62,7 +62,7 @@ func (s *Server) firstOwnedItemByItemID(ctx context.Context, uid int64, itemID s
 func (s *Server) prepareDeckStatuettes(ctx context.Context, uid int64, deckID string) (*deckStatuettePlan, error) {
 	def, err := s.DB.GetItemDefByItemID(ctx, deckID)
 	if err != nil || def == nil || def.Category != 82 {
-		return nil, fmt.Errorf("卡册定义无效")
+		return nil, fmt.Errorf("Неверное определение альбома")
 	}
 	var attrs struct {
 		Statuettes []string `json:"pnaapkplkfo"`
@@ -87,7 +87,7 @@ func (s *Server) prepareDeckStatuettes(ctx context.Context, uid int64, deckID st
 		if existing != nil {
 			tree, err := s.ItemToTree(ctx, existing)
 			if err != nil || tree == nil {
-				return nil, fmt.Errorf("已有奖座树构造失败: %s", st)
+				return nil, fmt.Errorf("Ошибка создания дерева имеющихся наград: %s", st)
 			}
 			plan.trees[existing.GUID] = tree
 			plan.containers[existing.GUID] = existing.Container
@@ -99,7 +99,7 @@ func (s *Server) prepareDeckStatuettes(ctx context.Context, uid int64, deckID st
 		}
 		tree, err := s.ItemToTree(ctx, prepared)
 		if err != nil || tree == nil {
-			return nil, fmt.Errorf("待发奖座树构造失败: %s", st)
+			return nil, fmt.Errorf("Ошибка создания дерева выдаваемых наград: %s", st)
 		}
 		plan.prepared[st] = prepared
 		plan.trees[prepared.GUID] = tree
@@ -130,14 +130,14 @@ func hTradingCardLaminate(ctx *Ctx) ([]byte, bool) {
 	}
 	if !ctx.DecodeOK || ctx.Tree == nil || ctx.Tree.Kind != proto.KindArgs || ctx.Tree.ArgCount() != 1 ||
 		ctx.Tree.ArgItem(0) == nil || ctx.Tree.ArgItem(0).Kind != proto.KindGuid {
-		ctx.ReplyFailure("System.ArgumentException", "卡册塑封参数无效")
+		ctx.ReplyFailure("System.ArgumentException", "Неверные параметры ламинирования альбома")
 		return nil, true
 	}
 	s := ctx.Sess.Srv
 	c, uid := ctx.Sess.pushCtx(), ctx.Sess.Userid
 	deckGUID := ctx.Tree.ArgItem(0).GuidHex()
 	if deckGUID == "" || deckGUID == zeroGUID {
-		ctx.ReplyFailure("System.ArgumentException", "卡册塑封参数无效")
+		ctx.ReplyFailure("System.ArgumentException", "Неверные параметры ламинирования альбома")
 		return nil, true
 	}
 	// 事务外只做静态库读取与奖座准备（SQLite 单连接纪律）：卡册 def、
@@ -146,29 +146,29 @@ func hTradingCardLaminate(ctx *Ctx) ([]byte, bool) {
 	// 通过预检，第二个获写锁后再插一遍奖座（2026-11-08 review P1）。
 	deckDef, err := s.DB.GetItemDefByItemID(c, deckIDByGUIDLoose(c, s, uid, deckGUID))
 	if err != nil || deckDef == nil || deckDef.Category != 82 {
-		ctx.ReplyFailure("System.InvalidOperationException", "卡册定义无效")
+		ctx.ReplyFailure("System.InvalidOperationException", "Неверное определение альбома")
 		return nil, true
 	}
 	var attrs struct {
 		Cards []string `json:"cjmjfnheidh"`
 	}
 	if err := json.Unmarshal([]byte(deckDef.AttrsJSON), &attrs); err != nil || len(attrs.Cards) == 0 {
-		ctx.ReplyFailure("System.InvalidOperationException", "卡册定义无效")
+		ctx.ReplyFailure("System.InvalidOperationException", "Неверное определение альбома")
 		return nil, true
 	}
 	wantNumeric := make(map[uint32]bool, len(attrs.Cards))
 	for _, cardID := range attrs.Cards {
 		cardDef, cerr := s.DB.GetItemDefByItemID(c, cardID)
 		if cerr != nil || cardDef == nil || cardDef.Category != 78 {
-			ctx.ReplyFailure("System.InvalidOperationException", "卡册定义无效")
+			ctx.ReplyFailure("System.InvalidOperationException", "Неверное определение альбома")
 			return nil, true
 		}
 		wantNumeric[uint32(cardDef.NumericID)] = true
 	}
 	plan, err := s.prepareDeckStatuettes(c, uid, deckDef.ItemID)
 	if err != nil {
-		ctx.Log.Warn("卡册塑封奖座准备失败", "deck", deckDef.ItemID, "err", err)
-		ctx.ReplyFailure("System.IO.IOException", "卡册塑封失败，请重试")
+		ctx.Log.Warn("Не удалось подготовить награду за ламинирование альбома", "deck", deckDef.ItemID, "err", err)
+		ctx.ReplyFailure("System.IO.IOException", "Ламинирование альбома не удалось, попробуйте ещё раз")
 		return nil, true
 	}
 	// 结算弹窗的正中主体是**卡册本身**（官方实拍：塑封后的卡册卡面 + 封条）。
@@ -184,8 +184,8 @@ func hTradingCardLaminate(ctx *Ctx) ([]byte, bool) {
 		// 找不到就 IndexOutOfRange、整窗只剩标题）。构不出来就不能塑封：
 		// 宁可整单失败让玩家重试，也不能提交一件客户端看不到结果的塑封
 		// （2026-11-10 review P2：半成功故障）。
-		ctx.Log.Warn("卡册塑封响应卡册树构造失败", "deck", deckGUID, "err", err)
-		ctx.ReplyFailure("System.IO.IOException", "卡册塑封失败，请重试")
+		ctx.Log.Warn("Ошибка создания дерева альбома в ответе на ламинирование", "deck", deckGUID, "err", err)
+		ctx.ReplyFailure("System.IO.IOException", "Ламинирование альбома не удалось, попробуйте ещё раз")
 		return nil, true
 	}
 	// 来源码必须在开事务**之前**取：laminateGiftSource → tunableF 在缓存过期
@@ -195,7 +195,7 @@ func hTradingCardLaminate(ctx *Ctx) ([]byte, bool) {
 	giftSource := s.laminateGiftSource()
 	tx, err := beginEconomyTx(c, s.DB)
 	if err != nil {
-		ctx.ReplyFailure("System.IO.IOException", "卡册塑封失败，请重试")
+		ctx.ReplyFailure("System.IO.IOException", "Ламинирование альбома не удалось, попробуйте ещё раз")
 		return nil, true
 	}
 	defer tx.Rollback()
@@ -203,31 +203,31 @@ func hTradingCardLaminate(ctx *Ctx) ([]byte, bool) {
 	deck, err := getOwnedItemTx(c, tx, uid, deckGUID)
 	if err != nil || deck == nil || deck.WireClass != deckClass || deck.Container != tradingCardContainer ||
 		deck.ItemID != deckDef.ItemID {
-		ctx.ReplyFailure("System.InvalidOperationException", "卡册不存在或不属于当前玩家")
+		ctx.ReplyFailure("System.InvalidOperationException", "Альбом не существует или не принадлежит текущему игроку")
 		return nil, true
 	}
 	fields, err := FieldsFromJSON(deck.FieldsJSON)
 	if err != nil {
-		ctx.ReplyFailure("System.IO.IOException", "卡册塑封失败，请重试")
+		ctx.ReplyFailure("System.IO.IOException", "Ламинирование альбома не удалось, попробуйте ещё раз")
 		return nil, true
 	}
 	if deckSealed(fields) > 0 {
 		// 重放/并发的第二发在此拦截（首个事务已提交密封）
-		ctx.ReplyFailure("System.InvalidOperationException", "卡册已塑封")
+		ctx.ReplyFailure("System.InvalidOperationException", "Альбом уже заламинирован")
 		return nil, true
 	}
 	cards, err := cardsInDeck(deck)
 	if err != nil {
-		ctx.ReplyFailure("System.IO.IOException", "卡册塑封失败，请重试")
+		ctx.ReplyFailure("System.IO.IOException", "Ламинирование альбома не удалось, попробуйте ещё раз")
 		return nil, true
 	}
 	if !deckComplete(cards, wantNumeric) {
-		ctx.ReplyFailure("System.InvalidOperationException", "卡册尚未集齐")
+		ctx.ReplyFailure("System.InvalidOperationException", "Альбом ещё не собран")
 		return nil, true
 	}
 	fields[1].Num = ptrU64(sealTs)
 	if err := updateItemFieldsTx(c, s.DB, tx, deck, fields); err != nil {
-		ctx.ReplyFailure("System.IO.IOException", "卡册塑封失败，请重试")
+		ctx.ReplyFailure("System.IO.IOException", "Ламинирование альбома не удалось, попробуйте ещё раз")
 		return nil, true
 	}
 	// 塑封奖励之一是「1 个免费技能点」（kDlg_TradingCards_DeckStatusCompleted：
@@ -236,14 +236,14 @@ func hTradingCardLaminate(ctx *Ctx) ([]byte, bool) {
 	pointGranted := false
 	if res, perr := tx.ExecContext(c, `INSERT OR IGNORE INTO kv(k,v) VALUES(?,?)`,
 		"deck-laminate-point:"+deckGUID, "1"); perr != nil {
-		ctx.ReplyFailure("System.IO.IOException", "卡册塑封失败，请重试")
+		ctx.ReplyFailure("System.IO.IOException", "Ламинирование альбома не удалось, попробуйте ещё раз")
 		return nil, true
 	} else if n, aerr := res.RowsAffected(); aerr != nil {
-		ctx.ReplyFailure("System.IO.IOException", "卡册塑封失败，请重试")
+		ctx.ReplyFailure("System.IO.IOException", "Ламинирование альбома не удалось, попробуйте ещё раз")
 		return nil, true
 	} else if n > 0 {
 		if _, aerr := s.DB.AddSkillBonusTx(c, tx, uid, 1); aerr != nil {
-			ctx.ReplyFailure("System.IO.IOException", "卡册塑封失败，请重试")
+			ctx.ReplyFailure("System.IO.IOException", "Ламинирование альбома не удалось, попробуйте ещё раз")
 			return nil, true
 		}
 		pointGranted = true
@@ -262,8 +262,8 @@ func hTradingCardLaminate(ctx *Ctx) ([]byte, bool) {
 			tree := plan.trees[existing.GUID]
 			if tree == nil || plan.containers[existing.GUID] != existing.Container {
 				// 事务外预生成的树必须与事务内实际命中的行一致，避免 ACK 幽灵 GUID。
-				ctx.Log.Warn("卡册奖座在事务外准备后状态变化", "item", st, "guid", existing.GUID)
-				ctx.ReplyFailure("System.IO.IOException", "卡册塑封失败，请重试")
+				ctx.Log.Warn("Состояние награды альбома изменилось после подготовки вне транзакции", "item", st, "guid", existing.GUID)
+				ctx.ReplyFailure("System.IO.IOException", "Ламинирование альбома не удалось, попробуйте ещё раз")
 				return nil, true
 			}
 			guids = append(guids, existing.GUID)
@@ -271,27 +271,27 @@ func hTradingCardLaminate(ctx *Ctx) ([]byte, bool) {
 			trees.Items = append(trees.Items, tree)
 			continue
 		} else if terr != sql.ErrNoRows {
-			ctx.ReplyFailure("System.IO.IOException", "卡册塑封失败，请重试")
+			ctx.ReplyFailure("System.IO.IOException", "Ламинирование альбома не удалось, попробуйте ещё раз")
 			return nil, true
 		}
 		prepared := plan.prepared[st]
 		if prepared == nil {
 			// 事务外已拥有但事务内查无：行被并发移动/删除，拒绝重试
-			ctx.ReplyFailure("System.IO.IOException", "卡册塑封失败，请重试")
+			ctx.ReplyFailure("System.IO.IOException", "Ламинирование альбома не удалось, попробуйте ещё раз")
 			return nil, true
 		}
 		row, _, gerr := grantPreparedItemTx(c, tx, prepared, false)
 		if gerr != nil {
-			ctx.ReplyFailure("System.IO.IOException", "卡册塑封失败，请重试")
+			ctx.ReplyFailure("System.IO.IOException", "Ламинирование альбома не удалось, попробуйте ещё раз")
 			return nil, true
 		}
 		tree := plan.trees[row.GUID]
 		if tree == nil {
-			ctx.ReplyFailure("System.IO.IOException", "卡册塑封失败，请重试")
+			ctx.ReplyFailure("System.IO.IOException", "Ламинирование альбома не удалось, попробуйте ещё раз")
 			return nil, true
 		}
 		granted++
-		s.log.Info("卡册塑封发奖座", "uid", uid, "deck", deck.ItemID, "item", st)
+		s.log.Info("Выдача награды за ламинирование альбома", "uid", uid, "deck", deck.ItemID, "item", st)
 		guids = append(guids, row.GUID)
 		trees.Items = append(trees.Items, tree)
 	}
@@ -327,11 +327,11 @@ func hTradingCardLaminate(ctx *Ctx) ([]byte, bool) {
 		3: proto.GuidArr(guidArr),
 	}), s.Table())
 	if err != nil {
-		ctx.ReplyFailure("System.IO.IOException", "卡册塑封失败，请重试")
+		ctx.ReplyFailure("System.IO.IOException", "Ламинирование альбома не удалось, попробуйте ещё раз")
 		return nil, true
 	}
 	if err := tx.Commit(); err != nil {
-		ctx.ReplyFailure("System.IO.IOException", "卡册塑封失败，请重试")
+		ctx.ReplyFailure("System.IO.IOException", "Ламинирование альбома не удалось, попробуйте ещё раз")
 		return nil, true
 	}
 	// 会话内刷新：卡册 f1 已变、新奖座进背包。技能点用 2/6 推一次技能树——
@@ -350,7 +350,7 @@ func hTradingCardLaminate(ctx *Ctx) ([]byte, bool) {
 			s.pushItemUpdate(uid, row)
 		}
 	}
-	ctx.Log.Info("卡册塑封完成", "uid", uid, "deck", deck.ItemID, "rewards", len(trees.Items),
+	ctx.Log.Info("Ламинирование альбома завершено", "uid", uid, "deck", deck.ItemID, "rewards", len(trees.Items),
 		"granted", granted, "skillPoint", pointGranted,
 		"giftSource", giftSource,
 		"giftItems", len(giftItems.Items), "giftResults", len(giftResults.Items))
@@ -369,14 +369,14 @@ func (s *Server) buildSealedDeckTree(ctx context.Context, uid int64, deckGUID st
 		return nil, err
 	}
 	if row == nil || row.UID != uid || row.Container != tradingCardContainer {
-		return nil, fmt.Errorf("卡册不存在或不属于当前玩家: guid=%s", deckGUID)
+		return nil, fmt.Errorf("Альбом не существует или не принадлежит текущему игроку: guid=%s", deckGUID)
 	}
 	fields, err := FieldsFromJSON(row.FieldsJSON)
 	if err != nil {
 		return nil, err
 	}
 	if len(fields) < 2 {
-		return nil, fmt.Errorf("卡册字段不足: guid=%s fields=%d", deckGUID, len(fields))
+		return nil, fmt.Errorf("Недостаточно полей альбома: guid=%s fields=%d", deckGUID, len(fields))
 	}
 	fields[1].Num = ptrU64(sealTs)
 	// 与 updateItemFieldsTx 同样的收尾（创建刻度前移），保证树和落库行一致。
@@ -392,7 +392,7 @@ func (s *Server) buildSealedDeckTree(ctx context.Context, uid int64, deckGUID st
 		return nil, err
 	}
 	if tree == nil {
-		return nil, fmt.Errorf("卡册树为空: guid=%s", deckGUID)
+		return nil, fmt.Errorf("Дерево альбома пусто: guid=%s", deckGUID)
 	}
 	return tree, nil
 }
@@ -436,9 +436,9 @@ func (s *Server) laminateGiftRows(items, results *proto.Value, giftSource int) *
 	rows := proto.Args(proto.S("173"))
 	row := wiregen.MustMakeObj("bkmnmjcfbic", map[int]*proto.Value{
 		0: proto.U32(uint32(giftSource)), // fjfejmomhed=来源码
-		1: proto.U32(0),                  // kbobbfmmibp=来源参数（塑封无参）
+		1: proto.U32(0),                  // kbobbfmmibp=来源参数 (塑封无参)
 		2: items,                         // nbkhfhenbag=礼物物品
-		3: results,                       // fmpbnollnmf=结果物品数组（红线：不发 null）
+		3: results,                       // fmpbnollnmf=结果物品数组 (红线: 不发 null)
 	})
 	rows.Items = append(rows.Items, row)
 	return rows
@@ -481,7 +481,7 @@ func (s *Server) laminateGiftSource() int {
 func deckIDByGUIDLoose(ctx context.Context, s *Server, uid int64, deckGUID string) string {
 	row, err := s.DB.GetItemByGUID(ctx, deckGUID)
 	if err != nil || row == nil || row.UID != uid {
-		return deckGUID // 查无此行时原样返回，让 def 校验拒绝
+		return deckGUID // 查无此行时原样返回, 让 def 校验拒绝
 	}
 	return row.ItemID
 }
@@ -546,7 +546,7 @@ func (s *Server) ensureDeckLaminatePoints(ctx context.Context, uid int64) int {
 	for _, guid := range sealed {
 		ok, gerr := s.grantDeckLaminatePoint(ctx, uid, guid)
 		if gerr != nil {
-			s.log.Warn("卡册塑封技能点补发失败", "uid", uid, "deck", guid, "err", gerr)
+			s.log.Warn("Не удалось доначислить очки навыков за ламинирование альбома", "uid", uid, "deck", guid, "err", gerr)
 			continue
 		}
 		if ok {
@@ -554,7 +554,7 @@ func (s *Server) ensureDeckLaminatePoints(ctx context.Context, uid int64) int {
 		}
 	}
 	if granted > 0 {
-		s.log.Info("补发卡册塑封技能点", "uid", uid, "count", granted)
+		s.log.Info("Доначисление очков навыков за ламинирование альбома", "uid", uid, "count", granted)
 	}
 	return granted
 }

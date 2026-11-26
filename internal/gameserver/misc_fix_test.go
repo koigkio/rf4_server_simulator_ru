@@ -47,7 +47,7 @@ func TestMiscHandlerContracts(t *testing.T) {
 			t.Fatalf("4/9 响应不可解码: %v", err)
 		}
 		if dec.Kind != proto.KindObj || dec.Class != "dlbahppbdad" {
-			t.Fatalf("4/9 响应应为 800 dlbahppbdad，实得 %s", dec.Class)
+			t.Fatalf("4/9 响应应为 800 dlbahppbdad, 实得 %s", dec.Class)
 		}
 		if after := miscStateFlags(t, srv, g); after != (before|1)&0xFFFFFFFF {
 			t.Fatalf("置位失败: before=%d after=%d", before, after)
@@ -76,7 +76,7 @@ func TestMiscHandlerContracts(t *testing.T) {
 		// 请求参数为 [容器号, GUID, 槽位]；命令不返回响应。
 		if body, ok := hItemSetSlot(miscCtx(sess, 4, 10,
 			proto.Args524(proto.U32(0), proto.Guid(a), proto.U32(77)))); !ok || body != nil {
-			t.Fatalf("4/10 应 fire-and-forget（nil body），ok=%v body=%x", ok, body)
+			t.Fatalf("4/10 应 fire-and-forget (nil body), ok=%v body=%x", ok, body)
 		}
 		rowA, err := srv.DB.GetItemByGUID(ctx, a)
 		if err != nil || rowA == nil || rowA.Container != "backpack" || rowA.Slot != 77 {
@@ -110,11 +110,11 @@ func TestMiscHandlerContracts(t *testing.T) {
 			t.Fatalf("3/20 响应不可解码: %v", err)
 		}
 		if dec.Kind != proto.KindObj || dec.Class != "ghfbofgdflm" {
-			t.Fatalf("3/20 响应应为 307 ghfbofgdflm，实得 %s", dec.Class)
+			t.Fatalf("3/20 响应应为 307 ghfbofgdflm, 实得 %s", dec.Class)
 		}
 		f1 := dec.Field(1)
 		if got := f1.StrOr(); got != "钓鱼佬 Pro" {
-			t.Fatalf("307.f1 应为新昵称，实得 %q", got)
+			t.Fatalf("307.f1 应为新昵称, 实得 %q", got)
 		}
 		p, err := srv.DB.GetProfile(ctx, 1000001)
 		if err != nil || p.Name != "钓鱼佬 Pro" {
@@ -122,7 +122,7 @@ func TestMiscHandlerContracts(t *testing.T) {
 		}
 		// 空名称交给兜底链。
 		if b, ok := hChangeName(miscCtx(sess, 3, 20, proto.Args524())); ok || b != nil {
-			t.Fatal("空名应 PASS（nil,false）")
+			t.Fatal("空名应 PASS (nil,false)")
 		}
 	})
 
@@ -137,7 +137,7 @@ func TestMiscHandlerContracts(t *testing.T) {
 			t.Fatalf("3/21 响应不可解码: %v", err)
 		}
 		if dec.Kind != proto.KindObj || dec.Class != "ghfbofgdflm" {
-			t.Fatalf("3/21 响应应为 307，实得 %s", dec.Class)
+			t.Fatalf("3/21 响应应为 307, 实得 %s", dec.Class)
 		}
 		p, _ := srv.DB.GetProfile(ctx, 1000001)
 		if p.Region != "RU" {
@@ -166,7 +166,7 @@ func TestMiscHandlerContracts(t *testing.T) {
 			t.Fatalf("3/23 响应不可解码: %v", err)
 		}
 		if dec.Kind != proto.KindObj || dec.Class != "ghfbofgdflm" {
-			t.Fatalf("3/23 响应应为 307，实得 %s", dec.Class)
+			t.Fatalf("3/23 响应应为 307, 实得 %s", dec.Class)
 		}
 		p, _ := srv.DB.GetProfile(ctx, 1000001)
 		if p.Email != "a@b.c" {
@@ -188,30 +188,30 @@ func TestMiscHandlerContracts(t *testing.T) {
 		}
 		body, err := proto.EncodeValue(payload, srv.Table())
 		if err != nil {
-			t.Fatalf("编码失败: %v", err)
+			t.Fatalf("Ошибка кодирования: %v", err)
 		}
 		dec, _, err := proto.DecodeValue(body, 0, srv.Table())
 		if err != nil {
 			t.Fatalf("回环解码失败: %v", err)
 		}
 		if dec.Kind != proto.KindArgs || len(dec.Items) != 3 {
-			t.Fatalf("24/27 应 args[3]，实得 %d 参", len(dec.Items))
+			t.Fatalf("24/27 应 args[3], 实得 %d 参", len(dec.Items))
 		}
 		m := dec.Items[0]
 		if !m.IsKind(proto.KindObj) || m.TypeID != 401 || m.Class != "lfbdbaffeai" {
-			t.Fatalf("args[0] 应为 401 lfbdbaffeai，实得 %s/%d", m.Class, m.TypeID)
+			t.Fatalf("args[0] 应为 401 lfbdbaffeai, 实得 %s/%d", m.Class, m.TypeID)
 		}
 		mf1 := m.Field(1)
 		if got := mf1.StrOr(); got != "hello" {
-			t.Fatalf("401.f1 应为文本，实得 %q", got)
+			t.Fatalf("401.f1 应为文本, 实得 %q", got)
 		}
 		mf2 := m.Field(2)
 		if mf2.U32() != 1000001 {
-			t.Fatalf("401.f2 应为发送者 uid，实得 %d", mf2.U32())
+			t.Fatalf("401.f2 应为发送者 uid, 实得 %d", mf2.U32())
 		}
 		mf0 := m.Field(0)
 		if mf0.U32() != 0 {
-			t.Fatalf("401.f0 应为 CHAT_KIND_SAY=0，实得 %d", mf0.U32())
+			t.Fatalf("401.f0 应为 CHAT_KIND_SAY=0, 实得 %d", mf0.U32())
 		}
 		if dec.Items[1].StrOr() != "nav1_03[CN]" || dec.Items[2].U32Val() != 227 {
 			t.Fatalf("args[1]=locationId / args[2]=usersCount 形状错误")
@@ -253,7 +253,7 @@ func TestMiscHandlerContracts(t *testing.T) {
 			t.Fatal(sr.err)
 		}
 		sess2.tunnel = sr.c             // 游戏服持隧道主服侧
-		srv2.sessions[sess2.ID] = sess2 // 公共聊天向已注册会话广播。
+		srv2.sessions[sess2.ID] = sess2 // 公共聊天向已注册会话广播.
 		defer func() { _ = gc.Close(); _ = sr.c.Close() }()
 
 		type pushed struct {
@@ -270,7 +270,7 @@ func TestMiscHandlerContracts(t *testing.T) {
 			}
 			env, ok := proto.ParseEnvelope(payload)
 			if !ok {
-				recCh <- pushed{err: fmt.Errorf("信封解析失败")}
+				recCh <- pushed{err: fmt.Errorf("Ошибка разбора конверта")}
 				return
 			}
 			recCh <- pushed{rec: rec, env: env}
@@ -278,7 +278,7 @@ func TestMiscHandlerContracts(t *testing.T) {
 
 		body, ok := hSocialPublic(miscCtx(sess2, 24, 10, proto.Args524(proto.StrVal("区域聊天测试"))))
 		if !ok || body != nil {
-			t.Fatalf("24/10 应 fire-and-forget（nil body），ok=%v body=%x", ok, body)
+			t.Fatalf("24/10 应 fire-and-forget (nil body), ok=%v body=%x", ok, body)
 		}
 		select {
 		case p := <-recCh:
@@ -286,11 +286,11 @@ func TestMiscHandlerContracts(t *testing.T) {
 				t.Fatalf("读推送失败: %v", p.err)
 			}
 			if p.rec != tunnel.TypeData {
-				t.Fatalf("应 DATA 记录，实得 %v", p.rec)
+				t.Fatalf("应 DATA 记录, 实得 %v", p.rec)
 			}
 			// 回显必须使用 24/27。
 			if p.env.Main != 24 || p.env.Sub != 27 {
-				t.Fatalf("回显必须走 24/27，实得 %d/%d", p.env.Main, p.env.Sub)
+				t.Fatalf("回显必须走 24/27, 实得 %d/%d", p.env.Main, p.env.Sub)
 			}
 			dec, _, derr := proto.DecodeValue(p.env.Body, 0, srv2.Table())
 			if derr != nil {
@@ -311,7 +311,7 @@ func TestMiscHandlerContracts(t *testing.T) {
 			t.Fatal("空消息应 handled+nil")
 		}
 		if b, ok := hSocialPublic(miscCtx(sess2, 24, 10, proto.Args524(proto.StrVal("/help")))); !ok || b != nil {
-			t.Fatal("GM 指令应 handled+nil（不回显）")
+			t.Fatal("GM 指令应 handled+nil (不回显)")
 		}
 		select {
 		case p := <-recCh:
@@ -329,15 +329,15 @@ func TestMiscHandlerContracts(t *testing.T) {
 		}
 		for num, want := range cases {
 			if got := containerEnumName(num); got != want {
-				t.Errorf("容器 %d -> %q, 期望 %q", num, got, want)
+				t.Errorf("容器 %d -> %q, Ожидалось %q", num, got, want)
 			}
 		}
 		// 4/6 使用同一张容器映射表。
 		if got := containerName(1); got != "tent" {
-			t.Fatalf("containerName(1)=%q, 期望 tent", got)
+			t.Fatalf("containerName(1)=%q, Ожидалось tent", got)
 		}
 		if got := containerName(5); got != "keepnet" {
-			t.Fatalf("containerName(5)=%q, 期望 keepnet", got)
+			t.Fatalf("containerName(5)=%q, Ожидалось keepnet", got)
 		}
 	})
 
@@ -353,7 +353,7 @@ func TestMiscHandlerContracts(t *testing.T) {
 			t.Fatalf("4/5 响应不可解码: %v", err)
 		}
 		if dec.Kind != proto.KindArgs || len(dec.Items) != 0 {
-			t.Fatalf("非建模容器 4/5 应回空 args(61)，实得 %d 件", len(dec.Items))
+			t.Fatalf("非建模容器 4/5 应回空 args(61), 实得 %d 件", len(dec.Items))
 		}
 		// 背包容器仍按 GUID 返回物品。
 		body, ok = hItemDetails(miscCtx(sess, 4, 5,
@@ -363,7 +363,7 @@ func TestMiscHandlerContracts(t *testing.T) {
 		}
 		dec, _, _ = proto.DecodeValue(body, 0, srv.Table())
 		if dec.Kind != proto.KindArgs || len(dec.Items) != 1 {
-			t.Fatalf("背包容器 4/5 应回 1 件，实得 %d", len(dec.Items))
+			t.Fatalf("背包容器 4/5 应回 1 件, 实得 %d", len(dec.Items))
 		}
 	})
 }

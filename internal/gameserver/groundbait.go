@@ -241,7 +241,7 @@ func (s *Server) groundbaitGameHours(ctx context.Context, uid int64) float64 {
 		if _, ierr := s.DB.SQL.ExecContext(ctx, `INSERT INTO groundbait_clock(uid,real_ts,game_hours,updated_ts)
 			VALUES(?,?,?,?) ON CONFLICT(uid) DO UPDATE SET real_ts=excluded.real_ts, updated_ts=excluded.updated_ts`,
 			uid, now, 0.0, now); ierr != nil {
-			s.log.Warn("窝料游戏钟初始化失败", "err", ierr)
+			s.log.Warn("Не удалось инициализировать игровые часы прикормки", "err", ierr)
 		}
 		return 0
 	}
@@ -258,7 +258,7 @@ func (s *Server) groundbaitGameHours(ctx context.Context, uid int64) float64 {
 	acc += dt / groundbaitRealSecPerGameHour
 	if _, uerr := s.DB.SQL.ExecContext(ctx, `UPDATE groundbait_clock SET real_ts=?, game_hours=?, updated_ts=? WHERE uid=?`,
 		now, acc, now, uid); uerr != nil {
-		s.log.Warn("窝料游戏钟推进失败", "err", uerr)
+		s.log.Warn("Не удалось продвинуть игровые часы прикормки", "err", uerr)
 	}
 	return acc
 }
@@ -316,7 +316,7 @@ func (s *Server) groundbaitDeposit(ctx context.Context, uid int64, loc string, x
 	acc := s.groundbaitGameHours(ctx, uid)
 	tx, err := s.DB.SQL.BeginTx(ctx, nil)
 	if err != nil {
-		s.log.Warn("窝料投放开事务失败", "err", err)
+		s.log.Warn("Не удалось начать транзакцию заброса прикормки", "err", err)
 		return
 	}
 	defer func() { _ = tx.Rollback() }()
@@ -330,24 +330,24 @@ func (s *Server) groundbaitDeposit(ctx context.Context, uid int64, loc string, x
 		uid, loc, bx, bz, hasPosInt, channel, itemID, portions, portions, hours, acc, txnGuid,
 		float64(time.Now().Unix()), matsJSON, landingX, landingZ)
 	if err != nil {
-		s.log.Warn("窝料投放写账本失败", "err", err, "item", itemID, "channel", channel)
+		s.log.Warn("Не удалось записать журнал прикормки", "err", err, "item", itemID, "channel", channel)
 		return
 	}
 	if n, _ := res.RowsAffected(); n == 0 {
 		// 幂等命中：这条上报已经投过。这里必须留一行日志——幂等键撞车时
 		// 饵照扣但窝账没记，静默吞掉过整批发窝（见 handitemThrowTxn）。
-		s.log.Info("窝料投放重复上报已忽略", "uid", uid, "channel", channel,
+		s.log.Info("Повторный отчёт о забросе прикормки пропущен", "uid", uid, "channel", channel,
 			"item", itemID, "txn", txnGuid)
 		return
 	}
 	if err := tx.Commit(); err != nil {
-		s.log.Warn("窝料投放提交失败", "err", err)
+		s.log.Warn("Не удалось зафиксировать заброс прикормки", "err", err)
 		return
 	}
 	if hasPos {
 		s.huntAnchorGroundbait(ctx, uid, loc, spot, x, z)
 	}
-	s.log.Info("窝料投放", "uid", uid, "loc", loc, "cell", fmt.Sprintf("%d,%d", bx, bz),
+	s.log.Info("Заброс прикормки", "uid", uid, "loc", loc, "cell", fmt.Sprintf("%d,%d", bx, bz),
 		"item", itemID, "channel", channel, "portions", portions, "hours", hours,
 		"known", known, "mats", len(groundbaitDecodeMaterials(matsJSON)), "txn", txnGuid)
 }
@@ -395,18 +395,18 @@ func (s *Server) cloneGroundbaitRecipe(ctx context.Context, sourceGUID, childGUI
 
 // groundbaitSpotState 是一个窝格子的即时状态。
 type groundbaitSpotState struct {
-	units     float64 // N：净窝份数（已按剩余窝时等比稀释）
-	hoursLeft float64 // T：剩余窝时（游戏小时）
+	units     float64 // N: 净窝份数 (已按剩余窝时等比稀释)
+	hoursLeft float64 // T: 剩余窝时 (游戏小时)
 	batches   int     // 未过期批次数
-	diffuse   int     // 其中落点未知的批数（按衰减系数计入）
-	near      int     // 其中只差一格的批数（同样按衰减系数计入）
-	hold      float64 // 按份数加权的留窝系数，用于流速门
+	diffuse   int     // 其中落点未知的批数 (按衰减系数计入)
+	near      int     // 其中只差一格的批数 (同样按衰减系数计入)
+	hold      float64 // 按份数加权的留窝系数, 用于流速门
 	// diet 是这个格子里所有还活着的批次按剩余份数合成出来的食性向量（百分比）。
 	// 一格里混投两种料时按份数加权合成，比逐批各算一遍再平均更贴近「这锅料
 	// 实际是什么」，而且同一锅料只算一次逐鱼种契合度。
 	diet      map[string]float64
-	dietKnown bool   // 已知食性表（包括只有 PVA 载体的空饵）
-	dietSig   string // diet 的稳定指纹，逐鱼种亲和缓存的键
+	dietKnown bool   // 已知食性表 (包括只有 PVA 载体的空饵)
+	dietSig   string // diet 的稳定指纹, 逐鱼种亲和缓存的键
 	// targetShare：商品包装写明目标鱼的份数占比，用来给契合度加作者先验。
 	// 两袋不同商品各投一半时，两个目标鱼各拿一半先验。
 	targetShare map[string]float64
@@ -449,7 +449,7 @@ func (s *Server) groundbaitSpotAt(ctx context.Context, uid int64, loc string, x,
 		WHERE uid=? AND loc=?
 		ORDER BY deposit_hour`, uid, loc)
 	if err != nil {
-		s.log.Warn("窝料账本读取失败", "err", err)
+		s.log.Warn("Не удалось прочитать журнал прикормки", "err", err)
 		return st
 	}
 	var deadRows []int64
@@ -503,11 +503,11 @@ func (s *Server) groundbaitSpotAt(ctx context.Context, uid int64, loc string, x,
 			units: units * ratio * fall, remain: remain * fall, ratio: ratio, fall: fall, unknown: unknown})
 	}
 	if cerr := rows.Close(); cerr != nil {
-		s.log.Warn("窝料账本游标关闭失败", "err", cerr)
+		s.log.Warn("Не удалось закрыть курсор журнала прикормки", "err", cerr)
 	}
 	for _, dead := range deadRows {
 		if _, derr := s.DB.SQL.ExecContext(ctx, `DELETE FROM groundbait_deposit WHERE id=?`, dead); derr != nil {
-			s.log.Warn("窝料过期批次清理失败", "err", derr)
+			s.log.Warn("Не удалось очистить просроченные партии прикормки", "err", derr)
 		}
 	}
 	if len(alive) == 0 {
@@ -907,7 +907,7 @@ func (s *Server) groundbaitBiteGate(ctx context.Context, uid int64, loc string, 
 	P := s.groundbaitOverdoseP(st.units)
 	// 这条日志是「窝到底有没有生效」的现场证据：投了多少份、还剩几小时、
 	// 强度多少、开口率被压到多少。只在真的投过窝的格子上打，量不会大。
-	s.log.Info("窝料影响咬钩", "loc", loc, "cell", fmt.Sprintf("%d,%d", bx, bz),
+	s.log.Info("Прикормка влияет на клёв", "loc", loc, "cell", fmt.Sprintf("%d,%d", bx, bz),
 		"portions", st.units, "hours_left", st.hoursLeft, "batches", st.batches,
 		"strength", s.groundbaitStrength(st.units), "bite_gate", P,
 		"on_spot", st.batches-st.diffuse-st.near, "near", st.near, "no_pos", st.diffuse)
@@ -980,7 +980,7 @@ func (s *Server) groundbaitConsumeBite(ctx context.Context, uid int64, loc strin
 		left -= take
 		if _, uerr := s.DB.SQL.ExecContext(ctx,
 			`UPDATE groundbait_deposit SET units_left=MAX(0, units_left-?) WHERE id=?`, take, b.id); uerr != nil {
-			s.log.Warn("窝料咬口扣份失败", "err", uerr)
+			s.log.Warn("Не удалось списать порцию прикормки за поклёвку", "err", uerr)
 		}
 	}
 }

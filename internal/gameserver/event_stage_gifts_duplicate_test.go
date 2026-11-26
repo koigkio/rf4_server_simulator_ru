@@ -202,7 +202,7 @@ func TestEventStageGiftDuplicateSnapshotAndChat(t *testing.T) {
 		t.Fatal("snapshot failed")
 	}
 	chat := nextMailTestPush(t, h, 24, 27)
-	if got, want := chat.Items[0].Fields[1].StrOr(), fmt.Sprintf("获得奖赏：「%s」", name); got != want {
+	if got, want := chat.Items[0].Fields[1].StrOr(), fmt.Sprintf("Получена награда: «%s»", name); got != want {
 		t.Errorf("reward chat=%q, want %q", got, want)
 	}
 	items := nextMailTestPush(t, h, 4, 22)
@@ -241,13 +241,13 @@ func TestEventStageGiftMultipleNamesChat(t *testing.T) {
 			setEventStageGifts(t, srv, db, tc.config)
 			completeQualificationTasks(t, db, uid, eventStageRuleIDs(13, 7))
 			srv.ensureQualificationCups(t.Context(), uid)
-			want := "获得奖赏："
+			want := "Получена награда: "
 			for _, id := range tc.ids {
 				var name string
 				if err := db.SQL.QueryRow(`SELECT name_zh FROM item_catalog WHERE item_id=?`, id).Scan(&name); err != nil || strings.TrimSpace(name) == "" {
 					t.Fatalf("missing static Chinese name for %s: %v", id, err)
 				}
-				want += "「" + name + "」"
+				want += "«" + name + "»"
 			}
 			h := newMailTestSession(t, srv, 1, uid)
 			if _, ok := hFog(&Ctx{Sess: h.sess}); !ok {

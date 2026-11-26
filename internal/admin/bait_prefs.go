@@ -28,9 +28,9 @@ type baitPrefRow struct {
 	Tier2    int                `json:"tier2"`     // tier2 饵数量
 	Total    int                `json:"total"`     // 有证据的饵总数
 	Baits    []baitPrefEvidence `json:"baits"`     // 证据最强的若干条
-	Official []baitPrefShare    `json:"official"`  // 官方纪录里的饵料占比（rf4records_catch）
-	Locs     []string           `json:"locs"`      // 出现水域（截断）
-	InStrict bool               `json:"in_strict"` // 严格模式下是否还能咬（规则命中或 tier>0）
+	Official []baitPrefShare    `json:"official"`  // 官方纪录里的饵料占比 (rf4records_catch)
+	Locs     []string           `json:"locs"`      // 出现水域 (截断)
+	InStrict bool               `json:"in_strict"` // 严格模式下是否还能咬 (规则命中或 tier>0)
 	// 这鱼吃不吃：把候选饵逐条过一遍运行时判定，给玩家一句人话结论。
 	BiteReady    int    `json:"bite_ready"`    // 会咬的饵数
 	BiteFallback int    `json:"bite_fallback"` // 只保底的饵数
@@ -40,8 +40,8 @@ type baitPrefRow struct {
 	// 鱼口画像（fish_ecology，与判鱼 G 层同表同源）：按类食性权重 + 水层 + 档位体重线。
 	Diet   map[string]float64 `json:"diet,omitempty"` // worm/fish/boilie/plant/crustacean/lure
 	LureOK bool               `json:"lure_ok"`        // lure≥0.30 过 G1 硬门
-	Layer  [3]float64         `json:"layer"`          // min/pref/max（0水面~1水底）
-	QualG  int64              `json:"qual_g"`         // 合格档体重（钩容量适配计算用）
+	Layer  [3]float64         `json:"layer"`          // min/pref/max (0水面~1水底)
+	QualG  int64              `json:"qual_g"`         // 合格档体重 (钩容量适配计算用)
 	TrophG int64              `json:"trophy_g"`
 
 	// 可编辑覆盖与轮换：source=override 表示该鱼已被后台规则覆盖。
@@ -130,7 +130,7 @@ func applyBiteVerdict(row *baitPrefRow, meta map[string]baitMeta) {
 		cands = append(cands, cand{b.BaitID, m.NameZh, m.Category, m.LureType, m.BaitType, 0, b.Tier})
 	}
 	if len(cands) == 0 {
-		row.BiteVerdict = "无可用饵"
+		row.BiteVerdict = "Нет подходящей наживки"
 		return
 	}
 	for _, c := range cands {
@@ -146,13 +146,13 @@ func applyBiteVerdict(row *baitPrefRow, meta map[string]baitMeta) {
 	}
 	switch {
 	case row.BiteReady > 0 && row.BiteFallback > 0:
-		row.BiteVerdict = fmt.Sprintf("会咬 %d 种，另有 %d 种只能保底", row.BiteReady, row.BiteFallback)
+		row.BiteVerdict = fmt.Sprintf("Клюёт на %d видов, ещё %d — только как запасные", row.BiteReady, row.BiteFallback)
 	case row.BiteReady > 0:
-		row.BiteVerdict = fmt.Sprintf("会咬 %d 种", row.BiteReady)
+		row.BiteVerdict = fmt.Sprintf("Клюёт на %d видов", row.BiteReady)
 	case row.BiteFallback > 0:
-		row.BiteVerdict = fmt.Sprintf("只能保底，%d 种都吃得很勉强", row.BiteFallback)
+		row.BiteVerdict = fmt.Sprintf("Только запасные: все %d видов ест неохотно", row.BiteFallback)
 	default:
-		row.BiteVerdict = "热门饵全被规则挡掉"
+		row.BiteVerdict = "Все популярные наживки отсеяны правилами"
 	}
 }
 

@@ -59,7 +59,7 @@ func TestFishingKeepPushesFreshProfileForStarCount(t *testing.T) {
 			t.Fatal("2/1 推送缺少 args 内容")
 		}
 		if got := u32Of(value.Items[0].Fields[16].Num); got != 1 {
-			t.Fatalf("推送档案 f16 应为 1（含本尾新奖杯鱼种），实得 %d", got)
+			t.Fatalf("推送档案 f16 应为 1 (含本尾新奖杯鱼种), 实得 %d", got)
 		}
 	case <-time.After(2 * time.Second):
 		t.Fatal("入护未推送 2/1 档案")

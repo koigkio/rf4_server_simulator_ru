@@ -30,7 +30,7 @@ func TestGroundbaitAndPvaConsumeOnWaterEntryOnly(t *testing.T) {
 			}
 			mounted := res.MountedGUID
 			if row, err := db.GetItemByGUID(ctx, stack.GUID); err != nil || row == nil || row.Qty != 59 {
-				t.Fatalf("挂载后来源堆应剩 59，实得 %+v err=%v", row, err)
+				t.Fatalf("挂载后来源堆应剩 59, 实得 %+v err=%v", row, err)
 			}
 
 			// 抛竿完成：只进入等待入水状态，不应扣减。
@@ -65,12 +65,12 @@ func TestGroundbaitAndPvaConsumeOnWaterEntryOnly(t *testing.T) {
 			// 首次入水位出现：消耗钓组上这 1 个。
 			tick(0x400)
 			if row, _ := db.GetItemByGUID(ctx, mounted); row != nil {
-				t.Fatalf("入水后挂载实例应被消耗，仍存在 %+v", row)
+				t.Fatalf("入水后挂载实例应被消耗, 仍存在 %+v", row)
 			}
 			// 同一杆持续在水中不会重复扣。
 			tick(0x400)
 			if row, err := db.GetItemByGUID(ctx, stack.GUID); err != nil || row == nil || row.Qty != 59 {
-				t.Fatalf("同一杆只应消耗 1 个，来源堆实得 %+v err=%v", row, err)
+				t.Fatalf("同一杆只应消耗 1 个, 来源堆实得 %+v err=%v", row, err)
 			}
 		})
 	}

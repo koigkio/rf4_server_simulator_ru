@@ -32,7 +32,7 @@ func TestRealCraftFrameCarriesCouponSlot(t *testing.T) {
 	ctx := &Ctx{Main: 9, Sub: 1, CallID: 1, Tree: tree, DecodeOK: true, Log: logging.Discard()}
 	payload := craftPayloadOf(ctx)
 	if payload.Recipe != "craft_fish_board_s_01" {
-		t.Fatalf("配方 = %q，期望 craft_fish_board_s_01", payload.Recipe)
+		t.Fatalf("配方 = %q, 期望 craft_fish_board_s_01", payload.Recipe)
 	}
 	var coupon *craftSlot
 	for i := range payload.Materials {
@@ -41,13 +41,13 @@ func TestRealCraftFrameCarriesCouponSlot(t *testing.T) {
 		}
 	}
 	if coupon == nil {
-		t.Fatalf("真实帧里没解析出券槽，materials=%+v", payload.Materials)
+		t.Fatalf("真实帧里没解析出券槽, materials=%+v", payload.Materials)
 	}
 	if coupon.ItemID != "mat_coupon_chuchelo" {
-		t.Fatalf("券槽 ItemID = %q，期望 mat_coupon_chuchelo", coupon.ItemID)
+		t.Fatalf("券槽 ItemID = %q, 期望 mat_coupon_chuchelo", coupon.ItemID)
 	}
 	if coupon.GUID != "f838ddbc528c562ffbb7301ee9f8c739" {
-		t.Fatalf("券槽 GUID = %q，期望 f838ddbc528c562ffbb7301ee9f8c739", coupon.GUID)
+		t.Fatalf("券槽 GUID = %q, 期望 f838ddbc528c562ffbb7301ee9f8c739", coupon.GUID)
 	}
 }
 
@@ -84,7 +84,7 @@ func TestRealCraftFrameConsumesCoupon(t *testing.T) {
 		t.Fatal(err)
 	}
 	if r, q := couponRowCount(t, srv, uid); r != 2 || q != 2 {
-		t.Fatalf("券初始应为 2 行 2 张，实得 %d 行 %d 张", r, q)
+		t.Fatalf("券初始应为 2 行 2 张, 实得 %d 行 %d 张", r, q)
 	}
 	// 帧里的鱼 GUID 必须逐字节对上真实鱼护条目，否则槽查不到鱼、制作直接失败。
 	const fishGUID = "e666d2a3cab796ea2bca98dee780e329"
@@ -118,9 +118,9 @@ func TestRealCraftFrameConsumesCoupon(t *testing.T) {
 	}
 	v := decodeTreeValue(t, srv, out)
 	if got := u64Of(v.Fields[0].Num); got != 1 {
-		t.Fatalf("803.f0 应 1（制作成功），实得 %d", got)
+		t.Fatalf("803.f0 应 1 (制作成功), 实得 %d", got)
 	}
 	if r, q := couponRowCount(t, srv, uid); r != 1 || q != 1 {
-		t.Fatalf("真实帧制作一次后券应剩 1 行 1 张，实得 %d 行 %d 张", r, q)
+		t.Fatalf("真实帧制作一次后券应剩 1 行 1 张, 实得 %d 行 %d 张", r, q)
 	}
 }

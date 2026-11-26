@@ -36,17 +36,17 @@ func TestCatchSkillFloatResidueHidesSkillRow(t *testing.T) {
 		t.Fatalf("wrong skill result: %+v", result)
 	}
 	if result.skillGain != 0 {
-		t.Fatalf("尾差技能点(%v)应量化到 100 后零增量，实得 %v", residue, result.skillGain)
+		t.Fatalf("尾差技能点(%v)应量化到 100 后零增量, 实得 %v", residue, result.skillGain)
 	}
 	var points float64
 	if err := db.SQL.QueryRow(`SELECT points FROM skill WHERE uid=? AND skill_id=?`, uid, 2).Scan(&points); err != nil {
 		t.Fatal(err)
 	}
 	if points != residue {
-		t.Fatalf("零增量不得写库，点数 %v 已被改动", points)
+		t.Fatalf("零增量不得写库, 点数 %v 已被改动", points)
 	}
 	if got := u32Of(srv.buildSettle813(ctx, uid, fish, result).Field(8).Val.Field(2).Num); got != 0 {
-		t.Fatalf("尾差结算 310.f2=%d, want 0（隐藏技能加成行）", got)
+		t.Fatalf("尾差结算 310.f2=%d, want 0 (隐藏技能加成行)", got)
 	}
 }
 

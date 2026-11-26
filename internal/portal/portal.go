@@ -43,7 +43,9 @@ func New(db *store.DB, resolve func(string) int64) *Server {
 	s.mux.HandleFunc("GET /portal/api/profile", s.profile)
 	s.mux.HandleFunc("GET /portal/api/membership", s.membership)
 	s.mux.HandleFunc("POST /portal/api/membership/purchase", s.purchase)
-	s.mux.HandleFunc("/portal/api/", func(w http.ResponseWriter, r *http.Request) { fail(w, 404, "接口不存在") })
+	s.mux.HandleFunc("/portal/api/", func(w http.ResponseWriter, r *http.Request) {
+		fail(w, 404, "Интерфейс не существует")
+	})
 	files, _ := fs.Sub(assets, "web")
 	s.mux.Handle("/portal/", http.StripPrefix("/portal/", http.FileServer(http.FS(files))))
 	return s
@@ -56,7 +58,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if origin := r.Header.Get("Origin"); origin != "" {
 		u, err := url.Parse(origin)
 		if err != nil || u.Host != r.Host || (u.Scheme != "https" && u.Scheme != "http") {
-			fail(w, 403, "请求来源无效")
+			fail(w, 403, "Неверный источник запроса")
 			return
 		}
 	}
@@ -83,12 +85,12 @@ func fail(w http.ResponseWriter, code int, message string) {
 func (s *Server) login(w http.ResponseWriter, r *http.Request) {
 	uid := s.resolve(r.RemoteAddr)
 	if _, err := s.db.GetProfile(r.Context(), uid); err != nil {
-		fail(w, 404, "请先从当前设备进入游戏，创建角色后再打开个人中心")
+		fail(w, 404, "Сначала войдите в игру с этого устройства и создайте персонажа, затем откройте личный кабинет")
 		return
 	}
 	var b [32]byte
 	if _, err := rand.Read(b[:]); err != nil {
-		fail(w, 500, "会话创建失败")
+		fail(w, 500, "Не удалось создать сессию")
 		return
 	}
 	token := hex.EncodeToString(b[:])
@@ -100,7 +102,7 @@ func (s *Server) login(w http.ResponseWriter, r *http.Request) {
 	}
 	if len(s.sessions) >= 1024 {
 		s.mu.Unlock()
-		fail(w, 503, "会话较多，请稍后重试")
+		fail(w, 503, "Слишком много сессий, попробуйте позже")
 		return
 	}
 	s.sessions[token] = session{uid: uid, host: remoteHost(r), expires: time.Now().Add(time.Hour)}
@@ -118,7 +120,7 @@ func (s *Server) identity(w http.ResponseWriter, r *http.Request) (int64, bool) 
 	}
 	s.mu.Unlock()
 	if !ok || value.host != remoteHost(r) {
-		fail(w, 401, "请重新进入当前设备的个人中心")
+		fail(w, 401, "Войдите заново в личный кабинет этого устройства")
 		return 0, false
 	}
 	return value.uid, true
@@ -141,7 +143,7 @@ func (s *Server) profile(w http.ResponseWriter, r *http.Request) {
 	}
 	p, err := s.db.GetProfile(r.Context(), uid)
 	if err != nil {
-		fail(w, 500, "角色资料未能读取，请重试")
+		fail(w, 500, "Не удалось прочитать данные персонажа, попробуйте ещё раз")
 		return
 	}
 	m := store.MembershipAt(p.Membership, p.MembershipExp, time.Now().Unix())
@@ -159,7 +161,7 @@ func (s *Server) membership(w http.ResponseWriter, r *http.Request) {
 	}
 	state, err := s.db.GetMembershipStatus(r.Context(), uid, time.Now().Unix())
 	if err != nil {
-		fail(w, 500, "会员状态未能读取，请重试")
+		fail(w, 500, "Не удалось прочитать статус премиума, попробуйте ещё раз")
 		return
 	}
 	write(w, state)
@@ -177,7 +179,7 @@ func (s *Server) purchase(w http.ResponseWriter, r *http.Request) {
 	d := json.NewDecoder(http.MaxBytesReader(w, r.Body, 1024))
 	d.DisallowUnknownFields()
 	if err := d.Decode(&req); err != nil {
-		fail(w, 400, "购买参数无效")
+		fail(w, 400, "Неверные параметры покупки")
 		return
 	}
 	purchase, err := s.db.PurchaseMembership(r.Context(), uid, req.PlanID, req.RequestID, time.Now().Unix())
@@ -186,13 +188,13 @@ func (s *Server) purchase(w http.ResponseWriter, r *http.Request) {
 		if errors.As(err, &business) {
 			fail(w, 400, business.Message)
 		} else {
-			fail(w, 500, "购买未能确认，请重试本次订单")
+			fail(w, 500, "Покупка не подтверждена, повторите этот заказ")
 		}
 		return
 	}
 	state, err := s.db.GetMembershipStatus(r.Context(), uid, time.Now().Unix())
 	if err != nil {
-		fail(w, 500, "购买已保存，请重试本次订单查询结果")
+		fail(w, 500, "Покупка сохранена, повторите запрос результата этого заказа")
 		return
 	}
 	write(w, map[string]any{"membership": state.Membership, "balance": state.Balance, "plans": state.Plans, "purchase": purchase})

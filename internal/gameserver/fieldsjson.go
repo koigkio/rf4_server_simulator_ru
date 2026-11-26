@@ -84,7 +84,7 @@ func FieldsFromJSON(s string) ([]proto.Field, error) {
 	}
 	var raw []pyField
 	if err := json.Unmarshal([]byte(s), &raw); err != nil {
-		return nil, fmt.Errorf("fields_json 解析: %w", err)
+		return nil, fmt.Errorf("fields_json Разбор: %w", err)
 	}
 	out := make([]proto.Field, 0, len(raw))
 	for _, pf := range raw {

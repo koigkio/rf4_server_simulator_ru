@@ -49,10 +49,10 @@ var reelPartWearMatrix = map[int64]reelPartWearRates{
 
 // reelPartCounts 是本竿攒下来要结算的受力账。
 type reelPartCounts struct {
-	StressSecs float64 // 搏鱼受力累计秒数（14/8 真实间隔）
-	SlipSecs   float64 // 泄力打滑真实秒数（只供摩擦片通道与诊断）
-	SlipTicks  int     // 泄力打滑判定次数（诊断）
-	BreakHits  int     // 断件次数（仅诊断：断件冲击磨损无官服数据，不扣寿命）
+	StressSecs float64 // 搏鱼受力累计秒数 (14/8 真实间隔)
+	SlipSecs   float64 // 泄力打滑真实秒数 (只供摩擦片通道与诊断)
+	SlipTicks  int     // 泄力打滑判定次数 (诊断)
+	BreakHits  int     // 断件次数 (仅诊断: 断件冲击磨损无官服数据, 不扣寿命)
 }
 
 // total 报告这笔账有没有要结算的磨损。断件次数不计入：它不扣寿命，只进诊断日志。

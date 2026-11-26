@@ -58,13 +58,13 @@ func TestCraftShockLeaderUsesMainLineSlot(t *testing.T) {
 			t.Fatalf("f3 应使用普通主线实例: %+v", inner)
 		}
 		if got := u64Of(inner.Fields[fieldIdxByCS(inner.Class, csNumericID)].Num); got != 9201 {
-			t.Fatalf("主线模型=%d，期望 9201", got)
+			t.Fatalf("主线模型=%d, 期望 9201", got)
 		}
 		if got := u64Of(inner.Fields[fieldIdxByCS(inner.Class, gearAttrLineLen)].Num); got != 200 {
-			t.Fatalf("主线长度=%d，期望 200cm", got)
+			t.Fatalf("主线长度=%d, 期望 200cm", got)
 		}
 		if got := wireFloatForTest(t, tree, csStrength); math.Abs(got-3.1) > 0.001 {
-			t.Fatalf("成品强度=%f，期望 3.1kg", got)
+			t.Fatalf("成品强度=%f, 期望 3.1kg", got)
 		}
 		for _, key := range []string{gearAttrLeaderIn, "lbadjgllglo"} {
 			v := tree.Fields[fieldIdxByCS(tree.Class, key)].Val
@@ -122,10 +122,10 @@ func TestRepairShockLeaderSlotFormats(t *testing.T) {
 		}
 		lineDef, err := db.GetItemDefByItemID(ctx, "wrl_sim_monorig_7.5LB")
 		if err != nil || lineDef == nil {
-			t.Fatalf("读取材料定义失败: %v", err)
+			t.Fatalf("Не удалось прочитать определение материала: %v", err)
 		}
 		if got := u64Of(f1.Fields[fieldIdxByCS(f1.Class, csNumericID)].Num); got != uint64(lineDef.NumericID) {
-			t.Fatalf("f1 numeric_id=%d，期望保留 %d", got, lineDef.NumericID)
+			t.Fatalf("f1 numeric_id=%d, 期望保留 %d", got, lineDef.NumericID)
 		}
 	})
 
@@ -144,28 +144,28 @@ func TestRepairShockLeaderSlotFormats(t *testing.T) {
 		}
 		lineDef, err := db.GetItemDefByItemID(ctx, "mono_15247")
 		if err != nil || lineDef == nil {
-			t.Fatalf("读取材料定义失败: %v", err)
+			t.Fatalf("Не удалось прочитать определение материала: %v", err)
 		}
 		if got := u64Of(mainLine.Fields[fieldIdxByCS(mainLine.Class, csNumericID)].Num); got != uint64(lineDef.NumericID) {
-			t.Fatalf("迁移后 numeric_id=%d，期望保留 %d", got, lineDef.NumericID)
+			t.Fatalf("迁移后 numeric_id=%d, 期望保留 %d", got, lineDef.NumericID)
 		}
 		if got := u64Of(mainLine.Fields[fieldIdxByCS(mainLine.Class, gearAttrLineLen)].Num); got != 200 {
-			t.Fatalf("迁移后长度=%d，期望 200cm", got)
+			t.Fatalf("迁移后长度=%d, 期望 200cm", got)
 		}
 		const workmanship, durability = 0.8, 0.9
 		if got := wireFloatForTest(t, mainLine, csWorkmanship); math.Abs(got-workmanship) > 0.001 {
-			t.Fatalf("迁移后工艺=%f，期望 %f", got, workmanship)
+			t.Fatalf("迁移后工艺=%f, 期望 %f", got, workmanship)
 		}
 		if got := wireFloatForTest(t, mainLine, csDurability); math.Abs(got-durability) > 0.001 {
-			t.Fatalf("迁移后耐久=%f，期望 %f", got, durability)
+			t.Fatalf("迁移后耐久=%f, 期望 %f", got, durability)
 		}
 		wantStrength := itemDefF32(lineDef, gearAttrMaxLoad) * workmanship * durability
 		if got := wireFloatForTest(t, mainLine, csStrength); math.Abs(got-wantStrength) > 0.001 {
-			t.Fatalf("迁移后内线强度=%f，期望 %f", got, wantStrength)
+			t.Fatalf("迁移后内线强度=%f, 期望 %f", got, wantStrength)
 		}
 		wantGUID := uuidLike(row.GUID, "legacy-line")
 		if got := mainLine.Fields[fieldIdxByCS(mainLine.Class, csGUID)].Hex; got != wantGUID {
-			t.Fatalf("迁移后内线 GUID=%s，期望保留 %s", got, wantGUID)
+			t.Fatalf("迁移后内线 GUID=%s, 期望保留 %s", got, wantGUID)
 		}
 		if old := fields[fieldIdxByCS(row.WireClass, gearAttrLeaderIn)].Val; old != nil && old.Kind != proto.KindNull {
 			t.Fatalf("迁移后 f1 应清空: %+v", old)
@@ -271,7 +271,7 @@ func TestCraftShockLeaderAcceptsLeaderWireMaterial(t *testing.T) {
 		t.Fatalf("减震引线 f1 应有内嵌线对象: %v", sub)
 	}
 	if sub.Class != "cjigljdikhe" {
-		t.Fatalf("f1 外壳应为 cat15 类 cjigljdikhe，实得 %s", sub.Class)
+		t.Fatalf("f1 外壳应为 cat15 类 cjigljdikhe, 实得 %s", sub.Class)
 	}
 	if idx := fieldIdxByCS(sub.Class, csNumericID); idx < 0 || idx >= len(sub.Fields) ||
 		u64Of(sub.Fields[idx].Num) != 9197 {
@@ -284,7 +284,7 @@ func TestCraftShockLeaderAcceptsLeaderWireMaterial(t *testing.T) {
 	}
 	got := float64(proto.F32FromBits(uint32(u64Of(fields[sIdx].Num))))
 	if math.Abs(got-181.0) > 0.01 {
-		t.Fatalf("减震引线强度应为 181kg (400LB)，实得 %v", got)
+		t.Fatalf("减震引线强度应为 181kg (400LB), 实得 %v", got)
 	}
 }
 
@@ -428,7 +428,7 @@ func itemQtyByGUID(t *testing.T, db *store.DB, guid string) int64 {
 	t.Helper()
 	row, err := db.GetItemByGUID(context.Background(), guid)
 	if err != nil || row == nil {
-		t.Fatalf("读取 %s: %v", guid, err)
+		t.Fatalf("Чтение %s: %v", guid, err)
 	}
 	return row.Qty
 }

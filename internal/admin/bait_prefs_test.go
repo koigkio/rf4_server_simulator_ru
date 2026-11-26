@@ -93,7 +93,7 @@ func TestBaitPrefsAPI(t *testing.T) {
 	}
 	rows, _ := out["rows"].([]any)
 	if len(rows) != 2 {
-		t.Fatalf("应返回 2 条鱼，实得 %d", len(rows))
+		t.Fatalf("应返回 2 条鱼, 实得 %d", len(rows))
 	}
 	find := func(key string) map[string]any {
 		for _, it := range rows {
@@ -117,14 +117,14 @@ func TestBaitPrefsAPI(t *testing.T) {
 		t.Fatal("规则应含'不吃拟饵/饵鱼类'")
 	}
 	if t3, _ := roach["tier3"].(float64); t3 != 1 {
-		t.Fatalf("c.roach tier3 应为 1，实得 %v", roach["tier3"])
+		t.Fatalf("c.roach tier3 应为 1, 实得 %v", roach["tier3"])
 	}
 	if off, _ := roach["official"].([]any); len(off) == 0 {
 		t.Fatal("应带出官方占比")
 	} else {
 		first := off[0].(map[string]any)
 		if first["bait_id"] != "worm_01" || first["pct"].(float64) != 75 {
-			t.Fatalf("官方占比首项应为 worm_01 75%%，实得 %v", first)
+			t.Fatalf("官方占比首项应为 worm_01 75%%, 实得 %v", first)
 		}
 	}
 	if roach["in_strict"] != true {
@@ -133,13 +133,13 @@ func TestBaitPrefsAPI(t *testing.T) {
 
 	cod := find("atl_cod")
 	if cod["has_rule"] != false {
-		t.Fatalf("虚构鱼名不应命中规则表，实得 allow=%v", cod["allow"])
+		t.Fatalf("虚构鱼名不应命中规则表, 实得 allow=%v", cod["allow"])
 	}
 	if t3, _ := cod["tier3"].(float64); t3 != 1 {
-		t.Fatalf("atl_cod tier3 应为 1，实得 %v", cod["tier3"])
+		t.Fatalf("atl_cod tier3 应为 1, 实得 %v", cod["tier3"])
 	}
 	if cod["in_strict"] != true {
-		t.Fatal("无规则但有 tier 证据的鱼，严格模式仍应可咬")
+		t.Fatal("无规则但有 tier 证据的鱼, 严格模式仍应可咬")
 	}
 
 	// 搜索过滤

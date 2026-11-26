@@ -17,7 +17,7 @@ import (
 
 // fishingSkillBonus 保存钓鱼判定使用的三类技能增益。
 type fishingSkillBonus struct {
-	BiteSpeed         float64 // 咬钩等待倍率，<1 更快
+	BiteSpeed         float64 // 咬钩等待倍率, <1 更快
 	TrophyLuck        float64 // 额外抽一次体重取较重者的概率
 	FightTolerance    float64 // 默认鱼池体重上限的放宽比例
 	EcologyInterest   float64
@@ -299,8 +299,8 @@ func (s *Server) useSkillBook(ctx *Ctx) ([]byte, bool) {
 		return nil, true
 	}
 	failed := func(err error) ([]byte, bool) {
-		ctx.Log.Warn("阅读技能书未完成", "err", err)
-		return fail("阅读技能书未完成，请重试")
+		ctx.Log.Warn("Чтение книги навыка не завершено", "err", err)
+		return fail("Чтение книги навыка не завершено, попробуйте ещё раз")
 	}
 	noEffect := func() ([]byte, bool) {
 		if tx != nil {
@@ -337,27 +337,27 @@ func (s *Server) useSkillBook(ctx *Ctx) ([]byte, bool) {
 	}
 	bookClass := categoryWireClass[skillBookCategory]
 	if ctx.Sess.Closed() {
-		return fail("会话已关闭，请重新连接")
+		return fail("Сессия закрыта, переподключитесь")
 	}
 	if !hasStorage || storage != 0 || row.UID != uid || row.Container != "backpack" || row.RigGUID != "" {
-		return fail("只能阅读自己背包中的技能书")
+		return fail("Можно читать только книги навыков из своего инвентаря")
 	}
 	if row.WireClass != bookClass.Class || row.TypeID != bookClass.TypeID {
-		return fail("技能书状态无效，请刷新背包")
+		return fail("Неверное состояние книги навыка, обновите инвентарь")
 	}
 
 	catRaw, ok := defAttrU64(def, "ndnngghaelp")
 	if !ok || catRaw == 0 || catRaw > skillBookMaxSkillCat {
-		return fail("技能书缺少有效的技能类别")
+		return fail("У книги навыка нет подходящей категории навыка")
 	}
 	cat := int64(catRaw)
 	bits, ok := defAttrF32(def, "fejmchnmimb")
 	if !ok {
-		return fail("技能书缺少目标熟练度")
+		return fail("У книги навыка нет целевого мастерства")
 	}
 	target := float64(proto.F32FromBits(bits))
 	if target <= 0 {
-		return fail("技能书目标熟练度无效")
+		return fail("Неверное целевое мастерство книги навыка")
 	}
 	if target > profCap {
 		target = profCap
@@ -373,7 +373,7 @@ func (s *Server) useSkillBook(ctx *Ctx) ([]byte, bool) {
 		current = profCap
 	}
 	if current+1e-6 >= target {
-		ctx.Log.Info("4/8 技能书阅读无效", "item", def.ItemID, "cat", cat,
+		ctx.Log.Info("4/8 Чтение книги навыка недействительно", "item", def.ItemID, "cat", cat,
 			"skill", fmt.Sprintf("%.1f>=%.1f", current, target))
 		return noEffect()
 	}
@@ -409,10 +409,10 @@ func (s *Server) useSkillBook(ctx *Ctx) ([]byte, bool) {
 		change.Updated = []string{row.GUID}
 	}
 	ctx.AfterResponse(func() {
-		ctx.Sess.Push2_4SkillTree("阅读 " + def.ItemID)
+		ctx.Sess.Push2_4SkillTree("Чтение " + def.ItemID)
 		ctx.Sess.pushBaitChange(change)
 	})
-	ctx.Log.Info("4/8 阅读技能书", "item", def.ItemID, "cat", cat,
+	ctx.Log.Info("4/8 Чтение книги навыка", "item", def.ItemID, "cat", cat,
 		"skill", fmt.Sprintf("%.1f->%.1f", current, target))
 	return body, true
 }
@@ -668,9 +668,9 @@ func hSkillLearn(ctx *Ctx) ([]byte, bool) {
 	catID, nodeID := int64(ints[0]), int64(ints[1])
 	ok, reason := srv.skillLearn(ctx.Sess.pushCtx(), ctx.Sess.Userid, catID, nodeID)
 	if ok {
-		ctx.Log.Info("5/2 学习 OK", "cat", catID, "node", nodeID)
+		ctx.Log.Info("5/2 Изучение OK", "cat", catID, "node", nodeID)
 	} else {
-		ctx.Log.Info("5/2 学习拒绝", "cat", catID, "node", nodeID, "reason", reason)
+		ctx.Log.Info("5/2 Изучение отклонено", "cat", catID, "node", nodeID, "reason", reason)
 	}
 	return srv.replySkillTree(ctx)
 }
@@ -690,9 +690,9 @@ func hSkillReset(ctx *Ctx) ([]byte, bool) {
 			nodeID = &node
 		}
 		if err := srv.resetSkillNodes(ctx.Sess.pushCtx(), ctx.Sess.Userid, catID, nodeID); err != nil {
-			ctx.Log.Warn("5/3 重置写库失败", "cat", catID, "node", nodeID, "err", err)
+			ctx.Log.Warn("5/3 Не удалось записать сброс", "cat", catID, "node", nodeID, "err", err)
 		} else {
-			ctx.Log.Info("5/3 重置完成", "cat", catID, "node", nodeID)
+			ctx.Log.Info("5/3 Сброс выполнен", "cat", catID, "node", nodeID)
 		}
 	}
 	return srv.replySkillTree(ctx)
@@ -705,9 +705,9 @@ func hSkillResetAll(ctx *Ctx) ([]byte, bool) {
 		return nil, false
 	}
 	if err := srv.resetSkillNodes(ctx.Sess.pushCtx(), ctx.Sess.Userid, 0, nil); err != nil {
-		ctx.Log.Warn("5/4 全部重置写库失败", "err", err)
+		ctx.Log.Warn("5/4 Не удалось записать полный сброс", "err", err)
 	} else {
-		ctx.Log.Info("5/4 已重置全部技能")
+		ctx.Log.Info("5/4 Все навыки сброшены")
 	}
 	return srv.replySkillTree(ctx)
 }
@@ -716,12 +716,12 @@ func hSkillResetAll(ctx *Ctx) ([]byte, bool) {
 func (s *Server) replySkillTree(ctx *Ctx) ([]byte, bool) {
 	tree, err := s.BuildSkillTree311(ctx.Sess.pushCtx(), ctx.Sess.Userid, ^uint64(0))
 	if err != nil {
-		ctx.Log.Warn("5/x 技能树构造失败", "err", err)
-		return nil, false // 树构造失败，交给兜底链
+		ctx.Log.Warn("5/x Ошибка создания дерева навыков", "err", err)
+		return nil, false // 树构造失败, 交给兜底链
 	}
 	body, err := proto.EncodeValue(tree, ctx.Sess.Table())
 	if err != nil {
-		ctx.Log.Warn("5/x 技能树编码失败", "err", err)
+		ctx.Log.Warn("5/x Ошибка кодирования дерева навыков", "err", err)
 		return nil, false
 	}
 	return body, true
@@ -769,7 +769,7 @@ func (s *Server) skillSpentPoints(ctx context.Context, uid int64) int64 {
 	}
 	spent, err := s.DB.SkillNodeLevelSum(ctx, uid)
 	if err != nil {
-		s.log.Warn("读取技能点失败", "uid", uid, "err", err)
+		s.log.Warn("Не удалось прочитать очки навыков", "uid", uid, "err", err)
 		return 0
 	}
 	return spent
@@ -855,7 +855,7 @@ func (s *Server) skillLearn(ctx context.Context, uid, catID, nodeID int64) (bool
 		return false, reason
 	}
 	if err != nil {
-		s.log.Warn("5/2 节点写库失败", "uid", uid, "node", nodeID, "err", err)
+		s.log.Warn("5/2 Не удалось записать узел", "uid", uid, "node", nodeID, "err", err)
 		return false, "db-error"
 	}
 	return true, "ok"

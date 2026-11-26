@@ -41,7 +41,7 @@ func TestBaitPrefScaleChangesSpeciesShare(t *testing.T) {
 
 	// 1 倍保持原倍率语义：tier3 占比就是 8 份对 2 份对 0.3 份。
 	if math.Abs(neutral[0]-(8.0/(8+2+0.3))) > 1e-9 {
-		t.Fatalf("scale=1 应保持原倍率，实得 %v", neutral)
+		t.Fatalf("scale=1 应保持原倍率, 实得 %v", neutral)
 	}
 	// 强度放大：对口鱼占比上升，不对口鱼下降。
 	if !(strong[0] > neutral[0] && strong[2] < neutral[2]) {
@@ -97,9 +97,9 @@ func TestBaitPrefScaleChangesActualRollDistribution(t *testing.T) {
 		t.Fatalf("实际派鱼占比未随 bait_pref_scale 单调变化: 0.5=%g 1=%g 2=%g", weak, neutral, strong)
 	}
 	if neutral < 0.85 {
-		t.Fatalf("scale=1 应保留 tier3 的强偏好，拟鲤占比=%g", neutral)
+		t.Fatalf("scale=1 应保留 tier3 的强偏好, 拟鲤占比=%g", neutral)
 	}
 	if math.Abs(disabled-0.5) > 0.05 {
-		t.Fatalf("scale=0 应关闭饵效层、恢复等权派鱼，拟鲤占比=%g", disabled)
+		t.Fatalf("scale=0 应关闭饵效层, 恢复等权派鱼, 拟鲤占比=%g", disabled)
 	}
 }

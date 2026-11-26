@@ -44,7 +44,7 @@ func grantCoupons(t *testing.T, srv *Server, uid, count int64) []*store.Item {
 		t.Fatalf("发放券失败: %v", err)
 	}
 	if int64(len(rows)) != count {
-		t.Fatalf("发放 %d 张券应建 %d 行，实得 %d 行", count, count, len(rows))
+		t.Fatalf("发放 %d 张券应建 %d 行, 实得 %d 行", count, count, len(rows))
 	}
 	return rows
 }
@@ -98,7 +98,7 @@ func TestGrantCouponCreatesOneRowPerVoucher(t *testing.T) {
 	rows := grantCoupons(t, srv, uid, 5)
 	gotRows, gotQty := couponRowCount(t, srv, uid)
 	if gotRows != 5 || gotQty != 5 {
-		t.Fatalf("5 张券应为 5 行共 5 张，实得 %d 行 %d 张", gotRows, gotQty)
+		t.Fatalf("5 张券应为 5 行共 5 张, 实得 %d 行 %d 张", gotRows, gotQty)
 	}
 	seen := map[string]bool{}
 	for _, it := range rows {
@@ -107,10 +107,10 @@ func TestGrantCouponCreatesOneRowPerVoucher(t *testing.T) {
 		}
 		seen[it.GUID] = true
 		if it.WireClass != "ahgeldclmdj" || it.TypeID != 13018 {
-			t.Fatalf("券行应为 ahgeldclmdj/13018，实得 %s/%d", it.WireClass, it.TypeID)
+			t.Fatalf("券行应为 ahgeldclmdj/13018, 实得 %s/%d", it.WireClass, it.TypeID)
 		}
 		if it.Qty != 1 {
-			t.Fatalf("一券一实例每行应为 1 张，实得 %d", it.Qty)
+			t.Fatalf("一券一实例每行应为 1 张, 实得 %d", it.Qty)
 		}
 	}
 }
@@ -128,17 +128,17 @@ func TestCreateItemRejectsMultiUnitCoupon(t *testing.T) {
 	}
 
 	if _, err := srv.CreateItem(ctx, uid, couponChucheloItemID, "backpack", 999); err == nil {
-		t.Fatal("CreateItem 发 999 张券应报错，实际成功了（张数会被压掉）")
+		t.Fatal("CreateItem 发 999 张券应报错, 实际成功了 (张数会被压掉)")
 	}
 	if r, q := couponRowCount(t, srv, uid); r != 0 || q != 0 {
-		t.Fatalf("报错后不应落任何券行，实得 %d 行 %d 张", r, q)
+		t.Fatalf("报错后不应落任何券行, 实得 %d 行 %d 张", r, q)
 	}
 	// 单张仍可用，保证既有调用点不受影响。
 	if _, err := srv.CreateItem(ctx, uid, couponChucheloItemID, "backpack", 1); err != nil {
 		t.Fatalf("CreateItem 发 1 张券不应报错: %v", err)
 	}
 	if r, q := couponRowCount(t, srv, uid); r != 1 || q != 1 {
-		t.Fatalf("应落 1 行 1 张，实得 %d 行 %d 张", r, q)
+		t.Fatalf("应落 1 行 1 张, 实得 %d 行 %d 张", r, q)
 	}
 }
 
@@ -160,22 +160,22 @@ func TestCraftFishBoardConsumesOneCoupon(t *testing.T) {
 	entry, _ := seedImportedKeepnetFish(t, srv, uid, 31, false) // asp
 	rows := grantCoupons(t, srv, uid, 3)
 	if r, q := couponRowCount(t, srv, uid); r != 3 || q != 3 {
-		t.Fatalf("券初始应为 3 行 3 张，实得 %d 行 %d 张", r, q)
+		t.Fatalf("券初始应为 3 行 3 张, 实得 %d 行 %d 张", r, q)
 	}
 
 	consumed := rows[0].GUID
 	v := craftBoardWithCoupon(t, box, srv, uid, "craft_fish_board_s_01", consumed, entry.EchoGUID, "asp")
 	if got := u64Of(v.Fields[0].Num); got != 1 {
-		t.Fatalf("803.f0 应 1，实得 %d", got)
+		t.Fatalf("803.f0 应 1, 实得 %d", got)
 	}
 	if r, q := couponRowCount(t, srv, uid); r != 2 || q != 2 {
-		t.Fatalf("制作一次后券应剩 2 行 2 张，实得 %d 行 %d 张", r, q)
+		t.Fatalf("制作一次后券应剩 2 行 2 张, 实得 %d 行 %d 张", r, q)
 	}
 	if row, gerr := db.GetItemByGUID(ctx, consumed); gerr == nil && row != nil {
 		t.Fatalf("被消耗的券行应已删除: %+v", row)
 	}
 	if got := removedGUIDs(v); !containsString(got, consumed) {
-		t.Fatalf("803.f8 应含被消耗券 guid %s，实得 %v", consumed, got)
+		t.Fatalf("803.f8 应含被消耗券 guid %s, 实得 %v", consumed, got)
 	}
 }
 
@@ -199,16 +199,16 @@ func TestCraftFishBoardConsumesLastCoupon(t *testing.T) {
 
 	v := craftBoardWithCoupon(t, box, srv, uid, "craft_fish_board_s_01", couponGUID, entry.EchoGUID, "asp")
 	if got := u64Of(v.Fields[0].Num); got != 1 {
-		t.Fatalf("803.f0 应 1，实得 %d", got)
+		t.Fatalf("803.f0 应 1, 实得 %d", got)
 	}
 	if r, q := couponRowCount(t, srv, uid); r != 0 || q != 0 {
-		t.Fatalf("券应被扣空，实得 %d 行 %d 张", r, q)
+		t.Fatalf("券应被扣空, 实得 %d 行 %d 张", r, q)
 	}
 	if row, gerr := db.GetItemByGUID(ctx, couponGUID); gerr == nil && row != nil {
-		t.Fatalf("券行应已删除，仍存在: %+v", row)
+		t.Fatalf("券行应已删除, 仍存在: %+v", row)
 	}
 	if got := removedGUIDs(v); !containsString(got, couponGUID) {
-		t.Fatalf("803.f8 应含券 guid %s，实得 %v", couponGUID, got)
+		t.Fatalf("803.f8 应含券 guid %s, 实得 %v", couponGUID, got)
 	}
 }
 
@@ -230,7 +230,7 @@ func TestCraftFishBoardConsumesOnePerCraft(t *testing.T) {
 
 	rows := grantCoupons(t, srv, uid, 4)
 	if r, q := couponRowCount(t, srv, uid); r != 4 || q != 4 {
-		t.Fatalf("券初始应为 4 行 4 张，实得 %d 行 %d 张", r, q)
+		t.Fatalf("券初始应为 4 行 4 张, 实得 %d 行 %d 张", r, q)
 	}
 	for i, want := range []int64{3, 2} {
 		// 每次用一条独立的渔获（制作会消耗鱼护条目），点名一张仍存在的券。
@@ -238,13 +238,13 @@ func TestCraftFishBoardConsumesOnePerCraft(t *testing.T) {
 		guid := rows[i].GUID
 		v := craftBoardWithCoupon(t, box, srv, uid, "craft_fish_board_s_01", guid, entry.EchoGUID, "asp")
 		if got := u64Of(v.Fields[0].Num); got != 1 {
-			t.Fatalf("第 %d 次制作 803.f0 应 1，实得 %d", i+1, got)
+			t.Fatalf("第 %d 次制作 803.f0 应 1, 实得 %d", i+1, got)
 		}
 		if r, q := couponRowCount(t, srv, uid); r != int(want) || q != want {
-			t.Fatalf("第 %d 次制作后应剩 %d 行 %d 张，实得 %d 行 %d 张", i+1, want, want, r, q)
+			t.Fatalf("第 %d 次制作后应剩 %d 行 %d 张, 实得 %d 行 %d 张", i+1, want, want, r, q)
 		}
 		if got := removedGUIDs(v); !containsString(got, guid) {
-			t.Fatalf("第 %d 次 803.f8 应含券 guid %s，实得 %v", i+1, guid, got)
+			t.Fatalf("第 %d 次 803.f8 应含券 guid %s, 实得 %v", i+1, guid, got)
 		}
 	}
 }
@@ -266,7 +266,7 @@ func TestCraftFishBoardWithoutCouponStillSucceeds(t *testing.T) {
 	entry, _ := seedImportedKeepnetFish(t, srv, uid, 31, false)
 	v := craftBoardWithCoupon(t, box, srv, uid, "craft_fish_board_s_01", "", entry.EchoGUID, "asp")
 	if got := u64Of(v.Fields[0].Num); got != 1 {
-		t.Fatalf("无券也应制作成功，803.f0 实得 %d", got)
+		t.Fatalf("无券也应制作成功, 803.f0 实得 %d", got)
 	}
 }
 
@@ -289,7 +289,7 @@ func TestCraftFishBoardCouponSlotWithStaleGUIDIsIgnored(t *testing.T) {
 	v := craftBoardWithCoupon(t, box, srv, uid, "craft_fish_board_s_01",
 		fmt.Sprintf("%032x", 424242), entry.EchoGUID, "asp")
 	if got := u64Of(v.Fields[0].Num); got != 1 {
-		t.Fatalf("券 GUID 失效不应阻断制作，803.f0 实得 %d", got)
+		t.Fatalf("券 GUID 失效不应阻断制作, 803.f0 实得 %d", got)
 	}
 }
 
@@ -343,10 +343,10 @@ func TestCouponGrantRepairRestoresRemainder(t *testing.T) {
 		t.Fatalf("补偿失败: %v", err)
 	}
 	if fixed != 1 {
-		t.Fatalf("应补偿 1 行，实得 %d", fixed)
+		t.Fatalf("应补偿 1 行, 实得 %d", fixed)
 	}
 	if _, got := couponRowCount(t, srv, uid); got != 996 {
-		t.Fatalf("券应补偿到 996 张（999−3），实得 %d", got)
+		t.Fatalf("券应补偿到 996 张 (999−3), 实得 %d", got)
 	}
 	row, err := db.GetItemByGUID(ctx, coupon.GUID)
 	if err != nil || row == nil {
@@ -357,11 +357,11 @@ func TestCouponGrantRepairRestoresRemainder(t *testing.T) {
 		t.Fatalf("解析券字段失败: %v", ferr)
 	}
 	if n, ok := itemQtyValue(row.WireClass, fields); !ok || int64(n) != 996 {
-		t.Fatalf("券字段数量槽应 996，实得 %d ok=%v", n, ok)
+		t.Fatalf("券字段数量槽应 996, 实得 %d ok=%v", n, ok)
 	}
 
 	if again, err := srv.repairCouponGrantQuantities(ctx); err != nil || again != 0 {
-		t.Fatalf("重复执行应跳过，fixed=%d err=%v", again, err)
+		t.Fatalf("重复执行应跳过, fixed=%d err=%v", again, err)
 	}
 }
 
@@ -394,11 +394,11 @@ func TestCouponRowRepairExpandsSingleRow(t *testing.T) {
 		t.Fatalf("展开失败: %v", err)
 	}
 	if fixed != 1 {
-		t.Fatalf("应展开 1 个玩家，实得 %d", fixed)
+		t.Fatalf("应展开 1 个玩家, 实得 %d", fixed)
 	}
 	rows, qty := couponRowCount(t, srv, uid)
 	if rows != 996 || qty != 996 {
-		t.Fatalf("应展开为 996 行 996 张，实得 %d 行 %d 张", rows, qty)
+		t.Fatalf("应展开为 996 行 996 张, 实得 %d 行 %d 张", rows, qty)
 	}
 	// 原 GUID 必须保留（可追溯），且数量已归一为 1。
 	row, gerr := db.GetItemByGUID(ctx, coupon.GUID)
@@ -406,15 +406,15 @@ func TestCouponRowRepairExpandsSingleRow(t *testing.T) {
 		t.Fatalf("原券行应保留: err=%v row=%v", gerr, row)
 	}
 	if cur, cerr := srv.couponRowQuantity(ctx, coupon.GUID); cerr != nil || cur != 1 {
-		t.Fatalf("原券行数量应归一为 1，实得 %d err=%v", cur, cerr)
+		t.Fatalf("原券行数量应归一为 1, 实得 %d err=%v", cur, cerr)
 	}
 
 	// 幂等：再跑一次不再改动。
 	if again, err := srv.repairCouponRowLayout(ctx); err != nil || again != 0 {
-		t.Fatalf("重复执行应跳过，fixed=%d err=%v", again, err)
+		t.Fatalf("重复执行应跳过, fixed=%d err=%v", again, err)
 	}
 	if r2, q2 := couponRowCount(t, srv, uid); r2 != 996 || q2 != 996 {
-		t.Fatalf("重复执行后仍应 996 行 996 张，实得 %d 行 %d 张", r2, q2)
+		t.Fatalf("重复执行后仍应 996 行 996 张, 实得 %d 行 %d 张", r2, q2)
 	}
 }
 
@@ -439,26 +439,26 @@ func TestCouponRowRepairExpandsQuantityConserving(t *testing.T) {
 		t.Fatalf("写入 4 张失败: %v", err)
 	}
 	if r, q := couponRowCount(t, srv, uid); r != 1 || q != 4 {
-		t.Fatalf("前置应为 1 行 4 张，实得 %d 行 %d 张", r, q)
+		t.Fatalf("前置应为 1 行 4 张, 实得 %d 行 %d 张", r, q)
 	}
 
 	if fixed, err := srv.repairCouponRowLayout(ctx); err != nil || fixed != 1 {
-		t.Fatalf("应展开 1 行，fixed=%d err=%v", fixed, err)
+		t.Fatalf("应展开 1 行, fixed=%d err=%v", fixed, err)
 	}
 	rows, qty := couponRowCount(t, srv, uid)
 	if rows != 4 || qty != 4 {
-		t.Fatalf("应守恒展开为 4 行 4 张，实得 %d 行 %d 张", rows, qty)
+		t.Fatalf("应守恒展开为 4 行 4 张, 实得 %d 行 %d 张", rows, qty)
 	}
 	// 原 GUID 保留且归一为 1 张。
 	if cur, cerr := srv.couponRowQuantity(ctx, coupon.GUID); cerr != nil || cur != 1 {
-		t.Fatalf("原券行应归一为 1 张，实得 %d err=%v", cur, cerr)
+		t.Fatalf("原券行应归一为 1 张, 实得 %d err=%v", cur, cerr)
 	}
 	// 幂等：再跑一次不重复展开。
 	if again, err := srv.repairCouponRowLayout(ctx); err != nil || again != 0 {
-		t.Fatalf("重复执行应跳过，fixed=%d err=%v", again, err)
+		t.Fatalf("重复执行应跳过, fixed=%d err=%v", again, err)
 	}
 	if r2, q2 := couponRowCount(t, srv, uid); r2 != 4 || q2 != 4 {
-		t.Fatalf("重复执行后仍应 4 行 4 张，实得 %d 行 %d 张", r2, q2)
+		t.Fatalf("重复执行后仍应 4 行 4 张, 实得 %d 行 %d 张", r2, q2)
 	}
 }
 
@@ -487,14 +487,14 @@ func TestCouponRowRepairKeepsOperatorSetQuantity(t *testing.T) {
 	// 运营为验收把背包改成 4 张，且已经是一券一行。
 	grantCoupons(t, srv, uid, 4)
 	if r, q := couponRowCount(t, srv, uid); r != 4 || q != 4 {
-		t.Fatalf("前置应为 4 行 4 张，实得 %d 行 %d 张", r, q)
+		t.Fatalf("前置应为 4 行 4 张, 实得 %d 行 %d 张", r, q)
 	}
 
 	if fixed, err := srv.repairCouponRowLayout(ctx); err != nil || fixed != 0 {
-		t.Fatalf("已是一券一行时不应改动，fixed=%d err=%v", fixed, err)
+		t.Fatalf("已是一券一行时不应改动, fixed=%d err=%v", fixed, err)
 	}
 	if r, q := couponRowCount(t, srv, uid); r != 4 || q != 4 {
-		t.Fatalf("重启后必须保持运营设置的 4 张，实得 %d 行 %d 张（被账目拉回即为回归）", r, q)
+		t.Fatalf("重启后必须保持运营设置的 4 张, 实得 %d 行 %d 张 (被账目拉回即为回归)", r, q)
 	}
 }
 
@@ -513,10 +513,10 @@ func TestCouponRowRepairSkipsWhenAlreadyOnePerRow(t *testing.T) {
 	grantCoupons(t, srv, uid, 5)
 
 	if fixed, err := srv.repairCouponRowLayout(ctx); err != nil || fixed != 0 {
-		t.Fatalf("已是目标布局不应改动，fixed=%d err=%v", fixed, err)
+		t.Fatalf("已是目标布局不应改动, fixed=%d err=%v", fixed, err)
 	}
 	if r, q := couponRowCount(t, srv, uid); r != 5 || q != 5 {
-		t.Fatalf("应保持 5 行 5 张，实得 %d 行 %d 张", r, q)
+		t.Fatalf("应保持 5 行 5 张, 实得 %d 行 %d 张", r, q)
 	}
 }
 
@@ -533,16 +533,16 @@ func TestCouponGrantRepairKeepsMarkerWhenMultiRow(t *testing.T) {
 	}
 
 	seedCouponGrantAudit(t, db, uid, 999, 1000)
-	rows := grantCoupons(t, srv, uid, 2) // 两行券：v1 无法把发放量映射到某一行
+	rows := grantCoupons(t, srv, uid, 2) // 两行券: v1 无法把发放量映射到某一行
 
 	if fixed, err := srv.repairCouponGrantQuantities(ctx); err != nil || fixed != 0 {
-		t.Fatalf("多行券应跳过补偿，fixed=%d err=%v", fixed, err)
+		t.Fatalf("多行券应跳过补偿, fixed=%d err=%v", fixed, err)
 	}
 	if _, done, err := db.KVGet(ctx, couponGrantRepairKey); err == nil && done {
-		t.Fatal("多行券跳过时不应写完成标记，否则缺口被永久隐藏")
+		t.Fatal("多行券跳过时不应写完成标记, 否则缺口被永久隐藏")
 	}
 	if r, q := couponRowCount(t, srv, uid); r != 2 || q != 2 {
-		t.Fatalf("跳过后应保持 2 行 2 张，实得 %d 行 %d 张", r, q)
+		t.Fatalf("跳过后应保持 2 行 2 张, 实得 %d 行 %d 张", r, q)
 	}
 
 	// 收敛成单行后再次执行：若第一轮误写了 marker，这里会被早退、补偿不发生。
@@ -550,13 +550,13 @@ func TestCouponGrantRepairKeepsMarkerWhenMultiRow(t *testing.T) {
 		t.Fatal(err)
 	}
 	if fixed, err := srv.repairCouponGrantQuantities(ctx); err != nil || fixed != 1 {
-		t.Fatalf("收敛为单行后应补偿 1 行，fixed=%d err=%v", fixed, err)
+		t.Fatalf("收敛为单行后应补偿 1 行, fixed=%d err=%v", fixed, err)
 	}
 	if _, q := couponRowCount(t, srv, uid); q != 999 {
-		t.Fatalf("重试用后应补到 999 张，实得 %d", q)
+		t.Fatalf("重试用后应补到 999 张, 实得 %d", q)
 	}
 	if _, done, err := db.KVGet(ctx, couponGrantRepairKey); err != nil || !done {
-		t.Fatalf("成功后应写完成标记，done=%v err=%v", done, err)
+		t.Fatalf("成功后应写完成标记, done=%v err=%v", done, err)
 	}
 }
 
@@ -579,16 +579,16 @@ func TestCouponRowRepairDeletesZeroQtyRow(t *testing.T) {
 	}
 
 	if fixed, err := srv.repairCouponRowLayout(ctx); err != nil || fixed != 1 {
-		t.Fatalf("应删除 1 个空行，fixed=%d err=%v", fixed, err)
+		t.Fatalf("应删除 1 个空行, fixed=%d err=%v", fixed, err)
 	}
 	if r, q := couponRowCount(t, srv, uid); r != 2 || q != 2 {
-		t.Fatalf("删空行后应剩 2 行 2 张，实得 %d 行 %d 张", r, q)
+		t.Fatalf("删空行后应剩 2 行 2 张, 实得 %d 行 %d 张", r, q)
 	}
 	if _, err := db.GetItemByGUID(ctx, rows[1].GUID); err == nil {
 		t.Fatal("0 张行应被删除")
 	}
 	if fixed, err := srv.repairCouponRowLayout(ctx); err != nil || fixed != 0 {
-		t.Fatalf("重复执行应跳过，fixed=%d err=%v", fixed, err)
+		t.Fatalf("重复执行应跳过, fixed=%d err=%v", fixed, err)
 	}
 }
 
@@ -606,7 +606,7 @@ func TestCreateItemRejectsZeroUnitCoupon(t *testing.T) {
 		t.Fatal("CreateItem units=0 不应白送 1 张券")
 	}
 	if r, q := couponRowCount(t, srv, uid); r != 0 || q != 0 {
-		t.Fatalf("报错后不应落任何券行，实得 %d 行 %d 张", r, q)
+		t.Fatalf("报错后不应落任何券行, 实得 %d 行 %d 张", r, q)
 	}
 }
 
@@ -660,7 +660,7 @@ func TestRepairItemPhysicsEndToEndFromLegacyCoupon(t *testing.T) {
 		t.Fatalf("端到端修复失败: %v", err)
 	}
 	if r, q := couponRowCount(t, srv, uid); r != 996 || q != 996 {
-		t.Fatalf("应收敛为 996 行 996 张，实得 %d 行 %d 张", r, q)
+		t.Fatalf("应收敛为 996 行 996 张, 实得 %d 行 %d 张", r, q)
 	}
 	items, err := db.ListItemsByContainers(ctx, uid, []string{"backpack", "rig"})
 	if err != nil {
@@ -671,21 +671,21 @@ func TestRepairItemPhysicsEndToEndFromLegacyCoupon(t *testing.T) {
 			continue
 		}
 		if it.WireClass != "ahgeldclmdj" {
-			t.Fatalf("行 %s 类=%s，期望 ahgeldclmdj", it.GUID, it.WireClass)
+			t.Fatalf("行 %s 类=%s, 期望 ahgeldclmdj", it.GUID, it.WireClass)
 		}
 		f, ferr := FieldsFromJSON(it.FieldsJSON)
 		if ferr != nil {
 			t.Fatal(ferr)
 		}
 		if n, ok := itemQtyValue(it.WireClass, f); !ok || n != 1 {
-			t.Fatalf("行 %s 数量槽=%d ok=%v，期望 1", it.GUID, n, ok)
+			t.Fatalf("行 %s 数量槽=%d ok=%v, 期望 1", it.GUID, n, ok)
 		}
 	}
 	if err := srv.RepairItemPhysics(ctx); err != nil {
 		t.Fatalf("二次修复失败: %v", err)
 	}
 	if r, q := couponRowCount(t, srv, uid); r != 996 || q != 996 {
-		t.Fatalf("二次修复后应仍为 996 行，实得 %d 行 %d 张", r, q)
+		t.Fatalf("二次修复后应仍为 996 行, 实得 %d 行 %d 张", r, q)
 	}
 }
 
@@ -710,7 +710,7 @@ func TestRepairCountableQtyUsesStackSlot(t *testing.T) {
 		t.Skipf("静态库无 dip_op_c: %v", err)
 	}
 	if def.Category != 58 {
-		t.Skipf("dip_op_c 类别 = %d，期望 58", def.Category)
+		t.Skipf("dip_op_c 类别 = %d, 期望 58", def.Category)
 	}
 
 	// 造两行：真实剩余 95 与 1，两者都不等于 dnmfciolgep 常量。
@@ -768,11 +768,11 @@ func TestRepairCountableQtyUsesStackSlot(t *testing.T) {
 		}
 	}
 	if len(got) != 2 {
-		t.Fatalf("dip_op_c 行数 = %d，期望 2", len(got))
+		t.Fatalf("dip_op_c 行数 = %d, 期望 2", len(got))
 	}
 	for _, q := range got {
 		if q != 95 && q != 1 {
-			t.Fatalf("item.qty 被写成 %d，期望按 ljnnpokapig 收敛到 95 或 1（共 %v）", q, got)
+			t.Fatalf("item.qty 被写成 %d, 期望按 ljnnpokapig 收敛到 95 或 1 (共 %v)", q, got)
 		}
 	}
 }

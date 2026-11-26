@@ -39,7 +39,7 @@ func craftOKSlots(t *testing.T, srv *Server, uid int64, recipe string, slots []c
 	}
 	resp := decodeTreeValue(t, srv, body)
 	if len(resp.Fields) == 0 || resp.Fields[0].Num == nil {
-		t.Fatalf("803 缺少 f0: %+v", resp)
+		t.Fatalf("803 Отсутствует f0: %+v", resp)
 	}
 	return u64Of(resp.Fields[0].Num) != 0
 }
@@ -75,13 +75,13 @@ func TestCraftCutFishConsumesSelectedKeepnetFish(t *testing.T) {
 
 	slots := []craftSlot{{ItemID: "bait_fishForCut", GUID: fishGUID, Species: "s.orfe"}}
 	if !craftOKSlots(t, srv, uid, "craft_bait_cut_fish", slots, 1) {
-		t.Fatal("切鱼块应成功（803.f0=1）")
+		t.Fatal("切鱼块应成功 (803.f0=1)")
 	}
 	if keepnetGUIDs(t, db, uid)[fishGUID] {
 		t.Fatal("选中的鱼应已从鱼护移除")
 	}
 	if got := countOfItem(t, srv, ctx0, uid, "fish_pieces"); got != 1 {
-		t.Fatalf("1200g 的鱼应产出 1 块（按鱼重计件），实得 %d", got)
+		t.Fatalf("1200g 的鱼应产出 1 块 (按鱼重计件), 实得 %d", got)
 	}
 }
 
@@ -111,7 +111,7 @@ func TestCraftCutFishPiecesScaleWithWeight(t *testing.T) {
 		}
 	}
 	if got := countOfItem(t, srv, ctx0, uid, "fish_pieces"); got != 4 {
-		t.Fatalf("3400g+700g 两条鱼应共产出 3+1=4 块，实得 %d", got)
+		t.Fatalf("3400g+700g 两条鱼应共产出 3+1=4 块, 实得 %d", got)
 	}
 }
 
@@ -131,7 +131,7 @@ func TestCraftCutFishWithoutSlotFails(t *testing.T) {
 		t.Fatal("没有材料槽时切鱼必须失败")
 	}
 	if got := countOfItem(t, srv, ctx0, uid, "fish_pieces"); got != 0 {
-		t.Fatalf("失败时不应产出鱼块，实得 %d", got)
+		t.Fatalf("失败时不应产出鱼块, 实得 %d", got)
 	}
 	if !keepnetGUIDs(t, db, uid)[fishGUID] {
 		t.Fatal("失败时鱼护条目不该被删")
@@ -156,7 +156,7 @@ func TestCraftCutFishRejectsSpeciesMismatch(t *testing.T) {
 		t.Fatal("鱼种不符时切鱼必须失败")
 	}
 	if got := countOfItem(t, srv, ctx0, uid, "fish_pieces"); got != 0 {
-		t.Fatalf("失败时不应产出鱼块，实得 %d", got)
+		t.Fatalf("失败时不应产出鱼块, 实得 %d", got)
 	}
 	if !keepnetGUIDs(t, db, uid)[fishGUID] {
 		t.Fatal("鱼种不符时鱼护条目不该被删")
@@ -184,7 +184,7 @@ func TestCraftCutFishKeepsKnife(t *testing.T) {
 		t.Fatal("带工具槽的切鱼应成功")
 	}
 	if got := countOfItem(t, srv, ctx0, uid, "tool_fish_knife"); got != 1 {
-		t.Fatalf("切鱼刀不该被消耗，实剩 %d", got)
+		t.Fatalf("切鱼刀不该被消耗, 实剩 %d", got)
 	}
 	if keepnetGUIDs(t, db, uid)[fishGUID] {
 		t.Fatal("选中的鱼应已从鱼护移除")
@@ -212,16 +212,16 @@ func TestCraftCrushedBoilsConsumesBackpackBoilie(t *testing.T) {
 		{ItemID: "craft_mat_boil", GUID: boil.GUID, Species: "boils_hvz_van12"},
 	}
 	if !craftOKSlots(t, srv, uid, "craft_crushed_boils", slots, 1) {
-		t.Fatal("碎沸粒应成功（803.f0=1）")
+		t.Fatal("碎沸粒应成功 (803.f0=1)")
 	}
 	if got := countOfItem(t, srv, ctx0, uid, "boils_hvz_van12"); got != 125 {
-		t.Fatalf("应扣 25 粒沸粒剩 125，实得 %d", got)
+		t.Fatalf("应扣 25 粒沸粒剩 125, 实得 %d", got)
 	}
 	if got := countOfItem(t, srv, ctx0, uid, "crushed_boils"); got < 1 {
-		t.Fatalf("应产出碎沸粒，实得 %d", got)
+		t.Fatalf("应产出碎沸粒, 实得 %d", got)
 	}
 	if got := countOfItem(t, srv, ctx0, uid, "hvz_b_grinder"); got != 1 {
-		t.Fatalf("研磨机不该被消耗，实剩 %d", got)
+		t.Fatalf("研磨机不该被消耗, 实剩 %d", got)
 	}
 }
 
@@ -239,19 +239,19 @@ func TestCraftCrushedBoilsInsufficientBoiliesFails(t *testing.T) {
 
 	slots := []craftSlot{{ItemID: "craft_mat_boil", GUID: boil.GUID, Species: "boils_hvz_van12"}}
 	if !craftOKSlots(t, srv, uid, "craft_crushed_boils", slots, 1) {
-		t.Fatal("第一次碎沸粒（30 粒堆）应成功")
+		t.Fatal("第一次碎沸粒 (30 粒堆)应成功")
 	}
 	if got := countOfItem(t, srv, ctx0, uid, "boils_hvz_van12"); got != 5 {
-		t.Fatalf("应扣 25 剩 5，实得 %d", got)
+		t.Fatalf("应扣 25 剩 5, 实得 %d", got)
 	}
 	if craftOKSlots(t, srv, uid, "craft_crushed_boils", slots, 1) {
 		t.Fatal("只剩 5 粒时碎沸粒必须失败")
 	}
 	if got := countOfItem(t, srv, ctx0, uid, "boils_hvz_van12"); got != 5 {
-		t.Fatalf("失败回滚后应仍剩 5，实得 %d", got)
+		t.Fatalf("失败回滚后应仍剩 5, 实得 %d", got)
 	}
 	if got := countOfItem(t, srv, ctx0, uid, "crushed_boils"); got != 1 {
-		t.Fatalf("应只产出 1 份碎沸粒，实得 %d", got)
+		t.Fatalf("应只产出 1 份碎沸粒, 实得 %d", got)
 	}
 }
 
@@ -270,7 +270,7 @@ func TestCraftCrushedBoilsWithoutBoilieFails(t *testing.T) {
 		t.Fatal("沸粒不存在时碎沸粒必须失败")
 	}
 	if got := countOfItem(t, srv, ctx0, uid, "crushed_boils"); got != 0 {
-		t.Fatalf("失败时不应产出碎沸粒，实得 %d", got)
+		t.Fatalf("失败时不应产出碎沸粒, 实得 %d", got)
 	}
 }
 
@@ -288,7 +288,7 @@ func TestCraftCrushedBoilsRejectsNonBoilMaterial(t *testing.T) {
 	apples := economyTestItem(t, srv, uid, "apples", "backpack", 10) // 单位量 3 → 30 个
 	before := countOfItem(t, srv, ctx0, uid, "apples")
 	if before != 30 {
-		t.Fatalf("夹具应为 30 个苹果，实得 %d", before)
+		t.Fatalf("夹具应为 30 个苹果, 实得 %d", before)
 	}
 
 	slots := []craftSlot{{ItemID: "craft_mat_boil", GUID: apples.GUID, Species: "apples"}}
@@ -296,10 +296,10 @@ func TestCraftCrushedBoilsRejectsNonBoilMaterial(t *testing.T) {
 		t.Fatal("非沸粒材料时碎沸粒必须失败")
 	}
 	if got := countOfItem(t, srv, ctx0, uid, "apples"); got != before {
-		t.Fatalf("失败时苹果不该被扣，实得 %d（原 %d）", got, before)
+		t.Fatalf("失败时苹果不该被扣, 实得 %d (原 %d)", got, before)
 	}
 	if got := countOfItem(t, srv, ctx0, uid, "crushed_boils"); got != 0 {
-		t.Fatalf("失败时不应产出碎沸粒，实得 %d", got)
+		t.Fatalf("失败时不应产出碎沸粒, 实得 %d", got)
 	}
 }
 
@@ -317,12 +317,12 @@ func TestCraftCrushedBoilsAcceptsNaturalBoilFamily(t *testing.T) {
 	boil := economyTestItem(t, srv, uid, "boil_red", "backpack", 1) // 单位量 30 → 30 粒
 	slots := []craftSlot{{ItemID: "craft_mat_boil", GUID: boil.GUID, Species: "boil_red"}}
 	if !craftOKSlots(t, srv, uid, "craft_crushed_boils", slots, 1) {
-		t.Fatal("天然沸粒（boil_*）应可磨碎")
+		t.Fatal("天然沸粒 (boil_*)应可磨碎")
 	}
 	if got := countOfItem(t, srv, ctx0, uid, "boil_red"); got != 5 {
-		t.Fatalf("应扣 25 粒剩 5，实得 %d", got)
+		t.Fatalf("应扣 25 粒剩 5, 实得 %d", got)
 	}
 	if got := countOfItem(t, srv, ctx0, uid, "crushed_boils"); got != 1 {
-		t.Fatalf("应产出 1 份碎沸粒，实得 %d", got)
+		t.Fatalf("应产出 1 份碎沸粒, 实得 %d", got)
 	}
 }

@@ -44,7 +44,7 @@ func competitionDB(ctx *Ctx) *store.DB {
 func encodeCompetitionValue(ctx *Ctx, v *proto.Value) ([]byte, bool) {
 	body, err := proto.EncodeValue(v, ctx.Sess.Table())
 	if err != nil {
-		ctx.Log.Error("6/x 响应编码失败", "cmd", ctx.Key(), "err", err)
+		ctx.Log.Error("6/x Ошибка кодирования ответа", "cmd", ctx.Key(), "err", err)
 		return nil, false
 	}
 	return body, true
@@ -132,7 +132,7 @@ func hCompetitionList(ctx *Ctx) ([]byte, bool) {
 	}
 	rows, err := db.ListCompetitions(ctx.Sess.Srv.dbCtx(), nil)
 	if err != nil {
-		ctx.Log.Error("6/1 竞赛列表查询失败", "err", err)
+		ctx.Log.Error("6/1 Ошибка запроса списка соревнований", "err", err)
 		return empty()
 	}
 	items := make([]*proto.Value, 0, len(rows))
@@ -149,7 +149,7 @@ func hCompetitionLoad(ctx *Ctx) ([]byte, bool) {
 	}
 	c, err := db.CompetitionForUser(ctx.Sess.Srv.dbCtx(), ctx.Sess.Userid)
 	if err != nil {
-		ctx.Log.Error("6/2 当前竞赛查询失败", "err", err)
+		ctx.Log.Error("6/2 Ошибка запроса текущего соревнования", "err", err)
 		return competitionNull(ctx)
 	}
 	if c == nil {
@@ -213,19 +213,19 @@ func createCompetition(ctx *Ctx, name, mapKey string, maxMembers, winCond int64)
 }
 
 func hCompetitionCreate(ctx *Ctx) ([]byte, bool) {
-	name, mapKey, maxMembers, winCond := competitionCreateParams(ctx, "新竞赛")
+	name, mapKey, maxMembers, winCond := competitionCreateParams(ctx, "Новое соревнование")
 	c, err := createCompetition(ctx, name, mapKey, maxMembers, winCond)
 	if err != nil {
-		ctx.Log.Error("6/4 创建竞赛失败", "err", err)
+		ctx.Log.Error("6/4 Не удалось создать соревнование", "err", err)
 		return competitionNull(ctx)
 	}
 	return encodeCompetitionValue(ctx, buildCompetitionObject(c))
 }
 
 func hCompetitionTestCreate(ctx *Ctx) ([]byte, bool) {
-	c, err := createCompetition(ctx, "测试竞赛", "", 0, 2)
+	c, err := createCompetition(ctx, "Тестовое соревнование", "", 0, 2)
 	if err != nil {
-		ctx.Log.Error("6/13 创建测试竞赛失败", "err", err)
+		ctx.Log.Error("6/13 Не удалось создать тестовое соревнование", "err", err)
 		return competitionNull(ctx)
 	}
 	return encodeCompetitionValue(ctx, buildCompetitionObject(c))
@@ -259,7 +259,7 @@ func hCompetitionJoin(ctx *Ctx) ([]byte, bool) {
 	}
 	c, _, err := db.JoinCompetition(ctx.Sess.Srv.dbCtx(), compID, ctx.Sess.Userid, team)
 	if err != nil {
-		ctx.Log.Info("6/7 加入竞赛未成功", "comp", compID, "uid", ctx.Sess.Userid, "err", err)
+		ctx.Log.Info("6/7 Не удалось присоединиться к соревнованию", "comp", compID, "uid", ctx.Sess.Userid, "err", err)
 		if errors.Is(err, store.ErrCompetitionFull) {
 			c, _ = db.GetCompetition(ctx.Sess.Srv.dbCtx(), compID)
 			if c != nil {
@@ -276,7 +276,7 @@ func hCompetitionLeave(ctx *Ctx) ([]byte, bool) {
 	if db != nil {
 		if compID := firstCompetitionID(ctx); compID != "" {
 			if _, err := db.LeaveCompetition(ctx.Sess.Srv.dbCtx(), compID, ctx.Sess.Userid); err != nil {
-				ctx.Log.Info("6/8 退出竞赛未成功", "comp", compID, "uid", ctx.Sess.Userid, "err", err)
+				ctx.Log.Info("6/8 Не удалось выйти из соревнования", "comp", compID, "uid", ctx.Sess.Userid, "err", err)
 			}
 		}
 	}
@@ -288,7 +288,7 @@ func hCompetitionReady(ctx *Ctx) ([]byte, bool) {
 	if db != nil {
 		if compID := firstCompetitionID(ctx); compID != "" {
 			if _, _, err := db.SetCompetitionReady(ctx.Sess.Srv.dbCtx(), compID, ctx.Sess.Userid, true); err != nil {
-				ctx.Log.Info("6/10 设置准备失败", "comp", compID, "uid", ctx.Sess.Userid, "err", err)
+				ctx.Log.Info("6/10 Не удалось отметить готовность", "comp", compID, "uid", ctx.Sess.Userid, "err", err)
 			}
 		}
 	}
@@ -305,7 +305,7 @@ func hCompetitionChangeTeam(ctx *Ctx) ([]byte, bool) {
 				team = ints[len(ints)-1]
 			}
 			if _, _, err := db.SetCompetitionTeam(ctx.Sess.Srv.dbCtx(), compID, ctx.Sess.Userid, team); err != nil {
-				ctx.Log.Info("6/9 换队失败", "comp", compID, "uid", ctx.Sess.Userid, "err", err)
+				ctx.Log.Info("6/9 Не удалось сменить команду", "comp", compID, "uid", ctx.Sess.Userid, "err", err)
 			}
 		}
 	}
@@ -317,7 +317,7 @@ func hCompetitionStart(ctx *Ctx) ([]byte, bool) {
 	if db != nil {
 		if compID := firstCompetitionID(ctx); compID != "" {
 			if _, err := db.StartCompetition(ctx.Sess.Srv.dbCtx(), compID, ctx.Sess.Userid); err != nil {
-				ctx.Log.Info("6/12 开始竞赛失败", "comp", compID, "uid", ctx.Sess.Userid, "err", err)
+				ctx.Log.Info("6/12 Не удалось начать соревнование", "comp", compID, "uid", ctx.Sess.Userid, "err", err)
 			}
 		}
 	}
@@ -337,7 +337,7 @@ func hCompetitionKick(ctx *Ctx) ([]byte, bool) {
 	target := ints[0]
 	c, err := db.KickCompetitionMember(ctx.Sess.Srv.dbCtx(), compID, ctx.Sess.Userid, target)
 	if err != nil {
-		ctx.Log.Info("6/6 踢人失败", "comp", compID, "actor", ctx.Sess.Userid, "target", target, "err", err)
+		ctx.Log.Info("6/6 Не удалось исключить игрока", "comp", compID, "actor", ctx.Sess.Userid, "target", target, "err", err)
 		return competitionNull(ctx)
 	}
 	return encodeCompetitionValue(ctx, buildCompetitionObject(c))
@@ -377,7 +377,7 @@ func hCompetitionChange(ctx *Ctx) ([]byte, bool) {
 	}
 	c, err := db.UpdateCompetition(ctx.Sess.Srv.dbCtx(), compID, ctx.Sess.Userid, patch)
 	if err != nil {
-		ctx.Log.Info("6/5 修改竞赛失败", "comp", compID, "uid", ctx.Sess.Userid, "err", err)
+		ctx.Log.Info("6/5 Не удалось изменить соревнование", "comp", compID, "uid", ctx.Sess.Userid, "err", err)
 		return competitionNull(ctx)
 	}
 	return encodeCompetitionValue(ctx, buildCompetitionObject(c))
@@ -597,7 +597,7 @@ func hCompetitionResults(ctx *Ctx) ([]byte, bool) {
 	c, err := db.CompetitionForUser(ctxDB, ctx.Sess.Userid)
 	if err != nil || c == nil {
 		if err != nil {
-			ctx.Log.Error("6/3 当前竞赛查询失败", "err", err)
+			ctx.Log.Error("6/3 Ошибка запроса текущего соревнования", "err", err)
 		}
 		return encodeCompetitionValue(ctx, buildCompetitionResultsObject(0, nil, ctx.Sess.Userid))
 	}
@@ -609,7 +609,7 @@ func hCompetitionResults(ctx *Ctx) ([]byte, bool) {
 	}
 	standings, err := ctx.Sess.Srv.buildCompetitionStandings(ctxDB, c)
 	if err != nil {
-		ctx.Log.Error("6/3 竞赛计分失败", "comp", c.ID, "err", err)
+		ctx.Log.Error("6/3 Ошибка подсчёта очков соревнования", "comp", c.ID, "err", err)
 		return encodeCompetitionValue(ctx, buildCompetitionResultsObject(c.State, nil, ctx.Sess.Userid))
 	}
 	if c.State == store.CompetitionFinished && len(standings) > 0 {
@@ -622,7 +622,7 @@ func hCompetitionResults(ctx *Ctx) ([]byte, bool) {
 			})
 		}
 		if err := db.SaveCompetitionResults(ctxDB, c.ID, rows); err != nil {
-			ctx.Log.Error("6/3 竞赛结果落库失败", "comp", c.ID, "err", err)
+			ctx.Log.Error("6/3 Не удалось сохранить результаты соревнования", "comp", c.ID, "err", err)
 		}
 	}
 	return encodeCompetitionValue(ctx, buildCompetitionResultsObject(c.State, standings, ctx.Sess.Userid))

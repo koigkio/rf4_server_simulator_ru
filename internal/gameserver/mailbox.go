@@ -134,7 +134,7 @@ func buildMail11062(m *store.MailRow) *proto.Value {
 func (s *Server) notifyMail(ctx context.Context, uid, id int64) {
 	mail, err := s.DB.MailGet(ctx, uid, id)
 	if err != nil {
-		s.log.Warn("邮件在线通知读取失败", "uid", uid, "mail_id", id, "err", err)
+		s.log.Warn("Не удалось прочитать онлайн-уведомление о почте", "uid", uid, "mail_id", id, "err", err)
 		return
 	}
 	if mail.Read != 0 {
@@ -146,10 +146,10 @@ func (s *Server) notifyMail(ctx context.Context, uid, id int64) {
 		if sess.Push(19, 10, body) != 0 {
 			sent++
 		} else {
-			s.log.Warn("邮件在线通知发送失败", "uid", uid, "mail_id", id, "sid", sess.ID)
+			s.log.Warn("Не удалось отправить онлайн-уведомление о почте", "uid", uid, "mail_id", id, "sid", sess.ID)
 		}
 	}
-	s.log.Info("邮件在线通知", "uid", uid, "mail_id", id, "sessions", sent)
+	s.log.Info("Онлайн-уведомление о почте", "uid", uid, "mail_id", id, "sessions", sent)
 }
 
 // hMailGet 19/7：args("524")[11062...]。
@@ -214,7 +214,7 @@ func hMailSendMessage(ctx *Ctx) ([]byte, bool) {
 			}
 		}
 		if err != nil {
-			ctx.Log.Warn("19/1 发送文本邮件失败", "to", toUID, "err", err)
+			ctx.Log.Warn("19/1 Не удалось отправить текстовое письмо", "to", toUID, "err", err)
 		} else {
 			srv.notifyMail(cctx, toUID, mailID)
 		}
@@ -238,10 +238,10 @@ const mailItemSnapshotVersion int64 = 1
 // 决定保留（非计件）还是重分配（计件）。
 func mailItemSnapshotFromRow(row *store.Item, qty int64, countable bool) (store.MailItem, error) {
 	if row == nil {
-		return store.MailItem{}, fmt.Errorf("空物品快照")
+		return store.MailItem{}, fmt.Errorf("Пустой снимок предмета")
 	}
 	if row.GUID == "" || row.ItemID == "" || row.WireClass == "" || row.FieldsJSON == "" {
-		return store.MailItem{}, fmt.Errorf("物品实例数据不完整: %s", row.GUID)
+		return store.MailItem{}, fmt.Errorf("Неполные данные экземпляра предмета: %s", row.GUID)
 	}
 	if qty < 1 {
 		qty = 1
@@ -284,14 +284,14 @@ func mailItemSnapshotFromRow(row *store.Item, qty int64, countable bool) (store.
 // 非计件附件保留源 GUID。
 func (s *Server) prepareMailSnapshotItem(ctx context.Context, uid int64, att store.MailItem) (*store.Item, error) {
 	if !att.HasItemSnapshot() {
-		return nil, fmt.Errorf("邮件附件快照不完整: %s", att.ItemID)
+		return nil, fmt.Errorf("Неполный снимок вложения письма: %s", att.ItemID)
 	}
 	def, err := s.DB.GetItemDefByItemID(ctx, att.ItemID)
 	if err != nil {
-		return nil, fmt.Errorf("附件定义不存在: %s: %w", att.ItemID, err)
+		return nil, fmt.Errorf("Определение вложения не существует: %s: %w", att.ItemID, err)
 	}
 	if def == nil {
-		return nil, fmt.Errorf("附件定义不存在: %s", att.ItemID)
+		return nil, fmt.Errorf("Определение вложения не существует: %s", att.ItemID)
 	}
 	countable := countableCategories[def.Category]
 	guid := NewItemGUID()
@@ -300,10 +300,10 @@ func (s *Server) prepareMailSnapshotItem(ctx context.Context, uid int64, att sto
 	}
 	fields, err := FieldsFromJSON(att.FieldsJSON)
 	if err != nil {
-		return nil, fmt.Errorf("附件字段快照损坏: %s: %w", att.ItemID, err)
+		return nil, fmt.Errorf("Снимок полей вложения повреждён: %s: %w", att.ItemID, err)
 	}
 	if len(fields) == 0 {
-		return nil, fmt.Errorf("附件字段快照为空: %s", att.ItemID)
+		return nil, fmt.Errorf("Снимок полей вложения пуст: %s", att.ItemID)
 	}
 	fields = alignFieldsToOps(&store.Item{
 		GUID: guid, NumericID: def.NumericID, WireClass: att.WireClass,
@@ -403,7 +403,7 @@ func hMailSendItem(ctx *Ctx) ([]byte, bool) {
 
 	tx, err := beginEconomyTx(cctx, srv.DB)
 	if err != nil {
-		ctx.Log.Warn("19/2 开启事务失败", "err", err)
+		ctx.Log.Warn("19/2 Не удалось начать транзакцию", "err", err)
 		return []byte{0x0F}, true
 	}
 	defer func() { _ = tx.Rollback() }()
@@ -421,17 +421,17 @@ func hMailSendItem(ctx *Ctx) ([]byte, bool) {
 	}
 	def, err := itemDefByItemIDTx(cctx, tx, locked.ItemID)
 	if err != nil {
-		ctx.Log.Warn("19/2 读取寄件定义失败", "item", locked.ItemID, "err", err)
+		ctx.Log.Warn("19/2 Не удалось прочитать определение отправляемого", "item", locked.ItemID, "err", err)
 		return []byte{0x0F}, true
 	}
 	mailItem, err := mailItemSnapshotFromRow(locked, count, countableCategories[def.Category])
 	if err != nil {
-		ctx.Log.Warn("19/2 抓取物品快照失败", "guid", locked.GUID, "err", err)
+		ctx.Log.Warn("19/2 Не удалось получить снимок предмета", "guid", locked.GUID, "err", err)
 		return []byte{0x0F}, true
 	}
 	got, err := consumeItemQtyTx(cctx, tx, locked, count)
 	if err != nil || got != count {
-		ctx.Log.Warn("19/2 扣除寄件失败", "guid", guids[0], "err", err, "got", got)
+		ctx.Log.Warn("19/2 Не удалось списать отправляемое", "guid", guids[0], "err", err, "got", got)
 		return []byte{0x0F}, true
 	}
 	raw, err := json.Marshal([]store.MailItem{mailItem})
@@ -442,16 +442,16 @@ func hMailSendItem(ctx *Ctx) ([]byte, bool) {
 		INSERT INTO mail(uid, sender, kind, text, items_json, attachment_snapshot_version, created_ts, read)
 		VALUES(?,?,1,'',?,?,?,0)`, toUID, uid, string(raw), mailItemSnapshotVersion, float64(time.Now().Unix()))
 	if err != nil {
-		ctx.Log.Warn("19/2 创建附件邮件失败", "to", toUID, "err", err)
+		ctx.Log.Warn("19/2 Не удалось создать письмо с вложением", "to", toUID, "err", err)
 		return []byte{0x0F}, true
 	}
 	mailID, err := result.LastInsertId()
 	if err != nil {
-		ctx.Log.Warn("19/2 读取邮件编号失败", "err", err)
+		ctx.Log.Warn("19/2 Не удалось прочитать номер письма", "err", err)
 		return []byte{0x0F}, true
 	}
 	if err := tx.Commit(); err != nil {
-		ctx.Log.Warn("19/2 事务提交失败", "err", err)
+		ctx.Log.Warn("19/2 Не удалось зафиксировать транзакцию", "err", err)
 		return []byte{0x0F}, true
 	}
 	srv.notifyMail(cctx, toUID, mailID)
@@ -465,7 +465,7 @@ func hMailSendItem(ctx *Ctx) ([]byte, bool) {
 	if err != nil {
 		return nil, false
 	}
-	ctx.Log.Info("19/2 寄出物品", "to", toUID, "guid", shortGUID(guids[0]), "qty", count)
+	ctx.Log.Info("19/2 Отправка предмета", "to", toUID, "guid", shortGUID(guids[0]), "qty", count)
 	return body, true
 }
 
@@ -521,8 +521,8 @@ func (s *Server) acceptMails(ctx *Ctx, ids []int64) (int, []*store.Item, error) 
 		}
 		if err != nil {
 			// 读库失败不能当作"没有邮件"吞掉——那会让本次领取悄悄变成空操作。
-			ctx.Log.Warn("19/3 读取邮件失败", "mail", id, "err", err)
-			return 0, nil, fmt.Errorf("读取邮件 %d 失败: %w", id, err)
+			ctx.Log.Warn("19/3 Не удалось прочитать письмо", "mail", id, "err", err)
+			return 0, nil, fmt.Errorf("Не удалось прочитать письмо %d: %w", id, err)
 		}
 		if m.Read != 0 {
 			continue
@@ -531,30 +531,30 @@ func (s *Server) acceptMails(ctx *Ctx, ids []int64) (int, []*store.Item, error) 
 		if m.ItemsJSON != "" {
 			var attachments []store.MailItem
 			if err := json.Unmarshal([]byte(m.ItemsJSON), &attachments); err != nil {
-				ctx.Log.Warn("19/3 附件 JSON 损坏", "mail", id, "err", err)
-				skipped = append(skipped, fmt.Errorf("邮件 %d 附件数据损坏: %w", id, err))
+				ctx.Log.Warn("19/3 JSON вложения повреждён", "mail", id, "err", err)
+				skipped = append(skipped, fmt.Errorf("Данные вложения письма %d повреждены: %w", id, err))
 				plan.invalid = true
 				break
 			}
 			for _, att := range attachments {
 				if m.AttachmentSnapshotVersion > 0 && !att.HasItemSnapshot() {
-					ctx.Log.Warn("19/3 附件快照不完整", "mail", id, "item", att.ItemID)
-					skipped = append(skipped, fmt.Errorf("邮件 %d 附件快照不完整: %s", id, att.ItemID))
+					ctx.Log.Warn("19/3 Неполный снимок вложения", "mail", id, "item", att.ItemID)
+					skipped = append(skipped, fmt.Errorf("Неполный снимок вложения письма %d: %s", id, att.ItemID))
 					plan.invalid = true
 					break
 				}
 				def, derr := s.DB.GetItemDefByItemID(cctx, att.ItemID)
 				if derr != nil || def == nil {
-					ctx.Log.Warn("19/3 附件定义不存在", "mail", id, "item", att.ItemID, "err", derr)
-					skipped = append(skipped, fmt.Errorf("邮件 %d 附件物品不存在: %s", id, att.ItemID))
+					ctx.Log.Warn("19/3 Определение вложения не существует", "mail", id, "item", att.ItemID, "err", derr)
+					skipped = append(skipped, fmt.Errorf("Предмет вложения письма %d не существует: %s", id, att.ItemID))
 					plan.invalid = true
 					break
 				}
 				if def.Category == bundleCategory {
 					openable := bundleOpenable(def)
 					if att.BuyPrice != 0 && !openable {
-						ctx.Log.Warn("19/3 组合包有购买价值，需人工处理", "mail", id, "item", att.ItemID)
-						skipped = append(skipped, fmt.Errorf("邮件 %d 组合包需人工处理: %s", id, att.ItemID))
+						ctx.Log.Warn("19/3 У набора есть стоимость покупки, нужна ручная обработка", "mail", id, "item", att.ItemID)
+						skipped = append(skipped, fmt.Errorf("Набор в письме %d требует ручной обработки: %s", id, att.ItemID))
 						plan.invalid = true
 						break
 					}
@@ -566,9 +566,9 @@ func (s *Server) acceptMails(ctx *Ctx, ids []int64) (int, []*store.Item, error) 
 							packs = 1
 						}
 						if packs > maxBundlePreparedItems {
-							ctx.Log.Warn("19/3 礼盒附件数量超过上限", "mail", id,
+							ctx.Log.Warn("19/3 Количество подарочных коробок во вложении превышает предел", "mail", id,
 								"item", att.ItemID, "qty", packs, "limit", maxBundlePreparedItems)
-							skipped = append(skipped, fmt.Errorf("礼盒附件数量 %d 超过上限 %d: %s",
+							skipped = append(skipped, fmt.Errorf("Количество подарочных коробок во вложении (%d) превышает предел %d: %s",
 								packs, maxBundlePreparedItems, att.ItemID))
 							plan.invalid = true
 							break
@@ -576,8 +576,8 @@ func (s *Server) acceptMails(ctx *Ctx, ids []int64) (int, []*store.Item, error) 
 						for i := int64(0); i < packs; i++ {
 							it, berr := s.prepareNewItem(cctx, uid, att.ItemID, "backpack", 1, "")
 							if berr != nil {
-								ctx.Log.Warn("19/3 礼盒附件构造失败", "mail", id, "item", att.ItemID, "err", berr)
-								skipped = append(skipped, fmt.Errorf("邮件 %d 礼盒附件构造失败: %s: %w", id, att.ItemID, berr))
+								ctx.Log.Warn("19/3 Не удалось создать подарочную коробку из вложения", "mail", id, "item", att.ItemID, "err", berr)
+								skipped = append(skipped, fmt.Errorf("Не удалось создать подарочную коробку из вложения письма %d: %s: %w", id, att.ItemID, berr))
 								plan.invalid = true
 								break
 							}
@@ -587,8 +587,8 @@ func (s *Server) acceptMails(ctx *Ctx, ids []int64) (int, []*store.Item, error) 
 					}
 					items, berr := s.prepareBundleItems(cctx, uid, att.ItemID, "backpack", att.Qty)
 					if berr != nil {
-						ctx.Log.Warn("19/3 组合包展开失败", "mail", id, "item", att.ItemID, "err", berr)
-						skipped = append(skipped, fmt.Errorf("邮件 %d 组合包展开失败: %s: %w", id, att.ItemID, berr))
+						ctx.Log.Warn("19/3 Не удалось развернуть набор", "mail", id, "item", att.ItemID, "err", berr)
+						skipped = append(skipped, fmt.Errorf("Не удалось развернуть набор в письме %d: %s: %w", id, att.ItemID, berr))
 						plan.invalid = true
 						break
 					}
@@ -605,8 +605,8 @@ func (s *Server) acceptMails(ctx *Ctx, ids []int64) (int, []*store.Item, error) 
 					}
 					rows, rerr := s.prepareCouponRows(cctx, uid, att.ItemID, "backpack", couponQty)
 					if rerr != nil {
-						ctx.Log.Warn("19/3 梦鱼券构造失败", "mail", id, "qty", couponQty, "err", rerr)
-						skipped = append(skipped, fmt.Errorf("邮件 %d 梦鱼券构造失败: %w", id, rerr))
+						ctx.Log.Warn("19/3 Не удалось создать купон на чучело", "mail", id, "qty", couponQty, "err", rerr)
+						skipped = append(skipped, fmt.Errorf("Не удалось создать купон на чучело из письма %d: %w", id, rerr))
 						plan.invalid = true
 						break
 					}
@@ -617,8 +617,8 @@ func (s *Server) acceptMails(ctx *Ctx, ids []int64) (int, []*store.Item, error) 
 				if m.AttachmentSnapshotVersion > 0 {
 					it, err = s.prepareMailSnapshotItem(cctx, uid, att)
 					if err != nil {
-						ctx.Log.Warn("19/3 附件快照重建失败", "mail", id, "item", att.ItemID, "err", err)
-						skipped = append(skipped, fmt.Errorf("邮件 %d 附件快照重建失败: %s: %w", id, att.ItemID, err))
+						ctx.Log.Warn("19/3 Не удалось пересобрать снимок вложения", "mail", id, "item", att.ItemID, "err", err)
+						skipped = append(skipped, fmt.Errorf("Не удалось пересобрать снимок вложения письма %d: %s: %w", id, att.ItemID, err))
 						plan.invalid = true
 						break
 					}
@@ -634,8 +634,8 @@ func (s *Server) acceptMails(ctx *Ctx, ids []int64) (int, []*store.Item, error) 
 					}
 					it, err = s.prepareNewItem(cctx, uid, att.ItemID, "backpack", 1, guid)
 					if err != nil {
-						ctx.Log.Warn("19/3 附件构造失败", "mail", id, "item", att.ItemID, "err", err)
-						skipped = append(skipped, fmt.Errorf("邮件 %d 附件构造失败: %s: %w", id, att.ItemID, err))
+						ctx.Log.Warn("19/3 Не удалось создать вложение", "mail", id, "item", att.ItemID, "err", err)
+						skipped = append(skipped, fmt.Errorf("Не удалось создать вложение письма %d: %s: %w", id, att.ItemID, err))
 						plan.invalid = true
 						break
 					}
@@ -663,8 +663,8 @@ func (s *Server) acceptMails(ctx *Ctx, ids []int64) (int, []*store.Item, error) 
 
 	tx, err := beginEconomyTx(cctx, s.DB)
 	if err != nil {
-		ctx.Log.Warn("19/3 开启事务失败", "err", err)
-		return 0, nil, fmt.Errorf("领取附件开启事务失败: %w", err)
+		ctx.Log.Warn("19/3 Не удалось начать транзакцию", "err", err)
+		return 0, nil, fmt.Errorf("Не удалось начать транзакцию получения вложения: %w", err)
 	}
 	defer func() { _ = tx.Rollback() }()
 	var granted []*store.Item
@@ -680,26 +680,26 @@ func (s *Server) acceptMails(ctx *Ctx, ids []int64) (int, []*store.Item, error) 
 			continue
 		}
 		if err != nil || currentJSON != plan.itemsJSON || currentSnapshotVersion != plan.snapshotVersion {
-			ctx.Log.Warn("19/3 邮件在领取期间发生变化", "mail", plan.id, "err", err)
-			return 0, nil, fmt.Errorf("邮件 %d 在领取期间发生变化，请重试", plan.id)
+			ctx.Log.Warn("19/3 Письмо изменилось во время получения", "mail", plan.id, "err", err)
+			return 0, nil, fmt.Errorf("Письмо %d изменилось во время получения, попробуйте ещё раз", plan.id)
 		}
 		for _, prepared := range plan.prepared {
 			row, _, gerr := grantPreparedItemTx(cctx, tx, prepared, true)
 			if gerr != nil {
-				ctx.Log.Warn("19/3 附件入包失败", "mail", plan.id, "item", prepared.ItemID, "err", gerr)
-				return 0, nil, fmt.Errorf("邮件 %d 附件入包失败: %s: %w", plan.id, prepared.ItemID, gerr)
+				ctx.Log.Warn("19/3 Не удалось положить вложение в инвентарь", "mail", plan.id, "item", prepared.ItemID, "err", gerr)
+				return 0, nil, fmt.Errorf("Не удалось положить вложение письма %d в инвентарь: %s: %w", plan.id, prepared.ItemID, gerr)
 			}
 			granted = append(granted, row)
 		}
 		if _, err := tx.ExecContext(cctx, `UPDATE mail SET items_json=NULL, attachment_snapshot_version=0, read=1 WHERE uid=? AND id=? AND read=0`,
 			uid, plan.id); err != nil {
-			ctx.Log.Warn("19/3 标记邮件已读失败", "mail", plan.id, "err", err)
-			return 0, nil, fmt.Errorf("邮件 %d 标记已读失败: %w", plan.id, err)
+			ctx.Log.Warn("19/3 Не удалось отметить письмо прочитанным", "mail", plan.id, "err", err)
+			return 0, nil, fmt.Errorf("Не удалось отметить письмо %d прочитанным: %w", plan.id, err)
 		}
 	}
 	if err := tx.Commit(); err != nil {
-		ctx.Log.Warn("19/3 提交失败", "err", err)
-		return 0, nil, fmt.Errorf("领取附件提交失败: %w", err)
+		ctx.Log.Warn("19/3 Ошибка фиксации", "err", err)
+		return 0, nil, fmt.Errorf("Не удалось зафиксировать получение вложения: %w", err)
 	}
 	if len(granted) > 0 {
 		trees := make([]*proto.Value, 0, len(granted))
@@ -712,7 +712,7 @@ func (s *Server) acceptMails(ctx *Ctx, ids []int64) (int, []*store.Item, error) 
 			ctx.Sess.Push(4, 22, proto.Args(proto.S("61"), trees...))
 		}
 	}
-	ctx.Log.Info("领取附件", "count", len(granted), "skipped", len(skipped))
+	ctx.Log.Info("Получение вложения", "count", len(granted), "skipped", len(skipped))
 	// 好邮件已入包并置读；坏邮件的原因仍要回给玩家，让他知道还有东西没领出来。
 	return len(granted), granted, errors.Join(skipped...)
 }
@@ -731,7 +731,7 @@ func (s *Server) notifyMailClaimFailed(ctx *Ctx, err error) {
 		return
 	}
 	ctx.ReplyFailure("System.InvalidOperationException",
-		"邮件附件领取失败："+err.Error()+"。邮件已保留，请联系服主处理。")
+		"Не удалось получить вложение письма: "+err.Error()+". Письмо сохранено, обратитесь к администратору сервера.")
 }
 
 // hMailAccept 19/3：领取单封附件。
@@ -747,7 +747,7 @@ func hMailAccept(ctx *Ctx) ([]byte, bool) {
 		ids = append(ids, mailGUIDToID(g))
 	}
 	if _, _, err := ctx.Sess.Srv.acceptMails(ctx, ids); err != nil {
-		ctx.Log.Warn("19/3 领取附件失败", "err", err)
+		ctx.Log.Warn("19/3 Не удалось получить вложение", "err", err)
 		ctx.Sess.Srv.notifyMailClaimFailed(ctx, err)
 		return nil, true
 	}
@@ -764,9 +764,9 @@ func hMailAcceptAll(ctx *Ctx) ([]byte, bool) {
 	mails, err := ctx.Sess.Srv.DB.MailList(ctx.Sess.pushCtx(), ctx.Sess.Userid, true)
 	if err != nil {
 		// 读不到未读列表时不能回 null 成功：玩家会以为"已经全部领完"。
-		ctx.Log.Warn("19/4 读取未读邮件失败", "err", err)
+		ctx.Log.Warn("19/4 Не удалось прочитать непрочитанные письма", "err", err)
 		ctx.ReplyFailure("System.InvalidOperationException",
-			"读取邮箱失败，请稍后重试。")
+			"Не удалось прочитать почту, попробуйте позже.")
 		return nil, true
 	}
 	var ids []int64
@@ -774,7 +774,7 @@ func hMailAcceptAll(ctx *Ctx) ([]byte, bool) {
 		ids = append(ids, m.ID)
 	}
 	if _, _, err := ctx.Sess.Srv.acceptMails(ctx, ids); err != nil {
-		ctx.Log.Warn("19/4 一键领取附件失败", "err", err)
+		ctx.Log.Warn("19/4 Не удалось получить все вложения", "err", err)
 		ctx.Sess.Srv.notifyMailClaimFailed(ctx, err)
 		return nil, true
 	}
@@ -852,15 +852,15 @@ type AdminCommand struct {
 	GUIDs        []string            `json:"guids,omitempty"`
 	Keepnet      *store.KeepnetEntry `json:"keepnet,omitempty"`
 	KeepnetGUIDs []string            `json:"keepnet_guids,omitempty"`
-	MailIDs      []string            `json:"mail_ids,omitempty"`    // delete_mail：要删除的邮件 id（十进制字符串或 GUID）
-	Species      string              `json:"species,omitempty"`     // arm_fish：鱼种（空=默认池随机）
-	WeightG      int64               `json:"weight_g,omitempty"`    // arm_fish：克重（空=默认池范围内）
-	Grade        int64               `json:"grade,omitempty"`       // 兼容旧指令；实际档位按结算尺和重量计算。
-	Channel      int64               `json:"channel,omitempty"`     // fish_tv_test：聊天推送通道 24..31
-	Kind         int64               `json:"kind,omitempty"`        // fish_tv_test：401.f0 消息类型；负值为参数位探测
-	KVShape      int64               `json:"kv_shape,omitempty"`    // fish_tv_test：401.f4 模板 KV 形状或外层参数探测编号
-	AchID        int64               `json:"ach_id,omitempty"`      // achievement_push_test：成就 id
-	NotifyType   int64               `json:"notify_type,omitempty"` // achievement_push_test：2/9 的 306.f0 取值
+	MailIDs      []string            `json:"mail_ids,omitempty"`    // delete_mail: 要删除的邮件 id (十进制字符串或 GUID)
+	Species      string              `json:"species,omitempty"`     // arm_fish: 鱼种 (空=默认池随机)
+	WeightG      int64               `json:"weight_g,omitempty"`    // arm_fish: 克重 (空=默认池范围内)
+	Grade        int64               `json:"grade,omitempty"`       // 兼容旧指令; 实际档位按结算尺和重量计算.
+	Channel      int64               `json:"channel,omitempty"`     // fish_tv_test: 聊天推送通道 24..31
+	Kind         int64               `json:"kind,omitempty"`        // fish_tv_test: 401.f0 消息类型; 负值为参数位探测
+	KVShape      int64               `json:"kv_shape,omitempty"`    // fish_tv_test: 401.f4 模板 KV 形状或外层参数探测编号
+	AchID        int64               `json:"ach_id,omitempty"`      // achievement_push_test: 成就 id
+	NotifyType   int64               `json:"notify_type,omitempty"` // achievement_push_test: 2/9 的 306.f0 取值
 }
 
 // StartAdminSubscriber 轮询共享 SQLite 队列，每 2 秒处理一批管理指令。
@@ -884,7 +884,7 @@ func (s *Server) StartAdminSubscriber(db *store.DB, stop <-chan struct{}) {
 					}
 					var cmd AdminCommand
 					if err := json.Unmarshal([]byte(raw), &cmd); err != nil {
-						s.log.Warn("管理指令解析失败", "err", err)
+						s.log.Warn("Ошибка разбора команды администратора", "err", err)
 						continue
 					}
 					s.execAdminCmd(&cmd)
@@ -902,17 +902,17 @@ func (s *Server) execAdminCmd(cmd *AdminCommand) {
 	case "kick":
 		for _, sess := range s.sessionsForUID(cmd.UID) {
 			sess.Close("admin_kick")
-			s.log.Info("管理指令：踢下线", "uid", cmd.UID)
+			s.log.Info("Команда администратора: отключение игрока", "uid", cmd.UID)
 		}
 	case "grant_item":
 		rows, err := s.grantItemUnits(ctx, cmd.UID, cmd.ItemID, "backpack", cmd.Qty)
 		if err != nil {
-			s.log.Warn("管理指令：发物品失败", "uid", cmd.UID, "item", cmd.ItemID, "err", err)
+			s.log.Warn("Команда администратора: не удалось выдать предмет", "uid", cmd.UID, "item", cmd.ItemID, "err", err)
 		} else {
 			for _, row := range rows {
 				s.pushItemUpdate(cmd.UID, row)
 			}
-			s.log.Info("管理指令：发物品", "uid", cmd.UID, "item", cmd.ItemID,
+			s.log.Info("Команда администратора: выдача предмета", "uid", cmd.UID, "item", cmd.ItemID,
 				"qty", cmd.Qty, "rows", len(rows))
 		}
 	case "delete_item":
@@ -931,7 +931,7 @@ func (s *Server) execAdminCmd(cmd *AdminCommand) {
 				continue
 			}
 			if err := s.DB.DeleteItemCascade(ctx, guid); err != nil {
-				s.log.Warn("管理指令：删除物品失败", "uid", cmd.UID, "guid", guid, "err", err)
+				s.log.Warn("Команда администратора: не удалось удалить предмет", "uid", cmd.UID, "guid", guid, "err", err)
 				continue
 			}
 			deleted = append(deleted, guid)
@@ -942,10 +942,10 @@ func (s *Server) execAdminCmd(cmd *AdminCommand) {
 				sess.Push2_1()
 			}
 		}
-		s.log.Info("管理指令：删除物品", "uid", cmd.UID, "count", len(deleted))
+		s.log.Info("Команда администратора: удаление предмета", "uid", cmd.UID, "count", len(deleted))
 	case "add_keepnet":
 		if cmd.Keepnet == nil {
-			s.log.Warn("管理指令：增加护网鱼缺少数据", "uid", cmd.UID)
+			s.log.Warn("Команда администратора: нет данных для добавления рыбы в садок", "uid", cmd.UID)
 			break
 		}
 		entry := *cmd.Keepnet
@@ -966,20 +966,20 @@ func (s *Server) execAdminCmd(cmd *AdminCommand) {
 			entry.LengthM = math.Round(speciesLengthM(entry.Species, lp[0], lp[1], float64(entry.WeightG))*100000) / 100000
 		}
 		if err := s.DB.KeepnetInsert(ctx, &entry); err != nil {
-			s.log.Warn("管理指令：增加护网鱼失败", "uid", cmd.UID, "species", entry.Species, "err", err)
+			s.log.Warn("Команда администратора: не удалось добавить рыбу в садок", "uid", cmd.UID, "species", entry.Species, "err", err)
 		} else {
-			s.log.Info("管理指令：增加护网鱼", "uid", cmd.UID, "guid", shortGUID(entry.EchoGUID),
+			s.log.Info("Команда администратора: рыба добавлена в садок", "uid", cmd.UID, "guid", shortGUID(entry.EchoGUID),
 				"species", entry.Species, "weight", entry.WeightG)
 		}
 	case "delete_keepnet":
 		if err := s.DB.KeepnetDelete(ctx, cmd.UID, cmd.KeepnetGUIDs); err != nil {
-			s.log.Warn("管理指令：删除护网鱼失败", "uid", cmd.UID, "err", err)
+			s.log.Warn("Команда администратора: не удалось удалить рыбу из садка", "uid", cmd.UID, "err", err)
 		} else {
-			s.log.Info("管理指令：删除护网鱼", "uid", cmd.UID, "count", len(cmd.KeepnetGUIDs))
+			s.log.Info("Команда администратора: рыба удалена из садка", "uid", cmd.UID, "count", len(cmd.KeepnetGUIDs))
 		}
 	case "send_mail":
 		if id, err := s.DB.MailInsert(ctx, cmd.UID, 0, 0, cmd.Text, cmd.Items); err != nil {
-			s.log.Warn("管理指令：发邮件失败", "uid", cmd.UID, "err", err)
+			s.log.Warn("Команда администратора: не удалось отправить письмо", "uid", cmd.UID, "err", err)
 		} else {
 			s.notifyMail(ctx, cmd.UID, id)
 		}
@@ -990,23 +990,23 @@ func (s *Server) execAdminCmd(cmd *AdminCommand) {
 		for _, raw := range cmd.MailIDs {
 			id := parseMailIDArg(strings.TrimSpace(raw))
 			if id <= 0 {
-				s.log.Warn("管理指令：删除邮件跳过非法 id", "uid", cmd.UID, "raw", raw)
+				s.log.Warn("Команда администратора: удаление письма — пропущено неверное id", "uid", cmd.UID, "raw", raw)
 				continue
 			}
 			if err := s.DB.MailDelete(ctx, cmd.UID, id); err != nil {
-				s.log.Warn("管理指令：删除邮件失败", "uid", cmd.UID, "mail", id, "err", err)
+				s.log.Warn("Команда администратора: не удалось удалить письмо", "uid", cmd.UID, "mail", id, "err", err)
 				continue
 			}
 			deleted++
 		}
-		s.log.Info("管理指令：删除邮件", "uid", cmd.UID, "count", deleted)
+		s.log.Info("Команда администратора: удаление письма", "uid", cmd.UID, "count", deleted)
 	case "arm_fish":
 		st := s.stateFor(cmd.UID)
 		f := &RolledFish{FishGUID: newFishGUID(), Species: cmd.Species, WeightG: cmd.WeightG, Grade: cmd.Grade, LocLevel: s.currentLevel(cmd.UID)}
 		if f.Species == "" {
 			r := s.rollFish(st.Loc, st.Bait)
 			if r == nil {
-				s.log.Warn("管理指令：当前没有匹配鱼，请指定鱼种", "uid", cmd.UID)
+				s.log.Warn("Команда администратора: сейчас нет подходящей рыбы, укажите вид", "uid", cmd.UID)
 				return
 			}
 			f.Species = r.Species
@@ -1029,28 +1029,28 @@ func (s *Server) execAdminCmd(cmd *AdminCommand) {
 		st.mu.Lock()
 		st.Armed = f
 		st.mu.Unlock()
-		s.log.Info("管理指令：下一杆指定鱼", "uid", cmd.UID, "species", f.Species, "weight", f.WeightG, "grade", f.Grade)
+		s.log.Info("Команда администратора: рыба на следующий заброс", "uid", cmd.UID, "species", f.Species, "weight", f.WeightG, "grade", f.Grade)
 	case "broadcast":
-		s.log.Info("管理指令：广播（占位）", "text", cmd.Text)
+		s.log.Info("Команда администратора: объявление (заглушка)", "text", cmd.Text)
 	case "reload_tunables":
 		s.tunMu.Lock()
 		s.tunCache = nil // 强制下次读取刷新
 		s.tunMu.Unlock()
 		if err := s.reloadFishEcologyCache(s.dbCtx()); err != nil {
-			s.log.Warn("鱼种生态缓存刷新失败", "err", err)
+			s.log.Warn("Не удалось обновить кэш экологии видов", "err", err)
 		}
 		if err := s.reloadHookBiteProfiles(s.dbCtx()); err != nil {
-			s.log.Warn("鱼钩型号咬口缓存刷新失败", "err", err)
+			s.log.Warn("Не удалось обновить кэш засечки крючков", "err", err)
 		}
-		s.log.Info("管理指令：运行参数已刷新")
+		s.log.Info("Команда администратора: параметры обновлены")
 	case "reload_bait_rules":
 		s.invalidateBaitOverrides()
-		s.log.Info("管理指令：鱼饵规则覆盖已刷新")
+		s.log.Info("Команда администратора: переопределения правил наживки обновлены")
 	case "reload_fish_zones":
 		s.fishZoneMu.Lock()
 		s.fishZoneCache = nil
 		s.fishZoneMu.Unlock()
-		s.log.Info("管理指令：区域鱼种名册已刷新")
+		s.log.Info("Команда администратора: списки видов по зонам обновлены")
 	case "fish_tv_test":
 		// 鱼汛通道探测：向指定玩家（0=全部在线会话）推送一条测试消息。
 		var targets []*Session
@@ -1067,7 +1067,7 @@ func (s *Server) execAdminCmd(cmd *AdminCommand) {
 		}
 		text := cmd.Text
 		if text == "" {
-			text = fmt.Sprintf("鱼汛通道测试 ch=%d kind=%d", cmd.Channel, cmd.Kind)
+			text = fmt.Sprintf("Тест канала клёва ch=%d kind=%d", cmd.Channel, cmd.Kind)
 		}
 		kv := fishTVKvShape(cmd.KVShape, cmd.Species, cmd.WeightG)
 		if cmd.KVShape >= 100 {
@@ -1076,14 +1076,14 @@ func (s *Server) execAdminCmd(cmd *AdminCommand) {
 			for _, sess := range targets {
 				sess.pushChatRaw(rawVariant, int(cmd.Kind), text)
 			}
-			s.log.Info("管理指令：鱼汛外层参数探测", "uid", cmd.UID,
+			s.log.Info("Команда администратора: проба внешних параметров клёва", "uid", cmd.UID,
 				"variant", rawVariant, "kind", cmd.Kind, "targets", len(targets))
 			return
 		}
 		for _, sess := range targets {
 			sess.pushChatProbe(int(cmd.Channel), int(cmd.Kind), text, kv)
 		}
-		s.log.Info("管理指令：鱼汛通道测试", "uid", cmd.UID,
+		s.log.Info("Команда администратора: тест канала клёва", "uid", cmd.UID,
 			"channel", cmd.Channel, "kind", cmd.Kind, "kv_shape", cmd.KVShape, "targets", len(targets))
 	case "achievement_push_test":
 		// 成就解锁弹窗探测：向指定玩家（0=全部在线）发一种候选推送。
@@ -1113,20 +1113,20 @@ func (s *Server) execAdminCmd(cmd *AdminCommand) {
 				sent++
 			}
 		}
-		s.log.Info("管理指令：成就推送探针", "uid", cmd.UID, "variant", variant,
+		s.log.Info("Команда администратора: проба отправки достижений", "uid", cmd.UID, "variant", variant,
 			"ach_id", achID, "notify_type", cmd.NotifyType, "targets", len(targets), "sent", sent)
 	case "refresh_player":
 		for _, sess := range s.sessionsForUID(cmd.UID) {
 			sess.Push2_1()
 		}
-		s.log.Info("管理指令：刷新玩家档案", "uid", cmd.UID)
+		s.log.Info("Команда администратора: обновление профиля игрока", "uid", cmd.UID)
 	case "refresh_skills":
 		for _, sess := range s.sessionsForUID(cmd.UID) {
 			sess.Push2_4SkillTree("admin refresh")
 		}
-		s.log.Info("管理指令：刷新技能面板", "uid", cmd.UID)
+		s.log.Info("Команда администратора: обновление панели навыков", "uid", cmd.UID)
 	default:
-		s.log.Warn("未知管理指令", "op", cmd.Op)
+		s.log.Warn("Неизвестная команда администратора", "op", cmd.Op)
 	}
 }
 
@@ -1163,7 +1163,7 @@ func (s *Server) CheckBanned(sess *Session) {
 	}
 	banned, err := s.DB.IsBanned(s.dbCtx(), sess.Userid)
 	if err == nil && banned {
-		sess.log.Info("封禁玩家拒绝接入")
+		sess.log.Info("Забаненному игроку отказано во входе")
 		sess.Close("banned")
 	}
 }

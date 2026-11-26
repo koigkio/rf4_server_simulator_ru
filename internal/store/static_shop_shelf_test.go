@@ -59,6 +59,6 @@ func TestStaticSpecialtyShopShelvesReferenceKnownItems(t *testing.T) {
 		t.Fatal(err)
 	}
 	if craftRows != 8254 {
-		t.Fatalf("craft_baits_012 基础货架=%d，期望 8254（%d 个目标商店）", craftRows, len(stores))
+		t.Fatalf("craft_baits_012 基础货架=%d, 期望 8254 (%d 个目标商店)", craftRows, len(stores))
 	}
 }

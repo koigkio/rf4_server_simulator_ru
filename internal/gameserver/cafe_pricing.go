@@ -93,7 +93,7 @@ func (s *Server) calibratedCafeTemplates(ctx context.Context, level string, now 
 		}
 	}
 	if len(ordinary) < 9 || len(large) == 0 {
-		return nil, fmt.Errorf("咖啡厅模板不足: %s", level)
+		return nil, fmt.Errorf("Кафе: недостаточно шаблонов: %s", level)
 	}
 	// 固定分组使一个槽位到期不会改变其他槽位的条件，也避免重复单。
 	groupRand := cafeRandom("cafe-groups/" + level)

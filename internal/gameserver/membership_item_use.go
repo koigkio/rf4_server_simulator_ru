@@ -42,8 +42,8 @@ func (s *Server) useMembershipItem(ctx *Ctx) ([]byte, bool) {
 		return nil, true
 	}
 	failed := func(err error) ([]byte, bool) {
-		ctx.Log.Warn("会员物品使用未完成", "err", err)
-		return fail("物品使用未完成，请重试")
+		ctx.Log.Warn("Использование предмета премиума не завершено", "err", err)
+		return fail("Предмет не использован, попробуйте ещё раз")
 	}
 
 	cctx, uid := ctx.Sess.pushCtx(), ctx.Sess.Userid
@@ -72,14 +72,14 @@ func (s *Server) useMembershipItem(ctx *Ctx) ([]byte, bool) {
 		return nil, false
 	}
 	if ctx.Sess.Closed() {
-		return fail("会话已关闭，请重新连接")
+		return fail("Сессия закрыта, переподключитесь")
 	}
 	if !hasStorage || storage != 0 || row.UID != uid || row.Container != "backpack" || row.RigGUID != "" {
-		return fail("只能使用自己背包中的会员物品")
+		return fail("Можно использовать только предметы премиума из своего инвентаря")
 	}
 	days, ok := defAttrU64(def, membershipDaysAttr)
 	if !ok || days == 0 || days > 3660 {
-		return fail("会员时长无效")
+		return fail("Неверная длительность премиума")
 	}
 	now := time.Now().Unix()
 	newExp, err := grantMembershipDaysTx(cctx, tx, uid, int64(days), now)
@@ -122,7 +122,7 @@ func (s *Server) useMembershipItem(ctx *Ctx) ([]byte, bool) {
 		ctx.Sess.Push2_1()
 		ctx.Sess.pushBaitChange(change)
 	})
-	ctx.Log.Info("4/8 使用会员时长物品", "item", def.ItemID, "days", days, "exp", newExp)
+	ctx.Log.Info("4/8 Использование предмета продления премиума", "item", def.ItemID, "days", days, "exp", newExp)
 	return body, true
 }
 
@@ -130,7 +130,7 @@ func (s *Server) useMembershipItem(ctx *Ctx) ([]byte, bool) {
 // 永久会员(kind=2)不接受续期。
 func grantMembershipDaysTx(ctx context.Context, tx *sql.Tx, uid, days, now int64) (int64, error) {
 	if days <= 0 || days > 3660 {
-		return 0, fmt.Errorf("会员天数无效")
+		return 0, fmt.Errorf("Неверное число дней премиума")
 	}
 	var kind, exp int64
 	if err := tx.QueryRowContext(ctx,
@@ -139,7 +139,7 @@ func grantMembershipDaysTx(ctx context.Context, tx *sql.Tx, uid, days, now int64
 		return 0, err
 	}
 	if kind == 2 {
-		return 0, fmt.Errorf("当前角色已是永久会员")
+		return 0, fmt.Errorf("У персонажа уже вечный премиум")
 	}
 	base := now
 	if kind == 1 && exp > base {
@@ -147,7 +147,7 @@ func grantMembershipDaysTx(ctx context.Context, tx *sql.Tx, uid, days, now int64
 	}
 	const maxUnix = 253402300799
 	if base > maxUnix-days*86400 {
-		return 0, fmt.Errorf("会员到期时间超出范围")
+		return 0, fmt.Errorf("Время окончания премиума вне допустимого диапазона")
 	}
 	newExp := base + days*86400
 	if _, err := tx.ExecContext(ctx,

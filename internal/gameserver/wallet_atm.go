@@ -17,7 +17,7 @@ import (
 const (
 	atmStorePrefix    = "atm_"
 	atmWalletCategory = int64(43)     // 钱包品类
-	atmWalletAmountCS = "pkdlooielib" // 钱包面额（银币分）
+	atmWalletAmountCS = "pkdlooielib" // 钱包面额 (银币分)
 )
 
 // tryBuyWalletAtm 在 hStoreBuy 开头拦截 ATM 钱包购买。
@@ -47,21 +47,21 @@ func (s *Server) tryBuyWalletAtm(ctx *Ctx, storeID, itemID string, goldCol bool)
 	// 价格只取店内生效货架，客户端报价仅用于诊断。
 	price, err := s.storePrice(cctx, storeID, itemID, offer, true)
 	if err != nil {
-		ctx.Log.Warn("ATM 钱包无金币价目", "store", storeID, "item", itemID, "err", err)
-		return fail("购买未完成，请刷新商店后重试")
+		ctx.Log.Warn("ATM У кошелька нет цены в золоте", "store", storeID, "item", itemID, "err", err)
+		return fail("Покупка не завершена, обновите магазин и попробуйте ещё раз")
 	}
 	tx, err := beginEconomyTx(cctx, s.DB)
 	if err != nil {
-		return fail("购买未完成，请刷新商店后重试")
+		return fail("Покупка не завершена, обновите магазин и попробуйте ещё раз")
 	}
 	defer func() { _ = tx.Rollback() }()
 	// 扣金币与加银币同事务，条件更新由 applyWalletTx 保证余额不为负。
 	if err := applyWalletTx(cctx, tx, uid, int64(amount), -int64(price),
 		"buy", itemID, "", fmt.Sprintf("store=%s currency=gold wallet_direct", storeID)); err != nil {
 		if errors.Is(err, errInsufficientFunds) {
-			return fail("余额不足，未购买商品")
+			return fail("Недостаточно средств, товар не куплен")
 		}
-		return fail("购买未完成，请刷新商店后重试")
+		return fail("Покупка не завершена, обновите магазин и попробуйте ещё раз")
 	}
 	// 804 回执不携带物品树，客户端只刷新余额。
 	obj804 := wiregen.MustMakeObj("jfafgmcfjkc", map[int]*proto.Value{
@@ -72,15 +72,15 @@ func (s *Server) tryBuyWalletAtm(ctx *Ctx, storeID, itemID string, goldCol bool)
 	})
 	body, err := proto.EncodeValue(obj804, ctx.Sess.Table())
 	if err != nil {
-		return fail("购买未完成，请刷新商店后重试")
+		return fail("Покупка не завершена, обновите магазин и попробуйте ещё раз")
 	}
 	if reason := s.dispatch.checkRegisteredResponse(uint8(ctx.Main), uint8(ctx.Sub), body, ctx.Sess.Table()); reason != "" {
-		return fail("购买未完成，请刷新商店后重试")
+		return fail("Покупка не завершена, обновите магазин и попробуйте ещё раз")
 	}
 	if err := tx.Commit(); err != nil {
-		return fail("购买未完成，请刷新商店后重试")
+		return fail("Покупка не завершена, обновите магазин и попробуйте ещё раз")
 	}
 	ctx.AfterResponse(func() { ctx.Sess.Push2_1() })
-	ctx.Log.Info("ATM 钱包直接到账", "store", storeID, "item", itemID, "gold", -int64(price), "silver", amount)
+	ctx.Log.Info("ATM Зачисление напрямую в кошелёк", "store", storeID, "item", itemID, "gold", -int64(price), "silver", amount)
 	return body, true
 }

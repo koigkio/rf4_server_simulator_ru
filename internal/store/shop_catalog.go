@@ -68,11 +68,11 @@ func embeddedShopKindCatalog() (*shopKindCatalog, error) {
 	shopCatalogOnce.Do(func() {
 		var catalog shopKindCatalog
 		if err := json.Unmarshal(embeddedShopKindDefs, &catalog); err != nil {
-			shopCatalogErr = fmt.Errorf("解析内嵌商店目录: %w", err)
+			shopCatalogErr = fmt.Errorf("Разбор встроенного каталога магазина: %w", err)
 			return
 		}
 		if len(catalog.Stores) == 0 {
-			shopCatalogErr = fmt.Errorf("内嵌商店目录没有 stores")
+			shopCatalogErr = fmt.Errorf("Во встроенном каталоге магазина нет stores")
 			return
 		}
 		shopCatalogData = &catalog
@@ -87,7 +87,7 @@ func embeddedShopHouseShelf() (map[string][]*ShopPrice, error) {
 			Rows []shopHouseRow `json:"rows"`
 		}
 		if err := json.Unmarshal(embeddedShopHouses, &payload); err != nil {
-			shopHouseErr = fmt.Errorf("解析内嵌房产货架: %w", err)
+			shopHouseErr = fmt.Errorf("Разбор встроенных полок недвижимости: %w", err)
 			return
 		}
 		shopHouseShelf = make(map[string][]*ShopPrice, len(payload.Rows))

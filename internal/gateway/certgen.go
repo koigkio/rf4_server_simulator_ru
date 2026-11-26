@@ -26,7 +26,7 @@ func EnsureCert(certFile, keyFile, loginDomain string) error {
 		}
 	}
 	if certFile == "" || keyFile == "" {
-		return fmt.Errorf("未配置证书路径")
+		return fmt.Errorf("Не указан путь к сертификату")
 	}
 	if err := os.MkdirAll(filepath.Dir(certFile), 0o755); err != nil {
 		return err

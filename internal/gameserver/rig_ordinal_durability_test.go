@@ -38,7 +38,7 @@ func TestRigMultiSlotSameCategoryAndExactDetach(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !srv.rigSetType(ctx, uid, rod.GUID, 59) { // 海竿三钩位：250/251/252，索引各不相同
+	if !srv.rigSetType(ctx, uid, rod.GUID, 59) { // 海竿三钩位: 250/251/252, 索引各不相同
 		t.Fatal("设置多钩钓组类型失败")
 	}
 	sinkA, err := srv.CreateItem(ctx, uid, "c_hook_20819", "backpack", 1)
@@ -63,10 +63,10 @@ func TestRigMultiSlotSameCategoryAndExactDetach(t *testing.T) {
 	}
 	f5comps := rigTestCategoryComps(t, rigStoredF5(t, rodRow), 12)
 	if len(f5comps) != 2 || f5comps[0].GUID != sinkA.GUID || f5comps[1].GUID != sinkB.GUID {
-		t.Fatalf("f5 应保留两件同品类鱼钩，实得 %+v", f5comps)
+		t.Fatalf("f5 应保留两件同品类鱼钩, 实得 %+v", f5comps)
 	}
 	if f5comps[0].Ordinal != 0 || f5comps[1].Ordinal != 1 {
-		t.Fatalf("f5 ordinal 应为 0/1，实得 %+v", f5comps)
+		t.Fatalf("f5 ordinal 应为 0/1, 实得 %+v", f5comps)
 	}
 	rows, err := db.ListRigComponents(ctx, rod.GUID)
 	if err != nil {
@@ -76,13 +76,13 @@ func TestRigMultiSlotSameCategoryAndExactDetach(t *testing.T) {
 	for _, row := range rows {
 		if row.Slot == 12 {
 			if row.Extra != 250 && row.Extra != 251 {
-				t.Fatalf("钩位 canonical extra 应 250/251，实得 %d", row.Extra)
+				t.Fatalf("钩位 canonical extra 应 250/251, 实得 %d", row.Extra)
 			}
 			sinkRows = append(sinkRows, row.Ordinal)
 		}
 	}
 	if len(sinkRows) != 2 || sinkRows[0] != 0 || sinkRows[1] != 1 {
-		t.Fatalf("rig_component 应保存 ordinal 0/1，实得 %+v", sinkRows)
+		t.Fatalf("rig_component 应保存 ordinal 0/1, 实得 %+v", sinkRows)
 	}
 
 	// 删除派生投影后再拆第二件，验证拆卸依赖实例组件而不是派生索引。
@@ -91,25 +91,25 @@ func TestRigMultiSlotSameCategoryAndExactDetach(t *testing.T) {
 	}
 	res := srv.rigRemoveItemComponent(ctx, uid, rod.GUID, sinkB.GUID)
 	if res == nil || res.CompGUID != sinkB.GUID {
-		t.Fatalf("应按 GUID 精确拆下第二件沉子，实得 %+v", res)
+		t.Fatalf("应按 GUID 精确拆下第二件沉子, 实得 %+v", res)
 	}
 	rodRow, _ = db.GetItemByGUID(ctx, rod.GUID)
 	remaining := rigTestCategoryComps(t, rigStoredF5(t, rodRow), 12)
 	if len(remaining) != 1 || remaining[0].GUID != sinkA.GUID {
-		t.Fatalf("拆第二件不得影响第一件，实得 %+v", remaining)
+		t.Fatalf("拆第二件不得影响第一件, 实得 %+v", remaining)
 	}
 	rowB, _ := db.GetItemByGUID(ctx, sinkB.GUID)
 	if rowB == nil || rowB.Container != "backpack" || rowB.RigGUID != "" {
-		t.Fatalf("第二件鱼钩应退回背包，实得 %+v", rowB)
+		t.Fatalf("第二件鱼钩应退回背包, 实得 %+v", rowB)
 	}
 	rowA, _ := db.GetItemByGUID(ctx, sinkA.GUID)
 	if rowA == nil || rowA.Container != "rig" || rowA.RigGUID != rod.GUID {
-		t.Fatalf("第一件鱼钩应保持挂载，实得 %+v", rowA)
+		t.Fatalf("第一件鱼钩应保持挂载, 实得 %+v", rowA)
 	}
 	rows, _ = db.ListRigComponents(ctx, rod.GUID)
 	rows = slices.DeleteFunc(rows, func(row *store.RigComponent) bool { return row.Slot != 12 })
 	if len(rows) != 1 || rows[0].GUID != sinkA.GUID || rows[0].Ordinal != 0 {
-		t.Fatalf("派生表回算后只应剩第一件，实得 %+v", rows)
+		t.Fatalf("派生表回算后只应剩第一件, 实得 %+v", rows)
 	}
 
 	// 装回第二件后执行 remove_all；ordinal 重排时仍必须拆掉两件。
@@ -117,16 +117,16 @@ func TestRigMultiSlotSameCategoryAndExactDetach(t *testing.T) {
 		rigSetOpts{ParentType: familyRod, EnforceCategory: true})
 	results := srv.rigRemoveAll(ctx, uid, rod.GUID)
 	if len(results) < 2 {
-		t.Fatalf("remove_all 应返回两件鱼钩，实得 %+v", results)
+		t.Fatalf("remove_all 应返回两件鱼钩, 实得 %+v", results)
 	}
 	rodRow, _ = db.GetItemByGUID(ctx, rod.GUID)
 	if got := rigTestCategoryComps(t, rigStoredF5(t, rodRow), 12); len(got) != 0 {
-		t.Fatalf("remove_all 后 f5 不应剩鱼钩，实得 %+v", got)
+		t.Fatalf("remove_all 后 f5 不应剩鱼钩, 实得 %+v", got)
 	}
 	for _, guid := range []string{sinkA.GUID, sinkB.GUID} {
 		row, _ := db.GetItemByGUID(ctx, guid)
 		if row == nil || row.Container != "backpack" || row.RigGUID != "" {
-			t.Fatalf("remove_all 后 %s 应回背包，实得 %+v", shortGUID(guid), row)
+			t.Fatalf("remove_all 后 %s 应回背包, 实得 %+v", shortGUID(guid), row)
 		}
 	}
 }
@@ -168,7 +168,7 @@ func TestRigProjectionCanonicalExtraDropsGhosts(t *testing.T) {
 	}
 	rows = slices.DeleteFunc(rows, func(row *store.RigComponent) bool { return row.Slot != 29 })
 	if len(rows) != 1 || rows[0].GUID != sink.GUID || rows[0].Slot != 29 || rows[0].Extra != 200 {
-		t.Fatalf("投影应由 f5 全量回算并删除 ghost，实得 %+v", rows)
+		t.Fatalf("投影应由 f5 全量回算并删除 ghost, 实得 %+v", rows)
 	}
 }
 
@@ -194,7 +194,7 @@ func TestExplicitRigTypeIsNotOverwrittenByCompatibilityInference(t *testing.T) {
 	row, _ := db.GetItemByGUID(ctx, rod.GUID)
 	_, got, ok := rigIdentity(rigStoredF5(t, row))
 	if !ok || got != 12 {
-		t.Fatalf("玩家显式选择的 rig_type=12 不应被组件推断覆盖，实得 %d", got)
+		t.Fatalf("玩家显式选择的 rig_type=12 不应被组件推断覆盖, 实得 %d", got)
 	}
 }
 
@@ -243,7 +243,7 @@ func TestWearPersistsColumnFieldsAndVersion(t *testing.T) {
 		t.Fatalf("fields_json 耐久未同步: column=%v field=%v", lineAfter.Durability, gotD)
 	}
 	if gotVer := u64Of(lineFieldsAfter[lineVerIdx].Num); gotVer != lineVerBefore {
-		t.Fatalf("主线未磨损，版本戳不应变化: %d -> %d", lineVerBefore, gotVer)
+		t.Fatalf("主线未磨损, 版本戳不应变化: %d -> %d", lineVerBefore, gotVer)
 	}
 	hookFieldsAfter, _ := FieldsFromJSON(hookAfter.FieldsJSON)
 	if gotVer := u64Of(hookFieldsAfter[hookVerIdx].Num); gotVer <= hookVerBefore {

@@ -69,12 +69,12 @@ func TestRollFishUsesStaticTables(t *testing.T) {
 	}
 	rows.Close()
 	if len(roster) == 0 {
-		t.Fatal("静态名册为空（导入失败？）")
+		t.Fatal("静态名册为空 (导入失败? )")
 	}
 
 	// 静态路径命中，未回退。
 	if f := srv.rollFishFromDB("loc1_02", "worm_01"); f == nil {
-		t.Fatal("rollFishFromDB 应命中静态鱼库，不应回退到内置池")
+		t.Fatal("rollFishFromDB 应命中静态鱼库, 不应回退到内置池")
 	}
 
 	// 鱼种应来自名册，并覆盖内置池之外的鱼种。
@@ -104,14 +104,14 @@ func TestRollFishUsesStaticTables(t *testing.T) {
 		}
 	}
 	if outside == 0 {
-		t.Fatalf("%d 次 roll 全部落在内置鱼种池内，静态表未被使用：%v", N, seen)
+		t.Fatalf("%d 次 roll 全部落在内置鱼种池内, 静态表未被使用: %v", N, seen)
 	}
-	t.Logf("静态判鱼 OK：%d 次 roll 覆盖 %d 鱼种（池外 %d 种）", N, len(seen), outside)
+	t.Logf("静态判鱼 OK: %d 次 roll 覆盖 %d 鱼种 (池外 %d 种)", N, len(seen), outside)
 
 	// 无数据地点回退内置池。
 	f := srv.rollFish("loc_no_such_place", "")
 	if f == nil || !hardPool[f.Species] {
-		t.Errorf("无数据地点应回退内置池，实得 %+v", f)
+		t.Errorf("无数据地点应回退内置池, 实得 %+v", f)
 	}
 }
 
@@ -164,7 +164,7 @@ func TestFishMarketFlow(t *testing.T) {
 		}
 	}
 	if rodGUID == "" {
-		t.Fatal("背包里没有竿（starter 播种失败？）")
+		t.Fatal("背包里没有竿 (starter 播种失败? )")
 	}
 
 	bait, err := srv.CreateItem(cctx, uid, "worm_01", "backpack", 5)
@@ -217,7 +217,7 @@ func TestFishMarketFlow(t *testing.T) {
 		}
 		st.mu.Unlock()
 	}
-	fc.SendRequest(203, 14, 11) // 刺中（fire-and-forget，无响应；推 4/22）
+	fc.SendRequest(203, 14, 11) // 刺中 (fire-and-forget, 无响应; 推 4/22)
 
 	// 14/4 结算返回 801，但余额不变。
 	fc.SendRequest(204, 14, 4)
@@ -227,7 +227,7 @@ func TestFishMarketFlow(t *testing.T) {
 		t.Fatalf("14/4 应回 801: %v %s", err, d.Class)
 	}
 	if p1, _ := db.EnsureProfile(cctx, uid); p1.Silver != silver0 {
-		t.Fatalf("14/4 结算改变了银币 %d -> %d（应保持不变）", silver0, p1.Silver)
+		t.Fatalf("14/4 结算改变了银币 %d -> %d (应保持不变)", silver0, p1.Silver)
 	}
 
 	// 14/5 入护
@@ -290,7 +290,7 @@ func TestFishMarketFlow(t *testing.T) {
 	}
 	p2, _ := db.EnsureProfile(cctx, uid)
 	if p2.Silver != silver0+quote {
-		t.Fatalf("银币应恰一次入账 +%d（%d -> %d），实得 %d", quote, silver0, silver0+quote, p2.Silver)
+		t.Fatalf("银币应恰一次入账 +%d (%d -> %d), 实得 %d", quote, silver0, silver0+quote, p2.Silver)
 	}
 	var txnN, txnSum int64
 	if err := db.SQL.QueryRowContext(cctx,
@@ -369,13 +369,13 @@ func TestMarketPricingModel(t *testing.T) {
 func TestWorkshopRepairCost(t *testing.T) {
 	t.Parallel()
 	if got := repairCost(0, false, 1.0, 1.0); got != 300 {
-		t.Errorf("银修（1 槽全额磨损）= %d want 300", got)
+		t.Errorf("银修 (1 槽全额磨损)= %d want 300", got)
 	}
 	if got := repairCost(3, false, 0.5, 1.0); got != 250 {
-		t.Errorf("银修（3 槽半磨损）= %d want 250", got)
+		t.Errorf("银修 (3 槽半磨损)= %d want 250", got)
 	}
 	if got := repairCost(0, false, 0.0, 1.0); got != 75 { // 下限 25%
-		t.Errorf("银修（磨损下限）= %d want 75", got)
+		t.Errorf("银修 (磨损下限)= %d want 75", got)
 	}
 	if got := repairCost(0, true, 1.0, 1.0); got != 1 {
 		t.Errorf("金修 = %d want 1", got)
@@ -439,7 +439,7 @@ func TestWorkshopRepairFallbackUsesStoreMapAndBrand(t *testing.T) {
 		want  int64
 	}{
 		{store: "workshop_viiveri", want: 300}, // level_003_viiveri_lake ×2.00
-		{store: "workshop_02", want: 128},      // 惟有诺克河 ×0.85，300×0.5×0.85=127.5→128
+		{store: "workshop_02", want: 128},      // 惟有诺克河 ×0.85, 300×0.5×0.85=127.5→128
 		{store: "workshop_01", want: 150},      // level_001_lake ×1.00
 	}
 	for i, tc := range cases {
@@ -478,8 +478,8 @@ func TestFishNameValidation(t *testing.T) {
 	t.Parallel()
 	ok := []string{"Big Fish", "Karp-1", "Лещ_2", "a.b_c d9"}
 	bad := map[string]string{
-		"":         "空名字",
-		"   ":      "空名字",
+		"":         "Пустое имя",
+		"   ":      "Пустое имя",
 		"BigЛещ":   "混用",
 		"12345":    "无字母",
 		"Big*Fish": "非法字符",
@@ -603,7 +603,7 @@ func TestRepairFlow(t *testing.T) {
 	// 按服务端价格扣费：0.5 磨损、1 槽、workshop_01 倍率 1.0。
 	p1, _ := db.EnsureProfile(ctx, 1000001)
 	if p1.Silver != silver0-150 {
-		t.Fatalf("应按服务端价格扣 150 银： %d -> %d", silver0, p1.Silver)
+		t.Fatalf("应按服务端价格扣 150 银: %d -> %d", silver0, p1.Silver)
 	}
 	var txnN int64
 	if err := db.SQL.QueryRowContext(ctx,

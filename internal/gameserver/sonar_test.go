@@ -222,7 +222,7 @@ func TestSonarEchoWeightsSpanIconBands(t *testing.T) {
 		t.Fatalf("图标档位没有齐全: small=%d medium=%d large=%d", small, medium, large)
 	}
 	if small <= medium {
-		t.Fatalf("小鱼应占多数，实得 small=%d medium=%d large=%d", small, medium, large)
+		t.Fatalf("小鱼应占多数, 实得 small=%d medium=%d large=%d", small, medium, large)
 	}
 }
 
@@ -298,7 +298,7 @@ func TestSonarRosterSchoolsFollowZoneFishAndEcology(t *testing.T) {
 	}
 	schools := srv.rosterSonarSchools(t.Context(), "loc12_215", grid, nil, c, rand.New(rand.NewSource(41)))
 	if len(schools) < 2 {
-		t.Fatalf("真实名册应生成多个鱼群，实得 %d", len(schools))
+		t.Fatalf("真实名册应生成多个鱼群, 实得 %d", len(schools))
 	}
 	wantLayer := map[string]float64{
 		"test_shallow": .18,
@@ -454,7 +454,7 @@ func TestSonarProfileLookup(t *testing.T) {
 		t.Fatalf("声呐档案=%+v", profile)
 	}
 	if got := srv.sonarProfileFor(context.Background(), "loc12_02"); got != nil {
-		t.Fatalf("无档案水域应回 nil，实得 %+v", got)
+		t.Fatalf("无档案水域应回 nil, 实得 %+v", got)
 	}
 }
 
@@ -476,7 +476,7 @@ func TestSonarChartZoneUsesSonarGridNumbers(t *testing.T) {
 	} {
 		zone, ok := sonarZoneForPoint("level_012_north_sea", tt.x, tt.z)
 		if !ok || zone != tt.wantZone {
-			t.Fatalf("%s: 实得 zone=%d ok=%v，期望 %d", tt.name, zone, ok, tt.wantZone)
+			t.Fatalf("%s: 实得 zone=%d ok=%v, 期望 %d", tt.name, zone, ok, tt.wantZone)
 		}
 		if again, _ := sonarZoneForPoint("level_012_north_sea", tt.x, tt.z); again != zone {
 			t.Fatalf("%s: 同一坐标区号不稳定 %d != %d", tt.name, zone, again)

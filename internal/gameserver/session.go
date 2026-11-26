@@ -34,7 +34,7 @@ type Session struct {
 	// call_id 由 Server 按 token 共享分配，见 nextCallID；Session 不单独计数。
 
 	closed   atomic.Bool
-	stopCh   chan struct{} // 关闭信号（保活循环等监听）
+	stopCh   chan struct{} // 关闭信号 (保活循环等监听)
 	stopOnce sync.Once
 	stopInit sync.Once // stopCh 惰性创建的守卫
 
@@ -45,7 +45,7 @@ type Session struct {
 	fishPushAt   time.Time
 
 	stateMu      sync.Mutex
-	state        map[string]any // 会话级业务状态（选图、抛竿状态等）
+	state        map[string]any // 会话级业务状态 (选图, 抛竿状态等)
 	weatherMu    sync.RWMutex
 	weatherPlans map[string]fishingWeatherPlan
 	happyMu      sync.RWMutex
@@ -118,7 +118,7 @@ func (s *Session) SendEnvelope(env []byte) {
 	s.sendMu.Lock()
 	defer s.sendMu.Unlock()
 	if err := s.tunnel.WriteRecord(tunnel.TypeData, s.ID, env); err != nil {
-		s.log.Warn("隧道发送失败", "err", err)
+		s.log.Warn("Ошибка отправки через туннель", "err", err)
 		s.Close("tunnel_send_failed")
 	}
 }
@@ -134,18 +134,18 @@ func (s *Session) Push(main, sub uint8, body *proto.Value) uint32 {
 	}
 	bodyBytes, err := proto.EncodeValue(body, s.Srv.table)
 	if err != nil {
-		s.log.Error("推送编码失败", "cmd", cmdKey(main, sub), "err", err)
+		s.log.Error("Ошибка кодирования отправки", "cmd", cmdKey(main, sub), "err", err)
 		return 0
 	}
 	if len(bodyBytes) == 0 || bodyBytes[0] != 0x03 {
 		gsPushRejected.Inc()
-		s.log.Error("拒发推送：body 顶层不是 args(0x03)",
+		s.log.Error("Отказ в отправке: верхний уровень body не args(0x03)",
 			"cmd", cmdKey(main, sub), "first_byte", firstByte(bodyBytes))
 		return 0
 	}
 	if reason := checkPushArgsStrict(main, sub, body); reason != "" {
 		gsPushRejected.Inc()
-		s.log.Error("拒发推送：形状与合同不符", "cmd", cmdKey(main, sub), "reason", reason)
+		s.log.Error("Отказ в отправке: форма не соответствует контракту", "cmd", cmdKey(main, sub), "reason", reason)
 		return 0
 	}
 
@@ -157,11 +157,11 @@ func (s *Session) Push(main, sub uint8, body *proto.Value) uint32 {
 	callID := uint32(s.Srv.nextCallID(s.Token))
 	env := proto.BuildRequestEnvelope(callID, main, sub, append(bodyBytes, 0x01))
 	if traceCmds {
-		s.log.Info("TRACE 推", "cmd", cmdKey(main, sub), "len", len(bodyBytes),
+		s.log.Info("TRACE Отправка", "cmd", cmdKey(main, sub), "len", len(bodyBytes),
 			"hex", traceHexHead(bodyBytes, traceHexMax))
 	}
 	if err := s.tunnel.WriteRecord(tunnel.TypeData, s.ID, env); err != nil {
-		s.log.Warn("推送发送失败", "cmd", cmdKey(main, sub), "err", err)
+		s.log.Warn("Ошибка отправки", "cmd", cmdKey(main, sub), "err", err)
 		s.Close("tunnel_send_failed")
 		return 0
 	}
@@ -288,7 +288,7 @@ func (s *Session) Close(reason string) {
 			s.Srv.recallAllTripEquipment(s.pushCtx(), s.Userid)
 		}
 		if s.log != nil {
-			s.log.Info("会话关闭", "reason", reason)
+			s.log.Info("Сессия закрыта", "reason", reason)
 		}
 		s.stopOnce.Do(func() { close(s.stopSignal()) })
 		if s.Srv != nil {

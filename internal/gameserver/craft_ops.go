@@ -143,7 +143,7 @@ func rewriteCraftOutputQty(row *store.Item, pieces int64) error {
 		return err
 	}
 	if !setItemQty(row.WireClass, fields, uint64(pieces)) {
-		return fmt.Errorf("数量槽写入失败: %s", row.ItemID)
+		return fmt.Errorf("Ошибка записи слота количества: %s", row.ItemID)
 	}
 	fj, err := FieldsToJSON(fields)
 	if err != nil {
@@ -189,7 +189,7 @@ func (s *Server) resolveVendCharges(ctx context.Context, demands []craftDemand, 
 			break
 		}
 		if picked < 0 {
-			return nil, fmt.Errorf("需求 %s 没有可定价的材料槽", d.DemandID)
+			return nil, fmt.Errorf("У требования %s нет слота материала с ценой", d.DemandID)
 		}
 		used[picked] = true
 		out = append(out, vendCharge{ItemID: slots[picked].Species, Qty: d.need()})
@@ -204,15 +204,15 @@ func (s *Server) vendTotalPrice(ctx context.Context, charges []vendCharge, times
 	for _, c := range charges {
 		price, err := s.DB.CraftIngredientSilverPrice(ctx, c.ItemID)
 		if err != nil {
-			return 0, fmt.Errorf("配料 %s 无法定价", c.ItemID)
+			return 0, fmt.Errorf("Ингредиент %s нельзя оценить", c.ItemID)
 		}
 		q := c.Qty * times
 		if q > 0 && price > math.MaxInt64/q {
-			return 0, fmt.Errorf("配料 %s 价格合计溢出", c.ItemID)
+			return 0, fmt.Errorf("Переполнение суммы цены ингредиента %s", c.ItemID)
 		}
 		total += price * q
 		if total < 0 {
-			return 0, fmt.Errorf("配料合计溢出")
+			return 0, fmt.Errorf("Переполнение суммы ингредиентов")
 		}
 	}
 	return total, nil
@@ -274,7 +274,7 @@ func appendMaterialUses(dst []string, itemID string, qty int64) []string {
 const (
 	craftCookSkillID = 6 // 烹调术
 	craftFeedSkillID = 7 // 配置饵料
-	craftLureSkillID = 8 // 制作鱼饵（手工饵）
+	craftLureSkillID = 8 // 制作鱼饵 (手工饵)
 )
 
 // craftSkillCatForRecipe 将配方映射到技能大类；官方无对应技能的配方返回 0。
@@ -655,7 +655,7 @@ func (s *Server) resolveRecipe(ctx context.Context, key string) *store.Recipe {
 // 客户端该字段（phoglfnffah）为空时回落到定义名，非空时原样显示。
 func setItemName(it *store.Item, name string) error {
 	if it == nil {
-		return errors.New("空物品行")
+		return errors.New("Пустая строка предмета")
 	}
 	if name == "" {
 		return nil
@@ -666,7 +666,7 @@ func setItemName(it *store.Item, name string) error {
 	}
 	idx := fieldIdxByCS(it.WireClass, csCustomName)
 	if idx < 0 || idx >= len(fields) {
-		return fmt.Errorf("物品 %s 没有名称字段", it.ItemID)
+		return fmt.Errorf("У предмета %s нет поля названия", it.ItemID)
 	}
 	fields[idx].Str = &name
 	fj, err := FieldsToJSON(fields)
@@ -693,7 +693,7 @@ func hCraft(ctx *Ctx) ([]byte, bool) {
 	req := craftPayloadOf(ctx)
 	recipe := srv.resolveRecipe(cctx, req.Recipe)
 	if recipe == nil {
-		ctx.Log.Info("9/1 未知配方", "recipe", req.Recipe,
+		ctx.Log.Info("9/1 Неизвестный рецепт", "recipe", req.Recipe,
 			"source", req.Source, "materials", len(req.Materials))
 		return srv.replyCraftResult(ctx, false, nil, nil, nil)
 	}
@@ -703,7 +703,7 @@ func hCraft(ctx *Ctx) ([]byte, bool) {
 	}
 	outputDef, derr := srv.DB.GetItemDefByItemID(cctx, outputID)
 	if derr != nil {
-		ctx.Log.Warn("9/1 产出物定义读取失败", "output", outputID, "err", derr)
+		ctx.Log.Warn("9/1 Не удалось прочитать определение изделия", "output", outputID, "err", derr)
 		return srv.replyCraftResult(ctx, false, nil, nil, nil)
 	}
 	demands := parseDemands(recipe.MaterialsJSON)
@@ -720,12 +720,12 @@ func hCraft(ctx *Ctx) ([]byte, bool) {
 	producedRow, err := srv.prepareNewItem(cctx, uid, outputID, "backpack",
 		times*spec.Yield, "")
 	if err != nil {
-		ctx.Log.Warn("9/1 产出物不可构造", "output", outputID, "err", err)
+		ctx.Log.Warn("9/1 Изделие невозможно создать", "output", outputID, "err", err)
 		return srv.replyCraftResult(ctx, false, nil, nil, nil)
 	}
 	lureHooks, ordinaryMaterials, err := prepareCraftedLureHooks(producedRow, outputDef, req.Materials)
 	if err != nil {
-		ctx.Log.Warn("9/1 选钩无效", "err", err)
+		ctx.Log.Warn("9/1 Неверный выбор крючка", "err", err)
 		return srv.replyCraftResult(ctx, false, nil, nil, nil)
 	}
 	// Selected hooks are transferred, not consumed as ordinary recipe materials.
@@ -747,7 +747,7 @@ func hCraft(ctx *Ctx) ([]byte, bool) {
 	if isLeaderCraft {
 		// 必须在经济事务开启前加载静态目录；SQLite 单连接事务内再查会阻塞。
 		if _, err := srv.leaderWireCatalog(cctx); err != nil {
-			ctx.Log.Warn("9/1 前导线目录加载失败", "err", err)
+			ctx.Log.Warn("9/1 Не удалось загрузить каталог поводков", "err", err)
 			return srv.replyCraftResult(ctx, false, nil, nil, nil)
 		}
 	}
@@ -764,14 +764,14 @@ func hCraft(ctx *Ctx) ([]byte, bool) {
 			vendTotal, verr = srv.vendTotalPrice(cctx, vendCharges, times)
 		}
 		if verr != nil {
-			ctx.Log.Warn("9/1 贩卖机配料定价失败", "recipe", recipe.RecipeID, "err", verr)
+			ctx.Log.Warn("9/1 Ошибка оценки ингредиентов автомата", "recipe", recipe.RecipeID, "err", verr)
 			return srv.replyCraftResult(ctx, false, nil, nil, nil)
 		}
 	}
 
 	tx, err := beginEconomyTx(cctx, srv.DB)
 	if err != nil {
-		ctx.Log.Warn("9/1 开启事务失败", "err", err)
+		ctx.Log.Warn("9/1 Не удалось начать транзакцию", "err", err)
 		return srv.replyCraftResult(ctx, false, nil, nil, nil)
 	}
 	defer func() { _ = tx.Rollback() }()
@@ -785,7 +785,7 @@ func hCraft(ctx *Ctx) ([]byte, bool) {
 	consumeMaterial := func(row *store.Item, qty int64) (int64, error) {
 		if producedRow.TypeID == 145 && row.TypeID == 120 {
 			if pvaFeedGUID != "" && pvaFeedGUID != row.GUID {
-				return 0, errors.New("PVA 制作必须使用同一份干混合配方")
+				return 0, errors.New("PVA Для изготовления нужен один и тот же сухой рецепт смеси")
 			}
 			if pvaFeed == nil {
 				var err error
@@ -803,7 +803,7 @@ func hCraft(ctx *Ctx) ([]byte, bool) {
 	keepnetTaken := []string{}
 	var leaderMaterials craftedLeaderMaterials
 	fail := func(reason string, args ...any) ([]byte, bool) {
-		ctx.Log.Warn("9/1 制作失败："+reason, args...)
+		ctx.Log.Warn("9/1 Изготовление не удалось: "+reason, args...)
 		return srv.replyCraftResult(ctx, false, nil, nil, nil)
 	}
 
@@ -812,7 +812,7 @@ func hCraft(ctx *Ctx) ([]byte, bool) {
 		touched, leaderMaterials, materialErr = srv.consumeLeaderCraftMaterialsTx(
 			cctx, tx, uid, req.Materials, demands, times)
 		if materialErr != nil {
-			return fail("引线材料扣除失败", "err", materialErr)
+			return fail("Не удалось списать материалы поводка", "err", materialErr)
 		}
 	} else if isVendCraft {
 		// 同一事务内按货架价扣款：余额不足整体回滚，不产出、不扣钱。
@@ -821,9 +821,9 @@ func hCraft(ctx *Ctx) ([]byte, bool) {
 				fmt.Sprintf("vend recipe=%s qty=%d items=%s",
 					recipe.RecipeID, times, vendChargeNote(vendCharges))); err != nil {
 				if errors.Is(err, errInsufficientFunds) {
-					return fail("贩卖机余额不足", "total", vendTotal)
+					return fail("Недостаточно средств для автомата", "total", vendTotal)
 				}
-				return fail("贩卖机扣款失败", "err", err)
+				return fail("Не удалось списать оплату автомата", "err", err)
 			}
 		}
 		// 自制窝料成分按实例记账：配料即真实用料，投进窝里后成分比例不变。
@@ -833,11 +833,11 @@ func hCraft(ctx *Ctx) ([]byte, bool) {
 	} else if len(demands) > 0 && allDemandsExplicit(demands) {
 		need, ok := scaleDemands(demands, times)
 		if !ok {
-			return fail("材料数量溢出", "times", times)
+			return fail("Переполнение количества материала", "times", times)
 		}
 		rows, lerr := listItemsTx(cctx, tx, uid, []string{"backpack", "rig"})
 		if lerr != nil {
-			return fail("读取材料失败", "err", lerr)
+			return fail("Не удалось прочитать материалы", "err", lerr)
 		}
 		for _, demand := range need {
 			remaining := demand.need()
@@ -855,7 +855,7 @@ func hCraft(ctx *Ctx) ([]byte, bool) {
 					}
 					got, cerr := consumeMaterial(it, take)
 					if cerr != nil {
-						return fail("扣材料失败", "item", accept, "err", cerr)
+						return fail("Не удалось списать материалы", "item", accept, "err", cerr)
 					}
 					remaining -= got
 					if got > 0 {
@@ -872,7 +872,7 @@ func hCraft(ctx *Ctx) ([]byte, bool) {
 				taken, kerr := srv.consumeKeepnetForDemandTx(cctx, tx, uid, demand, remaining,
 					preferredKeepnet(req.Materials, demand.DemandID))
 				if kerr != nil {
-					return fail("扣渔获失败", "demand", demand.DemandID, "err", kerr)
+					return fail("Не удалось списать улов", "demand", demand.DemandID, "err", kerr)
 				}
 				for _, e := range taken {
 					remaining--
@@ -885,12 +885,12 @@ func hCraft(ctx *Ctx) ([]byte, bool) {
 				}
 			}
 			if remaining > 0 {
-				return fail("材料不足", "demand", demand.DemandID, "missing", remaining)
+				return fail("Недостаточно материалов", "demand", demand.DemandID, "missing", remaining)
 			}
 		}
 	} else if len(demands) > 0 {
 		if len(req.Materials) == 0 {
-			return fail("配方要求材料但请求没有材料槽")
+			return fail("Рецепт требует материалы, но в запросе нет слотов материалов")
 		}
 		byDemand := map[string]craftDemand{}
 		for _, d := range demands {
@@ -900,7 +900,7 @@ func hCraft(ctx *Ctx) ([]byte, bool) {
 		}
 		rows, lerr := listItemsTx(cctx, tx, uid, []string{"backpack", "rig"})
 		if lerr != nil {
-			return fail("读取材料失败", "err", lerr)
+			return fail("Не удалось прочитать материалы", "err", lerr)
 		}
 		byGUID := map[string]*store.Item{}
 		for _, it := range rows {
@@ -920,17 +920,17 @@ func hCraft(ctx *Ctx) ([]byte, bool) {
 				}
 			}
 			if per > math.MaxInt64/times {
-				return fail("材料数量溢出", "demand", slot.ItemID, "times", times)
+				return fail("Переполнение количества материала", "demand", slot.ItemID, "times", times)
 			}
 			need := per * times
 			consumed := false
 			if row := byGUID[slot.GUID]; row != nil && row.Qty > 0 {
 				got, cerr := consumeMaterial(row, need)
 				if cerr != nil {
-					return fail("扣指定材料失败", "guid", slot.GUID, "err", cerr)
+					return fail("Не удалось списать указанные материалы", "guid", slot.GUID, "err", cerr)
 				}
 				if got < need {
-					return fail("材料不足", "item", row.ItemID, "missing", need-got)
+					return fail("Недостаточно материалов", "item", row.ItemID, "missing", need-got)
 				}
 				consumed = true
 				usedMats = appendMaterialUses(usedMats, row.ItemID, got)
@@ -940,7 +940,7 @@ func hCraft(ctx *Ctx) ([]byte, bool) {
 			}
 			if !consumed {
 				if !hasDemand {
-					return fail("材料槽既不在背包也无对应需求", "demand", slot.ItemID, "guid", slot.GUID)
+					return fail("Слот материала не найден ни в инвентаре, ни в требованиях", "demand", slot.ItemID, "guid", slot.GUID)
 				}
 				alts := make(map[string]bool)
 				for _, a := range demand.Alternatives {
@@ -972,7 +972,7 @@ func hCraft(ctx *Ctx) ([]byte, bool) {
 					}
 					got, cerr := consumeMaterial(it, remaining)
 					if cerr != nil {
-						return fail("按需求扣材料失败", "item", it.ItemID, "err", cerr)
+						return fail("Не удалось списать материалы по требованиям", "item", it.ItemID, "err", cerr)
 					}
 					if got > 0 && !containsGUID(touched, it.GUID) {
 						touched = append(touched, it.GUID)
@@ -984,12 +984,12 @@ func hCraft(ctx *Ctx) ([]byte, bool) {
 					consumed = true
 				}
 				if remaining > 0 || !consumed {
-					return fail("材料不足", "demand", demand.DemandID, "missing", remaining)
+					return fail("Недостаточно материалов", "demand", demand.DemandID, "missing", remaining)
 				}
 			}
 		}
 		if len(touched) == 0 {
-			return fail("配方要求材料但未扣到任何材料")
+			return fail("Рецепт требует материалы, но ничего не списано")
 		}
 	} else if demandID, matPerCraft := slotConsumableForRecipe(recipe.RecipeID); demandID != "" {
 		// 零材料配方但客户端会送材料槽（切鱼块/碎沸粒）：不接线时会零成本无限
@@ -1003,14 +1003,14 @@ func hCraft(ctx *Ctx) ([]byte, bool) {
 			}
 		}
 		if mat == nil || mat.GUID == "" {
-			return fail("材料槽缺少选中材料", "recipe", recipe.RecipeID, "demand", demandID)
+			return fail("В слоте материала не выбран материал", "recipe", recipe.RecipeID, "demand", demandID)
 		}
 		if recipe.RecipeID == "craft_bait_cut_fish" {
 			// 切鱼块：槽 guid 是鱼护 echo guid；槽里带的鱼种与条目不符时拒绝，
 			// 防止陈旧槽位删错鱼。
 			entries, kerr := srv.DB.KeepnetListTx(cctx, tx, uid)
 			if kerr != nil {
-				return fail("读取鱼护失败", "err", kerr)
+				return fail("Не удалось прочитать садок", "err", kerr)
 			}
 			var entry *store.KeepnetEntry
 			for _, e := range entries {
@@ -1020,17 +1020,17 @@ func hCraft(ctx *Ctx) ([]byte, bool) {
 				}
 			}
 			if entry == nil {
-				return fail("选中的渔获不存在", "guid", shortGUID(mat.GUID))
+				return fail("Выбранный улов не существует", "guid", shortGUID(mat.GUID))
 			}
 			if mat.Species != "" && entry.Species != mat.Species {
-				return fail("材料槽与渔获鱼种不符", "slot", mat.Species, "keepnet", entry.Species)
+				return fail("Слот материала не соответствует виду рыбы улова", "slot", mat.Species, "keepnet", entry.Species)
 			}
 			ok, derr := srv.consumeKeepnetEntryTx(cctx, tx, uid, entry.EchoGUID)
 			if derr != nil {
-				return fail("扣渔获失败", "err", derr)
+				return fail("Не удалось списать улов", "err", derr)
 			}
 			if !ok {
-				return fail("选中的渔获已被消耗", "guid", shortGUID(mat.GUID))
+				return fail("Выбранный улов уже использован", "guid", shortGUID(mat.GUID))
 			}
 			usedMats = appendMaterialUses(usedMats, entry.Species, 1)
 			keepnetTaken = append(keepnetTaken, entry.EchoGUID)
@@ -1040,7 +1040,7 @@ func hCraft(ctx *Ctx) ([]byte, bool) {
 			// 产量按鱼重计件（官服语义 512g→1 块、3.4kg→3 块），不按定义
 			// 单位量折算——fish_pieces 单位量 30，按单位折会一刀 30 块。
 			if qerr := rewriteCraftOutputQty(producedRow, cutFishPiecesForWeightG(entry.WeightG)); qerr != nil {
-				return fail("鱼块产量改写失败", "err", qerr)
+				return fail("Не удалось изменить выход кусков рыбы", "err", qerr)
 			}
 		} else {
 			// 碎沸粒：槽 guid 是背包沸粒实例，每套扣 25 粒（不足整体失败回滚；
@@ -1048,7 +1048,7 @@ func hCraft(ctx *Ctx) ([]byte, bool) {
 			need := matPerCraft * times
 			rows, lerr := listItemsTx(cctx, tx, uid, []string{"backpack", "rig"})
 			if lerr != nil {
-				return fail("读取材料失败", "err", lerr)
+				return fail("Не удалось прочитать материалы", "err", lerr)
 			}
 			var row *store.Item
 			for _, it := range rows {
@@ -1058,22 +1058,22 @@ func hCraft(ctx *Ctx) ([]byte, bool) {
 				}
 			}
 			if row == nil || row.Qty <= 0 {
-				return fail("选中的材料不存在", "guid", shortGUID(mat.GUID))
+				return fail("Выбранный материал не существует", "guid", shortGUID(mat.GUID))
 			}
 			// 材料类型必须是沸粒：槽 guid 由客户端给，不校验就能用任意 ≥25 的
 			// 堆叠物品（苹果/虫饵等）冒充沸粒（2026-11-15 评审实测 30 苹果→
 			// 1 份碎沸粒）。槽第三字段对类别需求承载具体 item id（同
 			// resolveVendCharges 口径），故两边都要落在沸粒族内。
 			if !isBoilItemID(row.ItemID) || (mat.Species != "" && !isBoilItemID(mat.Species)) {
-				return fail("材料槽选中的不是沸粒",
+				return fail("В слоте материала выбраны не бойлы",
 					"item", row.ItemID, "slot", mat.Species, "guid", shortGUID(mat.GUID))
 			}
 			got, cerr := consumeItemQtyTx(cctx, tx, row, need)
 			if cerr != nil {
-				return fail("扣材料失败", "item", row.ItemID, "err", cerr)
+				return fail("Не удалось списать материалы", "item", row.ItemID, "err", cerr)
 			}
 			if got < need {
-				return fail("材料数量不足", "item", row.ItemID, "need", need, "got", got)
+				return fail("Недостаточно материала", "item", row.ItemID, "need", need, "got", got)
 			}
 			usedMats = appendMaterialUses(usedMats, row.ItemID, got)
 			if !containsGUID(touched, row.GUID) {
@@ -1083,49 +1083,49 @@ func hCraft(ctx *Ctx) ([]byte, bool) {
 	}
 
 	if err := setItemName(producedRow, req.Name); err != nil {
-		return fail("自定义名称写入失败", "err", err)
+		return fail("Ошибка записи своего названия", "err", err)
 	}
 	if err := srv.savePVARecipeTx(cctx, tx, producedRow, pvaFeed, usedMats); err != nil {
-		return fail("PVA 配方保存失败", "err", err)
+		return fail("PVA Не удалось сохранить рецепт", "err", err)
 	}
 
 	// 标本挂鱼（事务内）：定位→嵌鱼→消耗一体，任何一步失败整体回滚。
 	if isTrophyMount {
 		mf, note, merr := srv.mountedFishTreeTx(cctx, tx, uid, req.Materials, producedRow.GUID)
 		if merr != nil {
-			return fail("标本渔获读取失败", "err", merr)
+			return fail("Не удалось прочитать улов для чучела", "err", merr)
 		}
 		if mf == nil {
-			return fail("标本制作缺少有效渔获", "note", note)
+			return fail("Для чучела нет подходящего улова", "note", note)
 		}
 		if err := embedMountedFish(producedRow, mf); err != nil {
-			return fail("标本嵌鱼失败", "err", err)
+			return fail("Не удалось поместить рыбу в чучело", "err", err)
 		}
 		if err := srv.consumeMountedFishTx(cctx, tx, uid, mf.EchoGUID); err != nil {
-			return fail("标本消耗渔获失败", "guid", shortGUID(mf.EchoGUID), "err", err)
+			return fail("Не удалось списать улов для чучела", "guid", shortGUID(mf.EchoGUID), "err", err)
 		}
 		couponGUID, cerr := srv.consumeCouponForTrophyTx(cctx, tx, uid, req.Materials)
 		if cerr != nil {
-			return fail("标本券扣除失败", "err", cerr)
+			return fail("Не удалось списать купон на чучело", "err", cerr)
 		}
 		if couponGUID != "" && !containsGUID(touched, couponGUID) {
 			touched = append(touched, couponGUID)
-			ctx.Log.Info("9/1 标本券已扣除", "guid", shortGUID(couponGUID), "recipe", recipe.RecipeID)
+			ctx.Log.Info("9/1 Купон на чучело списан", "guid", shortGUID(couponGUID), "recipe", recipe.RecipeID)
 		}
 		mounted = mf
-		ctx.Log.Info("9/1 标本挂鱼", "species", mf.Species, "board", shortGUID(producedRow.GUID))
+		ctx.Log.Info("9/1 Рыба помещена в чучело", "species", mf.Species, "board", shortGUID(producedRow.GUID))
 	}
 
 	if isLeaderCraft {
 		if err := srv.materializeCraftedLeaderTx(cctx, tx, producedRow, leaderMaterials); err != nil {
-			return fail("引线成品物化失败", "err", err)
+			return fail("Не удалось материализовать готовый поводок", "err", err)
 		}
 	}
 	var craftedHookGUIDs []string
 	if lureHooks != nil {
 		craftedHookGUIDs, err = srv.materializeCraftedLureTx(cctx, tx, producedRow, lureHooks)
 		if err != nil {
-			return fail("拟饵选钩装配失败", "err", err)
+			return fail("Не удалось установить выбранный крючок на приманку", "err", err)
 		}
 		touched = append(touched, craftedHookGUIDs...)
 	}
@@ -1138,27 +1138,27 @@ func hCraft(ctx *Ctx) ([]byte, bool) {
 	// 窝料/PVA 棒每组独立占一格；拟饵、引线等非计件产物仍插入新实例。
 	row, merged, err := grantPreparedItemTx(cctx, tx, producedRow, craftOutputMerges(outputDef))
 	if err != nil {
-		return fail("产出物入库失败", "output", outputID, "err", err)
+		return fail("Не удалось положить изделие в инвентарь", "output", outputID, "err", err)
 	}
 	// 自制窝料/PVA 棒：产物在客户端只有一个 item_id（feedcompleted），五个槽怎么
 	// 配都叫这个名字，所以「这袋料到底用了什么」必须按实例记下来。等投进窝里
 	// 再回查就晚了：那份料可能早被吃掉删掉，而窝还要活几个小时。
 	if outputDef != nil && (outputDef.Category == catGroundbaitMix || outputDef.Category == catPVAStick) {
 		if err := groundbaitRecordInstanceMaterialsTx(cctx, tx, row.GUID, usedMats); err != nil {
-			return fail("窝料用料记录写入失败", "err", err)
+			return fail("Ошибка записи расхода материалов прикормки", "err", err)
 		}
 	}
 
 	if err := addTxnTx(cctx, tx, uid, "craft", outputID, "",
 		0, 0, fmt.Sprintf("recipe=%s qty=%d", recipe.RecipeID, times)); err != nil {
-		return fail("制作流水写入失败", "err", err)
+		return fail("Ошибка записи журнала изготовления", "err", err)
 	}
 	if err := tx.Commit(); err != nil {
-		return fail("事务提交失败", "err", err)
+		return fail("Не удалось зафиксировать транзакцию", "err", err)
 	}
 	skillCat := craftSkillCatForRecipe(recipe.RecipeID)
 	masteryGain := srv.awardCraftProficiency(cctx, uid, skillCat, times)
-	ctx.Log.Info("9/1 制作入库", "output", outputID, "qty", times,
+	ctx.Log.Info("9/1 Изготовлено в инвентарь", "output", outputID, "qty", times,
 		"took", len(touched), "recipe", recipe.RecipeID,
 		"skill", skillCat, "mastery_gain", masteryGain)
 
@@ -1170,7 +1170,7 @@ func hCraft(ctx *Ctx) ([]byte, bool) {
 		stackTree = tree
 		upsert = append(upsert, tree)
 	} else {
-		ctx.Log.Warn("9/1 背包快照构造失败", "output", outputID, "err", terr)
+		ctx.Log.Warn("9/1 Ошибка создания снимка инвентаря", "output", outputID, "err", terr)
 	}
 	produced := make([]*proto.Value, 0, 1)
 	if stackTree != nil {
@@ -1179,7 +1179,7 @@ func hCraft(ctx *Ctx) ([]byte, bool) {
 			if tree, perr := srv.craftProducedTree(cctx, row, producedQty); perr == nil {
 				preview = tree
 			} else {
-				ctx.Log.Warn("9/1 制作结果对象构造失败", "output", outputID, "err", perr)
+				ctx.Log.Warn("9/1 Ошибка создания объекта результата изготовления", "output", outputID, "err", perr)
 			}
 		}
 		produced = append(produced, preview)
@@ -1196,7 +1196,7 @@ func hCraft(ctx *Ctx) ([]byte, bool) {
 	// 渔获已在事务内消耗（鱼即成为标本，官方语义）；这里只补通知信号。
 	if mounted != nil {
 		removed = append(removed, mounted.EchoGUID)
-		ctx.Log.Info("9/1 标本消耗渔获", "species", mounted.Species, "guid", shortGUID(mounted.EchoGUID))
+		ctx.Log.Info("9/1 Для чучела использован улов", "species", mounted.Species, "guid", shortGUID(mounted.EchoGUID))
 	}
 	var progress, skillTree *proto.Value
 	if masteryGain > 0 {
@@ -1205,7 +1205,7 @@ func hCraft(ctx *Ctx) ([]byte, bool) {
 	}
 	ctx.AfterResponse(func() {
 		if masteryGain > 0 {
-			ctx.Sess.Push2_4SkillTree("制作 " + outputID)
+			ctx.Sess.Push2_4SkillTree("Изготовление " + outputID)
 		}
 		if isVendCraft && vendTotal > 0 {
 			// 扣了银币就刷新钱包 HUD（与商店购买同一信号）。
@@ -1360,7 +1360,7 @@ func (s *Server) consumeDeclared(ctx *Ctx, cctx context.Context, uid int64, slot
 		missing = append(missing, fmt.Sprintf("%s/%s", sl.ItemID, shortGUID(g)))
 	}
 	if len(missing) > 0 {
-		ctx.Log.Warn("9/1 材料槽有物品既不在背包、也无法按需求类目定位（仍放行产出）",
+		ctx.Log.Warn("9/1 В слоте материала есть предмет, которого нет в инвентаре и который нельзя найти по категории требования (изделие всё равно выдано)",
 			"missing", missing)
 	}
 	return touched
@@ -1399,7 +1399,7 @@ func (s *Server) consumeByDemand(ctx context.Context, uid int64, d craftDemand) 
 		}
 		if s.consumeItemQty(ctx, it, 1) > 0 {
 			ctxLog := s.log
-			ctxLog.Info("9/1 材料按需求类目扣除", "item", iid, "demand", d.DemandID)
+			ctxLog.Info("9/1 Материалы списаны по категории требования", "item", iid, "demand", d.DemandID)
 			return it.GUID
 		}
 	}
@@ -1551,25 +1551,25 @@ func hCraftMine2(ctx *Ctx) ([]byte, bool) {
 	}
 	tx, err := beginEconomyTx(cctx, srv.DB)
 	if err != nil {
-		ctx.Log.Warn("9/3 开启事务失败", "err", err)
+		ctx.Log.Warn("9/3 Не удалось начать транзакцию", "err", err)
 		return srv.replyCraftResult(ctx, false, nil, nil, nil)
 	}
 	defer func() { _ = tx.Rollback() }()
 	n, err := removeItemsTx(cctx, tx, ctx.Sess.Userid, guids)
 	if err != nil {
-		ctx.Log.Warn("9/3 删除物品失败", "err", err)
+		ctx.Log.Warn("9/3 Не удалось удалить предмет", "err", err)
 		return srv.replyCraftResult(ctx, false, nil, nil, nil)
 	}
 	if err := addTxnTx(cctx, tx, ctx.Sess.Userid, "mine", "", guids[0], 0, 0,
 		fmt.Sprintf("decompose %d", n)); err != nil {
-		ctx.Log.Warn("9/3 流水写入失败", "err", err)
+		ctx.Log.Warn("9/3 Ошибка записи журнала", "err", err)
 		return srv.replyCraftResult(ctx, false, nil, nil, nil)
 	}
 	if err := tx.Commit(); err != nil {
-		ctx.Log.Warn("9/3 提交失败", "err", err)
+		ctx.Log.Warn("9/3 Ошибка фиксации", "err", err)
 		return srv.replyCraftResult(ctx, false, nil, nil, nil)
 	}
-	ctx.Log.Info("9/3 分解", "count", n)
+	ctx.Log.Info("9/3 Разборка", "count", n)
 	return srv.replyCraftResult(ctx, n > 0, nil, nil, nil)
 }
 
@@ -1586,7 +1586,7 @@ func (s *Server) digBaitWithShovel(ctx *Ctx, shovel *store.Item) ([]byte, bool) 
 	for _, item := range loot {
 		it, err := s.prepareNewItemWithCount(cctx, ctx.Sess.Userid, item.ItemID, "backpack", int64(item.Qty), "")
 		if err != nil {
-			ctx.Log.Warn("9/3 挖饵构造失败", "item", item.ItemID, "err", err)
+			ctx.Log.Warn("9/3 Ошибка подготовки копания", "item", item.ItemID, "err", err)
 			return s.replyCraftResult(ctx, false, nil, nil, nil)
 		}
 		prepared = append(prepared, it)
@@ -1599,7 +1599,7 @@ func (s *Server) digBaitWithShovel(ctx *Ctx, shovel *store.Item) ([]byte, bool) 
 
 	tx, err := beginEconomyTx(cctx, s.DB)
 	if err != nil {
-		ctx.Log.Warn("9/3 挖饵开启事务失败", "err", err)
+		ctx.Log.Warn("9/3 Не удалось начать транзакцию копания", "err", err)
 		return s.replyCraftResult(ctx, false, nil, nil, nil)
 	}
 	defer func() { _ = tx.Rollback() }()
@@ -1608,10 +1608,10 @@ func (s *Server) digBaitWithShovel(ctx *Ctx, shovel *store.Item) ([]byte, bool) 
 	spent, err := spendEnergyTx(cctx, tx, ctx.Sess.Userid, condParams, condEnv, condCost)
 	if err != nil {
 		if errors.Is(err, errEnergyNotEnough) {
-			ctx.Log.Info("9/3 铲子挖饵被拒：精力不足", "shovel", shortGUID(shovel.GUID),
+			ctx.Log.Info("9/3 Копание лопатой отклонено: не хватает энергии", "shovel", shortGUID(shovel.GUID),
 				"cost", condCost, "enabled", condParams.Enabled)
 		} else {
-			ctx.Log.Warn("9/3 挖饵精力结算失败", "err", err)
+			ctx.Log.Warn("9/3 Ошибка расчёта энергии копания", "err", err)
 		}
 		return s.replyCraftResult(ctx, false, nil, nil, nil)
 	}
@@ -1621,7 +1621,7 @@ func (s *Server) digBaitWithShovel(ctx *Ctx, shovel *store.Item) ([]byte, bool) 
 	for i, it := range prepared {
 		row, _, err := grantPreparedItemTx(cctx, tx, it, true)
 		if err != nil {
-			ctx.Log.Warn("9/3 挖饵入包失败", "item", it.ItemID, "err", err)
+			ctx.Log.Warn("9/3 Не удалось положить накопанное в инвентарь", "item", it.ItemID, "err", err)
 			return s.replyCraftResult(ctx, false, nil, nil, nil)
 		}
 		granted = append(granted, row)
@@ -1629,11 +1629,11 @@ func (s *Server) digBaitWithShovel(ctx *Ctx, shovel *store.Item) ([]byte, bool) 
 	}
 	if err := addTxnTx(cctx, tx, ctx.Sess.Userid, "dig_bait", shovel.ItemID, shovel.GUID, 0, 0,
 		"shovel "+strings.Join(parts, ",")); err != nil {
-		ctx.Log.Warn("9/3 挖饵流水写入失败", "err", err)
+		ctx.Log.Warn("9/3 Ошибка записи журнала копания", "err", err)
 		return s.replyCraftResult(ctx, false, nil, nil, nil)
 	}
 	if err := tx.Commit(); err != nil {
-		ctx.Log.Warn("9/3 挖饵提交失败", "err", err)
+		ctx.Log.Warn("9/3 Ошибка фиксации копания", "err", err)
 		return s.replyCraftResult(ctx, false, nil, nil, nil)
 	}
 
@@ -1641,7 +1641,7 @@ func (s *Server) digBaitWithShovel(ctx *Ctx, shovel *store.Item) ([]byte, bool) 
 	for _, row := range granted {
 		tree, err := s.ItemToTree(cctx, row)
 		if err != nil {
-			ctx.Log.Warn("9/3 挖饵响应构造失败", "item", row.ItemID, "err", err)
+			ctx.Log.Warn("9/3 Ошибка создания ответа копания", "item", row.ItemID, "err", err)
 			return s.replyCraftResult(ctx, true, nil, nil, nil)
 		}
 		produced = append(produced, tree)
@@ -1657,7 +1657,7 @@ func (s *Server) digBaitWithShovel(ctx *Ctx, shovel *store.Item) ([]byte, bool) 
 		6: proto.Args(proto.S("31")),
 	})
 	skillTree := s.buildSingleSkill312(cctx, ctx.Sess.Userid, baitCatchSkillCat)
-	ctx.Log.Info("9/3 铲子挖饵", "shovel", shortGUID(shovel.GUID), "types", len(loot),
+	ctx.Log.Info("9/3 Копание лопатой", "shovel", shortGUID(shovel.GUID), "types", len(loot),
 		"items", strings.Join(parts, ","), "skill_gain", skillGain, "energy_spent", spent)
 	if spent > 0 {
 		// 体力条不在 9/3 应答里，扣完立刻补推一条 2/2。
@@ -1707,7 +1707,7 @@ func (s *Server) mountedFishTreeTx(ctx context.Context, tx *sql.Tx, uid int64, s
 			return nil, "", err
 		}
 		if sl.Species != "" && entry.Species != "" && sl.Species != entry.Species {
-			return nil, fmt.Sprintf("鱼种不符 slot=%s keepnet=%s", sl.Species, entry.Species), nil
+			return nil, fmt.Sprintf("Вид рыбы не совпадает slot=%s keepnet=%s", sl.Species, entry.Species), nil
 		}
 		s.fillKeepnetVariant(entry)
 		fish := buildKeepnet25(entry, "", store.SpeciesRarityTx(ctx, tx, entry.Species), entry.ModelVariant)
@@ -1716,7 +1716,7 @@ func (s *Server) mountedFishTreeTx(ctx context.Context, tx *sql.Tx, uid int64, s
 		}
 		return &mountedFish{Tree: fish, EchoGUID: entry.EchoGUID, Species: entry.Species}, "", nil
 	}
-	return nil, "材料槽没有指向有效鱼护记录", nil
+	return nil, "Слот материала не указывает на корректную запись садка", nil
 }
 
 // embedMountedFish 把渔获对象嵌进板子字段 f1 peipahjmida 并序列化回快照。
@@ -1724,16 +1724,16 @@ func (s *Server) mountedFishTreeTx(ctx context.Context, tx *sql.Tx, uid int64, s
 func embedMountedFish(row *store.Item, mf *mountedFish) error {
 	fields, err := FieldsFromJSON(row.FieldsJSON)
 	if err != nil {
-		return fmt.Errorf("板子字段解析失败: %w", err)
+		return fmt.Errorf("Ошибка разбора полей подставки: %w", err)
 	}
 	idx := fieldIdxByCS(row.WireClass, "peipahjmida")
 	if idx < 0 || idx >= len(fields) {
-		return fmt.Errorf("wire 类 %s 无 peipahjmida 字段", row.WireClass)
+		return fmt.Errorf("wire У класса %s нет поля peipahjmida", row.WireClass)
 	}
 	fields[idx] = proto.Field{Op: "VAL", Val: mf.Tree}
 	fj, err := FieldsToJSON(fields)
 	if err != nil {
-		return fmt.Errorf("板子字段序列化失败: %w", err)
+		return fmt.Errorf("Ошибка сериализации полей подставки: %w", err)
 	}
 	row.FieldsJSON = fj
 	return nil
@@ -1748,7 +1748,7 @@ func (s *Server) consumeMountedFishTx(ctx context.Context, tx *sql.Tx, uid int64
 		return err
 	}
 	if !deleted {
-		return fmt.Errorf("鱼护条目不存在或已被消费")
+		return fmt.Errorf("Запись садка не существует или уже использована")
 	}
 	// 镜像行兜底清理：type_id 非 25 的残留行也一并移除（正常不存在）。
 	if _, err := tx.ExecContext(ctx, `DELETE FROM item WHERE uid=? AND guid=?`, uid, guid); err != nil {
@@ -1785,13 +1785,13 @@ func (s *Server) consumeCouponForTrophyTx(ctx context.Context, tx *sql.Tx, uid i
 		}
 		row, err := getOwnedItemTx(ctx, tx, uid, sl.GUID)
 		if errors.Is(err, sql.ErrNoRows) {
-			continue // 可选材料：券已不存在不阻断制作
+			continue // 可选材料: 券已不存在不阻断制作
 		}
 		if err != nil {
 			return "", err
 		}
 		if row.ItemID != couponChucheloItemID {
-			continue // 同 GUID 落在别的物品上，说明槽位引用错位，忽略
+			continue // 同 GUID 落在别的物品上, 说明槽位引用错位, 忽略
 		}
 		n, cerr := consumeItemQtyTx(ctx, tx, row, 1)
 		if cerr != nil {
@@ -1830,19 +1830,19 @@ func hCraftCost(ctx *Ctx) ([]byte, bool) {
 			if total, terr := srv.vendTotalPrice(cctx, charges, qty); terr == nil {
 				silver = total
 			} else {
-				ctx.Log.Warn("9/4 贩卖机配料定价失败", "recipe", recipe.RecipeID, "err", terr)
+				ctx.Log.Warn("9/4 Ошибка оценки ингредиентов автомата", "recipe", recipe.RecipeID, "err", terr)
 			}
 		} else {
-			ctx.Log.Warn("9/4 贩卖机配料解析失败", "recipe", recipe.RecipeID, "err", err)
+			ctx.Log.Warn("9/4 Ошибка разбора ингредиентов автомата", "recipe", recipe.RecipeID, "err", err)
 		}
 	}
 	row := wiregen.MustMakeObj("ifdefblccde", map[int]*proto.Value{
-		0: proto.StrVal(req.Recipe),  // f0 systemID（必须与请求一致）
-		1: proto.U64(uint64(silver)), // f1 银价（贩卖机配方为配料总价）
+		0: proto.StrVal(req.Recipe),  // f0 systemID (必须与请求一致)
+		1: proto.U64(uint64(silver)), // f1 银价 (贩卖机配方为配料总价)
 		2: proto.U64(0),              // f2 金币价
-		3: proto.U32(uint32(qty)),    // f3 数量（贩卖机配方收敛后数量）
+		3: proto.U32(uint32(qty)),    // f3 数量 (贩卖机配方收敛后数量)
 	})
-	ctx.Log.Info("9/4 询价", "recipe", req.Recipe, "qty", qty, "silver", silver,
+	ctx.Log.Info("9/4 Запрос цены", "recipe", req.Recipe, "qty", qty, "silver", silver,
 		"materials", len(req.Materials), "tools", len(req.Tools), "source", req.Source)
 	body, err := proto.EncodeValue(row, ctx.Sess.Table())
 	if err != nil {
@@ -1887,16 +1887,16 @@ func hCraftAddTemplate(ctx *Ctx) ([]byte, bool) {
 
 	tmpl, ok := craftTemplateFromRequest(ctx.Tree)
 	if !ok {
-		ctx.Log.Warn("9/6 请求体不是合法 171 模板（缺字段或 f3/f4 形状不符）")
+		ctx.Log.Warn("9/6 Тело запроса не является корректным шаблоном 171 (нет полей или неверная форма f3/f4)")
 		return []byte{0x00}, true // ctx.reply(None)
 	}
 	if tmpl.Fields[2].StrOr() == "" {
-		ctx.Log.Warn("9/6 请求缺配方键")
+		ctx.Log.Warn("9/6 В запросе нет ключа рецепта")
 		return []byte{0x00}, true
 	}
 	recipe := srv.resolveRecipe(cctx, tmpl.Fields[2].StrOr())
 	if recipe == nil {
-		ctx.Log.Warn("9/6 未知配方", "recipe", tmpl.Fields[2].StrOr())
+		ctx.Log.Warn("9/6 Неизвестный рецепт", "recipe", tmpl.Fields[2].StrOr())
 		return []byte{0x00}, true
 	}
 
@@ -1924,7 +1924,7 @@ func hCraftAddTemplate(ctx *Ctx) ([]byte, bool) {
 		UpdatedTs:     now,
 	}
 	if err := srv.DB.SaveCraftTemplate(cctx, row); err != nil {
-		ctx.Log.Error("9/6 模板落库失败", "err", err, "recipe", recipe.RecipeID)
+		ctx.Log.Error("9/6 Не удалось сохранить шаблон", "err", err, "recipe", recipe.RecipeID)
 		return []byte{0x00}, true
 	}
 
@@ -1932,7 +1932,7 @@ func hCraftAddTemplate(ctx *Ctx) ([]byte, bool) {
 	if err != nil {
 		return nil, false
 	}
-	ctx.Log.Info("9/6 配方模板", "recipe", recipe.RecipeID, "guid", guid,
+	ctx.Log.Info("9/6 Шаблон рецепта", "recipe", recipe.RecipeID, "guid", guid,
 		"name", row.Name, "tools", toolCount, "materials", materialCount)
 	return body, true
 }
@@ -1951,14 +1951,14 @@ func hCraftDeleteTemplate(ctx *Ctx) ([]byte, bool) {
 	}
 	guid := templateGUIDOf(ctx.Tree)
 	if guid == "" {
-		ctx.Log.Warn("9/7 请求形状不认识或缺少模板 GUID，按失败关闭不执行删除")
+		ctx.Log.Warn("9/7 Неизвестная форма запроса или нет GUID шаблона — удаление не выполняется")
 		return []byte{0x00}, true
 	}
 	deleted, err := srv.DB.DeleteCraftTemplate(ctx.Sess.pushCtx(), ctx.Sess.Userid, guid)
 	if err != nil {
-		ctx.Log.Error("9/7 模板删除失败", "err", err, "guid", guid)
+		ctx.Log.Error("9/7 Не удалось удалить шаблон", "err", err, "guid", guid)
 	}
-	ctx.Log.Info("9/7 删除配方模板", "guid", guid, "deleted", deleted)
+	ctx.Log.Info("9/7 Удаление шаблона рецепта", "guid", guid, "deleted", deleted)
 	return []byte{0x00}, true
 }
 
@@ -2141,10 +2141,10 @@ func craftTemplate(guid, name, kind string, tools, materials []*proto.Value) *pr
 // 保证客户端按同一实例渲染。f6 与 4/22 的背包快照必须用原行，不能复用本函数。
 func (s *Server) craftProducedTree(ctx context.Context, row *store.Item, producedQty int64) (*proto.Value, error) {
 	if row == nil {
-		return nil, fmt.Errorf("空物品行")
+		return nil, fmt.Errorf("Пустая строка предмета")
 	}
 	if producedQty < 1 {
-		return nil, fmt.Errorf("无效产出数量 %d", producedQty)
+		return nil, fmt.Errorf("Неверное количество изделий %d", producedQty)
 	}
 	fields, err := FieldsFromJSON(row.FieldsJSON)
 	if err != nil {
@@ -2152,7 +2152,7 @@ func (s *Server) craftProducedTree(ctx context.Context, row *store.Item, produce
 	}
 	idx := stackQtyFieldIdx(row.WireClass)
 	if idx < 0 || idx >= len(fields) {
-		return nil, fmt.Errorf("物品 %s 没有数量字段", row.ItemID)
+		return nil, fmt.Errorf("У предмета %s нет поля количества", row.ItemID)
 	}
 	fields[idx].Num = ptrU64(uint64(producedQty))
 	fj, err := FieldsToJSON(fields)
@@ -2195,7 +2195,7 @@ func (s *Server) replyCraftResultWithSkill(ctx *Ctx, ok bool, produced, upsert [
 	}
 	body, err := proto.EncodeValue(obj, ctx.Sess.Table())
 	if err != nil {
-		ctx.Log.Warn("803 编码失败", "err", err)
+		ctx.Log.Warn("803 Ошибка кодирования", "err", err)
 		return nil, false
 	}
 	return body, true

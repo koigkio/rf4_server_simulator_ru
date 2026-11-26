@@ -173,13 +173,13 @@ func TestItemUseFallsBackWithValidBodyWhenNoEffect(t *testing.T) {
 	ctx := drinkUseTestCtx(t, s, 75, coffee.GUID, 0)
 	body, handled := hItemUse(ctx)
 	if !handled {
-		t.Fatal("4/8 必须被处理（落回通用 handler）")
+		t.Fatal("4/8 必须被处理 (落回通用 handler)")
 	}
 	if len(body) == 0 {
-		t.Fatal("落回通用 handler 也必须回出包体，不能空回")
+		t.Fatal("落回通用 handler 也必须回出包体, 不能空回")
 	}
 	if _, present, _, failure := ctx.replyCapture.snapshot(); present || failure {
-		t.Fatalf("无效果回落不是错误，不应回失败信封: present=%v failure=%v", present, failure)
+		t.Fatalf("无效果回落不是错误, 不应回失败信封: present=%v failure=%v", present, failure)
 	}
 	// 包体必须能被同一张表解码回 800 快照，否则客户端强转会失败。
 	if _, _, err := proto.DecodeValue(body, 0, s.Table()); err != nil {
@@ -201,13 +201,13 @@ func TestNaturalRegenStopsAtRegenCap(t *testing.T) {
 		cur := store.PlayerCondition{Primary: 0.85, Secondary: 1.0, Comfort: 1.0, UpdatedTS: 1000}
 		next := advancePlayerCondition(cur, 1000+secs, p, conditionEnv{})
 		if math.Abs(next.Primary-p.EnergyRegenCap) > 1e-9 {
-			t.Fatalf("停在封顶 %.0fs 后应为 %v，实得 %v", secs, p.EnergyRegenCap, next.Primary)
+			t.Fatalf("停在封顶 %.0fs 后应为 %v, 实得 %v", secs, p.EnergyRegenCap, next.Primary)
 		}
 		// 场景二：从下方接近，只能补到封顶，不能越过。
 		lower := store.PlayerCondition{Primary: 0.60, Secondary: 1.0, Comfort: 1.0, UpdatedTS: 1000}
 		back := advancePlayerCondition(lower, 1000+secs, p, conditionEnv{})
 		if back.Primary < 0.60 || back.Primary > p.EnergyRegenCap+1e-9 {
-			t.Fatalf("自然恢复应落在 [0.60, %v]，%.0fs 实得 %v", p.EnergyRegenCap, secs, back.Primary)
+			t.Fatalf("自然恢复应落在 [0.60, %v], %.0fs 实得 %v", p.EnergyRegenCap, secs, back.Primary)
 		}
 	}
 }
@@ -216,7 +216,7 @@ func TestNaturalRegenStopsAtRegenCap(t *testing.T) {
 func TestCoffeeEnergySurvivesKeepaliveTick(t *testing.T) {
 	t.Parallel()
 	p := testConditionParams()
-	p.EnergyRegenPerHour = defEnergyRegenPerHour // 生产默认值：旧实现在这里会立刻越过封顶并压回
+	p.EnergyRegenPerHour = defEnergyRegenPerHour // 生产默认值: 旧实现在这里会立刻越过封顶并压回
 	p.EnergyRegenFoodCost = 0
 	cur := store.PlayerCondition{Primary: 1.0, Secondary: 0.80, Comfort: 1.0, UpdatedTS: 1000}
 	next := advancePlayerCondition(cur, 1000+60, p, conditionEnv{})

@@ -395,7 +395,7 @@ func TestDeleteMailDecimalIDNotParsedAsHex(t *testing.T) {
 		}
 	}
 	if id10 == 0 || id16 == 0 {
-		t.Skipf("测试库 mail 自增未到达 10/16（id10=%d id16=%d），跳过", id10, id16)
+		t.Skipf("测试库 mail 自增未到达 10/16 (id10=%d id16=%d), 跳过", id10, id16)
 	}
 
 	// 后台传十进制 "10"，必须只删 10，不能误删 16。
@@ -405,7 +405,7 @@ func TestDeleteMailDecimalIDNotParsedAsHex(t *testing.T) {
 		t.Fatalf("十进制 id=10 的邮件应被删除: %+v", m)
 	}
 	if m, err := db.MailGet(ctx, uid, id16); err != nil || m == nil {
-		t.Fatal("十进制 10 不能删掉 id=16 的邮件（十六进制误解析）")
+		t.Fatal("十进制 10 不能删掉 id=16 的邮件 (十六进制误解析)")
 	}
 }
 
@@ -425,7 +425,7 @@ func TestParseMailIDArgDistinguishesGUIDAndDecimal(t *testing.T) {
 	}
 	for _, c := range cases {
 		if got := parseMailIDArg(c.in); got != c.want {
-			t.Errorf("parseMailIDArg(%q)=%d，期望 %d", c.in, got, c.want)
+			t.Errorf("parseMailIDArg(%q)=%d, 期望 %d", c.in, got, c.want)
 		}
 	}
 }

@@ -84,17 +84,17 @@ func TestCraftedLeaderEntersStrengthChain(t *testing.T) {
 	}
 	craftedObj := &proto.Value{Kind: proto.KindObj, Class: crafted.WireClass, Fields: craftedFields}
 	if got, ok := wireFloatAt(craftedObj, csStrength); !ok || math.Abs(got-leaderKg) > 1e-3 {
-		t.Fatalf("制作快照强度=%f，期望 %f", got, leaderKg)
+		t.Fatalf("制作快照强度=%f, 期望 %f", got, leaderKg)
 	}
 	mainLine := craftedFields[fieldIdxByCS(crafted.WireClass, craftedMainLineKey)].Val
 	if mainLine == nil || mainLine.Kind != proto.KindObj {
 		t.Fatalf("普通主线材料应写入 f3: %+v", mainLine)
 	}
 	if got, ok := wireFloatAt(mainLine, csStrength); !ok || math.Abs(got-leaderKg) > 1e-3 {
-		t.Fatalf("内嵌主线强度=%f，期望 %f", got, leaderKg)
+		t.Fatalf("内嵌主线强度=%f, 期望 %f", got, leaderKg)
 	}
 	if got := srv.craftedLeaderBaseStrengthKg(ctx, crafted.GUID); math.Abs(got-leaderKg) > 1e-3 {
-		t.Fatalf("引线实例基准强度=%f，期望 %f", got, leaderKg)
+		t.Fatalf("引线实例基准强度=%f, 期望 %f", got, leaderKg)
 	}
 
 	// 装上竿/轮/主线，让这根引线进入钓组承力链。
@@ -147,13 +147,13 @@ func TestCraftedLeaderEntersStrengthChain(t *testing.T) {
 	}
 	phys := srv.loadGearSpecForRig(ctx, ids, rodGUID)
 	if math.Abs(phys.LeaderStrengthKg-leaderKg) > 1e-3 {
-		t.Fatalf("引线承力=%f，期望按实例材料取 %fg", phys.LeaderStrengthKg, leaderKg)
+		t.Fatalf("引线承力=%f, 期望按实例材料取 %fg", phys.LeaderStrengthKg, leaderKg)
 	}
 	if got := gearWeakestPart(phys); got != "leader" {
-		t.Fatalf("最弱环=%q，期望 leader（修复前引线强度为 0，会被跳过）", got)
+		t.Fatalf("最弱环=%q, 期望 leader (修复前引线强度为 0, 会被跳过)", got)
 	}
 	if got := gearBreakLimitKg(phys); math.Abs(got-leaderKg) > 1e-3 {
-		t.Fatalf("承力链上限=%f，期望引线 %fg", got, leaderKg)
+		t.Fatalf("承力链上限=%f, 期望引线 %fg", got, leaderKg)
 	}
 
 	// 客户端没点名断件（拟饵出厂钩这类内嵌件）时走最弱环回退：必须断引线，
@@ -163,7 +163,7 @@ func TestCraftedLeaderEntersStrengthChain(t *testing.T) {
 		t.Fatal(err)
 	}
 	if dec.Part != "leader" || dec.GUID != crafted.GUID {
-		t.Fatalf("断件裁决=%+v，期望断这根自制引线 %s", dec, crafted.GUID)
+		t.Fatalf("断件裁决=%+v, 期望断这根自制引线 %s", dec, crafted.GUID)
 	}
 
 	// 磨损必须同时体现在服务端最弱环和下发给客户端的强度字段上。
@@ -176,18 +176,18 @@ func TestCraftedLeaderEntersStrengthChain(t *testing.T) {
 	}
 	phys = srv.loadGearSpecForRig(ctx, srv.rigGearIDs(ctx, uid, rodGUID), rodGUID)
 	if math.Abs(phys.LeaderStrengthKg-leaderKg*0.5) > 1e-3 {
-		t.Fatalf("半耐久引线承力=%f，期望 %f", phys.LeaderStrengthKg, leaderKg*0.5)
+		t.Fatalf("半耐久引线承力=%f, 期望 %f", phys.LeaderStrengthKg, leaderKg*0.5)
 	}
 	pushed, err := srv.ItemToTree(ctx, half)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if got := wireFloatForTest(t, pushed, csStrength); math.Abs(got-leaderKg*0.5) > 1e-3 {
-		t.Fatalf("下发的引线强度=%f，期望随耐久衰减到 %f", got, leaderKg*0.5)
+		t.Fatalf("下发的引线强度=%f, 期望随耐久衰减到 %f", got, leaderKg*0.5)
 	}
 	// 材料对象自身的强度也按母件耐久结算，两端不能各算一套。
 	if got := wireFloatForTest(t, pushed, csDurability); math.Abs(got-0.5) > 1e-6 {
-		t.Fatalf("下发的引线耐久=%f，期望 0.5", got)
+		t.Fatalf("下发的引线耐久=%f, 期望 0.5", got)
 	}
 }
 
@@ -238,9 +238,9 @@ func TestCraftedLeaderBaseStrengthUsesNestedPhysicalStrength(t *testing.T) {
 
 	const wantKg = 1.36 // 3.4kg × 0.5 耐久 × 0.8 工艺
 	if got := itemDefF32(mappedDef, gearAttrMaxLoad); math.Abs(got-wantKg) <= 1e-3 {
-		t.Fatalf("测试前提失败：映射模型额定值 %f 无法区分嵌套真实强度", got)
+		t.Fatalf("测试前提失败: 映射模型额定值 %f 无法区分嵌套真实强度", got)
 	}
 	if got := srv.craftedLeaderBaseStrengthKg(ctx, row.GUID); math.Abs(got-wantKg) > 1e-3 {
-		t.Fatalf("映射模型的引线承力=%f，期望读取嵌套真实强度 %f", got, wantKg)
+		t.Fatalf("映射模型的引线承力=%f, 期望读取嵌套真实强度 %f", got, wantKg)
 	}
 }

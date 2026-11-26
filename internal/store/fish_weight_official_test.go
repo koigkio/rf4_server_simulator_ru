@@ -34,7 +34,7 @@ func TestFishWeightOverrideMatchesRoster(t *testing.T) {
 		t.Fatal(err)
 	}
 	if overridden != locs {
-		t.Fatalf("覆盖权重的水域=%d，名册水域=%d", overridden, locs)
+		t.Fatalf("覆盖权重的水域=%d, 名册水域=%d", overridden, locs)
 	}
 	var missing, extra int
 	if err := db.SQL.QueryRowContext(ctx, `
@@ -82,10 +82,10 @@ func TestFishWeightOverrideNormalizedPerWater(t *testing.T) {
 			t.Fatal(err)
 		}
 		if maxW != 100 {
-			t.Errorf("%s 的最大权重=%v，期望 100", loc, maxW)
+			t.Errorf("%s 的最大权重=%v, 期望 100", loc, maxW)
 		}
 		if minW < 1 {
-			t.Errorf("%s 的最小权重=%v，期望不小于 1", loc, minW)
+			t.Errorf("%s 的最小权重=%v, 期望不小于 1", loc, minW)
 		}
 	}
 	if err := rows.Err(); err != nil {
@@ -105,7 +105,7 @@ func TestFishWeightBaseMatchesOverride(t *testing.T) {
 		t.Fatal(err)
 	}
 	if baseRows != ovRows {
-		t.Fatalf("基础权重行=%d，覆盖行=%d", baseRows, ovRows)
+		t.Fatalf("基础权重行=%d, 覆盖行=%d", baseRows, ovRows)
 	}
 	var missingBase, mismatch int
 	if err := db.SQL.QueryRowContext(ctx, `
@@ -157,7 +157,7 @@ func TestAdminFishWeightSavePreservesOfficialRows(t *testing.T) {
 		t.Fatal(err)
 	}
 	if got := cfg.Fish[official].WeightSource; got != "official" {
-		t.Fatalf("仅保存咬钩参数后来源=%q，期望 official", got)
+		t.Fatalf("仅保存咬钩参数后来源=%q, 期望 official", got)
 	}
 
 	cfg.Fish[official].Weight += 1
@@ -171,7 +171,7 @@ func TestAdminFishWeightSavePreservesOfficialRows(t *testing.T) {
 		t.Fatal(err)
 	}
 	if got := cfg.Fish[official].WeightSource; got != "manual" {
-		t.Fatalf("改动权重后来源=%q，期望 manual", got)
+		t.Fatalf("改动权重后来源=%q, 期望 manual", got)
 	}
 	for i, row := range cfg.Fish {
 		if i != official && row.WeightSource == "manual" {
@@ -217,7 +217,7 @@ func TestResetAdminFishConfigRestoresOfficialBaseline(t *testing.T) {
 			continue
 		}
 		if row.WeightSource != "official" || row.Weight != row.BaseWeight || !row.Enabled {
-			t.Fatalf("重置后权重行=%+v，期望恢复周档基线", row)
+			t.Fatalf("重置后权重行=%+v, 期望恢复周档基线", row)
 		}
 		return
 	}
@@ -309,10 +309,10 @@ func TestFishWeightOverrideCapsConcentration(t *testing.T) {
 			top3 += weights[i] / total
 		}
 		if top1 > 0.201 {
-			t.Errorf("%s 第一名占比 %.1f%%，超过上限 20%%", loc, top1*100)
+			t.Errorf("%s 第一名占比 %.1f%%, 超过上限 20%%", loc, top1*100)
 		}
 		if top3 > 0.521 {
-			t.Errorf("%s 前三名占比 %.1f%%，超过上限 52%%", loc, top3*100)
+			t.Errorf("%s 前三名占比 %.1f%%, 超过上限 52%%", loc, top3*100)
 		}
 	}
 }

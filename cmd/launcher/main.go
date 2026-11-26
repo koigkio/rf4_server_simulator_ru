@@ -87,11 +87,11 @@ func (l adminLogger) Warn(msg string, args ...any)  { l.l.Warn(logMessage(msg, a
 func (l adminLogger) Error(msg string, args ...any) { l.l.Error(logMessage(msg, args...)) }
 
 func main() {
-	configPath := flag.String("config", "config.yaml", "配置文件路径")
-	panelAddr := flag.String("panel-addr", "127.0.0.1:9500", "控制面板监听地址（仅本机）")
-	adminUser := flag.String("admin-user", "admin", "初始管理员用户名（表空时生效）")
-	adminPass := flag.String("admin-pass", "admin123", "初始管理员密码（表空时生效）")
-	staticDB := flag.String("static-db", "", "静态配置库路径（默认取 sqlite.static_path）")
+	configPath := flag.String("config", "config.yaml", "Путь к файлу конфигурации")
+	panelAddr := flag.String("panel-addr", "127.0.0.1:9500", "Адрес панели управления (только локально)")
+	adminUser := flag.String("admin-user", "admin", "Имя первого администратора (действует, если таблица пуста)")
+	adminPass := flag.String("admin-pass", "admin123", "Пароль первого администратора (действует, если таблица пуста)")
+	staticDB := flag.String("static-db", "", "Путь к статической базе (по умолчанию sqlite.static_path)")
 	flag.Parse()
 
 	// ---- 工作目录解析：依次在 CWD、exe 目录和 exe 上级目录寻找 config.yaml。
@@ -100,13 +100,13 @@ func main() {
 	workDir := resolveWorkDir(*configPath)
 	if workDir != "" {
 		if err := os.Chdir(workDir); err != nil {
-			showFatal("切换工作目录失败", err)
+			showFatal("Не удалось сменить рабочую папку", err)
 			return
 		}
 	}
 	cfg, err := config.Load(*configPath)
 	if err != nil {
-		showFatal("配置加载失败", err)
+		showFatal("Не удалось загрузить конфигурацию", err)
 		return
 	}
 	if *staticDB == "" {
@@ -118,7 +118,7 @@ func main() {
 	appCtx, appCancel := context.WithCancel(context.Background())
 	app := &app{
 		cfg: cfg, cfgPath: *configPath, log: panelLogger{}, ctx: appCtx, cancel: appCancel,
-		trayColor: 3, trayTip: "fish-localserver 本地服务器", // 3=灰（初始化中）
+		trayColor: 3, trayTip: "fish-localserver Локальный сервер", // 3=灰 (初始化中)
 		updates: updatecheck.New(updatecheck.DefaultSources, updateStateFile),
 	}
 	defer app.closeAdmin()
@@ -153,7 +153,7 @@ func main() {
 	})
 	ln, err := net.Listen("tcp", *panelAddr)
 	if err != nil {
-		showFatal("控制面板监听失败", err)
+		showFatal("Панель управления не смогла открыть порт", err)
 		return
 	}
 	app.panelURL = "http://" + normalizeLocal(ln.Addr().String())
@@ -164,22 +164,22 @@ func main() {
 
 	// ---- 首次初始化（幂等）----
 	if seed.NeedsSeed(cfg, *staticDB) {
-		app.log.Info("正在初始化数据库（首跑需导入静态配置，请稍候）…")
+		app.log.Info("Инициализация базы данных (при первом запуске импортируются статические данные, подождите)…")
 		res, err := seed.Ensure(context.Background(), cfg, *staticDB, *adminUser, *adminPass, app.log)
 		if err != nil {
-			showFatal("数据库初始化失败", err)
+			showFatal("Ошибка инициализации базы данных", err)
 			return
 		}
-		app.log.Info(fmt.Sprintf("初始化完成 seeded=%v tables=%d admin_created=%v elapsed=%s",
+		app.log.Info(fmt.Sprintf("Инициализация завершена seeded=%v tables=%d admin_created=%v elapsed=%s",
 			res.Seeded, res.Tables, res.AdminCreated, res.Elapsed.Round(time.Millisecond)))
 		if res.AdminCreated {
-			app.log.Warn("已创建默认管理员 admin/" + *adminPass + "，请尽快在管理后台修改")
+			app.log.Warn("Создан администратор по умолчанию admin/" + *adminPass + ", смените пароль в админ-панели как можно скорее")
 		}
 	}
 
 	// ---- 内嵌管理后台 ----
 	if err := app.initAdmin(app.ctx); err != nil {
-		app.log.Error("管理后台初始化失败: " + err.Error())
+		app.log.Error("Ошибка инициализации админ-панели: " + err.Error())
 	}
 	updateTrayIcon(app)
 
@@ -191,7 +191,7 @@ func main() {
 	app.sup.SetStateCallback(func() {
 		defer func() {
 			if r := recover(); r != nil {
-				app.log.Error(fmt.Sprintf("托盘状态刷新异常: %v", r))
+				app.log.Error(fmt.Sprintf("Ошибка обновления значка в трее: %v", r))
 			}
 		}()
 		updateTrayIcon(app)
@@ -199,7 +199,7 @@ func main() {
 
 	// 上次异常退出可能遗留 launcher 管理的 hosts 行；先按归属状态恢复官方解析。
 	if err := hostsRestore(hostsFilePath()); err != nil {
-		app.log.Warn("清理上次 hosts 遗留状态失败: " + err.Error())
+		app.log.Warn("Не удалось очистить остатки hosts с прошлого запуска: " + err.Error())
 	}
 
 	// 后台周期刷新子进程自报的构建身份。必须早于 StartAll 启动：
@@ -209,15 +209,15 @@ func main() {
 	// ---- 按序拉起游戏服务 ----
 	go func() {
 		if err := app.sup.StartAll(); err != nil {
-			app.log.Error("进程启动失败: " + err.Error())
+			app.log.Error("Не удалось запустить процесс: " + err.Error())
 			return
 		}
 		if app.cfg.Launcher.HostsSwitch {
 			if err := hostsSetLocal(hostsFilePath(), loginDomains(app.cfg)); err != nil {
-				app.log.Warn("hosts 自动切换失败（请以管理员身份运行 launcher）: " + err.Error() +
-					"；可手动将 api.rf4game.ru/com 指向 127.0.0.1，或以管理员 PowerShell 运行 tools/hosts.ps1 local")
+				app.log.Warn("hosts Автопереключение не удалось (запустите лаунчер от имени администратора): " + err.Error() +
+					"; можно вручную направить api.rf4game.ru/com на 127.0.0.1 или выполнить в PowerShell от администратора tools/hosts.ps1 local")
 			} else {
-				app.log.Info("hosts 已指向本地服，launcher 退出时自动还原")
+				app.log.Info("hosts направлен на локальный сервер, при выходе лаунчера будет восстановлен")
 			}
 		}
 	}()
@@ -227,10 +227,10 @@ func main() {
 		app.sup.StopAll()
 		if app.cfg.Launcher.HostsSwitch {
 			if err := hostsRestore(hostsFilePath()); err != nil {
-				app.log.Error("hosts 还原失败: " + err.Error() +
-					"；hosts 仍指向本地服，如需回官服请手动删除 hosts 中的 rf4s-local 行，或以管理员 PowerShell 运行 tools/hosts.ps1 official")
+				app.log.Error("hosts Не удалось восстановить: " + err.Error() +
+					"; hosts всё ещё указывает на локальный сервер — чтобы вернуться на официальный, удалите в hosts строки rf4s-local или выполните в PowerShell от администратора tools/hosts.ps1 official")
 			} else {
-				app.log.Info("hosts 已还原为官方解析")
+				app.log.Info("hosts Восстановлено на официальные адреса")
 			}
 		}
 	})
@@ -250,16 +250,16 @@ var (
 func (a *app) onTrayReady() {
 	systray.SetIcon(iconColor(3)) // 初始灰色由状态回调刷新
 	systray.SetTitle("fish-localserver")
-	systray.SetTooltip("fish-localserver 本地服务器")
+	systray.SetTooltip("fish-localserver Локальный сервер")
 
-	mItemPanel = systray.AddMenuItem("打开控制中心", "进程状态、日志与游戏管理")
-	mItemAdmin = systray.AddMenuItem("打开管理后台", "直接进入统一控制中心的管理页面")
+	mItemPanel = systray.AddMenuItem("Открыть центр управления", "Состояние процессов, журналы и запуск игры")
+	mItemAdmin = systray.AddMenuItem("Открыть админ-панель", "Сразу перейти в админ-панель центра управления")
 	systray.AddSeparator()
-	mItemStart = systray.AddMenuItem("启动全部", "按序启动两个游戏服务")
-	mItemStop = systray.AddMenuItem("停止全部", "停止全部游戏服务")
-	mItemRestart = systray.AddMenuItem("重启全部", "重启全部游戏服务")
+	mItemStart = systray.AddMenuItem("Запустить всё", "Запустить оба игровых сервиса по порядку")
+	mItemStop = systray.AddMenuItem("Остановить всё", "Остановить все игровые сервисы")
+	mItemRestart = systray.AddMenuItem("Перезапустить всё", "Перезапустить все игровые сервисы")
 	systray.AddSeparator()
-	mItemQuit = systray.AddMenuItem("退出", "停止服务并退出")
+	mItemQuit = systray.AddMenuItem("Выход", "Остановить сервисы и выйти")
 
 	go func() {
 		for range mItemPanel.ClickedCh {
@@ -317,11 +317,11 @@ func updateTrayIcon(a *app) {
 	a.adminMu.RUnlock()
 	switch {
 	case running == 2 && adminReady:
-		a.setTray(0, "fish-localserver：全部就绪") // 绿
+		a.setTray(0, "fish-localserver: всё готово") // 绿
 	case running > 0 || adminReady:
-		a.setTray(1, fmt.Sprintf("fish-localserver：%d/2 游戏服务，管理后台=%v", running, adminReady)) // 黄
+		a.setTray(1, fmt.Sprintf("fish-localserver: игровых сервисов %d/2, админ-панель=%v", running, adminReady)) // 黄
 	default:
-		a.setTray(2, "fish-localserver：已停止") // 红
+		a.setTray(2, "fish-localserver: остановлено") // 红
 	}
 }
 
@@ -358,6 +358,7 @@ func (a *app) handleStatus(w http.ResponseWriter, _ *http.Request) {
 	adminErr := a.adminErr
 	a.adminMu.RUnlock()
 	gamePath, gameRegion := a.gameState()
+	launchVia, steamAppID := a.launchState()
 	var update *updatecheck.Result
 	if a.updates != nil {
 		update = a.updates.Result()
@@ -371,6 +372,8 @@ func (a *app) handleStatus(w http.ResponseWriter, _ *http.Request) {
 		"admin_error":     adminErr,
 		"game_path":       gamePath,
 		"game_region":     gameRegion,
+		"launch_via":      launchVia,
+		"steam_app_id":    steamAppID,
 		"hosts":           hostsMode(hostsFilePath()),
 		"current_version": buildinfo.Version,
 		"update":          update,
@@ -435,15 +438,15 @@ func (a *app) handleHosts(w http.ResponseWriter, r *http.Request) {
 		case "official":
 			err = hostsRestore(path)
 		default:
-			httpError(w, "mode 必须是 local 或 official")
+			httpError(w, "mode должен быть local или official")
 			return
 		}
 		if err != nil {
-			httpError(w, "hosts 写入失败（请以管理员身份运行 launcher）: "+err.Error()+
-				"；可手动将 api.rf4game.ru/com 指向 127.0.0.1，或以管理员 PowerShell 运行 tools/hosts.ps1 local")
+			httpError(w, "hosts Ошибка записи (запустите лаунчер от имени администратора): "+err.Error()+
+				"; можно вручную направить api.rf4game.ru/com на 127.0.0.1 или выполнить в PowerShell от администратора tools/hosts.ps1 local")
 			return
 		}
-		a.log.Info("hosts 指向已切换为 " + map[string]string{"local": "本地服务器", "official": "官方服务器"}[mode])
+		a.log.Info("hosts переключён на " + map[string]string{"local": "Локальный сервер", "official": "Официальный сервер"}[mode])
 		w.WriteHeader(204)
 	default:
 		w.WriteHeader(http.StatusMethodNotAllowed)
@@ -464,7 +467,7 @@ func (a *app) handleLogs(w http.ResponseWriter, r *http.Request) {
 func (a *app) actionHandler(action string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if a.sup == nil {
-			httpError(w, "服务初始化中，请稍候")
+			httpError(w, "Сервисы инициализируются, подождите")
 			return
 		}
 		name := r.URL.Query().Get("name")
@@ -542,7 +545,7 @@ func (a *app) initAdmin(ctx context.Context) error {
 	a.adminErr = ""
 	a.adminMu.Unlock()
 	go a.trackAdminSessions(a.ctx, db, srv)
-	a.log.Info("管理后台已挂载到 /admin/")
+	a.log.Info("Админ-панель подключена по адресу /admin/")
 	return nil
 }
 
@@ -559,7 +562,7 @@ func (a *app) handleAdmin(w http.ResponseWriter, r *http.Request) {
 	if srv == nil {
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		w.WriteHeader(http.StatusServiceUnavailable)
-		_, _ = fmt.Fprint(w, `<!doctype html><meta charset="utf-8"><title>管理后台未就绪</title><style>body{background:#09111d;color:#e8f0f8;font:15px/1.7 "Segoe UI",sans-serif;padding:48px}</style><h2>管理后台尚未就绪</h2><p>请返回“运行控制”查看初始化状态并重试。</p>`)
+		_, _ = fmt.Fprint(w, `<!doctype html><meta charset="utf-8"><title>Админ-панель не готова</title><style>body{background:#09111d;color:#e8f0f8;font:15px/1.7 "Segoe UI",sans-serif;padding:48px}</style><h2>Админ-панель ещё не готова</h2><p>Вернитесь в центр управления, проверьте состояние инициализации и повторите.</p>`)
 		return
 	}
 	http.StripPrefix("/admin", srv.Handler()).ServeHTTP(w, r)
@@ -613,7 +616,7 @@ func (a *app) trackBuildIdentity() {
 		for _, p := range a.sup.Status() {
 			if p.ExeChanged && !warned[p.Name] {
 				a.log.Warn(fmt.Sprintf(
-					"%s.exe 已被替换，但当前运行的仍是启动时那份（pid=%d，自报版本 %s）；重启后才会切到新构建",
+					"%s.exe заменён на диске, но работает ещё версия со старта (pid=%d, версия %s); новая сборка заработает после перезапуска",
 					p.Name, p.PID, buildVersionOf(p.RunningBuild)))
 			}
 			warned[p.Name] = p.ExeChanged
@@ -625,7 +628,7 @@ func (a *app) trackBuildIdentity() {
 // 「读不到」本身就是要暴露的信息。
 func buildVersionOf(b *supervisor.BuildInfo) string {
 	if b == nil || b.Version == "" {
-		return "未知"
+		return "Неизвестно"
 	}
 	return b.Version
 }
@@ -746,5 +749,5 @@ func resolveWorkDir(configPath string) string {
 			return dir
 		}
 	}
-	return "" // 找不到就留在 CWD（config.Load 会给出明确报错）
+	return "" // 找不到就留在 CWD (config.Load 会给出明确报错)
 }

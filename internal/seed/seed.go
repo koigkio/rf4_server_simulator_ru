@@ -80,16 +80,16 @@ func Ensure(ctx context.Context, cfg *config.Config, staticPath, adminUser, admi
 
 	db, err := store.Open(cfg.SQLite.Path)
 	if err != nil {
-		return nil, fmt.Errorf("打开 SQLite %s: %w", cfg.SQLite.Path, err)
+		return nil, fmt.Errorf("Открытие SQLite %s: %w", cfg.SQLite.Path, err)
 	}
 	defer db.Close()
 	if err := db.Migrate(); err != nil {
-		return nil, fmt.Errorf("迁移失败: %w", err)
+		return nil, fmt.Errorf("Ошибка миграции: %w", err)
 	}
 	if err := store.ValidateTableOwnership(ctx, db); err != nil {
-		return nil, fmt.Errorf("表归属校验失败: %w", err)
+		return nil, fmt.Errorf("Ошибка проверки принадлежности таблиц: %w", err)
 	}
-	log.Info("数据库迁移完成 path=" + cfg.SQLite.Path)
+	log.Info("Миграция базы данных завершена path=" + cfg.SQLite.Path)
 
 	if staticPath != "" {
 		source, err := inspectStatic(staticPath)
@@ -100,7 +100,7 @@ func Ensure(ctx context.Context, cfg *config.Config, staticPath, adminUser, admi
 		meta, metaFound, metaErr := loadDatasetMeta(ctx, db.SQL)
 		if targetErr == nil && metaErr == nil && metaMatchesSnapshot(meta, metaFound, target, source) {
 			res.Rows = snapshotRows(target)
-			log.Info(fmt.Sprintf("静态配置已是最新版本 version=%s sha256=%s", StaticDataVersion, source.ContentSHA256))
+			log.Info(fmt.Sprintf("Статические данные уже последней версии version=%s sha256=%s", StaticDataVersion, source.ContentSHA256))
 		} else {
 			n, rows, err := importStatic(db, staticPath, source, log)
 			if err != nil {
@@ -113,16 +113,16 @@ func Ensure(ctx context.Context, cfg *config.Config, staticPath, adminUser, admi
 	}
 
 	if _, err := db.EnsureProfile(ctx, cfg.Game.DefaultUserid); err != nil {
-		return nil, fmt.Errorf("默认档案创建失败: %w", err)
+		return nil, fmt.Errorf("Не удалось создать профиль по умолчанию: %w", err)
 	}
 	if adminUser != "" {
 		created, err := ensureAdmin(db, adminUser, adminPass)
 		if err != nil {
-			return nil, fmt.Errorf("初始化管理员失败: %w", err)
+			return nil, fmt.Errorf("Не удалось создать администратора: %w", err)
 		}
 		res.AdminCreated = created
 		if created {
-			log.Info("已创建初始管理员（仅表空时生效） user=" + adminUser)
+			log.Info("Создан первый администратор (только при пустой таблице) user=" + adminUser)
 		}
 	}
 	res.Elapsed = time.Since(start)
@@ -181,19 +181,19 @@ func ensureAdmin(db *store.DB, username, password string) (bool, error) {
 
 func inspectStatic(path string) (*datasetSnapshot, error) {
 	if _, err := os.Stat(path); err != nil {
-		return nil, fmt.Errorf("静态配置库不存在: %s（仓库自带 server_data/static.sqlite3，请在仓库根运行）", path)
+		return nil, fmt.Errorf("Статическая база не найдена: %s (в репозитории есть server_data/static.sqlite3, запускайте из корня репозитория)", path)
 	}
 	db, err := sql.Open("sqlite", sqliteReadOnlyURI(path))
 	if err != nil {
-		return nil, fmt.Errorf("打开静态配置库: %w", err)
+		return nil, fmt.Errorf("Открытие статической базы: %w", err)
 	}
 	defer db.Close()
 	var integrity string
 	if err := db.QueryRow(`PRAGMA main.integrity_check`).Scan(&integrity); err != nil {
-		return nil, fmt.Errorf("检查静态配置库完整性: %w", err)
+		return nil, fmt.Errorf("Проверка целостности статической базы: %w", err)
 	}
 	if integrity != "ok" {
-		return nil, fmt.Errorf("静态配置库完整性失败: %s", integrity)
+		return nil, fmt.Errorf("Нарушена целостность статической базы: %s", integrity)
 	}
 	snap, err := snapshotDataset(context.Background(), db, "main")
 	if err != nil {
@@ -228,7 +228,7 @@ func tableColumns(ctx context.Context, q queryer, schema, table string) ([]strin
 	stmt := fmt.Sprintf(`PRAGMA %s.table_info(%s)`, quoteIdent(schema), quoteIdent(table))
 	rows, err := q.QueryContext(ctx, stmt)
 	if err != nil {
-		return nil, "", fmt.Errorf("读取 %s.%s 列信息: %w", schema, table, err)
+		return nil, "", fmt.Errorf("Чтение столбцов %s.%s: %w", schema, table, err)
 	}
 	defer rows.Close()
 	var columns []string
@@ -238,16 +238,16 @@ func tableColumns(ctx context.Context, q queryer, schema, table string) ([]strin
 		var name, typ string
 		var dflt sql.NullString
 		if err := rows.Scan(&cid, &name, &typ, &notNull, &dflt, &pk); err != nil {
-			return nil, "", fmt.Errorf("读取 %s.%s 列信息: %w", schema, table, err)
+			return nil, "", fmt.Errorf("Чтение столбцов %s.%s: %w", schema, table, err)
 		}
 		columns = append(columns, name)
 		fmt.Fprintf(&signature, "%d:%s:%s:%d:%s:%d;", cid, name, typ, notNull, dflt.String, pk)
 	}
 	if err := rows.Err(); err != nil {
-		return nil, "", fmt.Errorf("遍历 %s.%s 列信息: %w", schema, table, err)
+		return nil, "", fmt.Errorf("Обход столбцов %s.%s: %w", schema, table, err)
 	}
 	if len(columns) == 0 {
-		return nil, "", fmt.Errorf("静态配置库缺少表 %s.%s", schema, table)
+		return nil, "", fmt.Errorf("В статической базе нет таблицы %s.%s", schema, table)
 	}
 	return columns, signature.String(), nil
 }
@@ -261,7 +261,7 @@ func digestTable(ctx context.Context, q queryer, schema, table string, columns [
 		quoteIdent(schema), quoteIdent(table), strings.Join(order, ","))
 	rows, err := q.QueryContext(ctx, stmt)
 	if err != nil {
-		return "", 0, fmt.Errorf("读取 %s.%s: %w", schema, table, err)
+		return "", 0, fmt.Errorf("Чтение %s.%s: %w", schema, table, err)
 	}
 	defer rows.Close()
 	h := sha256.New()
@@ -274,7 +274,7 @@ func digestTable(ctx context.Context, q queryer, schema, table string, columns [
 			dest[i] = &values[i]
 		}
 		if err := rows.Scan(dest...); err != nil {
-			return "", 0, fmt.Errorf("扫描 %s.%s: %w", schema, table, err)
+			return "", 0, fmt.Errorf("Сканирование %s.%s: %w", schema, table, err)
 		}
 		for _, value := range values {
 			writeCanonical(h, value)
@@ -283,7 +283,7 @@ func digestTable(ctx context.Context, q queryer, schema, table string, columns [
 		count++
 	}
 	if err := rows.Err(); err != nil {
-		return "", 0, fmt.Errorf("遍历 %s.%s: %w", schema, table, err)
+		return "", 0, fmt.Errorf("Обход %s.%s: %w", schema, table, err)
 	}
 	return hex.EncodeToString(h.Sum(nil)), count, nil
 }
@@ -356,7 +356,7 @@ func importStatic(db *store.DB, sqlitePath string, source *datasetSnapshot, log 
 	defer cancel()
 	conn, err := db.SQL.Conn(ctx)
 	if err != nil {
-		return 0, nil, fmt.Errorf("获取静态导入连接: %w", err)
+		return 0, nil, fmt.Errorf("Получение соединения для статического импорта: %w", err)
 	}
 	defer conn.Close()
 	if err := attachStaticReadOnly(ctx, conn, sqlitePath); err != nil {
@@ -371,7 +371,7 @@ func importStatic(db *store.DB, sqlitePath string, source *datasetSnapshot, log 
 		_, _ = conn.ExecContext(context.Background(), `DETACH DATABASE src`)
 	}()
 	if _, err := conn.ExecContext(ctx, `BEGIN IMMEDIATE`); err != nil {
-		return 0, nil, fmt.Errorf("开始静态导入事务: %w", err)
+		return 0, nil, fmt.Errorf("Начало транзакции статического импорта: %w", err)
 	}
 	inTx = true
 
@@ -380,7 +380,7 @@ func importStatic(db *store.DB, sqlitePath string, source *datasetSnapshot, log 
 		return 0, nil, err
 	}
 	if attached.ContentSHA256 != source.ContentSHA256 {
-		return 0, nil, fmt.Errorf("静态配置库在预检后发生变化: %s != %s", attached.ContentSHA256, source.ContentSHA256)
+		return 0, nil, fmt.Errorf("Статическая база изменилась после предварительной проверки: %s != %s", attached.ContentSHA256, source.ContentSHA256)
 	}
 	target, err := snapshotDataset(ctx, conn, "main")
 	if err != nil {
@@ -391,30 +391,30 @@ func importStatic(db *store.DB, sqlitePath string, source *datasetSnapshot, log 
 		srcInfo := attached.Tables[table]
 		dstInfo := target.Tables[table]
 		if srcInfo.Signature != dstInfo.Signature || strings.Join(srcInfo.Columns, "\x00") != strings.Join(dstInfo.Columns, "\x00") {
-			return 0, nil, fmt.Errorf("静态表 %s 列签名不一致: src=%s dst=%s", table, srcInfo.Signature, dstInfo.Signature)
+			return 0, nil, fmt.Errorf("Сигнатура столбцов статической таблицы %s не совпадает: src=%s dst=%s", table, srcInfo.Signature, dstInfo.Signature)
 		}
 	}
 	for _, table := range store.StaticTables {
 		start := time.Now()
 		if _, err := conn.ExecContext(ctx, `DELETE FROM main.`+quoteIdent(table)); err != nil {
-			return 0, nil, fmt.Errorf("清空 %s: %w", table, err)
+			return 0, nil, fmt.Errorf("Очистка %s: %w", table, err)
 		}
 		columns := quoteColumnList(attached.Tables[table].Columns)
 		stmt := fmt.Sprintf(`INSERT INTO main.%s (%s) SELECT %s FROM src.%s`,
 			quoteIdent(table), columns, columns, quoteIdent(table))
 		result, err := conn.ExecContext(ctx, stmt)
 		if err != nil {
-			return 0, nil, fmt.Errorf("复制 %s: %w", table, err)
+			return 0, nil, fmt.Errorf("Копирование %s: %w", table, err)
 		}
 		nrows, err := result.RowsAffected()
 		if err != nil {
-			return 0, nil, fmt.Errorf("读取 %s 导入行数: %w", table, err)
+			return 0, nil, fmt.Errorf("Чтение числа импортированных строк %s: %w", table, err)
 		}
 		if nrows != attached.Tables[table].Rows {
-			return 0, nil, fmt.Errorf("复制 %s 行数不一致: copied=%d source=%d", table, nrows, attached.Tables[table].Rows)
+			return 0, nil, fmt.Errorf("Число скопированных строк %s не совпадает: copied=%d source=%d", table, nrows, attached.Tables[table].Rows)
 		}
 		rows[table] = nrows
-		log.Info(fmt.Sprintf("静态配置导入完成 table=%s rows=%d elapsed=%s",
+		log.Info(fmt.Sprintf("Импорт статических данных завершён table=%s rows=%d elapsed=%s",
 			table, nrows, time.Since(start).Round(time.Millisecond)))
 	}
 	if _, err := conn.ExecContext(ctx, `
@@ -429,10 +429,10 @@ func importStatic(db *store.DB, sqlitePath string, source *datasetSnapshot, log 
 			applied_at=excluded.applied_at`,
 		staticDatasetName, StaticSchemaVersion, StaticDataVersion, source.ContentSHA256,
 		len(store.StaticTables), source.RowCount, float64(time.Now().Unix())); err != nil {
-		return 0, nil, fmt.Errorf("写入静态数据集版本: %w", err)
+		return 0, nil, fmt.Errorf("Запись версии статического набора данных: %w", err)
 	}
 	if _, err := conn.ExecContext(ctx, `COMMIT`); err != nil {
-		return 0, nil, fmt.Errorf("提交静态导入事务: %w", err)
+		return 0, nil, fmt.Errorf("Фиксация транзакции статического импорта: %w", err)
 	}
 	committed = true
 	return len(store.StaticTables), rows, nil
@@ -440,7 +440,7 @@ func importStatic(db *store.DB, sqlitePath string, source *datasetSnapshot, log 
 
 func attachStaticReadOnly(ctx context.Context, conn *sql.Conn, path string) error {
 	if _, err := conn.ExecContext(ctx, `ATTACH DATABASE ? AS src`, sqliteReadOnlyURI(path)); err != nil {
-		return fmt.Errorf("ATTACH 静态配置库（只读）: %w", err)
+		return fmt.Errorf("ATTACH Статическая база (только чтение): %w", err)
 	}
 	return nil
 }

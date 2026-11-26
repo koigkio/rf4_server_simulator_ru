@@ -26,7 +26,7 @@ func setReelPartDurabilityForTest(t *testing.T, srv *Server, db *store.DB, ctx c
 	}
 	child, _, _, found := srv.selectedReelPart(ctx, fields, category)
 	if !found || child == nil {
-		t.Fatalf("出厂轮子应内嵌品类 %d 零件，测试才能模拟磨损", category)
+		t.Fatalf("出厂轮子应内嵌品类 %d 零件, 测试才能模拟磨损", category)
 	}
 	idx := fieldIdxByCS(child.Class, csDurability)
 	if idx < 0 {
@@ -68,7 +68,7 @@ func TestReelPartDurabilityLowersDragAndLockStrength(t *testing.T) {
 
 	_, bearingQuality, bearingDurability := srv.reelPartStateFromRow(ctx, reel, reelPartCatBearing)
 	if bearingDurability != 1 {
-		t.Fatalf("出厂轴承耐久应为 1，实得 %v", bearingDurability)
+		t.Fatalf("出厂轴承耐久应为 1, 实得 %v", bearingDurability)
 	}
 	fresh := reelPerfForTest(t, srv, db, ctx, reel.GUID)
 	if fresh.BaseDragKg <= 0 || fresh.LockedDragKg <= 0 {
@@ -80,7 +80,7 @@ func TestReelPartDurabilityLowersDragAndLockStrength(t *testing.T) {
 		t.Fatalf("读取轮子失败: %v", err)
 	}
 	if got := srv.reelLockedDragFromRow(ctx, row); math.Abs(got-fresh.LockedDragKg) > 1e-9 {
-		t.Fatalf("搏鱼裁决承力与性能表不同源：裁决 %.6f 性能表 %.6f", got, fresh.LockedDragKg)
+		t.Fatalf("搏鱼裁决承力与性能表不同源: 裁决 %.6f 性能表 %.6f", got, fresh.LockedDragKg)
 	}
 
 	// 轴承用旧到剩 0.2：摩擦片没动，但泄力、锁轮承力都要降，抛投也更涩。
@@ -92,31 +92,31 @@ func TestReelPartDurabilityLowersDragAndLockStrength(t *testing.T) {
 	// 耐久字段走 U32 承载 F32 位型，写 0.2 读回带 float32 噪声，后续期望一律用读回值。
 	_, _, wornBearingDur := srv.reelPartStateFromRow(ctx, wornRow, reelPartCatBearing)
 	if math.Abs(wornBearingDur-0.2) > 1e-6 {
-		t.Fatalf("轴承耐久没写进去，实得 %v", wornBearingDur)
+		t.Fatalf("轴承耐久没写进去, 实得 %v", wornBearingDur)
 	}
 	worn := reelPerfForTest(t, srv, db, ctx, reel.GUID)
 	if math.Abs(worn.BaseDragKg-fresh.BaseDragKg) > 1e-9 {
-		t.Fatalf("摩擦片没动，基础制动力不该变：%.6f -> %.6f", fresh.BaseDragKg, worn.BaseDragKg)
+		t.Fatalf("摩擦片没动, 基础制动力不该变: %.6f -> %.6f", fresh.BaseDragKg, worn.BaseDragKg)
 	}
 	// 泄力与锁轮承力都必须按轴承效率同比降下来。
 	lost := reelBearingFactor(bearingQuality, wornBearingDur) / reelBearingFactor(bearingQuality, 1)
 	wantDrag := reelDragAtSetting(fresh, defaultReelDragSetting) * lost
 	if got := reelDragAtSetting(worn, defaultReelDragSetting); math.Abs(got-wantDrag) > 1e-9 {
-		t.Fatalf("旧轴承应把泄力压到 %.6f，实得 %.6f", wantDrag, got)
+		t.Fatalf("旧轴承应把泄力压到 %.6f, 实得 %.6f", wantDrag, got)
 	}
 	// 统一口径：锁轮承力 = 出厂规格 × 轴承子件耐久（fresh 满轴承 = 规格）。
 	wantLocked := fresh.LockedDragKg * wornBearingDur
 	if math.Abs(worn.LockedDragKg-wantLocked) > 1e-9 {
-		t.Fatalf("旧轴承应把锁轮承力压到 %.6f，实得 %.6f", wantLocked, worn.LockedDragKg)
+		t.Fatalf("旧轴承应把锁轮承力压到 %.6f, 实得 %.6f", wantLocked, worn.LockedDragKg)
 	}
 	if worn.CastFriction <= fresh.CastFriction {
-		t.Fatalf("旧轴承应让抛投更涩：新轮 %f 旧轮 %f", fresh.CastFriction, worn.CastFriction)
+		t.Fatalf("旧轴承应让抛投更涩: 新轮 %f 旧轮 %f", fresh.CastFriction, worn.CastFriction)
 	}
 	// 换了新轴承能整段找回来：耐久写回 1，三个数字全部复位。
 	setReelPartDurabilityForTest(t, srv, db, ctx, reel.GUID, reelPartCatBearing, 1)
 	restored := reelPerfForTest(t, srv, db, ctx, reel.GUID)
 	if math.Abs(restored.LockedDragKg-fresh.LockedDragKg) > 1e-9 || restored.CastFriction != fresh.CastFriction {
-		t.Fatalf("换新轴承应恢复承力与手感：locked %.6f->%.6f friction %f->%f",
+		t.Fatalf("换新轴承应恢复承力与手感: locked %.6f->%.6f friction %f->%f",
 			fresh.LockedDragKg, restored.LockedDragKg, fresh.CastFriction, restored.CastFriction)
 	}
 
@@ -124,15 +124,15 @@ func TestReelPartDurabilityLowersDragAndLockStrength(t *testing.T) {
 	setReelPartDurabilityForTest(t, srv, db, ctx, reel.GUID, reelPartCatGear, 0)
 	gwear := reelPerfForTest(t, srv, db, ctx, reel.GUID)
 	if math.Abs(gwear.BaseDragKg-fresh.BaseDragKg) > 1e-9 {
-		t.Fatalf("齿轮不该改基础制动力：%.6f -> %.6f", fresh.BaseDragKg, gwear.BaseDragKg)
+		t.Fatalf("齿轮不该改基础制动力: %.6f -> %.6f", fresh.BaseDragKg, gwear.BaseDragKg)
 	}
 	if got := reelDragAtSetting(gwear, defaultReelDragSetting); math.Abs(got-reelDragAtSetting(fresh, defaultReelDragSetting)) > 1e-9 {
-		t.Fatalf("泄力档位不含齿轮效率，不该随齿轮磨损变化：%.6f -> %.6f",
+		t.Fatalf("泄力档位不含齿轮效率, 不该随齿轮磨损变化: %.6f -> %.6f",
 			reelDragAtSetting(fresh, defaultReelDragSetting), got)
 	}
 	// 统一口径：锁轮承力=规格×轴承耐久，齿轮磨损不再影响锁轮承力
 	// （官方 4/22 实抓：轮根只跟轴承耐久相关，齿轮无相关性的推断被数据否定）。
 	if math.Abs(gwear.LockedDragKg-fresh.LockedDragKg) > 1e-9 {
-		t.Fatalf("齿轮磨损不应改变锁轮承力：%.6f -> %.6f", fresh.LockedDragKg, gwear.LockedDragKg)
+		t.Fatalf("齿轮磨损不应改变锁轮承力: %.6f -> %.6f", fresh.LockedDragKg, gwear.LockedDragKg)
 	}
 }

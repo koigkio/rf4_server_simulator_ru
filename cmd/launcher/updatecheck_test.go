@@ -40,7 +40,7 @@ func TestHandleStatusIncludesUpdate(t *testing.T) {
 		UpdateStatus   updateHealth        `json:"update_status"`
 	}
 	if err := json.Unmarshal(rr.Body.Bytes(), &st); err != nil {
-		t.Fatalf("解析 /api/status: %v", err)
+		t.Fatalf("Разбор /api/status: %v", err)
 	}
 	if st.Update == nil || !st.Update.Available || st.Update.LatestVersion != "v1.2.0" {
 		t.Fatalf("update 字段不符: %+v", st.Update)
@@ -83,7 +83,7 @@ func TestCheckUpdatesTracksConnectionFailureWithoutBlockingStatus(t *testing.T) 
 		UpdateStatus updateHealth `json:"update_status"`
 	}
 	if err := json.Unmarshal(rr.Body.Bytes(), &st); err != nil {
-		t.Fatalf("解析 /api/status: %v", err)
+		t.Fatalf("Разбор /api/status: %v", err)
 	}
 	if st.UpdateStatus.Connected || st.UpdateStatus.Error == "" {
 		t.Fatalf("status 应透传连接失败状态: %+v", st.UpdateStatus)
@@ -154,7 +154,7 @@ func TestHandleUpdateDismiss(t *testing.T) {
 
 func TestAdminUpdateInfoMapping(t *testing.T) {
 	if adminUpdateInfo(nil) != nil {
-		t.Fatal("nil 结果应映射为 nil（响应省略 update 键）")
+		t.Fatal("nil 结果应映射为 nil (响应省略 update 键)")
 	}
 	m := adminUpdateInfo(&updatecheck.Result{
 		Available: true, Channel: updatecheck.ChannelStable,

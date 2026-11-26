@@ -34,7 +34,7 @@ const (
 	Magic   = "RF4T1"
 	Version = 1
 
-	maxRecordPayload = 32 << 20 // 32MB（1/4 LZMA 大包 ~2.3MB，留余量）
+	maxRecordPayload = 32 << 20 // 32MB (1/4 LZMA 大包 ~2.3MB, 留余量)
 	handshakeTimeout = 5 * time.Second
 )
 
@@ -98,13 +98,13 @@ func HandshakeClient(nc net.Conn, psk string) (*Conn, error) {
 	}
 	buf := make([]byte, len(Magic)+32)
 	if _, err := io.ReadFull(nc, buf); err != nil {
-		return nil, fmt.Errorf("tunnel: 读服务端握手: %w", err)
+		return nil, fmt.Errorf("tunnel: Чтение рукопожатия сервера: %w", err)
 	}
 	if string(buf[:len(Magic)]) != Magic {
-		return nil, errors.New("tunnel: 服务端 magic 不符")
+		return nil, errors.New("tunnel: magic сервера не совпадает")
 	}
 	if !hmac.Equal(buf[len(Magic):], mac(psk, "gameserver")) {
-		return nil, errors.New("tunnel: 服务端 PSK 校验失败")
+		return nil, errors.New("tunnel: Ошибка проверки PSK сервера")
 	}
 	return newConn(nc, "client"), nil
 }
@@ -116,13 +116,13 @@ func HandshakeServer(nc net.Conn, psk string) (*Conn, error) {
 	}
 	head := make([]byte, len(Magic)+32)
 	if _, err := io.ReadFull(nc, head); err != nil {
-		return nil, fmt.Errorf("tunnel: 读客户端握手: %w", err)
+		return nil, fmt.Errorf("tunnel: Чтение рукопожатия клиента: %w", err)
 	}
 	if string(head[:len(Magic)]) != Magic {
-		return nil, errors.New("tunnel: 客户端 magic 不符")
+		return nil, errors.New("tunnel: magic клиента не совпадает")
 	}
 	if !hmac.Equal(head[len(Magic):], mac(psk, "gateway")) {
-		return nil, errors.New("tunnel: 客户端 PSK 校验失败")
+		return nil, errors.New("tunnel: Ошибка проверки PSK клиента")
 	}
 	if _, err := nc.Write([]byte(Magic)); err != nil {
 		return nil, err
@@ -155,7 +155,7 @@ func (c *Conn) WriteRecord(t RecordType, sessionID uint64, payload []byte) error
 	default:
 	}
 	if len(payload) > maxRecordPayload {
-		return fmt.Errorf("tunnel: payload 过大 %d", len(payload))
+		return fmt.Errorf("tunnel: payload слишком большой %d", len(payload))
 	}
 	c.wmu.Lock()
 	defer c.wmu.Unlock()
@@ -182,7 +182,7 @@ func (c *Conn) ReadRecord() (RecordType, uint64, []byte, error) {
 	}
 	total := binary.LittleEndian.Uint32(head[0:4])
 	if total < 9 || total-9 > maxRecordPayload {
-		return 0, 0, nil, fmt.Errorf("tunnel: 非法记录长度 %d", total)
+		return 0, 0, nil, fmt.Errorf("tunnel: Недопустимая длина записи %d", total)
 	}
 	payload := make([]byte, total-9)
 	if _, err := io.ReadFull(c.nc, payload); err != nil {
@@ -215,7 +215,7 @@ func (c *Conn) Name() string { return c.name }
 func Dial(addr, psk string) (*Conn, error) {
 	nc, err := net.DialTimeout("tcp", addr, 5*time.Second)
 	if err != nil {
-		return nil, fmt.Errorf("tunnel: 拨号 %s: %w", addr, err)
+		return nil, fmt.Errorf("tunnel: Подключение %s: %w", addr, err)
 	}
 	c, err := HandshakeClient(nc, psk)
 	if err != nil {

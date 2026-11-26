@@ -18,7 +18,7 @@ type fallbackRow struct {
 	Sem   string  `json:"sem"`
 	Resp  *string `json:"resp"` // 响应 DTO 类名
 	Real  *string `json:"real"`
-	Wire  *string `json:"wire"` // wire 类名（dto 合成用）
+	Wire  *string `json:"wire"` // wire 类名 (dto 合成用)
 	Tid   *int    `json:"tid"`
 	Array bool    `json:"array"`
 }
@@ -40,7 +40,7 @@ func loadFallbacks() map[string]*fallbackRow {
 	fbOnce.Do(func() {
 		var raw map[string]*fallbackRow
 		if err := json.Unmarshal(fallbackTableJSON, &raw); err != nil {
-			panic(fmt.Sprintf("command_responses.json 解析失败: %v", err))
+			panic(fmt.Sprintf("command_responses.json Ошибка разбора: %v", err))
 		}
 		fbTable = raw
 	})
@@ -52,7 +52,7 @@ func loadKindTable() map[string]kindRow {
 	kindOnce.Do(func() {
 		var raw map[string]kindRow
 		if err := json.Unmarshal(fallbackKindsJSON, &raw); err != nil {
-			panic(fmt.Sprintf("fallback_kinds.json 解析失败: %v", err))
+			panic(fmt.Sprintf("fallback_kinds.json Ошибка разбора: %v", err))
 		}
 		kindTable = raw
 	})
@@ -115,7 +115,7 @@ func (s *Server) fallbackFor(main, sub int) ([]byte, string) {
 // 客户端可能把兜底响应渲染成编造物品。
 func synthDTO(class string) ([]byte, error) {
 	if idx := fieldIdxByCS(class, "iofbjlaadfg"); idx >= 0 {
-		return nil, fmt.Errorf("拒绝合成 %s：含物品数字 id 字段，不能编造", class)
+		return nil, fmt.Errorf("Отказ синтезировать %s: есть поле числового id предмета, выдумывать нельзя", class)
 	}
 	v, err := wiregen.MakeObj(class, nil)
 	if err != nil {

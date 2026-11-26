@@ -70,8 +70,8 @@ func TestReelStrengthTableIsEmbedded(t *testing.T) {
 func TestReelStrengthAnchors(t *testing.T) {
 	t.Parallel()
 	for itemID, want := range map[string]float64{
-		"spin_5274": 127.94, // Turion SW 30000，官方实抓轮根 126.35
-		"spin_5677": 45.89,  // Tagara II 6000，官方实抓 44.77/44.42
+		"spin_5274": 127.94, // Turion SW 30000, 官方实抓轮根 126.35
+		"spin_5677": 45.89,  // Tagara II 6000, 官方实抓 44.77/44.42
 		"spin_6043": 71.2,   // Venga II 6000
 	} {
 		got, ok := reelRootSpec(itemID)
@@ -79,7 +79,7 @@ func TestReelStrengthAnchors(t *testing.T) {
 			t.Fatalf("规格表缺锚点 %s", itemID)
 		}
 		if math.Abs(got-want) > 0.01 {
-			t.Fatalf("%s root_spec=%f 期望 %f", itemID, got, want)
+			t.Fatalf("%s root_spec=%f Ожидалось %f", itemID, got, want)
 		}
 	}
 }
@@ -97,7 +97,7 @@ func TestReelRootUsesStrengthSpec(t *testing.T) {
 	}
 	root := reelRootStrengthForTest(t, fields, row.WireClass)
 	if math.Abs(root-71.2) > 0.02 {
-		t.Fatalf("轮根=%f，期望规格 71.2（旧口径摩擦片值 22.7）", root)
+		t.Fatalf("轮根=%f, 期望规格 71.2 (旧口径摩擦片值 22.7)", root)
 	}
 }
 
@@ -136,7 +136,7 @@ func TestReelRootScalesWithBearingDurability(t *testing.T) {
 	}
 	root := reelRootStrengthForTest(t, fields, row.WireClass)
 	if math.Abs(root-71.2*0.5) > 0.02 {
-		t.Fatalf("轴承 0.5 时轮根=%f，期望 %f", root, 71.2*0.5)
+		t.Fatalf("轴承 0.5 时轮根=%f, 期望 %f", root, 71.2*0.5)
 	}
 }
 
@@ -158,7 +158,7 @@ func TestReelRootNotCollapsedByWornWasher(t *testing.T) {
 	srv.canonicalizeReelStrength(context.Background(), row, fields)
 	root := reelRootStrengthForTest(t, fields, row.WireClass)
 	if math.Abs(root-71.2) > 0.02 {
-		t.Fatalf("摩擦片磨穿后轮根=%f，期望保持规格 71.2", root)
+		t.Fatalf("摩擦片磨穿后轮根=%f, 期望保持规格 71.2", root)
 	}
 }
 
@@ -174,7 +174,7 @@ func TestReelRootFallbackForUnlistedReel(t *testing.T) {
 		t.Fatal(err)
 	}
 	if _, ok := reelRootSpec(row.ItemID); ok {
-		t.Skipf("%s 已进入规格表，回退用例失效", row.ItemID)
+		t.Skipf("%s 已进入规格表, 回退用例失效", row.ItemID)
 	}
 	want := srv.reelBaseDragFromRow(context.Background(), row)
 	if want <= 0 {
@@ -182,7 +182,7 @@ func TestReelRootFallbackForUnlistedReel(t *testing.T) {
 	}
 	root := reelRootStrengthForTest(t, fields, row.WireClass)
 	if math.Abs(root-want) > 0.02 {
-		t.Fatalf("未收录轮根=%f，期望旧口径 %f", root, want)
+		t.Fatalf("未收录轮根=%f, 期望旧口径 %f", root, want)
 	}
 }
 
@@ -199,9 +199,9 @@ func TestReelLockedDragMatchesRootSpec(t *testing.T) {
 		t.Fatal(err)
 	}
 	if math.Abs(perf.BaseDragKg-22.7) > 0.05 {
-		t.Fatalf("基础制动力=%f，期望摩擦片额定 22.7", perf.BaseDragKg)
+		t.Fatalf("基础制动力=%f, 期望摩擦片额定 22.7", perf.BaseDragKg)
 	}
 	if math.Abs(perf.LockedDragKg-71.2) > 0.02 {
-		t.Fatalf("锁轮承力=%f，期望机构强度 71.2（旧口径 22.7×1.4=31.8 已废弃）", perf.LockedDragKg)
+		t.Fatalf("锁轮承力=%f, 期望机构强度 71.2 (旧口径 22.7×1.4=31.8 已废弃)", perf.LockedDragKg)
 	}
 }

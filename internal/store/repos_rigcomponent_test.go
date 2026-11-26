@@ -45,7 +45,7 @@ func TestRigComponentOrdinalMigrationAndProjection(t *testing.T) {
 		t.Fatal(err)
 	}
 	if len(comps) != 2 || comps[0].Ordinal != 0 || comps[1].Ordinal != 1 {
-		t.Fatalf("同品类两槽应并存 ordinal 0/1，实得 %+v", comps)
+		t.Fatalf("同品类两槽应并存 ordinal 0/1, 实得 %+v", comps)
 	}
 
 	if err := db.ReplaceRigComponents(ctx, "rig1", []RigComponent{
@@ -58,7 +58,7 @@ func TestRigComponentOrdinalMigrationAndProjection(t *testing.T) {
 		t.Fatal(err)
 	}
 	if len(comps) != 1 || comps[0].GUID != "sink-a" {
-		t.Fatalf("全量重建应删除幽灵行，实得 %+v", comps)
+		t.Fatalf("全量重建应删除幽灵行, 实得 %+v", comps)
 	}
 }
 
@@ -79,7 +79,7 @@ func TestRigComponentOrdinalMigrationPreservesExistingRows(t *testing.T) {
 	}
 	for _, name := range entries {
 		if strings.Contains(name, "00007_") {
-			continue // 只单独执行本用例目标：00007
+			continue // 只单独执行本用例目标: 00007
 		}
 		if _, err := db.SQL.ExecContext(ctx,
 			`INSERT INTO schema_migrations(version,name,applied_at) VALUES(?,?,0)`, migrationVersion(name), name); err != nil {
@@ -103,6 +103,6 @@ func TestRigComponentOrdinalMigrationPreservesExistingRows(t *testing.T) {
 		t.Fatal(err)
 	}
 	if len(comps) != 1 || comps[0].Ordinal != 0 || comps[0].GUID != "legacy-item" {
-		t.Fatalf("迁移行应写入 ordinal=0 且内容不变，实得 %+v", comps)
+		t.Fatalf("迁移行应写入 ordinal=0 且内容不变, 实得 %+v", comps)
 	}
 }

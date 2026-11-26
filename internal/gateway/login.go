@@ -58,7 +58,7 @@ type LoginServer struct {
 	ln        net.Listener
 	compatSrv *http.Server
 	compatLn  net.Listener
-	userid    int64 // 本进程内递增序号，共享序号不可用时使用
+	userid    int64 // 本进程内递增序号, 共享序号不可用时使用
 }
 
 // NewLoginServer 构建登录服务（含观测指标注册）。
@@ -66,7 +66,7 @@ func NewLoginServer(cfg config.Gateway, store Store, log *slog.Logger, obs *metr
 	s := &LoginServer{cfg: cfg, store: store, log: log}
 	cert, err := tls.LoadX509KeyPair(cfg.CertFile, cfg.KeyFile)
 	if err != nil {
-		return nil, fmt.Errorf("加载 TLS 证书: %w", err)
+		return nil, fmt.Errorf("Загрузка TLS-сертификата: %w", err)
 	}
 	// RF4 CN 客户端会把上游 URL 原样编码进路径，例如：
 	// /lv54/https://api.rf4game.ru/login.php。http.ServeMux 会把其中的
@@ -102,14 +102,14 @@ func NewLoginServer(cfg config.Gateway, store Store, log *slog.Logger, obs *metr
 	// 指标（无观测端口时用本地一次性注册表，避免 nil 指标 panic）
 	if obs != nil {
 		reg := obs.Registry()
-		loginRequests = metrics.NewCounter(reg, "gateway_login_requests_total", "登录请求数")
-		loginIssued = metrics.NewCounter(reg, "gateway_tokens_issued_total", "签发 token 数")
-		loginErrors = metrics.NewCounter(reg, "gateway_login_errors_total", "登录处理错误数")
+		loginRequests = metrics.NewCounter(reg, "gateway_login_requests_total", "Запросов входа")
+		loginIssued = metrics.NewCounter(reg, "gateway_tokens_issued_total", "Выдано токенов")
+		loginErrors = metrics.NewCounter(reg, "gateway_login_errors_total", "Ошибок обработки входа")
 	} else {
 		reg := prometheus.NewRegistry()
-		loginRequests = metrics.NewCounter(reg, "gateway_login_requests_total", "登录请求数")
-		loginIssued = metrics.NewCounter(reg, "gateway_tokens_issued_total", "签发 token 数")
-		loginErrors = metrics.NewCounter(reg, "gateway_login_errors_total", "登录处理错误数")
+		loginRequests = metrics.NewCounter(reg, "gateway_login_requests_total", "Запросов входа")
+		loginIssued = metrics.NewCounter(reg, "gateway_tokens_issued_total", "Выдано токенов")
+		loginErrors = metrics.NewCounter(reg, "gateway_login_errors_total", "Ошибок обработки входа")
 	}
 	return s, nil
 }
@@ -118,25 +118,25 @@ func NewLoginServer(cfg config.Gateway, store Store, log *slog.Logger, obs *metr
 func (s *LoginServer) Start() (<-chan error, error) {
 	ln, err := net.Listen("tcp", s.cfg.LoginAddr)
 	if err != nil {
-		return nil, fmt.Errorf("登录服务监听 %s: %w", s.cfg.LoginAddr, err)
+		return nil, fmt.Errorf("Сервис входа слушает %s: %w", s.cfg.LoginAddr, err)
 	}
 	s.ln = tls.NewListener(ln, s.srv.TLSConfig)
 	errCh := make(chan error, 2)
 	go func() {
 		if err := s.srv.Serve(s.ln); err != nil && err != http.ErrServerClosed {
-			errCh <- fmt.Errorf("登录服务 %s: %w", s.cfg.LoginAddr, err)
+			errCh <- fmt.Errorf("Сервис входа %s: %w", s.cfg.LoginAddr, err)
 		}
 	}()
 	if s.compatSrv != nil {
 		compatLn, err := net.Listen("tcp", s.cfg.LoginCompatAddr)
 		if err != nil {
 			_ = s.ln.Close()
-			return nil, fmt.Errorf("登录兼容口监听 %s: %w", s.cfg.LoginCompatAddr, err)
+			return nil, fmt.Errorf("Порт совместимого входа слушает %s: %w", s.cfg.LoginCompatAddr, err)
 		}
 		s.compatLn = compatLn
 		go func() {
 			if err := s.compatSrv.Serve(s.compatLn); err != nil && err != http.ErrServerClosed {
-				errCh <- fmt.Errorf("登录兼容口 %s: %w", s.cfg.LoginCompatAddr, err)
+				errCh <- fmt.Errorf("Порт совместимого входа %s: %w", s.cfg.LoginCompatAddr, err)
 			}
 		}()
 	}
@@ -191,13 +191,13 @@ func (s *LoginServer) handleLogin(w http.ResponseWriter, r *http.Request) {
 		logintoken = NewLegacyLoginToken()
 		if err := s.store.SaveToken(r.Context(), token, info, ttl); err != nil {
 			loginErrors.Inc()
-			s.log.Error("保存兼容 token 失败", "err", err)
+			s.log.Error("Не удалось сохранить совместимый токен", "err", err)
 			http.Error(w, "internal error", http.StatusInternalServerError)
 			return
 		}
 		if err := s.store.SaveToken(r.Context(), logintoken, info, ttl); err != nil {
 			loginErrors.Inc()
-			s.log.Error("保存兼容登录 token 失败", "err", err)
+			s.log.Error("Не удалось сохранить совместимый токен входа", "err", err)
 			http.Error(w, "internal error", http.StatusInternalServerError)
 			return
 		}
@@ -208,7 +208,7 @@ func (s *LoginServer) handleLogin(w http.ResponseWriter, r *http.Request) {
 		token = NewToken(userid)
 		if err := s.store.SaveToken(r.Context(), token, info, ttl); err != nil {
 			loginErrors.Inc()
-			s.log.Error("保存 token 失败", "err", err)
+			s.log.Error("Не удалось сохранить токен", "err", err)
 			http.Error(w, "internal error", http.StatusInternalServerError)
 			return
 		}
@@ -231,7 +231,7 @@ func (s *LoginServer) handleLogin(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Connection", "close")
 	w.WriteHeader(http.StatusOK)
 	_, _ = w.Write([]byte(xml))
-	s.log.Info("登录",
+	s.log.Info("Вход",
 		"method", r.Method, "request_uri", r.RequestURI, "path", r.URL.Path,
 		"raw_path", r.URL.RawPath, "remote", r.RemoteAddr,
 		"userid", userid, "region", s.cfg.Region, "realtime", s.cfg.AdvertiseHost)
@@ -242,7 +242,7 @@ func (s *LoginServer) nextUserid(ctx context.Context) (int64, error) {
 	if v, err := s.store.NextUserid(ctx); err == nil {
 		return v, nil
 	} else {
-		s.log.Warn("共享 userid 序号不可用，退化进程内序号", "err", err)
+		s.log.Warn("Общий счётчик userid недоступен, используется счётчик процесса", "err", err)
 	}
 	return atomic.AddInt64(&s.userid, 1), nil
 }
@@ -336,6 +336,6 @@ func (s *LoginServer) useridForRemote(remote string) int64 {
 	if b, err := json.MarshalIndent(ipUIDMap, "", "  "); err == nil {
 		_ = os.WriteFile("gateway_ip_uids.json", b, 0o644)
 	}
-	s.log.Info("LAN 账号分配", "ip", host, "userid", uid)
+	s.log.Info("LAN Назначение учётной записи", "ip", host, "userid", uid)
 	return uid
 }

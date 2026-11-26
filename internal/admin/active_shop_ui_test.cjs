@@ -71,53 +71,53 @@ async function fixture(t) {
   });
   const button = name => page.getByRole('button', { name, exact: typeof name === 'string' });
   const field = name => page.getByRole('spinbutton', { name, exact: true });
-  const submit = async () => { await button(/核对并保存/).click(); await button('保存').click(); };
+  const submit = async () => { await button(/Проверить и сохранить/).click(); await button('Сохранить').click(); };
   const status = text => page.locator('.work [role=status]').filter({ hasText: text }).waitFor();
-  const search = async text => { await page.getByRole('searchbox').fill(text); await button('查询').click(); };
+  const search = async text => { await page.getByRole('searchbox').fill(text); await button('Найти').click(); };
   return { page, button, field, submit, status, search, saved, reads, writes, fail, errors };
 }
 
 test('active shop: store dropdown, water locator, stock bookmark, reload and invalid target', async t => {
   const { page, field, submit, status, saved, reads, writes, errors } = await fixture(t);
   await page.goto(origin + '#shop');
-  await field('甲店饵覆盖银价').waitFor();
+  await field('甲店饵: переопределение — Цена в серебре').waitFor();
   assert.equal(new URL(page.url()).hash, '#shop/A/price');
   const stable = await page.evaluateHandle(() => [document.querySelector('#view h1'), document.querySelector('#storeSel'), document.querySelector('input[type=search]')]);
   await page.locator('#storeSel').selectOption('B');
-  await field('乙店饵覆盖银价').waitFor();
+  await field('乙店饵: переопределение — Цена в серебре').waitFor();
   assert.equal(new URL(page.url()).hash, '#shop/B/price');
-  assert.ok(await stable.evaluate(nodes => nodes.every(n => n?.isConnected)), '切店不能重建页头、选店器或搜索框');
+  assert.ok(await stable.evaluate(nodes => nodes.every(n => n?.isConnected)), '切店不能重建页头, 选店器或搜索框');
   await page.getByRole('link', { name: 'A', exact: true }).click();
-  await field('甲店饵覆盖银价').waitFor();
-  await page.getByLabel('按水域定位店铺').selectOption('乙湖');
+  await field('甲店饵: переопределение — Цена в серебре').waitFor();
+  await page.getByLabel('Найти магазин по водоёму').selectOption('乙湖');
   assert.equal(await page.locator('.shops tbody tr').count(), 1);
   await page.getByRole('cell', { name: '乙湖', exact: true }).click();
-  await field('乙店饵覆盖银价').waitFor();
-  const water = page.getByLabel('按水域定位店铺');
+  await field('乙店饵: переопределение — Цена в серебре').waitFor();
+  const water = page.getByLabel('Найти магазин по водоёму');
   assert.equal(await water.inputValue(), '乙湖');
   await water.selectOption('甲湖');
   await page.locator('#storeSel').selectOption('A');
-  await field('甲店饵覆盖银价').waitFor();
+  await field('甲店饵: переопределение — Цена в серебре').waitFor();
   assert.equal(await water.inputValue(), '甲湖');
   await water.selectOption('乙湖');
   await page.locator('#storeSel').selectOption('B');
-  await field('乙店饵覆盖银价').waitFor();
+  await field('乙店饵: переопределение — Цена в серебре').waitFor();
   assert.equal(await water.inputValue(), '乙湖');
-  const stockTab = page.getByRole('link', { name: '库存', exact: true });
+  const stockTab = page.getByRole('link', { name: 'Наличие', exact: true });
   assert.equal(decodeURIComponent(await stockTab.getAttribute('href')), '#shop/B/stock/乙湖');
   const readCount = reads.length;
-  await field('乙店饵覆盖银价').fill('8.88');
+  await field('乙店饵: переопределение — Цена в серебре').fill('8.88');
   await stockTab.click();
-  await field('乙店饵覆盖库存').waitFor();
+  await field('乙店饵: переопределение — Наличие').waitFor();
   assert.equal(reads.length, readCount, '库存和价格共享同一批货架数据');
-  await page.getByRole('link', { name:'货架价格', exact:true }).click();
-  assert.equal(await field('乙店饵覆盖银价').inputValue(), '8.88');
+  await page.getByRole('link', { name:'Цена на полке', exact:true }).click();
+  assert.equal(await field('乙店饵: переопределение — Цена в серебре').inputValue(), '8.88');
   await buttonDiscard();
-  async function buttonDiscard() { await page.getByRole('button', {name:'放弃修改',exact:true}).click(); }
+  async function buttonDiscard() { await page.getByRole('button', {name:'Отменить изменения',exact:true}).click(); }
   await stockTab.click();
   assert.ok(await stable.evaluate(nodes => nodes.every(n => n.isConnected)));
   await page.reload();
-  const stock = field('乙店饵覆盖库存'); await stock.waitFor();
+  const stock = field('乙店饵: переопределение — Наличие'); await stock.waitFor();
   assert.equal(await water.inputValue(), '乙湖');
   assert.equal(await page.locator('.shops tbody tr').count(), 1);
   await water.selectOption('');
@@ -126,13 +126,13 @@ test('active shop: store dropdown, water locator, stock bookmark, reload and inv
   assert.equal(await page.locator('#storeSel').inputValue(), 'B');
   assert.equal(await stockTab.getAttribute('aria-current'), 'page');
   await stock.fill('0'); await submit();
-  await status('7 银 / 0.8 金 / 1000 件（覆盖）（立即生效）');
+  await status('7 сер. / 0.8 зол. / 1000 шт. (Переопределение) (применено сразу)');
   assert.deepEqual(writes, [{ p: '/api/stores/items/update', data: { store_id: 'B', item_id: 'bait_1', silver: 700, gold: 80, stock: 0 } }]);
   assert.deepEqual(saved(), [writes[0].data]);
   await stock.waitFor(); assert.equal(await stock.inputValue(), '1000');
   const before = reads.length;
   await page.goto(origin + '#shop/missing/stock');
-  await page.getByText('找不到店铺：missing').waitFor();
+  await page.getByText('Магазин не найден: missing').waitFor();
   assert.equal(await page.locator('#storeSel').inputValue(), '');
   assert.equal(await page.getByRole('spinbutton').count(), 0);
   assert.equal(reads.length, before); assert.deepEqual(errors, []);
@@ -141,20 +141,20 @@ test('active shop: store dropdown, water locator, stock bookmark, reload and inv
 test('active shop: name search beyond API cap, hidden drafts, blank vs zero, partial success and retry', async t => {
   const { page, field, submit, status, search, saved, reads, writes, fail, errors } = await fixture(t);
   await page.goto(origin + '#shop/B/price');
-  await field('乙店饵覆盖银价').waitFor();
-  await page.getByLabel('只看改过的').check();
-  await field('乙店钩覆盖银价').waitFor({state:'hidden'});
-  await page.getByLabel('只看改过的').uncheck();
-  await field('乙店饵覆盖银价').fill(''); // snapshot the base, not 0 or a reset
-  await field('乙店钩覆盖银价').fill('0');
-  assert.equal(await field('远端浮漂覆盖金币价').count(), 0);
+  await field('乙店饵: переопределение — Цена в серебре').waitFor();
+  await page.getByLabel('Только изменённые').check();
+  await field('乙店钩: переопределение — Цена в серебре').waitFor({state:'hidden'});
+  await page.getByLabel('Только изменённые').uncheck();
+  await field('乙店饵: переопределение — Цена в серебре').fill(''); // snapshot the base, not 0 or a reset
+  await field('乙店钩: переопределение — Цена в серебре').fill('0');
+  assert.equal(await field('远端浮漂: переопределение — Цена в золоте').count(), 0);
   await search('远端');
-  const gold = field('远端浮漂覆盖金币价'); await gold.waitFor();
-  assert.equal(await gold.locator('..').innerText(), '金');
+  const gold = field('远端浮漂: переопределение — Цена в золоте'); await gold.waitFor();
+  assert.equal(await gold.locator('..').innerText(), 'зол.');
   assert.ok(reads.some(x => x.id === 'B' && x.needle === '远端'));
-  assert.equal(await field('乙店饵覆盖银价').count(), 0);
+  assert.equal(await field('乙店饵: переопределение — Цена в серебре').count(), 0);
   await gold.fill('1.23'); fail.add('zz_rare'); await submit();
-  await status(/成功：乙店饵.*乙店钩.*待重试：远端浮漂/);
+  await status(/Успешно: 乙店饵.*乙店钩.*Ожидают повтора: 远端浮漂/);
   const values = [
     { store_id: 'B', item_id: 'bait_1', silver: 230, gold: 80, stock: 31 },
     { store_id: 'B', item_id: 'bait_2', silver: 0, gold: 34, stock: 64 },
@@ -163,26 +163,26 @@ test('active shop: name search beyond API cap, hidden drafts, blank vs zero, par
   assert.deepEqual(saved(), values.slice(0, 2));
   assert.deepEqual(writes.map(w => w.data), values);
   await gold.waitFor(); assert.equal(await gold.inputValue(), '1.23');
-  await submit(); await status('9.1 银 / 1.23 金 / 72 件（覆盖）');
+  await submit(); await status('9.1 сер. / 1.23 зол. / 72 шт. (Переопределение)');
   assert.deepEqual(writes.map(w => w.data), [...values, values[2]]);
   assert.deepEqual(saved(), values); assert.deepEqual(errors, []);
-  await search(''); await field('乙店饵覆盖银价').waitFor();
-  await page.getByLabel('只看改过的').check(); await field('远端浮漂覆盖金币价').waitFor();
-  assert.equal(await field('远端浮漂覆盖金币价').inputValue(),'1.23');
+  await search(''); await field('乙店饵: переопределение — Цена в серебре').waitFor();
+  await page.getByLabel('Только изменённые').check(); await field('远端浮漂: переопределение — Цена в золоте').waitFor();
+  assert.equal(await field('远端浮漂: переопределение — Цена в золоте').inputValue(),'1.23');
 });
 
 test('active shop: cancelling or confirming a whole-item reset preserves other drafts', async t => {
   const { page, button, field, submit, status, saved, writes, errors } = await fixture(t);
   await page.goto(origin + '#shop/B/price');
-  const other = field('乙店钩覆盖金币价'); await other.fill('2.34');
-  const reset = page.getByRole('row').filter({ hasText: '乙店饵' }).getByRole('button', { name: '恢复默认' });
-  await reset.click(); await page.getByText(/同时恢复银价、金币价和库存/).waitFor();
-  await button('取消').click(); assert.equal(writes.length, 0);
-  await reset.click(); await button('恢复').click();
-  await status('2.3 银 / 0 金 / 27 件（默认）'); await other.waitFor();
+  const other = field('乙店钩: переопределение — Цена в золоте'); await other.fill('2.34');
+  const reset = page.getByRole('row').filter({ hasText: '乙店饵' }).getByRole('button', { name: 'Сбросить цену' });
+  await reset.click(); await page.getByText(/Одновременно сбрасываются цена в серебре, в золоте и наличие/).waitFor();
+  await button('Отмена').click(); assert.equal(writes.length, 0);
+  await reset.click(); await button('Сбросить').click();
+  await status('2.3 сер. / 0 зол. / 27 шт. (По умолчанию)'); await other.waitFor();
   assert.deepEqual(writes, [{ p: '/api/stores/items/reset', data: { store_id: 'B', item_id: 'bait_1' } }]);
   assert.deepEqual(saved(), []); assert.equal(await other.inputValue(), '2.34');
-  await submit(); await status('4.5 银 / 2.34 金 / 64 件（覆盖）');
+  await submit(); await status('4.5 сер. / 2.34 зол. / 64 шт. (Переопределение)');
   assert.deepEqual(saved(), [{ store_id: 'B', item_id: 'bait_2', silver: 450, gold: 234, stock: 64 }]);
   assert.deepEqual(errors, []);
 });

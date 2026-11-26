@@ -28,7 +28,7 @@ func TestReelMaterializesKnobs(t *testing.T) {
 	}
 	storedForceIdx := fieldIdxByCS(storedDrag.Class, csDragForce)
 	if got := float64(proto.F32FromBits(uint32(u64Of(storedDrag.Field(storedForceIdx).Num)))); got <= 0 {
-		t.Fatalf("新建渔轮落库刹车力=%f，期望为正值", got)
+		t.Fatalf("新建渔轮落库刹车力=%f, 期望为正值", got)
 	}
 
 	tree, err := srv.ItemToTree(ctx, reel)
@@ -36,7 +36,7 @@ func TestReelMaterializesKnobs(t *testing.T) {
 		t.Fatalf("重建 spin_5184 失败: %v", err)
 	}
 	if tree.Class != "dgjinoebdop" || tree.TypeID != 149 {
-		t.Fatalf("渔轮 wire=%s/%d，期望 dgjinoebdop/149", tree.Class, tree.TypeID)
+		t.Fatalf("渔轮 wire=%s/%d, 期望 dgjinoebdop/149", tree.Class, tree.TypeID)
 	}
 
 	// spin_5184 的 f2/f3/f4/f5/f6/f10 应为真实子实例。
@@ -49,7 +49,7 @@ func TestReelMaterializesKnobs(t *testing.T) {
 
 	knob := tree.Field(5).Val
 	if knob.Class != "bndpebpblfk" || knob.TypeID != 148 {
-		t.Fatalf("摇柄 wire=%s/%d，期望 bndpebpblfk/148", knob.Class, knob.TypeID)
+		t.Fatalf("摇柄 wire=%s/%d, 期望 bndpebpblfk/148", knob.Class, knob.TypeID)
 	}
 	nidIdx := fieldIdxByCS(knob.Class, csNumericID)
 	stateIdx := fieldIdxByCS(knob.Class, csStateEnum)
@@ -57,16 +57,16 @@ func TestReelMaterializesKnobs(t *testing.T) {
 		t.Fatalf("摇柄字段映射缺失: nid=%d state=%d", nidIdx, stateIdx)
 	}
 	if got := u64Of(knob.Field(nidIdx).Num); got != 8558 {
-		t.Fatalf("摇柄 numeric_id=%d，期望 8558", got)
+		t.Fatalf("摇柄 numeric_id=%d, 期望 8558", got)
 	}
 	if got := u64Of(knob.Field(stateIdx).Num); got != 17920 {
-		t.Fatalf("摇柄状态=0x%X，期望 0x4600(定义 0x4200|挂载 0x400)", got)
+		t.Fatalf("摇柄状态=0x%X, 期望 0x4600(定义 0x4200|挂载 0x400)", got)
 	}
 
 	// 刹车片子 f3/loedbndnill 的 f0 是客户端曳力物理值，必须为正值。
 	drag := tree.Field(3).Val
 	if drag == nil || drag.Class != "loedbndnill" {
-		t.Fatalf("渔轮 f3 应为刹车片子 loedbndnill，实得 %#v", drag)
+		t.Fatalf("渔轮 f3 应为刹车片子 loedbndnill, 实得 %#v", drag)
 	}
 	sidx := fieldIdxByCS(drag.Class, csDragForce)
 	if sidx < 0 {
@@ -81,7 +81,7 @@ func TestReelMaterializesKnobs(t *testing.T) {
 	bits, _ := cfg["omghfmdfjpc"].(float64)
 	wantDrag := float64(proto.F32FromBits(uint32(bits))) * reel.Workmanship
 	if gotDrag <= 0 || math.Abs(gotDrag-wantDrag) > 0.0001 {
-		t.Fatalf("刹车片子强度=%f，期望 %f（0 会导致线杯无制动）", gotDrag, wantDrag)
+		t.Fatalf("刹车片子强度=%f, 期望 %f (0 会导致线杯无制动)", gotDrag, wantDrag)
 	}
 }
 
@@ -111,13 +111,13 @@ func TestRodFactoryPartsCarryCondition(t *testing.T) {
 			t.Fatalf("部件 %s 基类字段缺失: work=%d dur=%d slot=%d", part.Class, widx, didx, sidx)
 		}
 		if got := float64(proto.F32FromBits(uint32(u64Of(part.Field(widx).Num)))); got < 0.9999 || got > 1.0001 {
-			t.Fatalf("f%d 工艺=%f，期望 1.0", idx, got)
+			t.Fatalf("f%d 工艺=%f, 期望 1.0", idx, got)
 		}
 		if got := float64(proto.F32FromBits(uint32(u64Of(part.Field(didx).Num)))); got < 0.9999 || got > 1.0001 {
-			t.Fatalf("f%d 耐久=%f，期望 1.0（0 会显示损耗 100%%）", idx, got)
+			t.Fatalf("f%d 耐久=%f, 期望 1.0 (0 会显示损耗 100%%)", idx, got)
 		}
 		if got := u64Of(part.Field(sidx).Num); got != 4 {
-			t.Fatalf("f%d 容器枚举=%d，期望 rig(4)", idx, got)
+			t.Fatalf("f%d 容器枚举=%d, 期望 rig(4)", idx, got)
 		}
 	}
 }
@@ -141,7 +141,7 @@ func TestForcePartsStrengthRendered(t *testing.T) {
 			t.Fatalf("%s 新建落库强度位置错误: idx=%d op=%s", itemID, rawIdx, fieldOpAt(it.WireClass, rawIdx))
 		}
 		if raw := float64(proto.F32FromBits(uint32(u64Of(stored[rawIdx].Num)))); raw <= 0 {
-			t.Fatalf("%s 新建落库强度=%f，创建路径没有直接写正确值", itemID, raw)
+			t.Fatalf("%s 新建落库强度=%f, 创建路径没有直接写正确值", itemID, raw)
 		}
 		tree, err := srv.ItemToTree(ctx, it)
 		if err != nil {
@@ -149,7 +149,7 @@ func TestForcePartsStrengthRendered(t *testing.T) {
 		}
 		idx := fieldIdxByCS(tree.Class, csStrength)
 		if idx < 0 || fieldOpAt(tree.Class, idx) != "U32" {
-			t.Fatalf("%s 强度位置应为 U32，实际 idx=%d op=%s", itemID, idx, fieldOpAt(tree.Class, idx))
+			t.Fatalf("%s 强度位置应为 U32, 实际 idx=%d op=%s", itemID, idx, fieldOpAt(tree.Class, idx))
 		}
 		got := float64(proto.F32FromBits(uint32(u64Of(tree.Field(idx).Num))))
 		def, derr := db.GetItemDef(ctx, it.NumericID)
@@ -161,7 +161,7 @@ func TestForcePartsStrengthRendered(t *testing.T) {
 			t.Fatalf("%s 定义强度无效: %f ok=%v", itemID, want, ok)
 		}
 		if got <= 0 || math.Abs(got-want) > 0.0001 {
-			t.Fatalf("%s 渲染强度=%f，期望 %f（0 会导致线组物理异常）", itemID, got, want)
+			t.Fatalf("%s 渲染强度=%f, 期望 %f (0 会导致线组物理异常)", itemID, got, want)
 		}
 	}
 }
@@ -199,10 +199,10 @@ func TestMountedRootItemContainerEnum(t *testing.T) {
 			t.Fatalf("线类 %s 缺少容器枚举字段", tree.Class)
 		}
 		if got := u64Of(tree.Field(idx).Num); got != want {
-			t.Fatalf("线容器枚举=%d，期望 %d", got, want)
+			t.Fatalf("线容器枚举=%d, 期望 %d", got, want)
 		}
 	}
-	check(0) // 根物品挂在 rig 上，但 wire 容器仍为 0
+	check(0) // 根物品挂在 rig 上, 但 wire 容器仍为 0
 	runRodRemove(t, srv, sess, rod.GUID, 11, line.GUID, 0)
 	check(0) // backpack
 }
@@ -242,7 +242,7 @@ func TestLureFactoryHooksHaveStrength(t *testing.T) {
 		si := fieldIdxByCS(hook.Class, csStrength)
 		got := float64(proto.F32FromBits(uint32(u64Of(hook.Fields[si].Num))))
 		if !ok || got <= 0 || math.Abs(got-want) > 0.0001 {
-			t.Fatalf("出厂钩[%d] 强度=%f，期望 %f（0 会导致搏鱼力度条为空）", i, got, want)
+			t.Fatalf("出厂钩[%d] 强度=%f, 期望 %f (0 会导致搏鱼力度条为空)", i, got, want)
 		}
 	}
 	mountLure(t, db, srv, rod.GUID, lure.GUID)
@@ -257,7 +257,7 @@ func TestLureFactoryHooksHaveStrength(t *testing.T) {
 		t.Fatalf("14/11 4/22 应推 1 个拟饵整树: n=%d err=%v", len(items), err)
 	}
 	if items[0].Class != "ioombppcnlh" || items[0].TypeID != 141 {
-		t.Fatalf("14/11 4/22 类型=%s/%d，期望 ioombppcnlh/141", items[0].Class, items[0].TypeID)
+		t.Fatalf("14/11 4/22 类型=%s/%d, 期望 ioombppcnlh/141", items[0].Class, items[0].TypeID)
 	}
 	if len(items[0].Fields) == 0 || items[0].Fields[0].Val == nil || len(items[0].Fields[0].Val.Items) == 0 {
 		t.Fatal("14/11 4/22 拟饵整树缺出厂钩")
@@ -268,7 +268,7 @@ func TestLureFactoryHooksHaveStrength(t *testing.T) {
 		}
 		hookStrength := float64(proto.F32FromBits(uint32(u64Of(hook.Field(0).Num))))
 		if hookStrength <= 0 {
-			t.Fatalf("14/11 推送出厂钩[%d] 强=%f，期望 >0", i, hookStrength)
+			t.Fatalf("14/11 推送出厂钩[%d] 强=%f, 期望 >0", i, hookStrength)
 		}
 	}
 }

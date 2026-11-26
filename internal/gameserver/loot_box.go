@@ -50,7 +50,7 @@ type lootBoxDef struct {
 
 // defaultLootBoxDefs 内置兜底：5% 概率钓到"活动礼包"，随机开出一件商店商品。
 var defaultLootBoxDefs = []lootBoxDef{
-	{ID: "event_box", Name: "福袋", Chance: 0.05},
+	{ID: "event_box", Name: "Мешок удачи", Chance: 0.05},
 }
 
 // lootBoxDefs 读当前生效的礼包表：优先 kv.loot_box_defs，解析失败用内置兜底。
@@ -62,7 +62,7 @@ func (s *Server) lootBoxDefs(ctx context.Context) []lootBoxDef {
 			if json.Unmarshal([]byte(raw), &defs) == nil {
 				return defs
 			}
-			s.log.Warn("礼包配置解析失败，使用内置兜底", "kv", lootBoxDefsKVKey)
+			s.log.Warn("Ошибка разбора настроек подарков, используются встроенные", "kv", lootBoxDefsKVKey)
 		}
 	}
 	return defaultLootBoxDefs
@@ -86,7 +86,7 @@ func (s *Server) rollLootBox(ctx context.Context, sess *Session, catch *RolledFi
 	// 由 tunables.loot_box_trophy_guarantee 控制（默认开启）。
 	if guarantee := s.tunableF("loot_box_trophy_guarantee", 1) == 1; guarantee {
 		if g := catchGrade(catch); g >= 3 {
-			if itemID := s.grantLootBox(ctx, sess, defs[0], catch, "保底"); itemID != "" {
+			if itemID := s.grantLootBox(ctx, sess, defs[0], catch, "Гарантированный"); itemID != "" {
 				return itemID
 			}
 		}
@@ -97,7 +97,7 @@ func (s *Server) rollLootBox(ctx context.Context, sess *Session, catch *RolledFi
 		if chance <= 0 || rand.Float64() >= chance {
 			continue
 		}
-		if itemID := s.grantLootBox(ctx, sess, def, catch, "随机"); itemID != "" {
+		if itemID := s.grantLootBox(ctx, sess, def, catch, "Случайный"); itemID != "" {
 			return itemID
 		}
 	}
@@ -142,7 +142,7 @@ func lootRewardCategoryEligible(category int64) bool {
 func (s *Server) lootItemCategory(ctx context.Context, itemID string) (int64, bool) {
 	def, err := s.DB.GetItemDefByItemID(ctx, itemID)
 	if err != nil || def == nil {
-		s.log.Warn("礼包物品定义不存在", "item", itemID, "err", err)
+		s.log.Warn("Определение предмета подарка не существует", "item", itemID, "err", err)
 		return 0, false
 	}
 	return def.Category, true
@@ -154,7 +154,7 @@ func (s *Server) lootRewardItemEligible(ctx context.Context, itemID string) bool
 		return false
 	}
 	if !lootRewardCategoryEligible(category) {
-		s.log.Warn("礼包奖励类别不可发放", "item", itemID, "category", category)
+		s.log.Warn("Категорию награды подарка нельзя выдать", "item", itemID, "category", category)
 		return false
 	}
 	return true
@@ -166,7 +166,7 @@ func (s *Server) lootCarrierItemEligible(ctx context.Context, itemID string) boo
 		return false
 	}
 	if !lootWireCategoryEligible(category) {
-		s.log.Warn("礼包载体类别不可物化", "item", itemID, "category", category)
+		s.log.Warn("Категорию контейнера подарка нельзя материализовать", "item", itemID, "category", category)
 		return false
 	}
 	return true
@@ -180,7 +180,7 @@ func (s *Server) grantLootBox(ctx context.Context, sess *Session, def lootBoxDef
 	}
 	rows, err := s.grantItemUnits(ctx, sess.Userid, itemID, "backpack", qty)
 	if err != nil {
-		s.log.Warn("礼包发奖失败", "uid", sess.Userid, "box", def.ID, "item", itemID, "err", err)
+		s.log.Warn("Не удалось выдать награду подарка", "uid", sess.Userid, "box", def.ID, "item", itemID, "err", err)
 		return ""
 	}
 	for _, row := range rows {
@@ -193,25 +193,25 @@ func (s *Server) grantLootBox(ctx context.Context, sess *Session, def lootBoxDef
 			qty = 1
 		}
 		if !s.lootCarrierItemEligible(ctx, def.CarrierItem) {
-			s.log.Warn("福袋载体已跳过", "uid", sess.Userid, "carrier", def.CarrierItem)
+			s.log.Warn("Контейнер «Мешок удачи» пропущен", "uid", sess.Userid, "carrier", def.CarrierItem)
 		} else if crows, cerr := s.grantItemUnits(ctx, sess.Userid, def.CarrierItem, "backpack", qty); cerr == nil {
 			for _, crow := range crows {
 				s.pushItemUpdate(sess.Userid, crow)
 			}
 		} else {
-			s.log.Warn("福袋载体发放失败", "uid", sess.Userid, "carrier", def.CarrierItem, "err", cerr)
+			s.log.Warn("Не удалось выдать контейнер «Мешок удачи»", "uid", sess.Userid, "carrier", def.CarrierItem, "err", cerr)
 		}
 	}
 	display := name
 	if display == "" {
 		display = itemID
 	}
-	prefix := "钓到了" + def.Name
-	if reason == "保底" {
-		prefix = "上星保底：" + def.Name
+	prefix := "Поймано" + def.Name
+	if reason == "Гарантированный" {
+		prefix = "Гарантия за звёздную рыбу: " + def.Name
 	}
-	sess.pushSystemChat(fmt.Sprintf("%s，开出：%s ×%d", prefix, display, qty))
-	s.log.Info("礼包开出", "uid", sess.Userid, "box", def.ID, "item", itemID, "qty", qty,
+	sess.pushSystemChat(fmt.Sprintf("%s, выпало: %s ×%d", prefix, display, qty))
+	s.log.Info("Из подарка выпало", "uid", sess.Userid, "box", def.ID, "item", itemID, "qty", qty,
 		"reason", reason, "fish", catchSpecies(catch), "grade", catchGrade(catch))
 	return itemID
 }
@@ -263,7 +263,7 @@ func (s *Server) pickRandomShopItem(ctx context.Context) (itemID string, qty int
 		WHERE s.stock > 0
 		ORDER BY s.item_id`)
 	if err != nil {
-		s.log.Warn("礼包抽取商店物品失败", "err", err)
+		s.log.Warn("Не удалось выбрать товар магазина для подарка", "err", err)
 		return "", 0, ""
 	}
 	defer rows.Close()
@@ -279,11 +279,11 @@ func (s *Server) pickRandomShopItem(ctx context.Context) (itemID string, qty int
 		}
 	}
 	if err := rows.Err(); err != nil {
-		s.log.Warn("礼包抽取商店物品失败", "err", err)
+		s.log.Warn("Не удалось выбрать товар магазина для подарка", "err", err)
 		return "", 0, ""
 	}
 	if len(candidates) == 0 {
-		s.log.Warn("礼包抽取商店物品失败", "err", "没有可发放的商品")
+		s.log.Warn("Не удалось выбрать товар магазина для подарка", "err", "Нет товаров для выдачи")
 		return "", 0, ""
 	}
 	itemID = candidates[rand.Intn(len(candidates))]
@@ -314,7 +314,7 @@ func (s *Server) scheduleLootBox(sess *Session, catch *RolledFish) {
 	go func() {
 		defer func() {
 			if r := recover(); r != nil {
-				s.log.Warn("礼包开箱 panic", "uid", sess.Userid, "panic", r)
+				s.log.Warn("Открытие подарка panic", "uid", sess.Userid, "panic", r)
 			}
 		}()
 		ctx, cancel := context.WithTimeout(s.dbCtx(), 30*time.Second)

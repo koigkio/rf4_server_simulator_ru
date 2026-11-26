@@ -49,7 +49,7 @@ func TestBaitEvidenceThresholdGrading(t *testing.T) {
 	// 生产默认 5 条，防止「1/2 = 50%」这种噪声直接顶到强证据档。
 	setBaitShareGate(t, s, "5", "1", "0.2")
 	setBaitRuleTunable(t, s, "bait_share_min_count", "1")
-	s.loadRf4Share() // 同步预热，避免异步时序
+	s.loadRf4Share() // 同步预热, 避免异步时序
 
 	cache := newFishingRollCache()
 	now := time.Unix(worldDayEpochUnix+1500, 0)

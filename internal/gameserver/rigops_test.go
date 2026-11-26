@@ -86,15 +86,15 @@ func TestRigAttachFlow(t *testing.T) {
 	ctx := context.Background()
 	const uid = int64(1000001)
 
-	rod, err := srv.CreateItem(ctx, uid, "feeder_10125_FD360", "backpack", 1) // 竿（Feeder，竿型 10）
+	rod, err := srv.CreateItem(ctx, uid, "feeder_10125_FD360", "backpack", 1) // 竿 (Feeder, 竿型 10)
 	if err != nil {
 		t.Fatalf("造竿失败: %v", err)
 	}
-	reel, err := srv.CreateItem(ctx, uid, "bclp_5004", "backpack", 1) // 渔轮（品类 6）
+	reel, err := srv.CreateItem(ctx, uid, "bclp_5004", "backpack", 1) // 渔轮 (品类 6)
 	if err != nil {
 		t.Fatalf("造轮失败: %v", err)
 	}
-	hook, err := srv.CreateItem(ctx, uid, "c_hook_20712", "backpack", 1) // 鱼钩（品类 12）
+	hook, err := srv.CreateItem(ctx, uid, "c_hook_20712", "backpack", 1) // 鱼钩 (品类 12)
 	if err != nil {
 		t.Fatalf("造钩失败: %v", err)
 	}
@@ -113,29 +113,29 @@ func TestRigAttachFlow(t *testing.T) {
 		t.Fatalf("17/2 响应不可解码: %v", err)
 	}
 	if dec.Class != "dlbahppbdad" {
-		t.Fatalf("17/2 应回 800 dlbahppbdad，实得 %s", dec.Class)
+		t.Fatalf("17/2 应回 800 dlbahppbdad, 实得 %s", dec.Class)
 	}
 	// 渔轮直接挂载：f0 和 f2 为 null，f1 包含轮和竿。
 	if seg := rigSeg(dec, 0); seg == nil || seg.Kind != proto.KindNull {
-		t.Fatalf("渔轮非拆分挂载 f0 应为 null，实得 %v", seg)
+		t.Fatalf("渔轮非拆分挂载 f0 应为 null, 实得 %v", seg)
 	}
 	upd := rigSeg(dec, 1)
 	if upd == nil || upd.Kind != proto.KindArgs || upd.ArgCount() != 2 {
-		t.Fatalf("f1 应为 args(61)[轮, 竿]，实得 %v", upd)
+		t.Fatalf("f1 应为 args(61)[轮, 竿], 实得 %v", upd)
 	}
 	if cls := upd.ArgItem(0).Class; cls != "dgjinoebdop" {
-		t.Fatalf("f1[0] 应为渔轮 dgjinoebdop，实得 %s", cls)
+		t.Fatalf("f1[0] 应为渔轮 dgjinoebdop, 实得 %s", cls)
 	}
 	if cls := upd.ArgItem(1).Class; cls != "cnolibojkao" {
-		t.Fatalf("f1[1] 应为竿 cnolibojkao，实得 %s", cls)
+		t.Fatalf("f1[1] 应为竿 cnolibojkao, 实得 %s", cls)
 	}
 	if seg := rigSeg(dec, 2); seg == nil || seg.Kind != proto.KindNull {
-		t.Fatalf("无替换时 f2 应为 null，实得 %v", seg)
+		t.Fatalf("无替换时 f2 应为 null, 实得 %v", seg)
 	}
 
 	// 派生索引：rig_component 行（槽位=渔轮品类 6）
 	if g, gerr := db.GetItemGUIDByRigSlot(ctx, rod.GUID, 6); gerr != nil || g != reel.GUID {
-		t.Fatalf("rig_component 槽6 应= 渔轮 guid，实得 %q err=%v", g, gerr)
+		t.Fatalf("rig_component 槽6 应= 渔轮 guid, 实得 %q err=%v", g, gerr)
 	}
 	// 物品侧：container='rig'、rig_guid=竿、wire 父引用=竿
 	reelRow, err := db.GetItemByGUID(ctx, reel.GUID)
@@ -143,7 +143,7 @@ func TestRigAttachFlow(t *testing.T) {
 		t.Fatalf("渔轮行丢失: %v", err)
 	}
 	if reelRow.Container != "rig" || reelRow.RigGUID != rod.GUID {
-		t.Fatalf("渔轮 container/rig_guid = %s/%s，应 rig/%s", reelRow.Container, reelRow.RigGUID, rod.GUID)
+		t.Fatalf("渔轮 container/rig_guid = %s/%s, 应 rig/%s", reelRow.Container, reelRow.RigGUID, rod.GUID)
 	}
 	if got := rigStoredGUID(t, reelRow, csParent); got != rod.GUID {
 		t.Fatalf("渔轮 wire 父引用 %q 应= 竿 guid", got)
@@ -154,7 +154,7 @@ func TestRigAttachFlow(t *testing.T) {
 		t.Fatalf("竿 f4(neangpifoka) %q 应= 渔轮 guid", got)
 	}
 	if comps := rigCompsOf(rigStoredF5(t, rodRow)); len(rigCompKeysOfCategory(comps, gearCatReel)) != 0 {
-		t.Fatalf("渔轮不应进入 152 组件表，实得 %v", comps)
+		t.Fatalf("渔轮不应进入 152 组件表, 实得 %v", comps)
 	}
 
 	// ---- 17/2 装鱼钩：走 f5 的 152 组件表（品类 12，规范索引 250）----
@@ -171,29 +171,29 @@ func TestRigAttachFlow(t *testing.T) {
 	}
 	upd = rigSeg(dec, 1)
 	if upd == nil || upd.ArgCount() != 2 || upd.ArgItem(0).Class != "agedjipcnpe" {
-		t.Fatalf("f1 应为 [钩, 竿]，实得 %v", upd)
+		t.Fatalf("f1 应为 [钩, 竿], 实得 %v", upd)
 	}
 	rodRow, _ = db.GetItemByGUID(ctx, rod.GUID)
 	f5 := rigStoredF5(t, rodRow)
 	comps := rigCompsOf(f5)
 	hc, has := comps[12]
 	if !has || hc.GUID != hook.GUID {
-		t.Fatalf("竿 f5 的 152 表应含槽12=钩，实得 %v", comps)
+		t.Fatalf("竿 f5 的 152 表应含槽12=钩, 实得 %v", comps)
 	}
 	if hc.Extra != 250 {
-		t.Fatalf("钩规范索引应 250（CANONICAL_RIG_INDEX），实得 %d", hc.Extra)
+		t.Fatalf("钩规范索引应 250 (CANONICAL_RIG_INDEX), 实得 %d", hc.Extra)
 	}
 	// 钓组类型按竿型派生；Feeder 使用 rig_BottomSimple/12。
 	if got := int64(u64Of(f5.Field(1).Num)); got != 12 {
-		t.Fatalf("f5.f1 应为 12（Feeder 派生），实得 %d", got)
+		t.Fatalf("f5.f1 应为 12 (Feeder 派生), 实得 %d", got)
 	}
 	if name := f5.Fields[0].StrOr(); name != "rig_BottomSimple" {
-		t.Fatalf("f5.f0 应 rig_BottomSimple，实得 %q", name)
+		t.Fatalf("f5.f0 应 rig_BottomSimple, 实得 %q", name)
 	}
 	// 钩挂上后 wire 父引用 / container
 	hookRow, _ := db.GetItemByGUID(ctx, hook.GUID)
 	if hookRow.Container != "rig" || hookRow.RigGUID != rod.GUID {
-		t.Fatalf("钩 container/rig_guid = %s/%s，应 rig/%s", hookRow.Container, hookRow.RigGUID, rod.GUID)
+		t.Fatalf("钩 container/rig_guid = %s/%s, 应 rig/%s", hookRow.Container, hookRow.RigGUID, rod.GUID)
 	}
 	if got := rigStoredGUID(t, hookRow, csParent); got != rod.GUID {
 		t.Fatalf("钩 wire 父引用 %q 应= 竿 guid", got)
@@ -212,40 +212,40 @@ func TestRigAttachFlow(t *testing.T) {
 		t.Fatalf("17/3 响应不可解码: %v", err)
 	}
 	if seg := rigSeg(dec, 0); seg == nil || seg.Kind != proto.KindNull {
-		t.Fatalf("拆卸 f0 应为 null，实得 %v", seg)
+		t.Fatalf("拆卸 f0 应为 null, 实得 %v", seg)
 	}
 	// 客户端按 f0、f1、f2 顺序处理快照，f2 会从物品索引删除 GUID。
 	// 因此退回背包的物品树放入 f1，f2 只放整条删除的拆分子实例。
 	upd = rigSeg(dec, 1)
 	if upd == nil || upd.ArgCount() != 2 ||
 		upd.ArgItem(0).Class != "agedjipcnpe" || upd.ArgItem(1).Class != "cnolibojkao" {
-		t.Fatalf("拆卸 f1 应为 [退回钩, 竿]，实得 %v", upd)
+		t.Fatalf("拆卸 f1 应为 [退回钩, 竿], 实得 %v", upd)
 	}
 	rem := rigSeg(dec, 2)
 	if rem == nil || rem.Kind != proto.KindNull {
-		t.Fatalf("普通退回 f2 应为 null（guid 进 f2 会被客户端删索引），实得 %v", rem)
+		t.Fatalf("普通退回 f2 应为 null (guid 进 f2 会被客户端删索引), 实得 %v", rem)
 	}
 	// 回退断言：rig_component 行删除、物品退回背包、wire 父引用清空、f5 组件表移除
 	if g, gerr := db.GetItemGUIDByRigSlot(ctx, rod.GUID, 12); gerr == nil && g != "" {
-		t.Fatalf("拆卸后槽12 应无组件行，实得 %q", g)
+		t.Fatalf("拆卸后槽12 应无组件行, 实得 %q", g)
 	}
 	hookRow, _ = db.GetItemByGUID(ctx, hook.GUID)
 	if hookRow == nil {
-		t.Fatal("钩行不应被删除（普通物品退回背包）")
+		t.Fatal("钩行不应被删除 (普通物品退回背包)")
 	}
 	if hookRow.Container != "backpack" || hookRow.RigGUID != "" {
-		t.Fatalf("钩退回后 container/rig_guid = %s/%q，应 backpack/空", hookRow.Container, hookRow.RigGUID)
+		t.Fatalf("钩退回后 container/rig_guid = %s/%q, 应 backpack/空", hookRow.Container, hookRow.RigGUID)
 	}
 	if got := rigStoredGUID(t, hookRow, csParent); got != "" {
-		t.Fatalf("钩 wire 父引用应清空，实得 %q", got)
+		t.Fatalf("钩 wire 父引用应清空, 实得 %q", got)
 	}
 	rodRow, _ = db.GetItemByGUID(ctx, rod.GUID)
 	if comps := rigCompsOf(rigStoredF5(t, rodRow)); len(rigCompKeysOfCategory(comps, gearCatReel)) != 0 {
-		t.Fatalf("拆卸后 f5 组件表应为空，实得 %v", comps)
+		t.Fatalf("拆卸后 f5 组件表应为空, 实得 %v", comps)
 	}
 	// 渔轮不受拆卸影响
 	if got := rigStoredGUID(t, rodRow, csReel); got != reel.GUID {
-		t.Fatalf("渔轮 f4 应保持挂载，实得 %q", got)
+		t.Fatalf("渔轮 f4 应保持挂载, 实得 %q", got)
 	}
 }
 
@@ -258,7 +258,7 @@ func TestRigSetTypeStaleCorrection(t *testing.T) {
 	if err != nil {
 		t.Fatalf("造竿失败: %v", err)
 	}
-	bob, err := srv.CreateItem(ctx, uid, "bob_25001", "backpack", 1) // 浮漂（沉底族要被剔除）
+	bob, err := srv.CreateItem(ctx, uid, "bob_25001", "backpack", 1) // 浮漂 (沉底族要被剔除)
 	if err != nil {
 		t.Fatalf("造浮漂失败: %v", err)
 	}
@@ -289,18 +289,18 @@ func TestRigSetTypeStaleCorrection(t *testing.T) {
 
 	rt, found, gerr := db.GetRigType(ctx, rod.GUID)
 	if gerr != nil || !found || rt != 12 {
-		t.Fatalf("rig 行矫正后应 12，实得 %d (found=%v err=%v)", rt, found, gerr)
+		t.Fatalf("rig 行矫正后应 12, 实得 %d (found=%v err=%v)", rt, found, gerr)
 	}
 	rodRow, _ := db.GetItemByGUID(ctx, rod.GUID)
 	f5 := rigStoredF5(t, rodRow)
 	if got := int64(u64Of(f5.Field(1).Num)); got != 12 {
-		t.Fatalf("实例 f5.f1 矫正后应 12，实得 %d", got)
+		t.Fatalf("实例 f5.f1 矫正后应 12, 实得 %d", got)
 	}
 	if name := f5.Fields[0].StrOr(); name != "rig_BottomSimple" {
-		t.Fatalf("实例 f5.f0 应同步 rig_BottomSimple，实得 %q", name)
+		t.Fatalf("实例 f5.f0 应同步 rig_BottomSimple, 实得 %q", name)
 	}
 	if _, has := rigCompsOf(f5)[28]; has {
-		t.Fatal("换到沉底族应剔除浮漂组件（槽 28）")
+		t.Fatal("换到沉底族应剔除浮漂组件 (槽 28)")
 	}
 
 	// 玩家显式选择的合法类型不受矫正影响。
@@ -317,23 +317,23 @@ func TestRigSetTypeStaleCorrection(t *testing.T) {
 	}
 	upd := rigSeg(dec, 1)
 	if upd == nil || upd.ArgCount() != 1 || upd.ArgItem(0).Class != "cnolibojkao" {
-		t.Fatalf("17/1 f1 应为 [竿]，实得 %v", upd)
+		t.Fatalf("17/1 f1 应为 [竿], 实得 %v", upd)
 	}
 	rt2, _, _ := db.GetRigType(ctx, rod.GUID)
 	if rt2 != 13 {
-		t.Fatalf("17/1 后 rig 行应 13，实得 %d", rt2)
+		t.Fatalf("17/1 后 rig 行应 13, 实得 %d", rt2)
 	}
 	rodRow, _ = db.GetItemByGUID(ctx, rod.GUID)
 	f5 = rigStoredF5(t, rodRow)
 	if name := f5.Fields[0].StrOr(); name != "rig_BottomPaternoster" {
-		t.Fatalf("17/1 后 f5.f0 应 rig_BottomPaternoster（f0 与 f1 同步），实得 %q", name)
+		t.Fatalf("17/1 后 f5.f0 应 rig_BottomPaternoster (f0 与 f1 同步), 实得 %q", name)
 	}
 
 	// 已矫正的竿在 ensureRig 中保持幂等。
 	srv.ensureRig(ctx, uid, rod.GUID)
 	rt3, _, _ := db.GetRigType(ctx, rod.GUID)
 	if rt3 != 13 {
-		t.Fatalf("ensureRig 应保持显式类型 13，实得 %d", rt3)
+		t.Fatalf("ensureRig 应保持显式类型 13, 实得 %d", rt3)
 	}
 }
 
@@ -351,13 +351,13 @@ func TestRigSetTypeRejectsUnsupportedRodType(t *testing.T) {
 	if !srv.rigSetType(ctx, uid, rod.GUID, 12) {
 		t.Fatal("设置 Feeder 合法钓组失败")
 	}
-	if srv.rigSetType(ctx, uid, rod.GUID, 50) { // MarinePilker，不属于 Feeder 竿型 10
+	if srv.rigSetType(ctx, uid, rod.GUID, 50) { // MarinePilker, 不属于 Feeder 竿型 10
 		t.Fatal("不兼容的海钓钓组不应被 Feeder 竿接受")
 	}
 
 	rigType, found, err := db.GetRigType(ctx, rod.GUID)
 	if err != nil || !found || rigType != 12 {
-		t.Fatalf("拒绝后 rig 行应保持 12，实得 type=%d found=%v err=%v", rigType, found, err)
+		t.Fatalf("拒绝后 rig 行应保持 12, 实得 type=%d found=%v err=%v", rigType, found, err)
 	}
 	row, err := db.GetItemByGUID(ctx, rod.GUID)
 	if err != nil {
@@ -365,7 +365,7 @@ func TestRigSetTypeRejectsUnsupportedRodType(t *testing.T) {
 	}
 	f5 := rigStoredF5(t, row)
 	if got := int64(u64Of(f5.Field(1).Num)); got != 12 {
-		t.Fatalf("拒绝后实例 f5.f1 应保持 12，实得 %d", got)
+		t.Fatalf("拒绝后实例 f5.f1 应保持 12, 实得 %d", got)
 	}
 }
 
@@ -385,10 +385,10 @@ func TestRigTypeSwitchReturnsTerminalComponents(t *testing.T) {
 	}
 	items := make(map[string]*store.Item)
 	for name, itemID := range map[string]string{
-		"bell":   "feeder_bell",     // 47；两种钓组都支持
-		"feeder": "feeder_30037",    // 31；目标钓组不支持
-		"leader": "fc_leader_40048", // 13；目标钓组不支持
-		"hook":   "c_hook_20712",    // 12；两种钓组都支持
+		"bell":   "feeder_bell",     // 47; 两种钓组都支持
+		"feeder": "feeder_30037",    // 31; 目标钓组不支持
+		"leader": "fc_leader_40048", // 13; 目标钓组不支持
+		"hook":   "c_hook_20712",    // 12; 两种钓组都支持
 	} {
 		it, createErr := srv.CreateItem(ctx, uid, itemID, "backpack", 1)
 		if createErr != nil {
@@ -408,7 +408,7 @@ func TestRigTypeSwitchReturnsTerminalComponents(t *testing.T) {
 		t.Fatal("切换目标钓组失败")
 	}
 	if len(released) != 4 {
-		t.Fatalf("应退回 4 件末端配件，实得 %d", len(released))
+		t.Fatalf("应退回 4 件末端配件, 实得 %d", len(released))
 	}
 	for _, name := range []string{"feeder", "leader", "bell", "hook"} {
 		row := mustItem(t, db, items[name].GUID)
@@ -465,12 +465,12 @@ func TestRigExplicitTypeWinsOverComponents(t *testing.T) {
 	srv.correctStaleRigType(ctx, rod.GUID)
 	rt, found, err := db.GetRigType(ctx, rod.GUID)
 	if err != nil || !found || rt != 12 {
-		t.Fatalf("显式 BottomSimple 不应被组件推断覆盖，实得 %d (found=%v err=%v)", rt, found, err)
+		t.Fatalf("显式 BottomSimple 不应被组件推断覆盖, 实得 %d (found=%v err=%v)", rt, found, err)
 	}
 	row, _ := db.GetItemByGUID(ctx, rod.GUID)
 	f5 := rigStoredF5(t, row)
 	if name := f5.Fields[0].StrOr(); name != "rig_BottomSimple" {
-		t.Fatalf("f5.f0 应保持 rig_BottomSimple，实得 %q", name)
+		t.Fatalf("f5.f0 应保持 rig_BottomSimple, 实得 %q", name)
 	}
 	if _, ok := rigCompsOf(f5)[31]; !ok {
 		t.Fatal("切换钓组类型不能擅自丢掉已装食笼31")
@@ -498,7 +498,7 @@ func TestRigExplicitTypeWinsOverComponents(t *testing.T) {
 	srv.correctStaleRigType(ctx, rod.GUID)
 	rt, found, err = db.GetRigType(ctx, rod.GUID)
 	if err != nil || !found || rt != 13 {
-		t.Fatalf("兼容的显式类型13应保持，实得 %d (found=%v err=%v)", rt, found, err)
+		t.Fatalf("兼容的显式类型13应保持, 实得 %d (found=%v err=%v)", rt, found, err)
 	}
 }
 
@@ -527,12 +527,12 @@ func TestBottomSimpleSharedSlotReplacesAlternative(t *testing.T) {
 
 	rt, found, err := db.GetRigType(ctx, rod.GUID)
 	if err != nil || !found || rt != 12 {
-		t.Fatalf("沉子替换喂食器后 rig_type=%d found=%v err=%v，期望 12", rt, found, err)
+		t.Fatalf("沉子替换喂食器后 rig_type=%d found=%v err=%v, 期望 12", rt, found, err)
 	}
 	row, _ := db.GetItemByGUID(ctx, rod.GUID)
 	f5 := rigStoredF5(t, row)
 	if name := f5.Fields[0].StrOr(); name != "rig_BottomSimple" {
-		t.Fatalf("沉子替换后 f5.f0=%q，期望 rig_BottomSimple", name)
+		t.Fatalf("沉子替换后 f5.f0=%q, 期望 rig_BottomSimple", name)
 	}
 	comps := rigCompsOf(f5)
 	if _, ok := comps[rigCompKey(29, 0)]; !ok {
@@ -567,7 +567,7 @@ func TestBottomSimpleMountLeaderKeepsRigType(t *testing.T) {
 
 	rt, found, err := db.GetRigType(ctx, rod.GUID)
 	if err != nil || !found || rt != 12 {
-		t.Fatalf("首次装引线后 rig_type=%d found=%v err=%v，期望 12", rt, found, err)
+		t.Fatalf("首次装引线后 rig_type=%d found=%v err=%v, 期望 12", rt, found, err)
 	}
 	row, err := db.GetItemByGUID(ctx, rod.GUID)
 	if err != nil {
@@ -575,13 +575,13 @@ func TestBottomSimpleMountLeaderKeepsRigType(t *testing.T) {
 	}
 	f5 := rigStoredF5(t, row)
 	if name := f5.Fields[0].StrOr(); name != "rig_BottomSimple" {
-		t.Fatalf("首次装引线后 f5.f0=%q，期望 rig_BottomSimple", name)
+		t.Fatalf("首次装引线后 f5.f0=%q, 期望 rig_BottomSimple", name)
 	}
 	if got := int64(u64Of(f5.Fields[1].Num)); got != 12 {
-		t.Fatalf("首次装引线后 f5.f1=%d，期望 12", got)
+		t.Fatalf("首次装引线后 f5.f1=%d, 期望 12", got)
 	}
 	if comp, ok := rigCompsOf(f5)[catLead]; !ok || comp.GUID != leader.GUID || comp.Extra != 150 {
-		t.Fatalf("f5 缺少引线(13, extra150)：实得 %v", rigCompsOf(f5))
+		t.Fatalf("f5 缺少引线(13, extra150): 实得 %v", rigCompsOf(f5))
 	}
 	// 同一装配请求重放不得复制引线或改变归属。
 	runRodSet(t, srv, newProbeSess(srv), rod.GUID, leader.GUID, 0)
@@ -591,14 +591,14 @@ func TestBottomSimpleMountLeaderKeepsRigType(t *testing.T) {
 	}
 	comps := rigCompsOf(rigStoredF5(t, row))
 	if keys := rigCompKeysOfCategory(comps, catLead); len(keys) != 1 || comps[keys[0]].GUID != leader.GUID {
-		t.Fatalf("重复装配后引线组件=%v，期望同一 GUID 仅一件", comps)
+		t.Fatalf("重复装配后引线组件=%v, 期望同一 GUID 仅一件", comps)
 	}
 	name, rt, ok := rigIdentity(rigStoredF5(t, row))
 	if !ok || name != "rig_BottomSimple" || rt != 12 {
-		t.Fatalf("重复装配后 f5 身份=%q/%d/%v，期望 rig_BottomSimple/12/true", name, rt, ok)
+		t.Fatalf("重复装配后 f5 身份=%q/%d/%v, 期望 rig_BottomSimple/12/true", name, rt, ok)
 	}
 	if projected, found, err := db.GetRigType(ctx, rod.GUID); err != nil || !found || projected != 12 {
-		t.Fatalf("重复装配后 rig_type=%d found=%v err=%v，期望 12", projected, found, err)
+		t.Fatalf("重复装配后 rig_type=%d found=%v err=%v, 期望 12", projected, found, err)
 	}
 	mounted, err := db.GetItemByGUID(ctx, leader.GUID)
 	if err != nil || mounted.Container != "rig" || mounted.RigGUID != rod.GUID || mounted.Qty != leader.Qty {
@@ -618,7 +618,7 @@ func TestBottomSimpleMountLeaderKeepsRigType(t *testing.T) {
 		}
 	}
 	if projectedLeaders != 1 {
-		t.Fatalf("引线投影数量=%d，期望 1: %+v", projectedLeaders, rows)
+		t.Fatalf("引线投影数量=%d, 期望 1: %+v", projectedLeaders, rows)
 	}
 }
 
@@ -661,7 +661,7 @@ func TestBottomSimpleLeaderBreakKeepsUpstreamFeeder(t *testing.T) {
 		t.Fatalf("断引线误删或卸下上游食笼: row=%+v err=%v", kept, err)
 	}
 	if got := rigSlotGUIDs(t, srv, rod.GUID)[31]; got != feeder.GUID {
-		t.Fatalf("断引线后食笼投影=%q，期望 %q", got, feeder.GUID)
+		t.Fatalf("断引线后食笼投影=%q, 期望 %q", got, feeder.GUID)
 	}
 	if comp, ok := rigCompsOf(rigStoredF5(t, mustItem(t, db, rod.GUID)))[31]; !ok || comp.GUID != feeder.GUID {
 		t.Fatalf("断引线后 f5 应保留食笼: %+v", comp)
@@ -688,12 +688,12 @@ func TestRigMountKeepsTemplateCompatible(t *testing.T) {
 
 	rt, found, err := db.GetRigType(ctx, rod.GUID)
 	if err != nil || !found || rt != 12 {
-		t.Fatalf("装食笼后 rig_type=%d found=%v err=%v，期望 12", rt, found, err)
+		t.Fatalf("装食笼后 rig_type=%d found=%v err=%v, 期望 12", rt, found, err)
 	}
 	row, _ := db.GetItemByGUID(ctx, rod.GUID)
 	f5 := rigStoredF5(t, row)
 	if name := f5.Fields[0].StrOr(); name != "rig_BottomSimple" {
-		t.Fatalf("装食笼后 f5.f0=%q，期望 rig_BottomSimple", name)
+		t.Fatalf("装食笼后 f5.f0=%q, 期望 rig_BottomSimple", name)
 	}
 	if _, ok := rigCompsOf(f5)[31]; !ok {
 		t.Fatal("f5 缺少刚安装的食笼31")
@@ -704,11 +704,11 @@ func TestRigMountKeepsTemplateCompatible(t *testing.T) {
 	}
 	rt, found, err = db.GetRigType(ctx, rod.GUID)
 	if err != nil || !found || rt != 13 {
-		t.Fatalf("显式切换后 rig_type=%d found=%v err=%v，期望13", rt, found, err)
+		t.Fatalf("显式切换后 rig_type=%d found=%v err=%v, 期望13", rt, found, err)
 	}
 	row, _ = db.GetItemByGUID(ctx, rod.GUID)
 	f5 = rigStoredF5(t, row)
 	if name := f5.Fields[0].StrOr(); name != "rig_BottomPaternoster" {
-		t.Fatalf("显式切换后 f5.f0=%q，期望 rig_BottomPaternoster", name)
+		t.Fatalf("显式切换后 f5.f0=%q, 期望 rig_BottomPaternoster", name)
 	}
 }

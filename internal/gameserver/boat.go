@@ -120,12 +120,12 @@ func hCheckTicket(ctx *Ctx) ([]byte, bool) {
 					}
 				}
 				srv.markPlayerBoarded(ctx, tree)
-				ctx.Log.Info("3/7 复用有效期内的船票", "station", station)
+				ctx.Log.Info("3/7 Используется действующий билет на лодку", "station", station)
 				return body, true
 			}
-			ctx.Log.Warn("3/7 复用船票编码失败", "err", err)
+			ctx.Log.Warn("3/7 Ошибка кодирования повторного билета", "err", err)
 		}
-		ctx.Log.Info("3/7 无可复用的票，回 null 交由客户端弹选票框", "station", station)
+		ctx.Log.Info("3/7 Нет билета для повторного использования, возвращаем null — клиент покажет выбор билета", "station", station)
 		return []byte{0x00}, true
 	}
 
@@ -135,7 +135,7 @@ func hCheckTicket(ctx *Ctx) ([]byte, bool) {
 			continue
 		}
 		if row.TypeID != boatTicketTypeID {
-			ctx.Log.Info("3/7 该物品不是船票", "guid", guidShort(g), "type", row.TypeID)
+			ctx.Log.Info("3/7 Этот предмет не билет на лодку", "guid", guidShort(g), "type", row.TypeID)
 			continue
 		}
 		def, derr := srv.DB.GetItemDef(cctx, row.NumericID)
@@ -144,29 +144,29 @@ func hCheckTicket(ctx *Ctx) ([]byte, bool) {
 		}
 		if def != nil {
 			if st, ok := defAttrU64(def, boatTicketStationAttr); ok && station > 0 && st != station {
-				ctx.Log.Warn("3/7 票站点与请求站点不一致，拒绝上船",
+				ctx.Log.Warn("3/7 Станция билета не совпадает с запрошенной, посадка отклонена",
 					"ticket_station", st, "request_station", station, "guid", guidShort(g))
 				continue
 			}
 		}
 		if !srv.ticketLevelOK(ctx, def) {
-			ctx.Log.Warn("3/7 票不属于当前地图，拒绝上船",
+			ctx.Log.Warn("3/7 Билет не относится к текущей карте, посадка отклонена",
 				"guid", guidShort(g), "item", row.ItemID,
 				"ticket_level", ticketLevelOf(def), "current_level", srv.currentLevel(ctx.Sess.Userid))
 			continue
 		}
 		// 选中票即开始租用：写入 knpoijanngk / 租期 / 时效对象并落库。
 		if srv.startTicketRent(ctx, row, def) {
-			ctx.Log.Info("3/7 船票开始租用", "guid", guidShort(g), "item", row.ItemID)
+			ctx.Log.Info("3/7 Аренда по билету начата", "guid", guidShort(g), "item", row.ItemID)
 		}
 		tree, terr := srv.ItemToTree(cctx, row)
 		if terr != nil {
-			ctx.Log.Warn("3/7 船票物化失败", "guid", guidShort(g), "err", terr)
+			ctx.Log.Warn("3/7 Не удалось материализовать билет", "guid", guidShort(g), "err", terr)
 			continue
 		}
 		body, berr := proto.EncodeValue(tree, ctx.Sess.Table())
 		if berr != nil {
-			ctx.Log.Warn("3/7 编码失败", "guid", guidShort(g), "err", berr)
+			ctx.Log.Warn("3/7 Ошибка кодирования", "guid", guidShort(g), "err", berr)
 			continue
 		}
 		// 客户端构造租用记录读的是本地票对象，必须在回包前把"租用中"推给它，
@@ -174,11 +174,11 @@ func hCheckTicket(ctx *Ctx) ([]byte, bool) {
 		ctx.Sess.Push(4, 21, proto.Args524(proto.GuidArr([]string{row.GUID})))
 		ctx.Sess.Push(4, 22, proto.Args(proto.S("61"), tree))
 		srv.markPlayerBoarded(ctx, tree)
-		ctx.Log.Info("3/7 验票通过", "guid", guidShort(g), "item", row.ItemID, "station", station)
+		ctx.Log.Info("3/7 Билет проверен", "guid", guidShort(g), "item", row.ItemID, "station", station)
 		return body, true
 	}
 
-	ctx.Log.Info("3/7 没有可用船票，回 null", "station", station, "guids", len(realGUIDs))
+	ctx.Log.Info("3/7 Нет подходящего билета, возвращаем null", "station", station, "guids", len(realGUIDs))
 	return []byte{0x00}, true
 }
 
@@ -200,7 +200,7 @@ func (s *Server) markPlayerBoarded(ctx *Ctx, tree *proto.Value) {
 	}
 	unix := proto.FiletimeToUnix(int64(ft))
 	if unix <= time.Now().Unix() {
-		return // 票已过期，不能当成在船上
+		return // 票已过期, 不能当成在船上
 	}
 	for _, st := range ctx.Sess.Srv.fishingStatesFor(ctx.Sess.Userid) {
 		st.mu.Lock()
@@ -215,7 +215,7 @@ func (s *Server) pickStationTicket(ctx *Ctx, station uint64) *proto.Value {
 	cctx := ctx.Sess.pushCtx()
 	guids, err := s.DB.ItemGUIDsByContainers(cctx, ctx.Sess.Userid, []string{"backpack"})
 	if err != nil {
-		ctx.Log.Warn("3/7 按站点选票：读背包失败", "err", err)
+		ctx.Log.Warn("3/7 Выбор билета по станции: не удалось прочитать инвентарь", "err", err)
 		return nil
 	}
 	for _, g := range guids {
@@ -244,7 +244,7 @@ func (s *Server) pickStationTicket(ctx *Ctx, station uint64) *proto.Value {
 			continue
 		}
 		if rented {
-			ctx.Log.Info("3/7 按站点选票：已开始租用", "guid", guidShort(g), "item", row.ItemID)
+			ctx.Log.Info("3/7 Выбор билета по станции: аренда начата", "guid", guidShort(g), "item", row.ItemID)
 		}
 		ctx.Sess.Push(4, 21, proto.Args524(proto.GuidArr([]string{row.GUID})))
 		ctx.Sess.Push(4, 22, proto.Args(proto.S("61"), tree))
@@ -308,7 +308,7 @@ func (s *Server) startTicketRent(ctx *Ctx, row *store.Item, def *store.ItemDef) 
 		if fields[idx].Val == nil || fields[idx].Val.Kind != proto.KindObj {
 			fields[idx].Val = wiregen.MustMakeObj("lcjcffibmbi", map[int]*proto.Value{
 				0: proto.StrVal(""),
-				1: proto.U32(0), // 无时效：避开维修倒计时分支
+				1: proto.U32(0), // 无时效: 避开维修倒计时分支
 				// 起始必须是"当前分钟数"（unix 分钟），不能填时长：
 				// 客户端算剩余 = 起始 + 时长 - 当前，填 1440 会算成常量。
 				2: proto.U32(uint32(time.Now().Unix() / 60)),
@@ -340,7 +340,7 @@ func (s *Server) startTicketRent(ctx *Ctx, row *store.Item, def *store.ItemDef) 
 	}
 	if uerr := db.UpdateItemFields(ctx.Sess.pushCtx(), row.GUID, fj, row.Qty, row.Durability,
 		row.Workmanship, row.RigGUID); uerr != nil {
-		ctx.Log.Warn("3/7 租用状态落库失败", "guid", guidShort(row.GUID), "err", uerr)
+		ctx.Log.Warn("3/7 Не удалось сохранить состояние аренды", "guid", guidShort(row.GUID), "err", uerr)
 		return false
 	}
 	row.FieldsJSON = fj
@@ -447,11 +447,11 @@ func (s *Server) repairActiveTicketAnchor(ctx *Ctx, row *store.Item, fields []pr
 	}
 	if err := s.DB.UpdateItemFields(ctx.Sess.pushCtx(), row.GUID, fj, row.Qty, row.Durability,
 		row.Workmanship, row.RigGUID); err != nil {
-		ctx.Log.Warn("3/7 修复船票世界时钟锚点失败", "guid", guidShort(row.GUID), "err", err)
+		ctx.Log.Warn("3/7 Не удалось исправить привязку игровых часов билета", "guid", guidShort(row.GUID), "err", err)
 		return fields
 	}
 	row.FieldsJSON = fj
-	ctx.Log.Info("3/7 修复船票世界时钟锚点",
+	ctx.Log.Info("3/7 Привязка игровых часов билета исправлена",
 		"guid", guidShort(row.GUID), "anchor", want, "old_anchor", oldAnchor)
 	return fields
 }
@@ -510,7 +510,7 @@ func (s *Session) pushTicketRemaining() {
 		// 先"移除"再"添加"，强制客户端替换物品对象并重建提示。
 		s.Push(4, 21, proto.Args524(proto.GuidArr([]string{g})))
 		s.Push(4, 22, proto.Args(proto.S("61"), tree))
-		s.log.Info("船票剩余分钟推送", "guid", guidShort(g), "remain", remain, "dur", dur)
+		s.log.Info("Отправка оставшихся минут билета", "guid", guidShort(g), "remain", remain, "dur", dur)
 	}
 }
 
@@ -568,7 +568,7 @@ func (s *Session) expireRentalTickets() {
 			continue
 		}
 		if uerr := s.Srv.DB.UpdateItemFields(cctx, g, fj, row.Qty, row.Durability, row.Workmanship, row.RigGUID); uerr != nil {
-			s.log.Error("船票到期状态写回失败", "guid", guidShort(g), "err", uerr)
+			s.log.Error("Не удалось записать истечение билета", "guid", guidShort(g), "err", uerr)
 			continue
 		}
 		tree, terr := s.Srv.ItemToTree(cctx, row)
@@ -580,7 +580,7 @@ func (s *Session) expireRentalTickets() {
 		}
 		s.Push(4, 21, proto.Args524(proto.GuidArr([]string{g})))
 		s.Push(4, 22, proto.Args(proto.S("61"), tree))
-		s.log.Info("船票到期，已取消使用中", "guid", guidShort(g), "dur", dur)
+		s.log.Info("Билет истёк, использование отменено", "guid", guidShort(g), "dur", dur)
 	}
 }
 
@@ -624,12 +624,12 @@ func cleanupConsumedTickets(ctx *Ctx) {
 			realDur = 1
 		}
 		if start+realDur > nowMin {
-			continue // 还没到期，保留
+			continue // 还没到期, 保留
 		}
 		if derr := s.Srv.DB.DeleteItems(cctx, []string{g}); derr != nil {
 			continue
 		}
 		s.Push(4, 21, proto.Args524(proto.GuidArr([]string{g})))
-		s.log.Info("已消耗船票已删除", "guid", guidShort(g))
+		s.log.Info("Использованный билет удалён", "guid", guidShort(g))
 	}
 }

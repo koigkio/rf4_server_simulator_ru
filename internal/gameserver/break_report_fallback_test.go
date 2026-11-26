@@ -52,7 +52,7 @@ func TestBreakReportMissingOrZeroGUIDFallsBackToWeakestLink(t *testing.T) {
 			}
 			// 官服清杯口径：主线断=整条销毁，不再只扣一段长度。
 			if row, _ := db.GetItemByGUID(ctx, lineGUID); row != nil {
-				t.Fatalf("断主线后主线应整条销毁，实得 %+v", row)
+				t.Fatalf("断主线后主线应整条销毁, 实得 %+v", row)
 			}
 			row, err := db.GetItemByGUID(ctx, rodGUID)
 			if err != nil || row == nil || row.Durability <= 0 {

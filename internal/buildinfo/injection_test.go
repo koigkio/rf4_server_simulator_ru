@@ -29,13 +29,13 @@ func TestBuildEntrypointsInjectFullIdentity(t *testing.T) {
 	for _, rel := range buildEntrypoints {
 		data, err := os.ReadFile(rel)
 		if err != nil {
-			t.Fatalf("读不到构建脚本 %s: %v（测试 cwd 应为 internal/buildinfo）", rel, err)
+			t.Fatalf("读不到构建脚本 %s: %v (测试 cwd 应为 internal/buildinfo)", rel, err)
 		}
 		text := strings.ReplaceAll(string(data), "\r\n", "\n")
 		for _, field := range identityFields {
 			want := "-X 'rf4server/internal/buildinfo." + field + "="
 			if !strings.Contains(text, want) {
-				t.Errorf("%s 缺少 %s 的 ldflags 注入（应为 %q）；构建出的二进制会把该标签报成 unknown", rel, field, want)
+				t.Errorf("%s 缺少 %s 的 ldflags 注入 (应为 %q); 构建出的二进制会把该标签报成 unknown", rel, field, want)
 			}
 		}
 	}

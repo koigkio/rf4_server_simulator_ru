@@ -86,7 +86,7 @@ func TestSkillGainModeSetIsAtomicAndPreservesCustomValues(t *testing.T) {
 	}
 	for _, bad := range []string{"-1", "21", "abc"} {
 		if code := call(http.MethodPost, "/api/tunables", auth.Token, `{"key":"skill_grade_mult_4","value":"`+bad+`"}`).Code; code != http.StatusBadRequest {
-			t.Fatalf("倍数 %q 应被拒，实际 code=%d", bad, code)
+			t.Fatalf("倍数 %q 应被拒, 实际 code=%d", bad, code)
 		}
 	}
 

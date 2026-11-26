@@ -105,13 +105,13 @@ func (g *GatewayHandle) Login(t *testing.T) (token string, userid int64) {
 	httpc := &http.Client{Transport: tr, Timeout: 5 * time.Second}
 	resp, err := httpc.Get(g.LoginURL)
 	if err != nil {
-		t.Fatalf("登录请求: %v", err)
+		t.Fatalf("Запрос входа: %v", err)
 	}
 	defer resp.Body.Close()
 	body, _ := io.ReadAll(resp.Body)
 	text := string(body)
 	if !strings.Contains(text, `<logon success="true">`) {
-		t.Fatalf("登录响应异常: %s", text)
+		t.Fatalf("Неверный ответ на вход: %s", text)
 	}
 	m := regexp.MustCompile(`<token>([^<]+)</token>`).FindStringSubmatch(text)
 	if m == nil {
@@ -186,10 +186,10 @@ func (c *FakeClient) Dial(token string, reconnect bool) {
 	hdr := make([]byte, 36)
 	_ = conn.SetReadDeadline(time.Now().Add(3 * time.Second))
 	if _, err := io.ReadFull(conn, hdr); err != nil {
-		c.t.Fatalf("读问候: %v", err)
+		c.t.Fatalf("Чтение приветствия: %v", err)
 	}
 	if string(hdr) != proto.GreetingUUID {
-		c.t.Fatalf("问候不符: %q", hdr)
+		c.t.Fatalf("Приветствие не совпадает: %q", hdr)
 	}
 	hermes := []byte("<hermes><token>x</token></hermes>")
 	if _, err := conn.Write(proto.BuildFrame(0, 1, hermes)); err != nil {
@@ -209,7 +209,7 @@ func (c *FakeClient) pump() {
 		stale := c.conn != conn
 		c.bufMu.Unlock()
 		if stale {
-			return // 连接已被重连替换，旧泵退出
+			return // 连接已被重连替换, 旧泵退出
 		}
 		c.bufMu.Lock()
 		frames, consumed, err := proto.TakeCompleteFrames(c.buf)
@@ -290,7 +290,7 @@ func (c *FakeClient) WaitResponse(timeout time.Duration) *proto.Envelope {
 	case env := <-c.RespCh:
 		return env
 	case <-time.After(timeout):
-		c.t.Fatal("等待响应超时")
+		c.t.Fatal("Истекло ожидание ответа")
 		return nil
 	}
 }
@@ -302,7 +302,7 @@ func (c *FakeClient) WaitPush(timeout time.Duration) *proto.Envelope {
 	case env := <-c.PushCh:
 		return env
 	case <-time.After(timeout):
-		c.t.Fatal("等待推送超时")
+		c.t.Fatal("Истекло ожидание отправки")
 		return nil
 	}
 }
@@ -318,7 +318,7 @@ func (c *FakeClient) WaitAck(wire uint64, timeout time.Duration) {
 				return
 			}
 		case <-deadline:
-			c.t.Fatalf("等待 ACK(wire=%d) 超时", wire)
+			c.t.Fatalf("Истекло ожидание ACK(wire=%d)", wire)
 			return
 		}
 	}

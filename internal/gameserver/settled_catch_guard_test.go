@@ -221,7 +221,7 @@ func TestMidFightRodBreakNotGuarded(t *testing.T) {
 	// 空钓组的最弱环就是竿本身：守门未拦时走真实断竿——竿耐久归零、
 	// 鱼按现有语义清掉。守门路径绝不会产生这两个副作用。
 	if row, _ := db.GetItemByGUID(ctx, rod.GUID); row == nil || row.Durability != 0 {
-		t.Fatalf("搏鱼中 17/9 应走真实断件（竿耐久应归零）: %+v", row)
+		t.Fatalf("搏鱼中 17/9 应走真实断件 (竿耐久应归零): %+v", row)
 	}
 	st.mu.Lock()
 	cleared := st.Pending == nil

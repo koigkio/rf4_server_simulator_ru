@@ -257,8 +257,8 @@ func TestSwordfishRollRespectsSeaGuideLocation(t *testing.T) {
 		defer st.mu.Unlock()
 		st.cancelBiteTimerLocked()
 		if st.Pending == nil || st.Pending.Species != "x_gladius" ||
-			!strings.Contains(log.String(), "海图区号=未知 攻略标深=未知") ||
-			strings.Contains(log.String(), "空因=饵料规则（strict）") || strings.Contains(log.String(), "x=3282") {
+			!strings.Contains(log.String(), "chart_zone=Неизвестно guide_depth=Неизвестно") ||
+			strings.Contains(log.String(), "empty_reason=\"Правила наживки (strict)\"") || strings.Contains(log.String(), "x=3282") {
 			t.Fatalf("仅人物位于80米钓点时应保持区域条件中性，且不能借用人物坐标：%s", log.String())
 		}
 	})
@@ -297,7 +297,7 @@ func TestSwordfishRollRespectsSeaGuideLocation(t *testing.T) {
 				biteRoll: func() float64 { return 0 }, audit: &fishRollAudit{},
 			}
 			f := s.rollFishWithRules("loc12_15", "pilkerlures_2658", 0, neutralFishingSkillBonus(), c)
-			if f != nil || c.audit.emptyReason != "饵料规则（strict）" {
+			if f != nil || c.audit.emptyReason != "Правила наживки (strict)" {
 				t.Errorf("岸边保底=%t，鱼=%+v，空因=%s", pity, f, c.audit.emptyReason)
 			}
 			c.x, c.z = 3577.362, 1090.034
@@ -356,7 +356,7 @@ func TestSeaBaitEmptyRollLogsChartAndRosterZone(t *testing.T) {
 	st.mu.Lock()
 	st.cancelBiteTimerLocked()
 	st.mu.Unlock()
-	for _, field := range []string{"空因=饵料规则（strict）", "场景=loc12_75", "网格=挪威海/6/19", "海图区号=15", "攻略标深=12 ", "名册区域=试钓区（exclusive）"} {
+	for _, field := range []string{"empty_reason=\"Правила наживки (strict)\"", "scene=loc12_75", "grid=挪威海/6/19", "chart_zone=15", "guide_depth=12 ", "zone=\"试钓区 (exclusive)\""} {
 		if !strings.Contains(log.String(), field) {
 			t.Errorf("空轮日志缺少 %q：%s", field, log.String())
 		}

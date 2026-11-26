@@ -27,8 +27,8 @@ type Config struct {
 
 // SQLite 本地单文件数据库（多进程共享，WAL 并发）。
 type SQLite struct {
-	Path       string `yaml:"path"`        // 主库，例如 data/rf4server.db
-	StaticPath string `yaml:"static_path"` // 只读静态配置库，例如 server_data/static.sqlite3
+	Path       string `yaml:"path"`        // 主库, 例如 data/rf4server.db
+	StaticPath string `yaml:"static_path"` // 只读静态配置库, 例如 server_data/static.sqlite3
 }
 
 type Log struct {
@@ -38,35 +38,35 @@ type Log struct {
 
 // Tunnel 网关↔主服内部隧道（gameserver 监听、gateway 拨号）。
 type Tunnel struct {
-	Addr string `yaml:"addr"` // gameserver 内部监听地址，如 127.0.0.1:9401
-	PSK  string `yaml:"psk"`  // 预共享密钥，隧道握手认证
+	Addr string `yaml:"addr"` // gameserver 内部监听地址, 如 127.0.0.1:9401
+	PSK  string `yaml:"psk"`  // 预共享密钥, 隧道握手认证
 }
 
 type Gateway struct {
-	LoginAddr             string  `yaml:"login_addr"`        // HTTPS 登录监听，如 :443
-	LoginCompatAddr       string  `yaml:"login_compat_addr"` // 可选：旧版 CN 客户端的明文 HTTP 登录兼容口，如 127.0.0.1:7515
-	RealtimeAddr          string  `yaml:"realtime_addr"`     // realtime TCP 监听，如 :9341
+	LoginAddr             string  `yaml:"login_addr"`        // HTTPS 登录监听, 如 :443
+	LoginCompatAddr       string  `yaml:"login_compat_addr"` // 可选: 旧版 CN 客户端的明文 HTTP 登录兼容口, 如 127.0.0.1:7515
+	RealtimeAddr          string  `yaml:"realtime_addr"`     // realtime TCP 监听, 如 :9341
 	CertFile              string  `yaml:"cert_file"`
 	KeyFile               string  `yaml:"key_file"`
 	AdvertiseHost         string  `yaml:"advertise_host"`          // 写入 <logon><host> 的地址
 	AdvertisePort         int     `yaml:"advertise_port"`          // 写入 <logon><port>
-	Region                string  `yaml:"region"`                  // CN → 客户端中文界面
+	Region                string  `yaml:"region"`                  // RU — русский интерфейс клиента, CN — китайский
 	ServerName            string  `yaml:"server_name"`             // 写入 <logon><server>
-	LoginDomain           string  `yaml:"login_domain"`            // api.rf4game.ru（供日志/工具用）
+	LoginDomain           string  `yaml:"login_domain"`            // api.rf4game.ru (供日志/工具用)
 	MaxConns              int     `yaml:"max_conns"`               // realtime 最大并发连接
-	AckClientFrames       bool    `yaml:"ack_client_frames"`       // 先 ACK 后转发（协议要求，默认开启）
+	AckClientFrames       bool    `yaml:"ack_client_frames"`       // 先 ACK 后转发 (协议要求, 默认开启)
 	TransportKeepaliveSec float64 `yaml:"transport_keepalive_sec"` // 4 字节零帧保活间隔
 
 	Tunnel Tunnel `yaml:"tunnel"`
 
 	ObsAddr string `yaml:"obs_addr"` // 观测端口 /healthz /readyz /metrics /debug/pprof
 
-	TokenTTL          int     `yaml:"token_ttl_days"`         // 登录 token 有效期（天）
+	TokenTTL          int     `yaml:"token_ttl_days"`         // 登录 token 有效期 (天)
 	UseridStart       int64   `yaml:"userid_start"`           // 自增 userid 起点
-	BiteProbability   float64 `yaml:"bite_probability"`       // 起竿判出鱼概率（1.0=每杆必出）
+	BiteProbability   float64 `yaml:"bite_probability"`       // 起竿判出鱼概率 (1.0=每杆必出)
 	BiteDelayScale    float64 `yaml:"bite_delay_scale"`       // 咬钩延迟倍率
-	BiteDelayFixed    float64 `yaml:"bite_delay_fixed"`       // 固定咬钩延迟秒（>0 时忽略分布）
-	KeepaliveInterval float64 `yaml:"keepalive_interval_sec"` // 2/2 世界时钟推送间隔（秒）
+	BiteDelayFixed    float64 `yaml:"bite_delay_fixed"`       // 固定咬钩延迟秒 (>0 时忽略分布)
+	KeepaliveInterval float64 `yaml:"keepalive_interval_sec"` // 2/2 世界时钟推送间隔 (秒)
 }
 
 type Game struct {
@@ -75,14 +75,14 @@ type Game struct {
 	DefaultUserid int64   `yaml:"default_userid"` // 单账号模式下使用的固定 userid
 	Weather       Weather `yaml:"weather"`
 
-	KeepaliveIntervalSec float64 `yaml:"keepalive_interval_sec"` // 2/2 世界时钟推送间隔（秒）
+	KeepaliveIntervalSec float64 `yaml:"keepalive_interval_sec"` // 2/2 世界时钟推送间隔 (秒)
 }
 
 // Weather 控制进程启动时生成的逐日天气 kind 序列。
 // 序列在本进程内固定，每次启动重新随机；关闭时沿用地图模板的固定顺序。
 type Weather struct {
 	Randomize bool `yaml:"randomize"`  // true=启动时按图加权生成天气 kind
-	CycleDays int  `yaml:"cycle_days"` // 每图序列长度，最小 8，默认 64
+	CycleDays int  `yaml:"cycle_days"` // 每图序列长度, 最小 8, 默认 64
 }
 
 // KeepaliveInterval 2/2 保活间隔；必须小于客户端断开阈值（~10s）。
@@ -94,18 +94,20 @@ func (g *Game) KeepaliveInterval() time.Duration {
 }
 
 type Admin struct {
-	HTTPAddr  string `yaml:"http_addr"` // 仅 cmd/admin 独立调试监听，如 :8080
+	HTTPAddr  string `yaml:"http_addr"` // 仅 cmd/admin 独立调试监听, 如 :8080
 	JWTSecret string `yaml:"jwt_secret"`
 	ObsAddr   string `yaml:"obs_addr"`
-	Username  string `yaml:"username"` // 管理员账号（以配置为准，启动时同步）
-	Password  string `yaml:"password"` // 管理员密码（明文进 yaml，注意文件权限）
+	Username  string `yaml:"username"` // 管理员账号 (以配置为准, 启动时同步)
+	Password  string `yaml:"password"` // 管理员密码 (明文进 yaml, 注意文件权限)
 }
 
 // Launcher 本地启动器设置。
 type Launcher struct {
 	GamePath    string `yaml:"game_path"`    // rf4_x64.exe 绝对路径
 	GameRegion  string `yaml:"game_region"`  // 启动参数 -region 的值
-	HostsSwitch bool   `yaml:"hosts_switch"` // 开启后：服务启动成功自动把登录域名指向 127.0.0.1，launcher 退出时还原（需管理员权限运行 launcher）
+	LaunchVia   string `yaml:"launch_via"`   // direct — запуск rf4_x64.exe напрямую; steam — запуск через клиент Steam
+	SteamAppID  int    `yaml:"steam_app_id"` // AppID игры в Steam (по умолчанию 766570)
+	HostsSwitch bool   `yaml:"hosts_switch"` // 开启后: 服务启动成功自动把登录域名指向 127.0.0.1, launcher 退出时还原 (需管理员权限运行 launcher)
 }
 
 // Load 从 path 读取 YAML 并应用环境变量覆盖；path 为空时只用默认值+环境变量。
@@ -114,10 +116,10 @@ func Load(path string) (*Config, error) {
 	if path != "" {
 		data, err := os.ReadFile(path)
 		if err != nil {
-			return nil, fmt.Errorf("读取配置 %s: %w", path, err)
+			return nil, fmt.Errorf("Чтение конфигурации %s: %w", path, err)
 		}
 		if err := yaml.Unmarshal(data, cfg); err != nil {
-			return nil, fmt.Errorf("解析配置 %s: %w", path, err)
+			return nil, fmt.Errorf("Разбор конфигурации %s: %w", path, err)
 		}
 	}
 	cfg.applyEnvOverrides()
@@ -131,7 +133,7 @@ func defaults() *Config {
 	return &Config{
 		Env:      "dev",
 		Log:      Log{Level: "info", Format: "text"},
-		Launcher: Launcher{GameRegion: "CN"},
+		Launcher: Launcher{GameRegion: "RU", LaunchVia: "direct", SteamAppID: 766570},
 		SQLite: SQLite{
 			Path:       "data/rf4server.db",
 			StaticPath: "server_data/static.sqlite3",
@@ -143,7 +145,7 @@ func defaults() *Config {
 			KeyFile:               "certs/server.key",
 			AdvertiseHost:         "127.0.0.1",
 			AdvertisePort:         9341,
-			Region:                "CN",
+			Region:                "RU",
 			ServerName:            "RF4_566",
 			LoginDomain:           "api.rf4game.ru",
 			MaxConns:              512,
@@ -222,6 +224,7 @@ func (c *Config) applyEnvOverrides() {
 	envStr("RF4_ADMIN_PASSWORD", &c.Admin.Password)
 	envStr("RF4_GAME_CLIENT_PATH", &c.Launcher.GamePath)
 	envStr("RF4_GAME_CLIENT_REGION", &c.Launcher.GameRegion)
+	envStr("RF4_GAME_LAUNCH_VIA", &c.Launcher.LaunchVia)
 	envFloat("RF4_GATEWAY_KEEPALIVE_SEC", &c.Gateway.TransportKeepaliveSec)
 	envFloat("RF4_KEEPALIVE_INTERVAL_SEC", &c.Gateway.KeepaliveInterval)
 	envFloat("RF4_BITE_PROBABILITY", &c.Gateway.BiteProbability)
@@ -232,10 +235,10 @@ func (c *Config) applyEnvOverrides() {
 
 func (c *Config) validate() error {
 	if c.SQLite.Path == "" {
-		return fmt.Errorf("sqlite.path 未配置")
+		return fmt.Errorf("sqlite.path Не настроено")
 	}
 	if c.Gateway.AdvertisePort == 0 {
-		return fmt.Errorf("gateway.advertise_port 未配置")
+		return fmt.Errorf("gateway.advertise_port Не настроено")
 	}
 	return nil
 }

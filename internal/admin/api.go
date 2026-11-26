@@ -60,7 +60,7 @@ type logger interface {
 	Error(string, ...any)
 }
 
-const releaseNotesFilename = "发布说明.md"
+const releaseNotesFilename = "Список изменений.md"
 
 // NewServer 构建管理后台（webFS 为内嵌前端，nil 时只有 API）。
 // 运行时指令写入共享 SQLite 队列，由 gameserver 轮询消费。
@@ -73,8 +73,8 @@ func NewServer(cfg config.Admin, db *store.DB, log logger, webFS fs.FS) *Server 
 		return s.withAuth(h)
 	}
 	mux.HandleFunc("GET /api/me", auth(s.handleMe))
-	mux.HandleFunc("GET /api/dashboard", s.handleDashboard)  // 匿名只读：不登录也能看
-	mux.HandleFunc("GET /api/tunables", s.handleTunableList) // 匿名只读：不登录也能看
+	mux.HandleFunc("GET /api/dashboard", s.handleDashboard)  // 匿名只读: 不登录也能看
+	mux.HandleFunc("GET /api/tunables", s.handleTunableList) // 匿名只读: 不登录也能看
 	mux.HandleFunc("POST /api/tunables", auth(s.handleTunableSet))
 	mux.HandleFunc("POST /api/skill_gain_mode", auth(s.handleSkillGainModeSet))
 	mux.HandleFunc("POST /api/fish_tv_test", auth(s.handleFishTVTest))
@@ -93,38 +93,38 @@ func NewServer(cfg config.Admin, db *store.DB, log logger, webFS fs.FS) *Server 
 	mux.HandleFunc("POST /api/players/skills/points", auth(s.handlePlayerSkillPoints))
 	mux.HandleFunc("POST /api/players/kick", auth(s.handleKick))
 	mux.HandleFunc("POST /api/players/ban", auth(s.handleBan))
-	mux.HandleFunc("GET /api/catalog/items", s.handleCatalogItems)   // 匿名只读：不登录也能看
-	mux.HandleFunc("GET /api/catalog/groups", s.handleCatalogGroups) // 匿名只读：不登录也能看
-	mux.HandleFunc("GET /api/stores", s.handleStores)                // 匿名只读：不登录也能看
-	mux.HandleFunc("GET /api/stores/items", s.handleStoreItems)      // 匿名只读：不登录也能看
+	mux.HandleFunc("GET /api/catalog/items", s.handleCatalogItems)   // 匿名只读: 不登录也能看
+	mux.HandleFunc("GET /api/catalog/groups", s.handleCatalogGroups) // 匿名只读: 不登录也能看
+	mux.HandleFunc("GET /api/stores", s.handleStores)                // 匿名只读: 不登录也能看
+	mux.HandleFunc("GET /api/stores/items", s.handleStoreItems)      // 匿名只读: 不登录也能看
 	mux.HandleFunc("POST /api/stores/items/update", auth(s.handleStoreItemUpdate))
 	mux.HandleFunc("POST /api/stores/items/reset", auth(s.handleStoreItemReset))
-	mux.HandleFunc("GET /api/fish/areas", s.handleFishAreas)   // 匿名只读：不登录也能看
-	mux.HandleFunc("GET /api/fish/config", s.handleFishConfig) // 匿名只读：不登录也能看
+	mux.HandleFunc("GET /api/fish/areas", s.handleFishAreas)   // 匿名只读: 不登录也能看
+	mux.HandleFunc("GET /api/fish/config", s.handleFishConfig) // 匿名只读: 不登录也能看
 	mux.HandleFunc("POST /api/fish/config", auth(s.handleFishConfigSave))
 	mux.HandleFunc("POST /api/fish/config/reset", auth(s.handleFishConfigReset))
-	mux.HandleFunc("GET /api/fish/pool", s.handleFishPool)           // 匿名只读：不登录也能看
-	mux.HandleFunc("GET /api/fish/spawn_mode", s.handleSpawnModeGet) // 匿名只读：不登录也能看
+	mux.HandleFunc("GET /api/fish/pool", s.handleFishPool)           // 匿名只读: 不登录也能看
+	mux.HandleFunc("GET /api/fish/spawn_mode", s.handleSpawnModeGet) // 匿名只读: 不登录也能看
 	mux.HandleFunc("POST /api/fish/spawn_mode", auth(s.handleSpawnModeSet))
-	mux.HandleFunc("GET /api/fish/bite_mode", s.handleBiteModeGet) // 匿名只读：不登录也能看
+	mux.HandleFunc("GET /api/fish/bite_mode", s.handleBiteModeGet) // 匿名只读: 不登录也能看
 	mux.HandleFunc("POST /api/fish/bite_mode", auth(s.handleBiteModeSet))
-	mux.HandleFunc("GET /api/hooks/profiles", s.handleHookProfiles) // 匿名只读：不登录也能看
+	mux.HandleFunc("GET /api/hooks/profiles", s.handleHookProfiles) // 匿名只读: 不登录也能看
 	mux.HandleFunc("POST /api/hooks/profiles", auth(s.handleHookProfileSave))
-	mux.HandleFunc("GET /api/bait/prefs", s.handleBaitPrefs)           // 匿名只读：不登录也能看
-	mux.HandleFunc("GET /api/bait/items", s.handleBaitItems)           // 匿名只读：不登录也能看
-	mux.HandleFunc("GET /api/bait/categories", s.handleBaitCategories) // 匿名只读：不登录也能看
+	mux.HandleFunc("GET /api/bait/prefs", s.handleBaitPrefs)           // 匿名只读: 不登录也能看
+	mux.HandleFunc("GET /api/bait/items", s.handleBaitItems)           // 匿名只读: 不登录也能看
+	mux.HandleFunc("GET /api/bait/categories", s.handleBaitCategories) // 匿名只读: 不登录也能看
 	mux.HandleFunc("PUT /api/bait/rules", auth(s.handleBaitRuleSave))
 	mux.HandleFunc("POST /api/bait/rules/reset", auth(s.handleBaitRuleReset))
-	mux.HandleFunc("GET /api/fish/sea-now", s.handleFishSeaNow)                // 匿名只读：不登录也能看
-	mux.HandleFunc("GET /api/fish/sea-zone-latest", s.handleFishSeaZoneLatest) // 匿名只读：不登录也能看
-	mux.HandleFunc("GET /api/fish/sea-zones", s.handleFishSeaZones)            // 匿名只读：不登录也能看
-	mux.HandleFunc("GET /api/fish/zones", s.handleFishZones)                   // 匿名只读：不登录也能看
+	mux.HandleFunc("GET /api/fish/sea-now", s.handleFishSeaNow)                // 匿名只读: 不登录也能看
+	mux.HandleFunc("GET /api/fish/sea-zone-latest", s.handleFishSeaZoneLatest) // 匿名只读: 不登录也能看
+	mux.HandleFunc("GET /api/fish/sea-zones", s.handleFishSeaZones)            // 匿名只读: 不登录也能看
+	mux.HandleFunc("GET /api/fish/zones", s.handleFishZones)                   // 匿名只读: 不登录也能看
 	mux.HandleFunc("POST /api/fish/zones", auth(s.handleFishZoneSave))
 	mux.HandleFunc("POST /api/fish/zones/delete", auth(s.handleFishZoneDelete))
 	mux.HandleFunc("POST /api/mail/send", auth(s.handleMailSend))
-	mux.HandleFunc("GET /api/audit", s.handleAudit)                // 匿名只读：不登录也能看
-	mux.HandleFunc("GET /api/about", s.handleAbout)                // 匿名只读：不登录也能看
-	mux.HandleFunc("GET /api/release-notes", s.handleReleaseNotes) // 匿名只读：不登录也能看
+	mux.HandleFunc("GET /api/audit", s.handleAudit)                // 匿名只读: 不登录也能看
+	mux.HandleFunc("GET /api/about", s.handleAbout)                // 匿名只读: 不登录也能看
+	mux.HandleFunc("GET /api/release-notes", s.handleReleaseNotes) // 匿名只读: 不登录也能看
 
 	// 纸地图贴图运行时加载（素材不入仓库，见 paper_maps.go）：
 	// 先于 SPA FileServer 注册，web/ 内已不再内嵌 maps 目录。
@@ -208,13 +208,13 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 		Password string `json:"password"`
 	}
 	if err := readJSON(r, &req); err != nil {
-		httpError(w, 400, "参数错误")
+		httpError(w, 400, "Неверные параметры")
 		return
 	}
 	ok, err := s.db.AdminVerify(r.Context(), req.Username, req.Password)
 	if err != nil || !ok {
-		s.log.l.Warn("管理登录失败", "user", req.Username)
-		httpError(w, 401, "用户名或密码错误")
+		s.log.l.Warn("Ошибка входа в админку", "user", req.Username)
+		httpError(w, 401, "Неверное имя пользователя или пароль")
 		return
 	}
 	_ = s.db.AuditLogWrite(r.Context(), req.Username, "login", "", "")
@@ -226,7 +226,7 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 	})
 	signed, err := token.SignedString(s.jwtKey)
 	if err != nil {
-		httpError(w, 500, "签发失败")
+		httpError(w, 500, "Ошибка выдачи токена")
 		return
 	}
 	writeJSON(w, map[string]string{"token": signed})
@@ -236,13 +236,13 @@ func (s *Server) withAuth(h http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		authz := r.Header.Get("Authorization")
 		if !strings.HasPrefix(authz, "Bearer ") {
-			httpError(w, 401, "未认证")
+			httpError(w, 401, "Не авторизован")
 			return
 		}
 		tok, err := jwt.ParseWithClaims(strings.TrimPrefix(authz, "Bearer "), &claims{},
 			func(t *jwt.Token) (any, error) { return s.jwtKey, nil })
 		if err != nil || !tok.Valid {
-			httpError(w, 401, "会话过期")
+			httpError(w, 401, "Сессия истекла")
 			return
 		}
 		cl := tok.Claims.(*claims)
@@ -322,7 +322,7 @@ func validateEventBranches(value string) error {
 	for _, part := range strings.Split(value, ",") {
 		n, err := strconv.Atoi(strings.TrimSpace(part))
 		if err != nil || n < 9 || n > 20 {
-			return fmt.Errorf("活动分支只能是 9~20 的 ID，用逗号分隔")
+			return fmt.Errorf("Ветки события — это ID от 9 до 20 через запятую")
 		}
 	}
 	return nil
@@ -340,27 +340,27 @@ func validateEventStageGifts(value string) error {
 		Qty  int64  `json:"qty"`
 	}
 	if err := json.Unmarshal([]byte(value), &parsed); err != nil {
-		return fmt.Errorf("阶段奖励必须是有效 JSON")
+		return fmt.Errorf("Награда за этап должна быть корректным JSON")
 	}
 	for branch, stages := range parsed {
 		n, err := strconv.Atoi(branch)
 		if err != nil || n < 9 || n > 20 {
-			return fmt.Errorf("阶段奖励分支只能是 9~20 的 ID")
+			return fmt.Errorf("Ветка наград за этап может быть только 9~20 ID")
 		}
 		for stage, gifts := range stages {
 			s, err := strconv.Atoi(stage)
 			if err != nil || s < 0 || s > gameserver.EventStageCount(int64(n)) {
-				return fmt.Errorf("活动分支 %d 的阶段只能是 0~%d（0 表示全部完成）", n, gameserver.EventStageCount(int64(n)))
+				return fmt.Errorf("Этапы ветки события %d могут быть только 0~%d (0 — прохождение всей линии)", n, gameserver.EventStageCount(int64(n)))
 			}
 			if len(gifts) == 0 {
-				return fmt.Errorf("阶段奖励 %s/%s 至少要有一件物品", branch, stage)
+				return fmt.Errorf("В награде за этап %s/%s должен быть хотя бы один предмет", branch, stage)
 			}
 			for _, gift := range gifts {
 				if strings.TrimSpace(gift.Item) == "" {
-					return fmt.Errorf("阶段奖励 %s/%s 的物品 ID 不能为空", branch, stage)
+					return fmt.Errorf("В награде за этап %s/%s ID предмета не может быть пустым", branch, stage)
 				}
 				if gift.Qty < 1 || gift.Qty > 99 {
-					return fmt.Errorf("阶段奖励 %s/%s 的数量必须在 1~99", branch, stage)
+					return fmt.Errorf("В награде за этап %s/%s количество должно быть в пределах 1~99", branch, stage)
 				}
 			}
 		}
@@ -391,10 +391,10 @@ func (s *Server) validateEventStageGiftItems(ctx context.Context, value string) 
 					LEFT JOIN item_catalog c ON c.item_id=d.item_id
 					WHERE d.item_id=? AND ` + completeCatalogCondition() + `)`
 				if err := s.db.SQL.QueryRowContext(ctx, query, gift.Item).Scan(&exists); err != nil {
-					return fmt.Errorf("奖励物品目录读取失败: %w", err)
+					return fmt.Errorf("Не удалось прочитать каталог предметов наград: %w", err)
 				}
 				if !exists {
-					return fmt.Errorf("奖励物品不存在或不是完整商品: %s", gift.Item)
+					return fmt.Errorf("Предмет награды не существует или не является полноценным товаром: %s", gift.Item)
 				}
 				checked[gift.Item] = true
 			}
@@ -443,31 +443,31 @@ func (s *Server) handleTunableSet(w http.ResponseWriter, r *http.Request) {
 		Value string `json:"value"`
 	}
 	if err := readJSON(r, &req); err != nil || req.Key == "" {
-		httpError(w, 400, "参数错误")
+		httpError(w, 400, "Неверные параметры")
 		return
 	}
 	if (req.Key == "fish_ecology_enabled" || req.Key == "fish_bait_rules_enabled" || req.Key == "fish_distribution_enabled" || req.Key == "fish_weather_enabled" || req.Key == "marine_layer_enabled" || req.Key == "happy_hour_enabled" || req.Key == "grade_ratio_enabled" || req.Key == "fish_hunt_enabled" || req.Key == "two_stage_hunt_enabled" || req.Key == "hook_nibble_enabled" || req.Key == "event_anniversary_enabled" || req.Key == "event_newyear_enabled" || req.Key == "condition_health_enabled" || req.Key == "condition_fishing_pause_enabled" || req.Key == "bite_pace_enabled") && req.Value != "0" && req.Value != "1" {
-		httpError(w, 400, "开关只能为 0 或 1")
+		httpError(w, 400, "Переключатель может быть только 0 или 1")
 		return
 	}
 	if req.Key == "hook_spawn_match_strength" {
 		v, err := strconv.ParseFloat(req.Value, 64)
 		if err != nil || math.IsNaN(v) || math.IsInf(v, 0) || v < 0 || v > 2 {
-			httpError(w, 400, "钩型发鱼软匹配强度必须在 0~2")
+			httpError(w, 400, "Сила мягкого подбора рыбы по крючку должна быть в пределах 0~2")
 			return
 		}
 	}
 	if strings.HasPrefix(req.Key, "grade_pct_") {
 		v, err := strconv.ParseFloat(req.Value, 64)
 		if err != nil || math.IsNaN(v) || math.IsInf(v, 0) || v < 0 {
-			httpError(w, 400, "鱼获档位权重必须是非负数字")
+			httpError(w, 400, "Веса категорий улова должны быть неотрицательными числами")
 			return
 		}
 	}
 	if strings.HasPrefix(req.Key, "skill_grade_mult_") {
 		v, err := strconv.ParseFloat(strings.TrimSpace(req.Value), 64)
 		if err != nil || math.IsNaN(v) || math.IsInf(v, 0) || v < 0 || v > 20 {
-			httpError(w, 400, "鱼获档位熟练度倍数必须在 0 ~ 20 之间")
+			httpError(w, 400, "Множитель мастерства по категории улова должен быть от 0 до 20")
 			return
 		}
 	}
@@ -475,7 +475,7 @@ func (s *Server) handleTunableSet(w http.ResponseWriter, r *http.Request) {
 		switch req.Key {
 		case "bite_off_enabled":
 			if req.Value != "0" && req.Value != "1" {
-				httpError(w, 400, "咬断线组开关只能为 0 或 1")
+				httpError(w, 400, "Переключатель перекуса поводка может быть только 0 или 1")
 				return
 			}
 		case "bite_off_species":
@@ -484,18 +484,18 @@ func (s *Server) handleTunableSet(w http.ResponseWriter, r *http.Request) {
 		default:
 			v, err := strconv.ParseFloat(strings.TrimSpace(req.Value), 64)
 			if err != nil || math.IsNaN(v) || math.IsInf(v, 0) || v < 0 {
-				httpError(w, 400, "咬断线组参数必须是非负数字")
+				httpError(w, 400, "Параметры перекуса поводка должны быть неотрицательными числами")
 				return
 			}
 			switch req.Key {
 			case "bite_off_over_pct", "bite_off_under_pct":
 				if v > 100 {
-					httpError(w, 400, "咬断概率必须在 0 ~ 100 之间")
+					httpError(w, 400, "Вероятность перекуса должна быть от 0 до 100")
 					return
 				}
 			case "bite_off_sprint_seconds":
 				if v < 1 || v > 120 {
-					httpError(w, 400, "冲刺判定间隔必须在 1 ~ 120 秒之间")
+					httpError(w, 400, "Интервал проверки рывков должен быть от 1 до 120 секунд")
 					return
 				}
 			}
@@ -504,14 +504,14 @@ func (s *Server) handleTunableSet(w http.ResponseWriter, r *http.Request) {
 	if strings.HasPrefix(req.Key, "skill_gain_pct_") {
 		v, err := strconv.ParseFloat(strings.TrimSpace(req.Value), 64)
 		if err != nil || math.IsNaN(v) || math.IsInf(v, 0) || v < 0 || v > 100 {
-			httpError(w, 400, "技能升级概率必须在 0 ~ 100 之间（0=原版）")
+			httpError(w, 400, "Вероятность прокачки навыка должна быть от 0 до 100 (0 = как в оригинале)")
 			return
 		}
 	}
 	if strings.HasPrefix(req.Key, "two_stage_daily_") || strings.HasPrefix(req.Key, "two_stage_baited_") {
 		v, err := strconv.ParseFloat(req.Value, 64)
 		if err != nil || math.IsNaN(v) || math.IsInf(v, 0) || v < 0 {
-			httpError(w, 400, "两档制权重必须是非负数字")
+			httpError(w, 400, "Веса двухрежимной схемы должны быть неотрицательными числами")
 			return
 		}
 	}
@@ -537,7 +537,7 @@ func (s *Server) handleTunableSet(w http.ResponseWriter, r *http.Request) {
 	if rng, ok := reelWearTunableRanges[req.Key]; ok {
 		v, err := strconv.ParseFloat(strings.TrimSpace(req.Value), 64)
 		if err != nil || math.IsNaN(v) || math.IsInf(v, 0) || v < rng.min || v > rng.max {
-			httpError(w, 400, fmt.Sprintf("该参数必须在 %s ~ %s 之间（下限低于精度门槛会静默失效）",
+			httpError(w, 400, fmt.Sprintf("Параметр должен быть в пределах %s ~ %s (нижняя граница ниже порога точности молча не сработает)",
 				strconv.FormatFloat(rng.min, 'g', -1, 64),
 				strconv.FormatFloat(rng.max, 'g', -1, 64)))
 			return
@@ -597,11 +597,11 @@ func (s *Server) handleBiteModeSet(w http.ResponseWriter, r *http.Request) {
 		Mode string `json:"mode"`
 	}
 	if err := readJSON(r, &req); err != nil {
-		httpError(w, 400, "参数错误")
+		httpError(w, 400, "Неверные параметры")
 		return
 	}
 	if req.Mode != "legacy" && req.Mode != "realistic" {
-		httpError(w, 400, "鱼汛模式只能是 legacy 或 realistic")
+		httpError(w, 400, "Режим клёва может быть только legacy или realistic")
 		return
 	}
 	if err := s.db.BiteModeSet(r.Context(), req.Mode, adminOf(r)); err != nil {
@@ -627,13 +627,13 @@ func (s *Server) handleSpawnModeSet(w http.ResponseWriter, r *http.Request) {
 		Mode string `json:"mode"`
 	}
 	if err := readJSON(r, &req); err != nil {
-		httpError(w, 400, "参数错误")
+		httpError(w, 400, "Неверные параметры")
 		return
 	}
 	switch req.Mode {
 	case "grade_ratio", "fish_hunt", "two_stage":
 	default:
-		httpError(w, 400, "发鱼模式只能是 grade_ratio、fish_hunt 或 two_stage")
+		httpError(w, 400, "Режим выдачи рыбы может быть только grade_ratio, fish_hunt или two_stage")
 		return
 	}
 	if err := s.db.SpawnModeSet(r.Context(), req.Mode, adminOf(r)); err != nil {
@@ -652,13 +652,13 @@ func (s *Server) handleSkillGainModeSet(w http.ResponseWriter, r *http.Request) 
 		Mode string `json:"mode"`
 	}
 	if err := readJSON(r, &req); err != nil {
-		httpError(w, 400, "参数错误")
+		httpError(w, 400, "Неверные параметры")
 		return
 	}
 	switch req.Mode {
 	case "native", "fixed100", "custom":
 	default:
-		httpError(w, 400, "技能升级概率模式只能是 native、fixed100 或 custom")
+		httpError(w, 400, "Режим вероятности навыков может быть только native, fixed100 или custom")
 		return
 	}
 	if err := s.db.SkillGainModeSet(r.Context(), req.Mode, adminOf(r)); err != nil {
@@ -766,7 +766,7 @@ func (s *Server) handlePlayerDetail(w http.ResponseWriter, r *http.Request) {
 	defer cancel()
 	p, err := s.db.GetProfile(ctx, uid)
 	if err != nil {
-		httpError(w, 404, "玩家不存在")
+		httpError(w, 404, "Игрок не существует")
 		return
 	}
 	items, _ := s.db.ListPlayerItemsAdmin(ctx, uid)
@@ -810,14 +810,14 @@ func (s *Server) handlePlayerUpdate(w http.ResponseWriter, r *http.Request) {
 		MembershipExp *int64  `json:"membership_exp"`
 	}
 	if err := readJSON(r, &req); err != nil || req.UID == 0 {
-		httpError(w, 400, "参数错误")
+		httpError(w, 400, "Неверные параметры")
 		return
 	}
 	ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
 	defer cancel()
 	p, err := s.db.GetProfile(ctx, req.UID)
 	if err != nil {
-		httpError(w, 404, "玩家不存在")
+		httpError(w, 404, "Игрок не существует")
 		return
 	}
 	apply := func(cur int64, nv *int64) int64 {
@@ -841,7 +841,7 @@ func (s *Server) handlePlayerUpdate(w http.ResponseWriter, r *http.Request) {
 			exp = 0
 		}
 		if membership < 0 || membership > 2 || (membership == 1 && (exp <= time.Now().Unix() || exp > 253402300799)) {
-			httpError(w, 400, "请选择有效的会员类型和到期时间")
+			httpError(w, 400, "Выберите корректный тип премиума и время окончания")
 			return
 		}
 	}
@@ -870,7 +870,7 @@ func (s *Server) handleGrantItem(w http.ResponseWriter, r *http.Request) {
 		Qty    int64  `json:"qty"`
 	}
 	if err := readJSON(r, &req); err != nil || req.UID == 0 || req.ItemID == "" {
-		httpError(w, 400, "参数错误")
+		httpError(w, 400, "Неверные параметры")
 		return
 	}
 	if req.Qty <= 0 {
@@ -901,15 +901,15 @@ func (s *Server) handleFishTVTest(w http.ResponseWriter, r *http.Request) {
 		Text    string `json:"text"`
 	}
 	if err := readJSON(r, &req); err != nil {
-		httpError(w, 400, "参数错误")
+		httpError(w, 400, "Неверные параметры")
 		return
 	}
 	if req.Channel < 24 || req.Channel > 31 {
-		httpError(w, 400, "channel 取值 24..31")
+		httpError(w, 400, "channel Значение 24..31")
 		return
 	}
 	if req.Kind < -36 || req.Kind > 36 {
-		httpError(w, 400, "kind 取值 -36..36")
+		httpError(w, 400, "kind Значение -36..36")
 		return
 	}
 	_ = s.db.QueuePush(r.Context(), mustJSON(map[string]any{
@@ -924,7 +924,7 @@ func (s *Server) handleKick(w http.ResponseWriter, r *http.Request) {
 		UID int64 `json:"uid"`
 	}
 	if err := readJSON(r, &req); err != nil || req.UID == 0 {
-		httpError(w, 400, "参数错误")
+		httpError(w, 400, "Неверные параметры")
 		return
 	}
 	_ = s.db.QueuePush(r.Context(), mustJSON(map[string]any{"op": "kick", "uid": req.UID}))
@@ -938,7 +938,7 @@ func (s *Server) handleBan(w http.ResponseWriter, r *http.Request) {
 		Banned bool  `json:"banned"`
 	}
 	if err := readJSON(r, &req); err != nil || req.UID == 0 {
-		httpError(w, 400, "参数错误")
+		httpError(w, 400, "Неверные параметры")
 		return
 	}
 	if err := s.db.SetBanned(r.Context(), req.UID, req.Banned); err != nil {
@@ -976,7 +976,7 @@ func (s *Server) handleReleaseNotes(w http.ResponseWriter, r *http.Request) {
 	}
 	content, err := readLocalTextFile(path)
 	if err != nil {
-		httpError(w, http.StatusInternalServerError, "读取发布说明失败: "+err.Error())
+		httpError(w, http.StatusInternalServerError, "Не удалось прочитать список изменений: "+err.Error())
 		return
 	}
 	writeJSON(w, map[string]string{
@@ -989,13 +989,13 @@ func (s *Server) findReleaseNotes() (string, error) {
 	if s.releaseNotesPath != "" {
 		info, err := os.Stat(s.releaseNotesPath)
 		if err != nil || info.IsDir() {
-			return "", fmt.Errorf("未找到 %s；请从完整发布包启动，或先执行打包流程", releaseNotesFilename)
+			return "", fmt.Errorf("Не найден %s; запускайте из полной сборки или сначала выполните упаковку", releaseNotesFilename)
 		}
 		return s.releaseNotesPath, nil
 	}
 	path, err := findLocalFile(releaseNotesFilename)
 	if err != nil {
-		return "", fmt.Errorf("未找到 %s；请从完整发布包启动，或先执行打包流程", releaseNotesFilename)
+		return "", fmt.Errorf("Не найден %s; запускайте из полной сборки или сначала выполните упаковку", releaseNotesFilename)
 	}
 	return path, nil
 }
@@ -1028,7 +1028,7 @@ func findLocalFile(name string) (string, error) {
 			return path, nil
 		}
 	}
-	return "", fmt.Errorf("未找到 %s", name)
+	return "", fmt.Errorf("Не найдено %s", name)
 }
 
 func readLocalTextFile(path string) (string, error) {
@@ -1037,7 +1037,7 @@ func readLocalTextFile(path string) (string, error) {
 		return "", err
 	}
 	if info.Size() > 4<<20 {
-		return "", fmt.Errorf("文件超过 4 MiB")
+		return "", fmt.Errorf("Файл больше 4 MiB")
 	}
 	raw, err := os.ReadFile(path)
 	if err != nil {

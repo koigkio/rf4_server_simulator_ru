@@ -31,8 +31,8 @@ import (
 // 不能依赖「现在背包里有没有这枚奖杯」来判断是否发过。
 const (
 	waterwayTrophyItemPrefix  = "trophy_level_"
-	waterwayTrophyHome        = "level_000_home" // 家园不是水域，没有奖杯定义
-	waterwayTrophyContainer   = "backpack"       // 先放背包，玩家自己决定要不要摆进小屋
+	waterwayTrophyHome        = "level_000_home" // 家园不是水域, 没有奖杯定义
+	waterwayTrophyContainer   = "backpack"       // 先放背包, 玩家自己决定要不要摆进小屋
 	waterwayTrophyKeyTemplate = "waterway-trophy:%d:%s"
 )
 
@@ -182,13 +182,13 @@ func (s *Server) issueWaterwayTrophy(ctx context.Context, uid int64, locLevel, i
 	}
 	row, _, err := grantPreparedItemTx(ctx, tx, it, false)
 	if err != nil {
-		return nil, fmt.Errorf("奖杯入包失败: %w", err)
+		return nil, fmt.Errorf("Не удалось положить трофей в инвентарь: %w", err)
 	}
 	if err := tx.Commit(); err != nil {
 		return nil, err
 	}
-	s.log.Info("发放水域奖杯", "uid", uid, "water", locLevel, "item", itemID,
-		"奖杯鱼种", p.Done, "水域鱼种", p.Total, "guid", row.GUID)
+	s.log.Info("Выдача трофея водоёма", "uid", uid, "water", locLevel, "item", itemID,
+		"Трофейные виды", p.Done, "Виды водоёма", p.Total, "guid", row.GUID)
 	return row, nil
 }
 
@@ -205,7 +205,7 @@ func (s *Server) waterwayTrophyAfterCatch(ctx context.Context, uid int64, locLev
 	}
 	it, err := s.grantWaterwayTrophy(ctx, uid, locLevel)
 	if err != nil {
-		s.log.Warn("水域奖杯判定失败", "uid", uid, "water", locLevel, "err", err)
+		s.log.Warn("Ошибка проверки трофея водоёма", "uid", uid, "water", locLevel, "err", err)
 		return nil
 	}
 	if it == nil {
@@ -226,7 +226,7 @@ func (s *Server) ensureWaterwayTrophies(ctx context.Context, uid int64) []*store
 		JOIN loc_alias a ON a.loc = lf.loc
 		WHERE a.alias LIKE 'level_%' AND a.alias<>? ORDER BY a.alias`, waterwayTrophyHome)
 	if err != nil {
-		s.log.Warn("水域奖杯巡检失败", "uid", uid, "err", err)
+		s.log.Warn("Ошибка проверки трофеев водоёмов", "uid", uid, "err", err)
 		return nil
 	}
 	var locs []string
@@ -246,7 +246,7 @@ func (s *Server) ensureWaterwayTrophies(ctx context.Context, uid int64) []*store
 	for _, loc := range locs {
 		it, gerr := s.grantWaterwayTrophy(ctx, uid, loc)
 		if gerr != nil {
-			s.log.Warn("水域奖杯巡检单点失败", "uid", uid, "water", loc, "err", gerr)
+			s.log.Warn("Ошибка проверки трофея водоёма в одной точке", "uid", uid, "water", loc, "err", gerr)
 			continue
 		}
 		if it != nil {

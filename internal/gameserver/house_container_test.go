@@ -27,7 +27,7 @@ func TestHouseContainerInventory(t *testing.T) {
 	for _, kind := range []uint64{10, 11} {
 		got := nativeInventoryContainers(kind)
 		if len(got) != 1 || got[0] != "house" {
-			t.Fatalf("nativeInventoryContainers(%d) = %v，期望 [house]", kind, got)
+			t.Fatalf("nativeInventoryContainers(%d) = %v, 期望 [house]", kind, got)
 		}
 	}
 	if nativeInventoryContainers(12) != nil {
@@ -61,13 +61,13 @@ func TestHouseContainerInventory(t *testing.T) {
 	}
 	used, cap, capMember := u64Of(dec.Fields[0].Num), u64Of(dec.Fields[1].Num), u64Of(dec.Fields[2].Num)
 	if used != 2 {
-		t.Errorf("4/1 容器10 used=%d，期望 2", used)
+		t.Errorf("4/1 容器10 used=%d, 期望 2", used)
 	}
 	if cap != houseContainerCapacity {
-		t.Errorf("4/1 容器10 容量=%d，期望 %d", cap, houseContainerCapacity)
+		t.Errorf("4/1 容器10 容量=%d, 期望 %d", cap, houseContainerCapacity)
 	}
 	if capMember != 0 {
-		t.Errorf("4/1 容器10 会员容量=%d，期望 0", capMember)
+		t.Errorf("4/1 容器10 会员容量=%d, 期望 0", capMember)
 	}
 
 	// 4/1 容器 11 同一存储。
@@ -77,10 +77,10 @@ func TestHouseContainerInventory(t *testing.T) {
 		t.Fatalf("4/1 容器11 解码失败: %v", err)
 	}
 	if u64Of(dec11.Fields[0].Num) != 2 {
-		t.Errorf("4/1 容器11 used=%d，期望 2", u64Of(dec11.Fields[0].Num))
+		t.Errorf("4/1 容器11 used=%d, 期望 2", u64Of(dec11.Fields[0].Num))
 	}
 	if got := u64Of(dec11.Fields[1].Num); got != houseContainerCapacity {
-		t.Errorf("4/1 容器11 容量=%d，期望 %d", got, houseContainerCapacity)
+		t.Errorf("4/1 容器11 容量=%d, 期望 %d", got, houseContainerCapacity)
 	}
 
 	// 4/4 容器 10：回 house 内 2 个 GUID，且与 DB 一致。
@@ -93,7 +93,7 @@ func TestHouseContainerInventory(t *testing.T) {
 		t.Fatalf("4/4 响应解码失败: %v", err)
 	}
 	if dec44.Kind != proto.KindGuidArr || len(dec44.Items) != 2 {
-		t.Fatalf("4/4 容器10 应回 2 个 GUID，实得 kind=%v n=%d", dec44.Kind, len(dec44.Items))
+		t.Fatalf("4/4 容器10 应回 2 个 GUID, 实得 kind=%v n=%d", dec44.Kind, len(dec44.Items))
 	}
 	want, err := srv.DB.ItemGUIDsByContainers(ctx, 1000001, []string{"house"})
 	if err != nil {
@@ -108,7 +108,7 @@ func TestHouseContainerInventory(t *testing.T) {
 			gotGUID = it.Hex
 		}
 		if gotGUID != want[i] {
-			t.Errorf("4/4[%d] = %s，期望 %s", i, gotGUID, want[i])
+			t.Errorf("4/4[%d] = %s, 期望 %s", i, gotGUID, want[i])
 		}
 	}
 
@@ -123,7 +123,7 @@ func TestHouseContainerInventory(t *testing.T) {
 		t.Fatalf("4/5 解码失败: %v", err)
 	}
 	if dec45.ArgCount() != 2 {
-		t.Fatalf("4/5 容器10 应回 2 件物品，实得 %d", dec45.ArgCount())
+		t.Fatalf("4/5 容器10 应回 2 件物品, 实得 %d", dec45.ArgCount())
 	}
 	for _, item := range dec45.Items {
 		idx := fieldIdxByCS(item.Class, csSlotEnum)
@@ -132,7 +132,7 @@ func TestHouseContainerInventory(t *testing.T) {
 			continue
 		}
 		if got := u64Of(item.Fields[idx].Num); got != 10 {
-			t.Errorf("4/5 房屋物品 %s 枚举=%d，期望 10", item.Class, got)
+			t.Errorf("4/5 房屋物品 %s 枚举=%d, 期望 10", item.Class, got)
 		}
 	}
 }
@@ -161,7 +161,7 @@ func TestHouseItemTreeStorageKind(t *testing.T) {
 		t.Fatalf("类 %s 缺容器枚举字段", tree.Class)
 	}
 	if got := u64Of(tree.Fields[idx].Num); got != 10 {
-		t.Errorf("房屋物品树容器枚举=%d，期望 10", got)
+		t.Errorf("房屋物品树容器枚举=%d, 期望 10", got)
 	}
 
 	// 背包物品保持 0。
@@ -174,7 +174,7 @@ func TestHouseItemTreeStorageKind(t *testing.T) {
 		t.Fatal(err)
 	}
 	if got := u64Of(bpTree.Fields[idx].Num); got != 0 {
-		t.Errorf("背包物品树容器枚举=%d，期望 0", got)
+		t.Errorf("背包物品树容器枚举=%d, 期望 0", got)
 	}
 }
 
@@ -201,11 +201,11 @@ func TestHouseItemMoveEndToEnd(t *testing.T) {
 		}
 		first := nextPush(t, pushes)
 		if first.Main != 4 || first.Sub != 21 || !pushHasGUID(pushGuids(t, srv, first), it.GUID) {
-			t.Fatalf("移动到 %d 的首条推送 = %d/%d，期望 4/21 删除 %s", dst, first.Main, first.Sub, shortGUID(it.GUID))
+			t.Fatalf("移动到 %d 的首条推送 = %d/%d, 期望 4/21 删除 %s", dst, first.Main, first.Sub, shortGUID(it.GUID))
 		}
 		second := nextPush(t, pushes)
 		if second.Main != 4 || second.Sub != 22 || !pushHasGUID(pushGuids(t, srv, second), it.GUID) {
-			t.Fatalf("移动到 %d 的次条推送 = %d/%d，期望 4/22 加入 %s", dst, second.Main, second.Sub, shortGUID(it.GUID))
+			t.Fatalf("移动到 %d 的次条推送 = %d/%d, 期望 4/22 加入 %s", dst, second.Main, second.Sub, shortGUID(it.GUID))
 		}
 		dec, _, err := proto.DecodeValue(second.Body, 0, srv.Table())
 		if err != nil {
@@ -220,14 +220,14 @@ func TestHouseItemMoveEndToEnd(t *testing.T) {
 			t.Fatalf("4/22 物品树类 %s 缺容器枚举", itemTree.Class)
 		}
 		if got := u64Of(itemTree.Fields[idx].Num); got != wantKind {
-			t.Fatalf("4/22 容器枚举=%d，期望 %d", got, wantKind)
+			t.Fatalf("4/22 容器枚举=%d, 期望 %d", got, wantKind)
 		}
 		row, err := srv.DB.GetItemByGUID(ctx, it.GUID)
 		if err != nil || row == nil {
 			t.Fatalf("读取移动后物品失败: %+v %v", row, err)
 		}
 		if row.Container != wantContainer {
-			t.Fatalf("移动后 container=%s，期望 %s", row.Container, wantContainer)
+			t.Fatalf("移动后 container=%s, 期望 %s", row.Container, wantContainer)
 		}
 	}
 
@@ -274,7 +274,7 @@ func TestHouseItemMoveCapacityRollsBack(t *testing.T) {
 		t.Fatal(err)
 	}
 	if after != before {
-		t.Fatalf("容量失败后房屋物品数 %d，期望保持 %d", after, before)
+		t.Fatalf("容量失败后房屋物品数 %d, 期望保持 %d", after, before)
 	}
 	for _, g := range guids {
 		row, err := db.GetItemByGUID(ctx, g)
@@ -282,7 +282,7 @@ func TestHouseItemMoveCapacityRollsBack(t *testing.T) {
 			t.Fatalf("读取被拒绝物品失败: %+v %v", row, err)
 		}
 		if row.Container != "backpack" {
-			t.Fatalf("容量失败后物品 %s 的 container=%s，期望 backpack", shortGUID(g), row.Container)
+			t.Fatalf("容量失败后物品 %s 的 container=%s, 期望 backpack", shortGUID(g), row.Container)
 		}
 	}
 }
@@ -315,7 +315,7 @@ func TestHouseItemMoveDeduplicatesGUIDs(t *testing.T) {
 	}
 	used, err := db.CountItemsByContainers(ctx, sess.Userid, []string{"house"})
 	if err != nil || used != houseContainerCapacity {
-		t.Fatalf("房屋物品数=%d err=%v，期望 %d", used, err, houseContainerCapacity)
+		t.Fatalf("房屋物品数=%d err=%v, 期望 %d", used, err, houseContainerCapacity)
 	}
 }
 
@@ -346,7 +346,7 @@ func TestHouseItemMoveHonorsImportedCapacity(t *testing.T) {
 		t.Fatal(err)
 	}
 	if cap := u64Of(dec.Fields[1].Num); cap != 2 {
-		t.Fatalf("4/1 导入容量=%d，期望 2", cap)
+		t.Fatalf("4/1 导入容量=%d, 期望 2", cap)
 	}
 	tree := proto.Args524(proto.U32(0), proto.U32(10), proto.GuidArr([]string{it.GUID}))
 	body, ok := hItemMove(&Ctx{Sess: sess, Main: 4, Sub: 6, Tree: tree, DecodeOK: true,

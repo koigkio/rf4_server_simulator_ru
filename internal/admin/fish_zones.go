@@ -31,7 +31,7 @@ func (s *Server) handleFishZones(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleFishZoneSave(w http.ResponseWriter, r *http.Request) {
 	var z store.FishZone
 	if err := readJSON(r, &z); err != nil {
-		httpError(w, 400, "参数错误")
+		httpError(w, 400, "Неверные параметры")
 		return
 	}
 	z.Loc = strings.TrimSpace(z.Loc)
@@ -39,15 +39,15 @@ func (s *Server) handleFishZoneSave(w http.ResponseWriter, r *http.Request) {
 	// 挪威海不做区域划分（2026-11-14 用户决定）：海图区号/坑名与判鱼信号易引起误解，
 	// 硬拒绝保存，UI 同步隐藏入口。
 	if z.Kind == "sea_zone" {
-		httpError(w, 400, "挪威海不启用区域划分——按全图名册出鱼，无需配置")
+		httpError(w, 400, "В Норвежском море зоны не используются — рыба выдаётся по списку всей карты, настраивать не нужно")
 		return
 	}
 	if len([]rune(z.Name)) > 60 {
-		httpError(w, 400, "区域名过长")
+		httpError(w, 400, "Слишком длинное название зоны")
 		return
 	}
 	if len(z.Fish) > maxFishZoneFish {
-		httpError(w, 400, "名册最多 "+strconv.Itoa(maxFishZoneFish)+" 个鱼种")
+		httpError(w, 400, "Не более "+strconv.Itoa(maxFishZoneFish)+" видов рыб в списке")
 		return
 	}
 	// 网格矩形标准化：允许端点乱序输入，保存前翻正。
@@ -71,7 +71,7 @@ func (s *Server) handleFishZoneSave(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if n == 0 {
-			httpError(w, 400, "未知鱼种: "+f.FishKey)
+			httpError(w, 400, "Неизвестный вид рыбы: "+f.FishKey)
 			return
 		}
 	}
@@ -92,11 +92,11 @@ func (s *Server) handleFishZoneDelete(w http.ResponseWriter, r *http.Request) {
 		ID int64 `json:"id"`
 	}
 	if err := readJSON(r, &req); err != nil {
-		httpError(w, 400, "参数错误")
+		httpError(w, 400, "Неверные параметры")
 		return
 	}
 	if req.ID <= 0 {
-		httpError(w, 400, "区域 ID 无效")
+		httpError(w, 400, "Неверный ID зоны")
 		return
 	}
 	ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)

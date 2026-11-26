@@ -25,14 +25,14 @@ func TestFishingPausesNaturalRegen(t *testing.T) {
 
 	fishing := advancePlayerCondition(cur, 1000+60, p, conditionEnv{Fishing: true})
 	if math.Abs(fishing.Primary-0.50) > 1e-9 {
-		t.Fatalf("垂钓中不得恢复精力，期望 0.500000，实得 %.6f", fishing.Primary)
+		t.Fatalf("垂钓中不得恢复精力, 期望 0.500000, 实得 %.6f", fishing.Primary)
 	}
 
 	idle := advancePlayerCondition(cur, 1000+60, p, conditionEnv{})
 	// 手算：饱食 1.00-0.24*(60/3600)=0.996；因子 0.25+0.75*0.996=0.997；
 	// 恢复 100*0.997*(60/3600)=1.6617，钳到自然封顶 0.85。
 	if math.Abs(idle.Primary-p.EnergyRegenCap) > 1e-9 {
-		t.Fatalf("停竿 60 秒应回到自然封顶 %.2f，实得 %.6f", p.EnergyRegenCap, idle.Primary)
+		t.Fatalf("停竿 60 秒应回到自然封顶 %.2f, 实得 %.6f", p.EnergyRegenCap, idle.Primary)
 	}
 }
 
@@ -48,10 +48,10 @@ func TestFishingPauseLiftsImmediatelyAfterReelIn(t *testing.T) {
 	// 5 秒：100*0.997*(5/3600)=0.1385，远小于封顶，用它验"确实在涨"。
 	next := advancePlayerCondition(cur, 1000+5, p, conditionEnv{})
 	if next.Primary <= 0.20 {
-		t.Fatalf("停竿后应立刻恢复，期望 >0.20，实得 %.6f", next.Primary)
+		t.Fatalf("停竿后应立刻恢复, 期望 >0.20, 实得 %.6f", next.Primary)
 	}
 	if next.Primary > 0.20+0.14+1e-9 {
-		t.Fatalf("恢复量应约 0.1385，实得 +%.6f", next.Primary-0.20)
+		t.Fatalf("恢复量应约 0.1385, 实得 +%.6f", next.Primary-0.20)
 	}
 }
 
@@ -69,7 +69,7 @@ func TestFishingRegenMultIsTunable(t *testing.T) {
 	next := advancePlayerCondition(cur, 1000+3600, p, conditionEnv{Fishing: true})
 	want := 0.30 + 1.0*(0.25+0.75*(1.0-0.24))*1.0*0.5
 	if math.Abs(next.Primary-want) > 1e-9 {
-		t.Fatalf("乘数 0.5 时恢复量应减半，期望 %.6f，实得 %.6f", want, next.Primary)
+		t.Fatalf("乘数 0.5 时恢复量应减半, 期望 %.6f, 实得 %.6f", want, next.Primary)
 	}
 }
 
@@ -88,7 +88,7 @@ func TestFishingPauseSwitchOffRestoresRegenDuringFishing(t *testing.T) {
 	// 手算同停竿口径：饱食 1.00-0.24*(60/3600)=0.996；因子 0.997；
 	// 恢复 100*0.997*(60/3600)=1.6617，钳到自然封顶 0.85。
 	if math.Abs(next.Primary-p.EnergyRegenCap) > 1e-9 {
-		t.Fatalf("开关关闭后垂钓中应照常恢复到封顶，实得 %.6f", next.Primary)
+		t.Fatalf("开关关闭后垂钓中应照常恢复到封顶, 实得 %.6f", next.Primary)
 	}
 }
 
@@ -111,10 +111,10 @@ func TestPlayerFishingActiveStates(t *testing.T) {
 			srv := NewServer(config.Game{}, logging.Discard(), nil)
 			srv.fishStates = map[int64]map[string]*FishState{uid: {"rod-1": tc.st}}
 			if got := srv.playerFishingActive(uid); got != tc.want {
-				t.Fatalf("playerFishingActive=%v，期望 %v", got, tc.want)
+				t.Fatalf("playerFishingActive=%v, 期望 %v", got, tc.want)
 			}
 			if got := srv.conditionEnvForUID(uid).Fishing; got != tc.want {
-				t.Fatalf("conditionEnvForUID().Fishing=%v，期望 %v", got, tc.want)
+				t.Fatalf("conditionEnvForUID().Fishing=%v, 期望 %v", got, tc.want)
 			}
 		})
 	}
@@ -132,7 +132,7 @@ func TestPlayerFishingActiveAnyRod(t *testing.T) {
 		},
 	}
 	if !srv.playerFishingActive(uid) {
-		t.Fatal("两根竿里有一根在水中，应判为垂钓中")
+		t.Fatal("两根竿里有一根在水中, 应判为垂钓中")
 	}
 	if srv.playerFishingActive(int64(999)) {
 		t.Fatal("没钓过的玩家不应判为垂钓中")

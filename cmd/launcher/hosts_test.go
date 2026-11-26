@@ -328,7 +328,7 @@ func TestWriteFileAtomicRetriesWhenTargetBusy(t *testing.T) {
 	}()
 
 	if err := writeFileAtomic(path, []byte("new"), 0o644); err != nil {
-		t.Fatalf("占用释放后应重试成功，实际失败: %v", err)
+		t.Fatalf("占用释放后应重试成功, 实际失败: %v", err)
 	}
 	if got := readHosts(t, path); got != "new" {
 		t.Fatalf("内容=%q", got)
@@ -362,7 +362,7 @@ func TestMoveFileExFailsWhenTargetBusy(t *testing.T) {
 		t.Fatal("目标被独占时单次 MoveFileEx 应当失败")
 	}
 	if !isTransientReplaceError(err) {
-		t.Fatalf("应判定为可重试错误，实际: %v", err)
+		t.Fatalf("应判定为可重试错误, 实际: %v", err)
 	}
 }
 
@@ -379,12 +379,12 @@ func TestHostsSetLocalAppends(t *testing.T) {
 		"127.0.0.1 localhost",
 	} {
 		if !strings.Contains(got, want) {
-			t.Fatalf("缺少 %q:\n%s", want, got)
+			t.Fatalf("Отсутствует %q:\n%s", want, got)
 		}
 	}
 	// 启用行必须是标准格式（首列 IP），不能带 rf4s-local 前缀
 	if strings.Contains(got, "\nrf4s-local") {
-		t.Fatalf("启用行格式非法（首列必须是 IP）:\n%s", got)
+		t.Fatalf("启用行格式非法 (首列必须是 IP):\n%s", got)
 	}
 }
 
@@ -394,7 +394,7 @@ func TestHostsSetLocalIdempotent(t *testing.T) {
 	_ = hostsSetLocal(path, testDomains)
 	got := readHosts(t, path)
 	if n := strings.Count(got, "127.0.0.1 api.rf4game"); n != 2 {
-		t.Fatalf("启用行数量=%d，期望 2:\n%s", n, got)
+		t.Fatalf("启用行数量=%d, 期望 2:\n%s", n, got)
 	}
 	if strings.Contains(got, "# rf4s-local") {
 		t.Fatalf("不应残留注释行:\n%s", got)
@@ -444,18 +444,18 @@ func TestHostsReenableFromCommented(t *testing.T) {
 func TestHostsMode(t *testing.T) {
 	path := writeHosts(t, "127.0.0.1 localhost\n")
 	if got := hostsMode(path); got != "official" {
-		t.Fatalf("无生效行应视为 official，得到 %s", got)
+		t.Fatalf("无生效行应视为 official, 得到 %s", got)
 	}
 	_ = hostsSetLocal(path, testDomains)
 	if got := hostsMode(path); got != "local" {
-		t.Fatalf("启用后应为 local，得到 %s", got)
+		t.Fatalf("启用后应为 local, 得到 %s", got)
 	}
 	_ = hostsRestore(path)
 	if got := hostsMode(path); got != "official" {
-		t.Fatalf("注释后应为 official，得到 %s", got)
+		t.Fatalf("注释后应为 official, 得到 %s", got)
 	}
 	if got := hostsMode(filepath.Join(t.TempDir(), "missing")); got != "unknown" {
-		t.Fatalf("文件缺失应为 unknown，得到 %s", got)
+		t.Fatalf("文件缺失应为 unknown, 得到 %s", got)
 	}
 }
 

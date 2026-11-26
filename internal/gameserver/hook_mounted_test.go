@@ -28,7 +28,7 @@ func TestMarkHookMountedBareHook(t *testing.T) {
 	})
 	markHookMounted(hook)
 	if got := hookFlagsOut(t, hook); got != 22016 {
-		t.Fatalf("裸钩 flags=%d，期望 22016（20992|1024）", got)
+		t.Fatalf("裸钩 flags=%d, 期望 22016 (20992|1024)", got)
 	}
 }
 
@@ -42,14 +42,14 @@ func TestMarkHookMountedNestedRig(t *testing.T) {
 	})
 	markHookMounted(container)
 	if got := hookFlagsOut(t, inner); got != 22016 {
-		t.Fatalf("嵌套钩 flags=%d，期望 22016", got)
+		t.Fatalf("嵌套钩 flags=%d, 期望 22016", got)
 	}
 }
 
 func TestMarkHookMountedNilAndNonHook(t *testing.T) {
 	markHookMounted(nil)
 	rod := wiregen.MustMakeObj("kkmhfbeldpg", nil)
-	markHookMounted(rod) // 非钩对象递归无副作用，仅要求不 panic
+	markHookMounted(rod) // 非钩对象递归无副作用, 仅要求不 panic
 }
 
 // 多钩钓组逐钩挂竿位：每枚挂了鱼的钩单独推 4/22，互不影响。
@@ -73,7 +73,7 @@ func TestBuildHookTreeByGUIDMarksOnlyItsOwnHook(t *testing.T) {
 	}
 	markHookMounted(tree)
 	if got := hookFlagsOut(t, tree); got&hookMountedFlag == 0 {
-		t.Fatalf("目标钩未补挂竿位：flags=%d", got)
+		t.Fatalf("目标钩未补挂竿位: flags=%d", got)
 	}
 
 	otherTree := s.buildHookTreeByGUID(t.Context(), other.GUID)
@@ -81,7 +81,7 @@ func TestBuildHookTreeByGUIDMarksOnlyItsOwnHook(t *testing.T) {
 		t.Fatal("第二枚钩取不到树")
 	}
 	if got := hookFlagsOut(t, otherTree); got&hookMountedFlag != 0 {
-		t.Fatalf("只该影响自己那枚钩，另一枚却被改了：flags=%d", got)
+		t.Fatalf("只该影响自己那枚钩, 另一枚却被改了: flags=%d", got)
 	}
 }
 
@@ -100,7 +100,7 @@ func TestPushFightHookMountedUsesFishHookGUID(t *testing.T) {
 		t.Fatal(err)
 	}
 	if !srv.rigSetType(ctx, uid, rod.GUID, 50) {
-		t.Fatal("rigSetType 50 失败")
+		t.Fatal("rigSetType 50 Ошибка")
 	}
 	mainHook, err := srv.CreateItem(ctx, uid, "c_hook_20712", "backpack", 1)
 	if err != nil {
@@ -137,15 +137,15 @@ func TestPushFightHookMountedUsesFishHookGUID(t *testing.T) {
 		t.Fatalf("4/22 应为 args(61): %v", err)
 	}
 	if len(dec.Items) != 1 {
-		t.Fatalf("按钩 GUID 推送应只有 1 棵树，实得 %d（%v）", len(dec.Items), classList(dec.Items))
+		t.Fatalf("按钩 GUID 推送应只有 1 棵树, 实得 %d (%v)", len(dec.Items), classList(dec.Items))
 	}
 	got := dec.Items[0]
 	gi := fieldIdxByCS(got.Class, csGUID)
 	if gi < 0 || gi >= len(got.Fields) || !strings.EqualFold(got.Fields[gi].GuidHex(), armHook.GUID) {
-		t.Fatalf("4/22 推的是 %q，期望本次中鱼的倒钓臂钩 %s", got.Fields[gi].GuidHex(), shortGUID(armHook.GUID))
+		t.Fatalf("4/22 推的是 %q, 期望本次中鱼的倒钓臂钩 %s", got.Fields[gi].GuidHex(), shortGUID(armHook.GUID))
 	}
 	if flags := objFlagsOf(t, got); flags&hookMountedFlag == 0 {
-		t.Fatalf("中鱼钩未补挂竿位：flags=%d", flags)
+		t.Fatalf("中鱼钩未补挂竿位: flags=%d", flags)
 	}
 }
 
@@ -161,7 +161,7 @@ func TestPushFightHookMountedFallsBackToMountedHook(t *testing.T) {
 		t.Fatal(err)
 	}
 	if !srv.rigSetType(ctx, uid, rod.GUID, 50) {
-		t.Fatal("rigSetType 50 失败")
+		t.Fatal("rigSetType 50 Ошибка")
 	}
 	mainHook, err := srv.CreateItem(ctx, uid, "c_hook_20712", "backpack", 1)
 	if err != nil {
@@ -191,10 +191,10 @@ func TestPushFightHookMountedFallsBackToMountedHook(t *testing.T) {
 	got := dec.Items[0]
 	gi := fieldIdxByCS(got.Class, csGUID)
 	if gi < 0 || gi >= len(got.Fields) || !strings.EqualFold(got.Fields[gi].GuidHex(), mainHook.GUID) {
-		t.Fatalf("回退应推线末端钩 %s，实得 %q", shortGUID(mainHook.GUID), got.Fields[gi].GuidHex())
+		t.Fatalf("回退应推线末端钩 %s, 实得 %q", shortGUID(mainHook.GUID), got.Fields[gi].GuidHex())
 	}
 	if flags := objFlagsOf(t, got); flags&hookMountedFlag == 0 {
-		t.Fatalf("回退钩未补挂竿位：flags=%d", flags)
+		t.Fatalf("回退钩未补挂竿位: flags=%d", flags)
 	}
 }
 

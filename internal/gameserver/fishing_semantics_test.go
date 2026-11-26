@@ -104,7 +104,7 @@ func TestFindObjSecondU32ForCastSpot(t *testing.T) {
 	)
 	tree := proto.Args524(obj)
 	if got := findObjNthU32(tree, "olieodeoaof", 1); got != 222 {
-		t.Fatalf("spot=%d，期望第二个 U32=222", got)
+		t.Fatalf("spot=%d, 期望第二个 U32=222", got)
 	}
 }
 
@@ -116,10 +116,10 @@ func TestFindCastActionByte(t *testing.T) {
 	)
 	tree := proto.Args524(obj)
 	if got := findObjNthByte(tree, "olieodeoaof", 0); got != 2 {
-		t.Fatalf("action=%d，期望首个 BYTE=2", got)
+		t.Fatalf("action=%d, 期望首个 BYTE=2", got)
 	}
 	if got := findObjNthByte(tree, "olieodeoaof", 1); got != 7 {
-		t.Fatalf("action=%d，期望第二个 BYTE=7", got)
+		t.Fatalf("action=%d, 期望第二个 BYTE=7", got)
 	}
 }
 
@@ -157,7 +157,7 @@ func TestFishingTickRecomputesSettledAndLocation(t *testing.T) {
 		t.Fatal("动画位消失后 RigSettled 必须复位")
 	}
 	if st.Loc != "loc12_02" {
-		t.Fatalf("14/7 loc=%q，期望 loc12_02", st.Loc)
+		t.Fatalf("14/7 loc=%q, 期望 loc12_02", st.Loc)
 	}
 }
 
@@ -172,7 +172,7 @@ func TestKeepnetVersionTicksStrictlyIncreaseAndKeepMap(t *testing.T) {
 	}
 	f10 := a.Field(10)
 	if got := f10.StrOr(); got != "level_019_american_pond" {
-		t.Fatalf("25.f10=%q，期望捕获地图", got)
+		t.Fatalf("25.f10=%q, 期望捕获地图", got)
 	}
 }
 
@@ -182,7 +182,7 @@ func TestCatchLogWrittenOnceOnKeep(t *testing.T) {
 	const uid = int64(1000001)
 	f := &RolledFish{FishGUID: "22222222222222222222222222222222", Species: "c.roach", Grade: 1, WeightG: 186, LengthM: 0.1981, LocLevel: "level_019_american_pond"}
 	if r := srv.settleCatchXP(ctx, uid, f, 1); r == nil {
-		t.Fatal("settleCatchXP 返回 nil")
+		t.Fatal("settleCatchXP назад nil")
 	}
 	st := srv.stateFor(uid)
 	st.mu.Lock()
@@ -202,14 +202,14 @@ func TestCatchLogWrittenOnceOnKeep(t *testing.T) {
 		t.Fatal(err)
 	}
 	if n != 1 {
-		t.Fatalf("入护后 catch_log 行数=%d，期望 1", n)
+		t.Fatalf("入护后 catch_log 行数=%d, 期望 1", n)
 	}
 	var source string
 	if err := db.SQL.QueryRowContext(ctx, `SELECT source FROM catch_log WHERE uid=?`, uid).Scan(&source); err != nil {
 		t.Fatal(err)
 	}
 	if source != "keep" {
-		t.Fatalf("catch_log source=%q，期望 keep", source)
+		t.Fatalf("catch_log source=%q, 期望 keep", source)
 	}
 }
 
@@ -257,7 +257,7 @@ func TestCatchLogReplayedSettleAfterKeptStaysSingleRow(t *testing.T) {
 		t.Fatal(err)
 	}
 	if n != 1 || source != "keep" {
-		t.Fatalf("重放后 catch_log 行数=%d source=%q，期望 1 行 keep", n, source)
+		t.Fatalf("重放后 catch_log 行数=%d source=%q, 期望 1 行 keep", n, source)
 	}
 	var xpAfter int64
 	if err := db.SQL.QueryRowContext(ctx, `SELECT xp FROM profile WHERE uid=?`, uid).Scan(&xpAfter); err != nil {
@@ -287,7 +287,7 @@ func TestFishingLeftBumpsEscapes(t *testing.T) {
 		t.Fatal(err)
 	}
 	if n != 1 {
-		t.Fatalf("escapes=%d，期望1", n)
+		t.Fatalf("escapes=%d, 期望1", n)
 	}
 }
 
@@ -316,7 +316,7 @@ func TestFishingEndSettleUnhookedDoesNotCountEscape(t *testing.T) {
 		t.Fatal(err)
 	}
 	if escapes != 0 {
-		t.Fatalf("14/4 咬钩未中钩不应计为跑鱼，escapes=%d", escapes)
+		t.Fatalf("14/4 咬钩未中钩不应计为跑鱼, escapes=%d", escapes)
 	}
 }
 
@@ -361,7 +361,7 @@ func TestFishingLeftStatus8KeepsInWaterCastAndSchedulesNextFish(t *testing.T) {
 		t.Fatal(err)
 	}
 	if n != 0 {
-		t.Fatalf("自然离场不应计为跑鱼，escapes=%d", n)
+		t.Fatalf("自然离场不应计为跑鱼, escapes=%d", n)
 	}
 }
 
@@ -436,7 +436,7 @@ func TestFishingLeftLureEscapeReschedulesBiteDuringRetrieve(t *testing.T) {
 	st.mu.Lock()
 	if !st.CastActive || !st.InWater {
 		st.mu.Unlock()
-		t.Fatalf("路亚脱钩后钓组仍在水中，本杆应继续: CastActive=%v InWater=%v", st.CastActive, st.InWater)
+		t.Fatalf("路亚脱钩后钓组仍在水中, 本杆应继续: CastActive=%v InWater=%v", st.CastActive, st.InWater)
 	}
 	if st.Pending != nil || st.Hooked || st.Resolved || st.PushSent {
 		st.mu.Unlock()
@@ -506,7 +506,7 @@ func TestMailInfoShapeAndGUID(t *testing.T) {
 		t.Fatalf("19/5 响应不可解码: %v", err)
 	}
 	if dec.Class != "pbndmldbfai" || dec.TypeID != 133 {
-		t.Fatalf("19/5 顶层=%s/%d，期望 pbndmldbfai/133", dec.Class, dec.TypeID)
+		t.Fatalf("19/5 顶层=%s/%d, 期望 pbndmldbfai/133", dec.Class, dec.TypeID)
 	}
 	if g := mailIDToGUID(1); len(g) != 32 || g != "00000000000000000000000000000001" {
 		t.Fatalf("mailIDToGUID(1)=%q", g)
@@ -616,13 +616,13 @@ func TestFishingLeftRigNotReadyStopsAfterRepushCap(t *testing.T) {
 	st.mu.Lock()
 	defer st.mu.Unlock()
 	if st.Pending != nil {
-		t.Fatal("超过重推上限后应放弃当前鱼，避免无限 14/14")
+		t.Fatal("超过重推上限后应放弃当前鱼, 避免无限 14/14")
 	}
 	if st.pendingTimer != nil {
 		t.Fatal("超过重推上限后不应再挂重推定时器")
 	}
 	if !st.Resolved {
-		t.Fatal("放弃后应标记本轮已结束，等玩家重新抛竿")
+		t.Fatal("放弃后应标记本轮已结束, 等玩家重新抛竿")
 	}
 }
 
@@ -716,7 +716,7 @@ func TestFishingStepInWaterEvidenceByRigFamily(t *testing.T) {
 	cast(2) // rig_FloatBolognese
 	step(0x2040)
 	if inWater, needBite, armed := state(); !inWater || needBite || !armed {
-		t.Fatalf("浮钓 0x2040（MotionOnBottom|StreamMoving）应入水: in_water=%v need_bite=%v armed=%v", inWater, needBite, armed)
+		t.Fatalf("浮钓 0x2040 (MotionOnBottom|StreamMoving)应入水: in_water=%v need_bite=%v armed=%v", inWater, needBite, armed)
 	}
 
 	cast(3) // rig_FloatSlider
@@ -728,7 +728,7 @@ func TestFishingStepInWaterEvidenceByRigFamily(t *testing.T) {
 	cast(1)
 	step(0)
 	if inWater, needBite, _ := state(); inWater || !needBite {
-		t.Fatalf("浮钓 0x0（岸上/无动作）不得入水: in_water=%v need_bite=%v", inWater, needBite)
+		t.Fatalf("浮钓 0x0 (岸上/无动作)不得入水: in_water=%v need_bite=%v", inWater, needBite)
 	}
 
 	cast(12) // rig_BottomSimple
@@ -740,7 +740,7 @@ func TestFishingStepInWaterEvidenceByRigFamily(t *testing.T) {
 	cast(50) // rig_MarinePilker
 	step(0x880000)
 	if inWater, needBite, armed := state(); !inWater || needBite || !armed {
-		t.Fatalf("海钓 0x880000 下沉应入水（26 秒下沉期 14/3 触底才来）: in_water=%v need_bite=%v armed=%v", inWater, needBite, armed)
+		t.Fatalf("海钓 0x880000 下沉应入水 (26 秒下沉期 14/3 触底才来): in_water=%v need_bite=%v armed=%v", inWater, needBite, armed)
 	}
 
 	cast(50)
@@ -758,7 +758,7 @@ func TestFishingStepInWaterEvidenceByRigFamily(t *testing.T) {
 	cast(5) // rig_Lure
 	step(0)
 	if inWater, needBite, _ := state(); inWater || !needBite {
-		t.Fatalf("路亚 0x0（线杯开静置）不得凭 f5 入水，由 14/3 兜底: in_water=%v need_bite=%v", inWater, needBite)
+		t.Fatalf("路亚 0x0 (线杯开静置)不得凭 f5 入水, 由 14/3 兜底: in_water=%v need_bite=%v", inWater, needBite)
 	}
 
 	cast(5) // rig_Lure
@@ -778,7 +778,7 @@ func TestFishingFallLatchesInWaterAndReschedules(t *testing.T) {
 
 	st := srv.stateFor(sess.Userid)
 	st.mu.Lock()
-	st.RigType = 5 // 路亚：线杯开自由下沉，f5 保持 0x0
+	st.RigType = 5 // 路亚: 线杯开自由下沉, f5 保持 0x0
 	st.CastActive = true
 	st.InWater = false
 	st.NeedBite = true
@@ -806,7 +806,7 @@ func TestFishingFallLatchesInWaterAndReschedules(t *testing.T) {
 	st.NeedBite = true
 	st.mu.Unlock()
 	if _, ok := hFishingFall(&Ctx{Sess: sess, Main: 14, Sub: 3, Log: logging.Discard()}); !ok {
-		t.Fatal("14/3（打窝竿）未处理")
+		t.Fatal("14/3 (打窝竿)未处理")
 	}
 	st.mu.Lock()
 	defer st.mu.Unlock()

@@ -30,12 +30,12 @@ test('tuning hides pace rows while bite pace disabled',async()=>{
   page.on('pageerror',e=>errors.push(e.message));
   mockRoute(page,{bite_pace_enabled:'0'},[]);
   await page.goto('http://127.0.0.1:19216/#tuning/bite');
-  await page.getByRole('heading',{name:'游戏参数',exact:true}).waitFor();
-  await page.getByText('每次抛竿有鱼的概率',{exact:true}).waitFor();
+  await page.getByRole('heading',{name:'Параметры игры',exact:true}).waitFor();
+  await page.getByText('Вероятность поклёвки на заброс',{exact:true}).waitFor();
   assert.equal(await page.locator('#f_pace_good_max').count(),0,'开关关闭时不应渲染 pace 参数行');
   assert.equal(await page.locator('#f_pace_good_min').count(),0);
-  await page.getByText('开启后这里才会出现好饵').waitFor();
-  assert.equal(await page.getByText('3 项，一般不用改').count(),2,'进阶折叠区应保留两组各 3 项');
+  await page.getByText(/только после включения здесь появятся/).waitFor();
+  assert.equal(await page.getByText(/3 шт\., обычно менять не нужно/).count(),2,'进阶折叠区应保留两组各 3 项');
   assert.deepEqual(errors,[]);
   await context.close();
  }finally{await browser.close()}
@@ -50,14 +50,14 @@ test('tuning shows pace rows when enabled and saves through tunables API',async(
   page.on('pageerror',e=>errors.push(e.message));
   mockRoute(page,{bite_pace_enabled:'1'},posts);
   await page.goto('http://127.0.0.1:19216/#tuning/bite');
-  await page.getByRole('heading',{name:'游戏参数',exact:true}).waitFor();
-  await page.getByText('好饵等待下限（饵效控速）',{exact:true}).waitFor();
+  await page.getByRole('heading',{name:'Параметры игры',exact:true}).waitFor();
+  await page.getByText('Мин. ожидание для хорошей наживки (скорость от наживки)',{exact:true}).waitFor();
   assert.equal(await page.locator('[id^=f_pace_good_max_]').count(),1);
   assert.equal(await page.locator('[id^=f_pace_lure_max_]').count(),1);
-  assert.equal(await page.getByText('开启后这里才会出现好饵').count(),0,'开启后不应显示提示');
+  assert.equal(await page.getByText(/только после включения здесь появятся/).count(),0,'开启后不应显示提示');
   await page.locator('[id^=f_pace_good_max_]').fill('45');
-  await page.getByRole('button',{name:'保存修改',exact:true}).click();
-  await page.getByText('已保存。服务端最多 30 秒生效。',{exact:true}).waitFor({timeout:5000});
+  await page.getByRole('button',{name:'Сохранить изменения',exact:true}).click();
+  await page.getByText(/^Сохранено\. На сервере вступает в силу/,{exact:true}).waitFor({timeout:5000});
   const hit=posts.find(p=>p&&p.key==='pace_good_max');
   assert.ok(hit,'应 POST pace_good_max');
   assert.equal(String(hit.value),'45');

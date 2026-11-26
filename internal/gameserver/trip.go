@@ -93,7 +93,7 @@ func (s *Server) startTripTimers(ctx context.Context, uid int64, level string) b
 	if err := s.DB.UpsertTripState(ctx, *st); err != nil {
 		return false
 	}
-	s.log.Info("钓鱼游进入地图开始计时", "place", level, "remaining_sec", st.RemainingSec)
+	s.log.Info("Путёвка: вход на карту, начало отсчёта", "place", level, "remaining_sec", st.RemainingSec)
 	return true
 }
 
@@ -130,10 +130,10 @@ func (s *Session) consumeTripTimes(now time.Time) bool {
 			if st.RemainingSec <= 0 && st.Purchases > 0 {
 				s.Srv.recallTripEquipment(cctx, s.Userid, st.Place)
 				if rerr := s.Srv.DB.RevokeExpiredTripAccess(cctx, s.Userid, st.Place); rerr != nil {
-					s.log.Warn("钓鱼游到期 access 补偿回收失败", "place", st.Place, "err", rerr)
+					s.log.Warn("Путёвка: не удалось отозвать компенсацию доступа по истечении", "place", st.Place, "err", rerr)
 				}
 			}
-			continue // 到期残留 / 已购未进图（倒计时未启动）
+			continue // 到期残留 / 已购未进图 (倒计时未启动)
 		}
 		// 上次消费早于本会话启动：中间是离线间隔，不计时只对表。
 		if st.LastConsumeTS < startedF {
@@ -159,16 +159,16 @@ func (s *Session) consumeTripTimes(now time.Time) bool {
 		st.RemainingSec = 0
 		expired, uerr := s.Srv.DB.ExpireTripAccessTx(cctx, expected, nowF)
 		if uerr != nil {
-			s.log.Warn("钓鱼游到期回收失败", "place", st.Place, "err", uerr)
+			s.log.Warn("Путёвка: не удалось отозвать по истечении", "place", st.Place, "err", uerr)
 			continue
 		}
 		if !expired {
-			s.log.Info("钓鱼游状态已并发变化，本次不回收", "place", st.Place)
+			s.log.Info("Состояние путёвки изменилось параллельно, отзыв пропущен", "place", st.Place)
 			continue
 		}
 		revoked = true
 		s.Srv.recallTripEquipment(cctx, s.Userid, st.Place)
-		s.log.Info("钓鱼游到期已回收", "place", st.Place)
+		s.log.Info("Путёвка истекла и отозвана", "place", st.Place)
 	}
 	return revoked
 }

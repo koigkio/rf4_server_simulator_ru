@@ -23,7 +23,7 @@ import (
 )
 
 func main() {
-	configPath := flag.String("config", "config.yaml", "配置文件路径")
+	configPath := flag.String("config", "config.yaml", "Путь к файлу конфигурации")
 	flag.Parse()
 
 	cfg, err := config.Load(*configPath)
@@ -32,7 +32,7 @@ func main() {
 		os.Exit(2)
 	}
 	log := logging.New(cfg.Log.Level, cfg.Log.Format)
-	log.Info("gateway 启动",
+	log.Info("gateway Запуск",
 		"version", buildinfo.Version, "commit", buildinfo.GitCommit,
 		"env", cfg.Env,
 		"login", cfg.Gateway.LoginAddr, "login_compat", cfg.Gateway.LoginCompatAddr,
@@ -48,20 +48,20 @@ func main() {
 	// ---- 共享 SQLite（会话凭据/重连接管存这里，与主服/管理后台同库）----
 	db, err := store.OpenWithStatic(cfg.SQLite.Path, cfg.SQLite.StaticPath)
 	if err != nil {
-		log.Error("SQLite 打开失败", "path", cfg.SQLite.Path, "static", cfg.SQLite.StaticPath, "err", err)
+		log.Error("SQLite Не удалось открыть", "path", cfg.SQLite.Path, "static", cfg.SQLite.StaticPath, "err", err)
 		os.Exit(1)
 	}
 	defer db.Close()
 	if err := db.Migrate(); err != nil {
-		log.Error("迁移失败", "err", err)
+		log.Error("Ошибка миграции", "err", err)
 		os.Exit(1)
 	}
 	storage := gateway.NewSQLiteStore(db, log)
-	log.Info("SQLite 已连接", "path", cfg.SQLite.Path, "static", cfg.SQLite.StaticPath)
+	log.Info("SQLite Подключено", "path", cfg.SQLite.Path, "static", cfg.SQLite.StaticPath)
 
 	// ---- TLS 证书 ----
 	if err := gateway.EnsureCert(cfg.Gateway.CertFile, cfg.Gateway.KeyFile, cfg.Gateway.LoginDomain); err != nil {
-		log.Error("TLS 证书不可用", "err", err)
+		log.Error("TLS Сертификат недоступен", "err", err)
 		os.Exit(1)
 	}
 
@@ -70,7 +70,7 @@ func main() {
 	rt := gateway.NewRealtimeServer(cfg.Gateway, storage, log, tm, obs)
 	tm.SetGateway(rt)
 	if err := rt.Listen(); err != nil {
-		log.Error("realtime 监听失败", "err", err)
+		log.Error("realtime Не удалось открыть порт", "err", err)
 		os.Exit(1)
 	}
 	rtErrCh := make(chan error, 1)
@@ -79,16 +79,16 @@ func main() {
 	// ---- HTTPS 登录服务 ----
 	login, err := gateway.NewLoginServer(cfg.Gateway, storage, log, obs)
 	if err != nil {
-		log.Error("登录服务构建失败", "err", err)
+		log.Error("Не удалось создать сервис входа", "err", err)
 		os.Exit(1)
 	}
 	loginErrCh, err := login.Start()
 	if err != nil {
-		log.Error("登录服务监听失败", "err", err)
+		log.Error("Сервис входа не смог открыть порт", "err", err)
 		os.Exit(1)
 	}
 
-	log.Info("gateway 就绪", "login", cfg.Gateway.LoginAddr,
+	log.Info("gateway Готово", "login", cfg.Gateway.LoginAddr,
 		"login_compat", cfg.Gateway.LoginCompatAddr,
 		"advertise", fmt.Sprintf("%s:%d", cfg.Gateway.AdvertiseHost, cfg.Gateway.AdvertisePort))
 	obs.SetReady(true)
@@ -96,11 +96,11 @@ func main() {
 	select {
 	case <-ctx.Done():
 	case err := <-obsErrCh:
-		log.Error("观测端口异常退出", "err", err)
+		log.Error("Порт наблюдения неожиданно завершился", "err", err)
 	case err := <-rtErrCh:
-		log.Error("realtime 服务异常退出", "err", err)
+		log.Error("realtime Сервис неожиданно завершился", "err", err)
 	case err := <-loginErrCh:
-		log.Error("登录服务异常退出", "err", err)
+		log.Error("Сервис входа неожиданно завершился", "err", err)
 	}
 
 	obs.SetReady(false)
@@ -111,7 +111,7 @@ func main() {
 	tm.Close()
 	_ = obs.Shutdown(shutdownCtx)
 	_ = db.Close()
-	log.Info("gateway 已退出")
+	log.Info("gateway Завершено")
 	if !errors.Is(ctx.Err(), context.Canceled) {
 		os.Exit(1)
 	}

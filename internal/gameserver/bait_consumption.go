@@ -604,7 +604,7 @@ func (s *Server) consumeBaitEvent(ctx context.Context, uid int64, rod, event str
 	if err != nil {
 		return out, err
 	}
-	if err := addTxnTx(ctx, tx, uid, kind, "", event, 0, 0, "饵料使用"); err != nil {
+	if err := addTxnTx(ctx, tx, uid, kind, "", event, 0, 0, "Расход наживки"); err != nil {
 		return out, err
 	}
 	fields, err := FieldsFromJSON(parent.FieldsJSON)
@@ -650,7 +650,7 @@ func (s *Server) consumeBaitEvent(ctx context.Context, uid int64, rod, event str
 		}
 		consumed, wear := baitUseRule(def, cast)
 		if consumed && baitQuantity(row) <= 0 {
-			return out, fmt.Errorf("挂载饵料已用尽")
+			return out, fmt.Errorf("Насаженная наживка закончилась")
 		}
 		if !consumed {
 			if wear == 0 {
@@ -663,7 +663,7 @@ func (s *Server) consumeBaitEvent(ctx context.Context, uid int64, rod, event str
 			row.Durability = math.Max(0, row.Durability-wear)
 			if idx := fieldIdxByCS(row.WireClass, csDurability); idx >= 0 {
 				if !setWireFloat(fields, row.WireClass, idx, row.Durability) {
-					return out, fmt.Errorf("饵料耐久字段无效")
+					return out, fmt.Errorf("Неверное поле прочности наживки")
 				}
 			}
 			if err := updateItemFieldsTx(ctx, s.DB, tx, row, fields); err != nil {
@@ -862,7 +862,7 @@ func (s *Server) reloadBaitForCast(ctx context.Context, uid int64, rod string) (
 		return out, nil
 	}
 	if parent.UID != uid {
-		return out, fmt.Errorf("不能为其他玩家的钓组补饵")
+		return out, fmt.Errorf("Нельзя пополнять наживку в оснастке другого игрока")
 	}
 	rigType := s.rigTypeForWrite(ctx, rod)
 	comps := s.storedRigComponents(ctx, rod)
@@ -882,7 +882,7 @@ func (s *Server) reloadBaitForCast(ctx context.Context, uid int64, rod string) (
 		request := rebaitRequest{ItemID: id}
 		if strings.HasPrefix(id, "{") {
 			if err := json.Unmarshal([]byte(id), &request); err != nil || request.ItemID == "" {
-				return out, fmt.Errorf("自动补饵记录无效")
+				return out, fmt.Errorf("Неверная запись автопополнения наживки")
 			}
 			id = request.ItemID
 		}
@@ -967,7 +967,7 @@ func (s *Server) reloadBaitForCast(ctx context.Context, uid int64, rod string) (
 			}
 			result := s.rigSetComponent(ctx, uid, rod, 27, guid, 350+mountOrdinal, rigSetOpts{ParentType: familyRod, EnforceCategory: true, SplitStack: true, KeepRebait: true})
 			if result.Rejected || result.MountedGUID == "" {
-				return out, fmt.Errorf("自动补饵失败")
+				return out, fmt.Errorf("Не удалось автоматически пополнить наживку")
 			}
 			if request.HookGUID != "" {
 				if err := s.DB.UpsertRodSetting(ctx, rod, "bait_hook:"+result.MountedGUID, request.HookGUID); err != nil {
@@ -1039,7 +1039,7 @@ func (s *Server) orderBaitsByHook(ctx context.Context, uid int64, rod string) er
 	}
 	idx := fieldIdxByCS(parent.WireClass, csRigObject)
 	if idx < 0 || idx >= len(fields) || fields[idx].Val == nil {
-		return fmt.Errorf("钓组字段无效")
+		return fmt.Errorf("Неверное поле оснастки")
 	}
 	f5 := fields[idx].Val
 	name, rt, _ := rigIdentity(f5)

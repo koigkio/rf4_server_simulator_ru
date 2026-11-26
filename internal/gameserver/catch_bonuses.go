@@ -23,14 +23,14 @@ func (s *Server) rodXPBonuses(ctx context.Context, uid int64, rodGUID string, ba
 		return nil, err
 	}
 	if row == nil || row.UID != uid || row.Durability <= 0 {
-		return nil, fmt.Errorf("经验结算的鱼竿无效")
+		return nil, fmt.Errorf("Неверное удилище для расчёта опыта")
 	}
 	def, err := s.itemDefForRow(ctx, row)
 	if err != nil {
 		return nil, err
 	}
 	if def == nil || def.Category != gearCatRod {
-		return nil, fmt.Errorf("经验结算物品不是鱼竿")
+		return nil, fmt.Errorf("Предмет для расчёта опыта не является удилищем")
 	}
 	entries, _ := defAttrs(def)["dmcgapifbdm"].([]any)
 	var bonuses []catchXPBonus
@@ -45,11 +45,11 @@ func (s *Server) rodXPBonuses(ctx context.Context, uid int64, rodGUID string, ba
 		}
 		rate, ok := decodeU32F32(b["kdhkgjcjpel"])
 		if !ok || rate <= 0 || math.IsNaN(rate) || math.IsInf(rate, 0) {
-			return nil, fmt.Errorf("鱼竿经验加成无效")
+			return nil, fmt.Errorf("Неверный бонус опыта удилища")
 		}
 		amount := math.Round(float64(baseXP) * rate)
 		if amount >= float64(math.MaxInt64) {
-			return nil, fmt.Errorf("鱼竿经验加成超出范围")
+			return nil, fmt.Errorf("Бонус опыта удилища вне допустимого диапазона")
 		}
 		if amount > 0 {
 			bonuses = append(bonuses, catchXPBonus{Kind: uint32(kind), GUID: row.GUID, Multiplier: rate, XP: int64(amount)})

@@ -45,7 +45,7 @@ func NewServer(addr, name string) *Server {
 	// 从外部看不出任何异常。
 	buildInfo := prometheus.NewGauge(prometheus.GaugeOpts{
 		Name: "rf4_build_info",
-		Help: "构建信息",
+		Help: "Сведения о сборке",
 		ConstLabels: prometheus.Labels{
 			"process": name,
 			"version": buildinfo.Version,
@@ -97,7 +97,7 @@ func (s *Server) Start() <-chan error {
 	errCh := make(chan error, 1)
 	go func() {
 		if err := s.srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			errCh <- fmt.Errorf("观测端口监听失败: %w", err)
+			errCh <- fmt.Errorf("Порт наблюдения не смог открыться: %w", err)
 		}
 	}()
 	return errCh

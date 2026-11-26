@@ -53,14 +53,14 @@ func (s *Server) materializeSubObjects(ctx context.Context, attrs map[string]any
 		}
 		subDef, err := s.DB.GetItemDefByItemID(ctx, subID)
 		if err != nil || subDef == nil || subDef.NumericID == 0 {
-			continue // nid 0 是真实物品 ab_tea_can，缺定义一律跳过
+			continue // nid 0 是真实物品 ab_tea_can, 缺定义一律跳过
 		}
 		cls, ok := categoryWireClass[subDef.Category]
 		if !ok {
 			cls = wireClassEntry{fallbackWireClass, fallbackTypeID}
 		}
 		if wiregen.ClassOps[cls.Class] == nil {
-			continue // 类无 reader：槽保持空
+			continue // 类无 reader: 槽保持空
 		}
 		obj, err := wiregen.MakeObj(cls.Class, nil)
 		if err != nil {

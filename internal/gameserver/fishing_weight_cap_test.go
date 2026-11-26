@@ -21,10 +21,10 @@ func TestDispatchCapDefaultIsOff(t *testing.T) {
 	t.Parallel()
 	s, _ := newDetachTestServer(t)
 	if got := s.tunableF("fish_weight_cap", 0); got != 0 {
-		t.Fatalf("未配置时 fish_weight_cap = %v, want 0（承力不参与派鱼）", got)
+		t.Fatalf("未配置时 fish_weight_cap = %v, want 0 (承力不参与派鱼)", got)
 	}
 	if got := s.tunableF("hook_entry_cap", 0); got != 0 {
-		t.Fatalf("未配置时 hook_entry_cap = %v, want 0（钩号不参与派鱼）", got)
+		t.Fatalf("未配置时 hook_entry_cap = %v, want 0 (钩号不参与派鱼)", got)
 	}
 	for _, spec := range []gearPhysicsSpec{
 		{},
@@ -32,7 +32,7 @@ func TestDispatchCapDefaultIsOff(t *testing.T) {
 		{RodPowerKg: 300, LineStrengthKg: 200, HookPresent: true, HookLengthMM: 76, HookSize: 33},
 	} {
 		if got := s.fishWeightCapKg(spec); got != 0 {
-			t.Fatalf("默认不应截断，spec=%+v 得到 %.3f kg", spec, got)
+			t.Fatalf("默认不应截断, spec=%+v 得到 %.3f kg", spec, got)
 		}
 	}
 }
@@ -47,7 +47,7 @@ func TestFishWeightCapInvalidValueFallsBack(t *testing.T) {
 		}
 		s.execAdminCmd(&AdminCommand{Op: "reload_tunables"})
 		if got := s.tunableF(key, 0); got != 0 {
-			t.Fatalf("非法值 %s = %v, want 0（回退默认）", key, got)
+			t.Fatalf("非法值 %s = %v, want 0 (回退默认)", key, got)
 		}
 	}
 }
@@ -60,10 +60,10 @@ func TestDispatchIgnoresGearAndHook(t *testing.T) {
 	strong := gearPhysicsSpec{RodPowerKg: 80, LineStrengthKg: 100, HookPresent: true, HookLengthMM: 76, HookSize: 33}
 
 	if got := s.fishWeightCapKg(weak); got != 0 {
-		t.Fatalf("弱组默认口径应为 0（不截断），实得 %.3f", got)
+		t.Fatalf("弱组默认口径应为 0 (不截断), 实得 %.3f", got)
 	}
 	if got := s.fishWeightCapKg(strong); got != 0 {
-		t.Fatalf("强组默认口径应为 0（不截断），实得 %.3f", got)
+		t.Fatalf("强组默认口径应为 0 (不截断), 实得 %.3f", got)
 	}
 
 	// 开关保留：打开后回到各自的旧口径，用于对照。

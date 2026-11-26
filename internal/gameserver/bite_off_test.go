@@ -26,10 +26,10 @@ func TestBiteOffChanceFollowsWeightVsLeader(t *testing.T) {
 	for _, c := range cases {
 		got, ok := biteOffChance(c.weightG, c.leader, over, under)
 		if !ok {
-			t.Fatalf("%s：应参与判定", c.name)
+			t.Fatalf("%s: 应参与判定", c.name)
 		}
 		if math.Abs(got-c.want) > 1e-9 {
-			t.Fatalf("%s：概率=%.4f，期望 %.4f", c.name, got, c.want)
+			t.Fatalf("%s: 概率=%.4f, 期望 %.4f", c.name, got, c.want)
 		}
 	}
 }
@@ -53,7 +53,7 @@ func TestBiteOffChanceRejectsUnusableInput(t *testing.T) {
 	}
 	for _, c := range cases {
 		if _, ok := biteOffChance(c.weightG, c.leader, c.over, c.under); ok {
-			t.Fatalf("%s：不应参与判定", c.name)
+			t.Fatalf("%s: 不应参与判定", c.name)
 		}
 	}
 }
@@ -64,7 +64,7 @@ func TestBiteOffChanceClampsAboveHundred(t *testing.T) {
 		t.Fatal("应参与判定")
 	}
 	if math.Abs(got-1.0) > 1e-9 {
-		t.Fatalf("超过 100%% 应钳到 1.0，实际 %.4f", got)
+		t.Fatalf("超过 100%% 应钳到 1.0, 实际 %.4f", got)
 	}
 }
 
@@ -92,16 +92,16 @@ func TestBiteOffTunablesClampsRanges(t *testing.T) {
 		t.Fatal("开关为 1 时应启用")
 	}
 	if over != 100 {
-		t.Fatalf("概率上限应钳到 100，实际 %.2f", over)
+		t.Fatalf("概率上限应钳到 100, 实际 %.2f", over)
 	}
 	if under != 0 {
-		t.Fatalf("负概率应钳到 0，实际 %.2f", under)
+		t.Fatalf("负概率应钳到 0, 实际 %.2f", under)
 	}
 	if sprint != biteOffMinSprintSecsFloor {
-		t.Fatalf("间隔下限应钳到 %.1f，实际 %.2f", biteOffMinSprintSecsFloor, sprint)
+		t.Fatalf("间隔下限应钳到 %.1f, 实际 %.2f", biteOffMinSprintSecsFloor, sprint)
 	}
 	if minDrop != 0 {
-		t.Fatalf("负降幅阈值应归零，实际 %.4f", minDrop)
+		t.Fatalf("负降幅阈值应归零, 实际 %.4f", minDrop)
 	}
 }
 
@@ -112,7 +112,7 @@ func TestBiteOffTunablesRejectNaN(t *testing.T) {
 		tunAt:    time.Now(),
 	}
 	if _, _, _, _, enabled := s.biteOffTunables(); enabled {
-		t.Fatal("NaN 参数应让整层关闭，而不是按 0 处理")
+		t.Fatal("NaN 参数应让整层关闭, 而不是按 0 处理")
 	}
 }
 
@@ -121,29 +121,29 @@ func TestBiteOffSpeciesSetParsing(t *testing.T) {
 	s := &Server{tunText: map[string]string{}, tunAt: time.Now()}
 	set := s.biteOffSpeciesSet()
 	if len(set) != 5 {
-		t.Fatalf("默认表应有 5 个鱼种，实际 %v", set)
+		t.Fatalf("默认表应有 5 个鱼种, 实际 %v", set)
 	}
 
 	s.tunText["bite_off_species"] = " n.pike , TAIMEN ,, agar "
 	set = s.biteOffSpeciesSet()
 	for _, key := range []string{"n.pike", "taimen", "agar"} {
 		if !set[key] {
-			t.Fatalf("应包含 %q，实际 %v", key, set)
+			t.Fatalf("应包含 %q, 实际 %v", key, set)
 		}
 	}
 	if len(set) != 3 {
-		t.Fatalf("空项应被忽略，实际 %v", set)
+		t.Fatalf("空项应被忽略, 实际 %v", set)
 	}
 
 	// 空串表示整层关闭。
 	s.tunText["bite_off_species"] = ""
 	if got := s.biteOffSpeciesSet(); got != nil {
-		t.Fatalf("空串应返回 nil，实际 %v", got)
+		t.Fatalf("空串应返回 nil, 实际 %v", got)
 	}
 	// 只有逗号也应视为关闭。
 	s.tunText["bite_off_species"] = " , ,, "
 	if got := s.biteOffSpeciesSet(); got != nil {
-		t.Fatalf("全是分隔符应返回 nil，实际 %v", got)
+		t.Fatalf("全是分隔符应返回 nil, 实际 %v", got)
 	}
 }
 

@@ -13,24 +13,24 @@ import (
 func TestBuildRig153CarriesBaitMount(t *testing.T) {
 	rig := buildRig153Full("rig_BottomPopup", 26, nil, 100, 0, 16384, baitMountPopupFamily)
 	if sel, avail := rigBaitMountsOf(rig); sel != 16384 || avail != baitMountPopupFamily {
-		t.Fatalf("f8/f9 = %d/%d，期望 16384/%d", sel, avail, baitMountPopupFamily)
+		t.Fatalf("f8/f9 = %d/%d, 期望 16384/%d", sel, avail, baitMountPopupFamily)
 	}
 	if sel, avail := rigBaitMountsOf(buildRig153WithClip("rig_BottomPopup", 26, nil, 100, 0)); sel != 0 || avail != baitMountAvailForRig(26, 0) {
-		t.Fatalf("不显式传入时 f8/f9 应为 0/%d，实得 %d/%d", baitMountAvailForRig(26, 0), sel, avail)
+		t.Fatalf("不显式传入时 f8/f9 应为 0/%d, 实得 %d/%d", baitMountAvailForRig(26, 0), sel, avail)
 	}
 	rebuilt := buildRig153Like(rig, "rig_BottomPopup", 26, rigCompsOf(rig), 100, 0)
 	if sel, avail := rigBaitMountsOf(rebuilt); sel != 16384 || avail != baitMountAvailForRig(26, 0) {
-		t.Fatalf("模板重建后 f8/f9 = %d/%d，期望 16384/%d", sel, avail, baitMountAvailForRig(26, 0))
+		t.Fatalf("模板重建后 f8/f9 = %d/%d, 期望 16384/%d", sel, avail, baitMountAvailForRig(26, 0))
 	}
 	// 模板缺失时按钓组类型补可选项，弹窗不能再变空白。
 	if _, avail := rigBaitMountsOf(buildRig153Like(nil, "rig_BottomPopup", 26, nil, 100, 0)); avail != baitMountAvailForRig(26, 0) {
-		t.Fatalf("空模板可选项 = %d，期望 %d", avail, baitMountAvailForRig(26, 0))
+		t.Fatalf("空模板可选项 = %d, 期望 %d", avail, baitMountAvailForRig(26, 0))
 	}
 	if got := rigBaitMountSelOf(nil); got != 0 {
-		t.Fatalf("空对象 f8 应为 0，实得 %d", got)
+		t.Fatalf("空对象 f8 应为 0, 实得 %d", got)
 	}
 	if got := clampBaitMount(-5); got != 0 {
-		t.Fatalf("负值应夹到 0，实得 %d", got)
+		t.Fatalf("负值应夹到 0, 实得 %d", got)
 	}
 }
 
@@ -46,7 +46,7 @@ func TestApplyRigBaitMountPersists(t *testing.T) {
 		t.Skip("静态库缺 feeder_10125_FD360: ", err)
 	}
 	if got := srv.baitMountFor(ctx, rod.GUID); got != 0 {
-		t.Fatalf("未设置时 baitMountFor = %d，期望 0", got)
+		t.Fatalf("未设置时 baitMountFor = %d, 期望 0", got)
 	}
 	if err := srv.applyRigBaitMount(ctx, rod.GUID, 64); err != nil {
 		t.Fatal(err)
@@ -65,17 +65,17 @@ func TestApplyRigBaitMountPersists(t *testing.T) {
 	}
 	sel, avail := rigBaitMountsOf(fields[idx].Val)
 	if sel != 64 {
-		t.Fatalf("落库后 f8 = %d，期望 64", sel)
+		t.Fatalf("落库后 f8 = %d, 期望 64", sel)
 	}
 	if avail != baitMountAvailForRig(srv.rigTypeOfItem(ctx, fresh), 0) {
-		t.Fatalf("落库后可选项 f9 = %d，期望按钓组补 %d", avail, baitMountAvailForRig(srv.rigTypeOfItem(ctx, fresh), 0))
+		t.Fatalf("落库后可选项 f9 = %d, 期望按钓组补 %d", avail, baitMountAvailForRig(srv.rigTypeOfItem(ctx, fresh), 0))
 	}
 
 	if err := db.UpsertRodSetting(ctx, rod.GUID, baitMountSettingKey, "64"); err != nil {
 		t.Fatal(err)
 	}
 	if got := srv.baitMountFor(ctx, rod.GUID); got != 64 {
-		t.Fatalf("baitMountFor = %d，期望 64", got)
+		t.Fatalf("baitMountFor = %d, 期望 64", got)
 	}
 }
 
@@ -103,6 +103,6 @@ func TestOrderBaitsByHookPreservesBaitMount(t *testing.T) {
 	}
 	sel, avail := rigBaitMountsOf(fields[idx].Val)
 	if sel != 64 || avail != defaultBaitMountAvail {
-		t.Fatalf("自动补饵重排后 f8/f9 = %d/%d，期望 64/%d", sel, avail, defaultBaitMountAvail)
+		t.Fatalf("自动补饵重排后 f8/f9 = %d/%d, 期望 64/%d", sel, avail, defaultBaitMountAvail)
 	}
 }

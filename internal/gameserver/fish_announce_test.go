@@ -15,7 +15,7 @@ func TestFishAnnouncementKind(t *testing.T) {
 		want  int
 	}{
 		{"蓝冠", 4, 25},
-		{"奖杯", 3, 26},
+		{"Трофей", 3, 26},
 		{"达标", 2, 3},
 		{"未达标", 1, 0},
 	}
@@ -42,14 +42,14 @@ func TestFishLandedUsesGradeKind(t *testing.T) {
 		srv.notifyFishLanded(sess, &RolledFish{Species: "g_tench", Grade: tc.grade, WeightG: 4000}, false)
 		env := awaitPushEnvelope(t, gc)
 		if env.Main != 24 || env.Sub != 27 {
-			t.Fatalf("grade=%d 应走 24/27，实得 %d/%d", tc.grade, env.Main, env.Sub)
+			t.Fatalf("grade=%d 应走 24/27, 实得 %d/%d", tc.grade, env.Main, env.Sub)
 		}
 		dec, _, err := proto.DecodeValue(env.Body, 0, srv.Table())
 		if err != nil {
 			t.Fatalf("grade=%d 推送不可解码: %v", tc.grade, err)
 		}
 		if f0 := dec.Items[0].Field(0).Num; f0 == nil || *f0 != tc.kind {
-			t.Fatalf("grade=%d 应用 kind%d，实得 %v", tc.grade, tc.kind, f0)
+			t.Fatalf("grade=%d 应用 kind%d, 实得 %v", tc.grade, tc.kind, f0)
 		}
 	}
 }
@@ -72,7 +72,7 @@ func TestFishKeptDoesNotBroadcast(t *testing.T) {
 	select {
 	case payload := <-done:
 		if payload != "" {
-			t.Fatalf("入护播报应永久停用，仍收到推送: %q", payload)
+			t.Fatalf("入护播报应永久停用, 仍收到推送: %q", payload)
 		}
 	case <-time.After(300 * time.Millisecond):
 		// 没有推送 = 期望结果

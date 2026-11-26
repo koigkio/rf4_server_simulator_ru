@@ -17,7 +17,7 @@ func TestWorkshopRepairOnlySelectedReelPart(t *testing.T) {
 			if cat == reelPartCatWasher {
 				fields := snapshotFields(t, reel.FieldsJSON)
 				washer, _ := snapshotPart(t, srv, fields, reelPartCatWasher)
-				setReelChildDurability(washer, 1) // 镜像完好，但实际制动力仅剩 20%。
+				setReelChildDurability(washer, 1) // 镜像完好, 但实际制动力仅剩 20%.
 				reel.FieldsJSON = snapshotJSON(t, fields)
 				if err := db.UpdateItemFields(ctx, reel.GUID, reel.FieldsJSON, reel.Qty, reel.Durability, reel.Workmanship, reel.RigGUID); err != nil {
 					t.Fatal(err)
@@ -55,14 +55,14 @@ func TestWorkshopRepairOnlySelectedReelPart(t *testing.T) {
 				}
 			}
 			if fresh.Durability >= 1 {
-				t.Fatal("仍有磨损部件时，本体不能直接回满")
+				t.Fatal("仍有磨损部件时, 本体不能直接回满")
 			}
 			p, err := db.GetProfile(ctx, 1000001)
 			if err != nil {
 				t.Fatal(err)
 			}
 			if p.Silver != 10000-cost {
-				t.Fatalf("扣费=%d，期望 %d", 10000-p.Silver, cost)
+				t.Fatalf("扣费=%d, 期望 %d", 10000-p.Silver, cost)
 			}
 			// 再提交已修好的部件，不能修复或收费覆盖剩余磨损。
 			if _, ok := hWorkshopOrder(c); !ok {

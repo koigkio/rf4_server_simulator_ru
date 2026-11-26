@@ -93,7 +93,7 @@ func TestCafeShopShelfUsesCafeProductLine(t *testing.T) {
 			idField := row.Field(0)
 			got = append(got, idField.StrOr())
 		}
-		t.Fatalf("咖啡馆货架应只含 %d 件本店商品，实际 %d 件: %v", len(want), shelf.ArgCount(), got)
+		t.Fatalf("咖啡馆货架应只含 %d 件本店商品, 实际 %d 件: %v", len(want), shelf.ArgCount(), got)
 	}
 	for i := 0; i < shelf.ArgCount(); i++ {
 		row := shelf.ArgItem(i)

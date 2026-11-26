@@ -14,7 +14,7 @@ import (
 
 // registerDynamicProtocolHandlers 注册动态协议命令。
 func registerDynamicProtocolHandlers(d *Dispatch) {
-	d.Register(12, 1, hHandThrowGroundbait) // 12/1 手抛：手里攥一团窝料直接扔进水里
+	d.Register(12, 1, hHandThrowGroundbait) // 12/1 手抛: 手里攥一团窝料直接扔进水里
 	d.Register(13, 5, hDynamicHanditemThrow)
 	d.Register(13, 6, hDynamicRigSnapshot)
 	d.Register(17, 9, hDynamicRodBreak)
@@ -66,7 +66,7 @@ func hDynamicHanditemThrow(ctx *Ctx) ([]byte, bool) {
 	}
 	if srv.tunableF("handitem_throw_debug", 0) != 0 {
 		if target := findThrowTarget(ctx.Tree); target != nil {
-			ctx.Log.Info("13/5 目标原始字段", "tree", debugThrowTree(target, 0))
+			ctx.Log.Info("13/5 Исходное поле цели", "tree", debugThrowTree(target, 0))
 		}
 	}
 	handGUID := ""
@@ -116,7 +116,7 @@ func hDynamicHanditemThrow(ctx *Ctx) ([]byte, bool) {
 				st.mu.Unlock()
 				// 落点来源进日志：窝到底记在浮标格、玩家脚下格还是算出来的格，
 				// 现场一眼能分清楚，调参不用再猜。
-				ctx.Log.Info("手持工具窝料落点", "src", gbSrc, "x", gbX, "z", gbZ,
+				ctx.Log.Info("Точка падения прикормки из инструмента в руке", "src", gbSrc, "x", gbX, "z", gbZ,
 					"has_pos", gbHas, "dist", dist)
 				srv.groundbaitDeposit(ctx.Sess.pushCtx(), uid, gbLoc, gbX, gbZ, gbHas, gbSpot,
 					baitItemID, 1, "catapult", handitemThrowTxn(handGUID, ctx.Sess.ID, ctx.CallID), baitGUID)
@@ -153,7 +153,7 @@ func hDynamicHanditemThrow(ctx *Ctx) ([]byte, bool) {
 		scatter = 5.0
 	}
 	scatter = math.Max(0, math.Min(100, scatter))
-	ctx.Log.Info("805 落点与抛出物", "hand", shortGUID(handGUID),
+	ctx.Log.Info("805 Точка падения и брошенный предмет", "hand", shortGUID(handGUID),
 		"dist_m", dist, "dist_client_m", clientDist, "scatter_pct", scatter,
 		"upserts", len(upserts), "removed", len(removed),
 		"pose", withPose, "pose_landing", withLanding && land.OK,
@@ -188,7 +188,7 @@ type throwLanding struct {
 	YawDeg    float64
 	PitchDeg  float64
 	OK        bool
-	Direction string // cast=朝上次抛竿落点；fallback=没抛过竿，按兜底偏航
+	Direction string // cast=朝上次抛竿落点; fallback=没抛过竿, 按兜底偏航
 }
 
 // handitemThrowLanding 算出这一发饵的落点世界坐标与朝向。三条证据：
@@ -310,7 +310,7 @@ func hDynamicRodBreak(ctx *Ctx) ([]byte, bool) {
 	settledPending := completedCatchPending(st)
 	st.mu.Unlock()
 	if settledPending {
-		ctx.Log.Info("17/9 已结算渔获等待处理，忽略断件上报",
+		ctx.Log.Info("17/9 Рассчитанный улов ждёт обработки, отчёт о поломке пропущен",
 			"rod", shortGUID(rodGUID), "part", shortGUID(brokenGUID))
 		echo := brokenGUID
 		if echo == "" {
@@ -332,7 +332,7 @@ func hDynamicRodBreak(ctx *Ctx) ([]byte, bool) {
 		outcome, err := srv.breakLineOrRodWithLineOut(ctx.Sess.pushCtx(), ctx.Sess.Userid, rodGUID, brokenGUID, lineOutM)
 		if err == nil {
 			if outcome.OverloadProtected {
-				ctx.ReplyFailure("System.OperationCanceledException", "【满红不爆】已取消装备破坏")
+				ctx.ReplyFailure("System.OperationCanceledException", "[Без обрывов] поломка снаряжения отменена")
 				return nil, true
 			}
 			st.mu.Lock()
@@ -376,7 +376,7 @@ func hDynamicRodBreak(ctx *Ctx) ([]byte, bool) {
 			if berr != nil {
 				return nil, false
 			}
-			ctx.Log.Info("17/9 渔具超载", "rod", shortGUID(rodGUID), "part", outcome.BreakPart,
+			ctx.Log.Info("17/9 Перегрузка снастей", "rod", shortGUID(rodGUID), "part", outcome.BreakPart,
 				"broken", shortGUID(outcome.BrokenGUID), "line", outcome.LineBroken,
 				"comp", outcome.ComponentBroken, "reel_broken", outcome.ReelBroken,
 				"line_loss_m", outcome.LineLossM, "removed", len(outcome.RemovedGUIDs))
@@ -400,13 +400,13 @@ func hDynamicRodBreak(ctx *Ctx) ([]byte, bool) {
 				switch {
 				case keepFight:
 					// 官服断轮：鱼还咬着钩，只是收不动线。
-					ctx.Sess.pushSystemChat("渔线轮已损坏，无法收线；鱼仍在钩上，可剪线或等线被拉断")
+					ctx.Sess.pushSystemChat("Катушка сломана, подматывать нельзя; рыба ещё на крючке — можно обрезать леску или дождаться обрыва")
 				case reelBroken:
 					// 轮子本体耐久归零，整体损坏。
-					ctx.Sess.pushSystemChat("渔线轮已损坏，请到工坊修理后再使用")
+					ctx.Sess.pushSystemChat("Катушка сломана, отремонтируйте её в мастерской")
 				case frictionWorn:
 					// 摩擦片磨穿、泄力失效，本体没坏，换摩擦片即可。
-					ctx.Sess.pushSystemChat("摩擦片磨穿、泄力失效，请到工坊更换摩擦片")
+					ctx.Sess.pushSystemChat("Шайбы фрикциона стёрты, фрикцион не работает — замените шайбы в мастерской")
 				}
 			})
 			if keepFight {
@@ -414,31 +414,31 @@ func hDynamicRodBreak(ctx *Ctx) ([]byte, bool) {
 				return body, true
 			}
 			// 断件必丢鱼：11028 只表达装备损坏，另经聊天频道提示跑鱼。
-			reason := "断竿"
+			reason := "поломка удилища"
 			switch {
 			case outcome.ComponentBroken:
-				reason = "钓组组件断裂"
+				reason = "поломка элемента оснастки"
 			case outcome.ReelBroken:
 				// 轮子本体磨穿，真坏了。
-				reason = "渔线轮超载"
+				reason = "перегрузка катушки"
 			case outcome.FrictionWorn:
 				// 摩擦片磨穿、泄力失效：鱼借线跑了，轮子本体没坏。
-				reason = "泄力失效"
+				reason = "Фрикцион не работает"
 			case outcome.ReelDamaged:
 				// 泄力打滑：鱼借线跑了，摩擦片只是轻微磨损。
-				reason = "泄力打滑"
+				reason = "Пробуксовка фрикциона"
 			case outcome.LineBroken && outcome.BreakPart == "leader":
-				reason = "断子线"
+				reason = "обрыв поводка"
 			case outcome.LineBroken:
-				reason = "断主线"
+				reason = "обрыв основной лески"
 			}
 			srv.notifyFishEscape(ctx.Sess, pending, reason)
 			return body, true
 		}
-		ctx.Log.Warn("17/9 断件处理失败", "rod", shortGUID(rodGUID), "err", err)
+		ctx.Log.Warn("17/9 Не удалось обработать поломку", "rod", shortGUID(rodGUID), "err", err)
 	}
 	if srv.DB != nil {
-		ctx.ReplyFailure("System.InvalidOperationException", "断件处理失败，请重新取竿后重试")
+		ctx.ReplyFailure("System.InvalidOperationException", "Не удалось обработать поломку, возьмите удилище снова и повторите")
 		return nil, true
 	}
 
@@ -501,17 +501,17 @@ func hRodCutLine(ctx *Ctx) ([]byte, bool) {
 	pending := st.Pending
 	st.mu.Unlock()
 	if rodGUID == "" || rodGUID == zeroGUID {
-		ctx.Log.Warn("17/10 剪线被拒：没有在手的鱼竿", "cut_m", cutM)
+		ctx.Log.Warn("17/10 Обрезка лески отклонена: нет удилища в руках", "cut_m", cutM)
 		return snapshot()
 	}
 	// 没有放线时不接受剪线：客户端误触也不该把整套钩组清空。
 	if cutM <= 0 && !inWater {
-		ctx.Log.Info("17/10 剪线被拒：当前没有放线", "rod", shortGUID(rodGUID))
+		ctx.Log.Info("17/10 Обрезка лески отклонена: леска сейчас не размотана", "rod", shortGUID(rodGUID))
 		return snapshot()
 	}
 	outcome, err := srv.cutLineTx(ctx.Sess.pushCtx(), ctx.Sess.Userid, rodGUID, cutM)
 	if err != nil {
-		ctx.Log.Warn("17/10 剪线失败", "rod", shortGUID(rodGUID), "cut_m", cutM, "err", err)
+		ctx.Log.Warn("17/10 Не удалось обрезать леску", "rod", shortGUID(rodGUID), "cut_m", cutM, "err", err)
 		return snapshot()
 	}
 	// 线已剪断，本次抛投到此结束；线上还挂着鱼就算跑鱼。
@@ -529,9 +529,9 @@ func hRodCutLine(ctx *Ctx) ([]byte, bool) {
 	st.mu.Unlock()
 	if pending != nil {
 		srv.bumpFishingCounter(ctx.Sess.Userid, "escapes")
-		srv.notifyFishEscape(ctx.Sess, pending, "剪线跑鱼")
+		srv.notifyFishEscape(ctx.Sess, pending, "Леска обрезана, рыба ушла")
 	}
-	ctx.Log.Info("17/10 剪线", "rod", shortGUID(rodGUID), "cut_m", cutM,
+	ctx.Log.Info("17/10 Обрезка лески", "rod", shortGUID(rodGUID), "cut_m", cutM,
 		"line_loss_m", outcome.LineLossM, "line_left", srv.rodLineLengthLeft(ctx.Sess.pushCtx(), rodGUID),
 		"removed", len(outcome.RemovedGUIDs))
 	removed := append([]string(nil), outcome.RemovedGUIDs...)
@@ -592,7 +592,7 @@ func hDynamicRewardEntry(ctx *Ctx) ([]byte, bool) {
 			row.WireClass == "enikeammfen" && row.TypeID == 2015 {
 			if hasVisibility {
 				if err := setRewardVisibility(ctx.Sess.pushCtx(), srv.DB, row, visibility); err != nil {
-					ctx.Log.Error("3/40 奖赏可见性写库失败", "guid", shortGUID(guid), "err", err)
+					ctx.Log.Error("3/40 Не удалось записать видимость наград", "guid", shortGUID(guid), "err", err)
 					return nil, false
 				}
 			}
@@ -734,7 +734,7 @@ func (s *Server) consumeHanditemLoadedForThrow(ctx context.Context, parentGUID s
 		}
 		return out
 	}
-	itemID, uid := row.ItemID, row.UID // 扣料前记下，供用尽后按同种饵补填
+	itemID, uid := row.ItemID, row.UID // 扣料前记下, 供用尽后按同种饵补填
 	if s.consumeItemQty(ctx, row, 1) < 1 {
 		return out
 	}
@@ -778,7 +778,7 @@ func (s *Server) reloadHanditemAfterThrow(ctx context.Context, uid int64, parent
 	}
 	if loaded := s.handitemLoadedGuid(ctx, parentGUID); loaded != "" && loaded != zeroGUID {
 		if row, _ := s.DB.GetItemByGUID(ctx, loaded); row != nil {
-			return nil // 弹药格还有料，不补
+			return nil // 弹药格还有料, 不补
 		}
 	}
 	rows, err := s.DB.SQL.QueryContext(ctx,
@@ -805,7 +805,7 @@ func (s *Server) reloadHanditemAfterThrow(ctx context.Context, uid int64, parent
 		if res.Rejected || res.MountedGUID == "" {
 			continue
 		}
-		s.log.Info("弹弓抛后自动补填", "parent", shortGUID(parentGUID), "item", itemID,
+		s.log.Info("Автодозаправка после выстрела из рогатки", "parent", shortGUID(parentGUID), "item", itemID,
 			"src", shortGUID(g), "child", shortGUID(res.MountedGUID))
 		return res
 	}
@@ -1031,11 +1031,11 @@ func hHandThrowGroundbait(ctx *Ctx) ([]byte, bool) {
 	cat, known := srv.itemCategoryOf(pushCtx, row)
 	if !known || (cat != catGroundbaitMix && cat != catPVAStick) {
 		// 手抛别的物件眼下不归窝料系统管；留一行日志，下次扔别的品类能立刻认出来再接。
-		ctx.Log.Info("手抛暂不接管", "item", row.ItemID, "category", cat)
+		ctx.Log.Info("Ручной бросок пока не обрабатывается", "item", row.ItemID, "category", cat)
 		return nil, false
 	}
 	if srv.consumeItemQty(pushCtx, row, 1) < 1 {
-		ctx.Log.Warn("手抛扣料失败", "item", row.ItemID, "hand", shortGUID(guid))
+		ctx.Log.Warn("Не удалось списать материал при ручном броске", "item", row.ItemID, "hand", shortGUID(guid))
 		return nil, false
 	}
 	// 客户端本地那一格已经少了：服务端要么更新数量要么删掉，否则重登就复活。
@@ -1074,7 +1074,7 @@ func (s *Server) depositHandThrownGroundbait(ctx *Ctx, itemID, guid string, dist
 	if gbLoc == "" {
 		return
 	}
-	ctx.Log.Info("手抛窝料落点", "src", gbSrc, "x", gbX, "z", gbZ, "has_pos", gbHas, "dist", dist)
+	ctx.Log.Info("Точка падения прикормки при ручном броске", "src", gbSrc, "x", gbX, "z", gbZ, "has_pos", gbHas, "dist", dist)
 	s.groundbaitDeposit(ctx.Sess.pushCtx(), uid, gbLoc, gbX, gbZ, gbHas, gbSpot, itemID, portions, "hand",
 		fmt.Sprintf("hand:%s:%d:%d", itemID, ctx.Sess.ID, ctx.CallID), guid)
 }

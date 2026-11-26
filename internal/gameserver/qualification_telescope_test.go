@@ -21,15 +21,15 @@ func TestQualificationTelescopicRuleMetadata(t *testing.T) {
 			t.Fatal(err)
 		}
 		if got := rule.Fields[5].Val.Items; len(got) != 1 || got[0].U32Val() != 3 {
-			t.Fatalf("%d 应限定伸缩竿 [3]，实得 %v", id, got)
+			t.Fatalf("%d 应限定伸缩竿 [3], 实得 %v", id, got)
 		}
 		if id == 4303 {
 			if got := rule.Fields[6].Val.Items; len(got) != 1 || got[0].U32Val() != 1 {
-				t.Fatalf("4303 硬度应为 [1]，实得 %v", got)
+				t.Fatalf("4303 硬度应为 [1], 实得 %v", got)
 			}
 		}
 		if id == 4602 && *rule.Fields[4].Num != 0 {
-			t.Fatalf("4602 静态规则不应额外限定钓组类别，实得 %d", *rule.Fields[4].Num)
+			t.Fatalf("4602 静态规则不应额外限定钓组类别, 实得 %d", *rule.Fields[4].Num)
 		}
 	}
 }

@@ -109,7 +109,7 @@ func TestAttachStaticSourceIsReadOnly(t *testing.T) {
 	defer conn.ExecContext(context.Background(), `DETACH DATABASE src`)
 	_, err = conn.ExecContext(ctx, `UPDATE src.item_catalog SET name=name WHERE rowid=(SELECT MIN(rowid) FROM src.item_catalog)`)
 	if err == nil || !strings.Contains(strings.ToLower(err.Error()), "readonly") {
-		t.Fatalf("ATTACH 源库必须只读，实得 err=%v", err)
+		t.Fatalf("ATTACH 源库必须只读, 实得 err=%v", err)
 	}
 }
 

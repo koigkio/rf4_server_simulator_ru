@@ -92,7 +92,7 @@ func TestCatchLogTackleCatBackfill(t *testing.T) {
 			t.Fatal(err)
 		}
 		if got != r.want {
-			t.Fatalf("%s 的 tackle_cat=%d，期望 %d（回执 SkillID=%q）", r.fish, got, r.want, r.skillID)
+			t.Fatalf("%s 的 tackle_cat=%d, 期望 %d (回执 SkillID=%q)", r.fish, got, r.want, r.skillID)
 		}
 	}
 	var upper int64
@@ -101,14 +101,14 @@ func TestCatchLogTackleCatBackfill(t *testing.T) {
 		t.Fatal(err)
 	}
 	if upper != 3 {
-		t.Fatalf("大写 GUID 回执行回填=%d，期望 3", upper)
+		t.Fatalf("大写 GUID 回执行回填=%d, 期望 3", upper)
 	}
 
 	// 幂等：两次执行后行数与已填行数都不变，且只落在 {1,2,3,11}。
 	// 已填 = 4 条有效回执 + 1 条大写 GUID 行 = 5；roach 无回执、perch 非法 SkillID 保持 0。
 	total, filled := countRows()
 	if total != baselineTotal || filled != 5 {
-		t.Fatalf("回填后行数=%d(基线%d) 已填=%d，期望已填 5", total, baselineTotal, filled)
+		t.Fatalf("回填后行数=%d(基线%d) 已填=%d, 期望已填 5", total, baselineTotal, filled)
 	}
 	var bad int
 	if err := db.SQL.QueryRowContext(ctx,
@@ -164,6 +164,6 @@ func TestCatchLogTackleCatBackfillBadJSON(t *testing.T) {
 		t.Fatal(err)
 	}
 	if got != 0 {
-		t.Fatalf("损坏回执的行应保持 0，实得 %d", got)
+		t.Fatalf("损坏回执的行应保持 0, 实得 %d", got)
 	}
 }

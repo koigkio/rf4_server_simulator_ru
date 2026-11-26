@@ -20,12 +20,12 @@ import (
 type baitMountKind int
 
 const (
-	baitKindBoil    baitMountKind = iota // 下沉煮饵/天然饵（fopbhlmkcpe=1）
-	baitKindInsect                       // 蛆虫族（fopbhlmkcpe=2/7）
-	baitKindPopup                        // 浮性 Pop-up 煮饵（fopbhlmkcpe=8）
-	baitKindPellets                      // 颗粒（fopbhlmkcpe=9）
-	baitKindCorn                         // 玉米浮（fopbhlmkcpe=10）
-	baitKindFoam                         // 泡沫（hm_foamr*，无 fopbhlmkcpe）
+	baitKindBoil    baitMountKind = iota // 下沉煮饵/天然饵 (fopbhlmkcpe=1)
+	baitKindInsect                       // 蛆虫族 (fopbhlmkcpe=2/7)
+	baitKindPopup                        // 浮性 Pop-up 煮饵 (fopbhlmkcpe=8)
+	baitKindPellets                      // 颗粒 (fopbhlmkcpe=9)
+	baitKindCorn                         // 玉米浮 (fopbhlmkcpe=10)
+	baitKindFoam                         // 泡沫 (hm_foamr*, 无 fopbhlmkcpe)
 	baitKindOther
 )
 

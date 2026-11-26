@@ -5,18 +5,18 @@ import { h, $, api, post, icon, getToken, setToken, onAuth, route, render, navig
 
 // 保留各页说明作为链接提示；常驻导航只展示图标与页名。
 const NAV = [
-  ['dashboard', '总览', '服务状态 · 在线 · 最近改动', 'home'],
-  ['players', '玩家管理', '档案 · 资产 · 鱼护 · 技能 · 邮箱', 'users'],
-  ['shop', '商店与库存', '改货架价格和库存', 'store'],
-  ['rules', '钓场与鱼口', '玩法开关 · 出什么鱼 · 咬钩快慢', 'water'],
-  ['waters', '水域与鱼种', '每个水域出哪些鱼', 'map'],
-  ['hooks', '钩子手感', '真实型号 · 入口容量 · 咬口概率', 'hook'],
-  ['bait', '鱼饵偏好', '每种鱼现在吃什么', 'bait'],
-  ['mail', '邮件', '发消息和物品附件', 'mail'],
-  ['tuning', '游戏参数', '手感 · 收益 · 活动', 'sliders'],
-  ['release', '发布说明', '版本更新 · 修复内容', 'doc'],
-  ['about', '关于', '项目说明 · README', 'info'],
-  ['audit', '审计日志', '后台每次操作的留痕', 'list'],
+  ['dashboard', 'Обзор', 'Сервисы · онлайн · последние изменения', 'home'],
+  ['players', 'Игроки', 'Профиль · имущество · садок · навыки · почта', 'users'],
+  ['shop', 'Магазин и склад', 'Цены и наличие на полках', 'store'],
+  ['rules', 'Ловля и клёв', 'Переключатели · какая рыба · скорость клёва', 'water'],
+  ['waters', 'Водоёмы и рыбы', 'Какая рыба водится на каждом водоёме', 'map'],
+  ['hooks', 'Ощущение крючков', 'Реальные модели · размер · вероятность засечки', 'hook'],
+  ['bait', 'Предпочтения наживки', 'Что сейчас ест каждая рыба', 'bait'],
+  ['mail', 'Почта', 'Сообщения и вложения с предметами', 'mail'],
+  ['tuning', 'Параметры игры', 'Ощущения · доход · события', 'sliders'],
+  ['release', 'Список изменений', 'Обновления версий · исправления', 'doc'],
+  ['about', 'О проекте', 'Описание проекта · README', 'info'],
+  ['audit', 'Журнал аудита', 'След каждого действия в админке', 'list'],
 ];
 const PAGES = {
   dashboard: () => import('./pages/dashboard.js'),
@@ -61,16 +61,16 @@ function portNow() { return location.port && location.port !== '80' ? location.p
 function brand() {
   return h('div', { class: 'brand' },
     h('b', { text: 'RF4' }),
-    h('span', { text: '管理工作台' }),
-    h('em', { text: BUILD + ' · 本地 ' + portNow() }));
+    h('span', { text: 'Рабочая панель администратора' }),
+    h('em', { text: BUILD + ' · Локально ' + portNow() }));
 }
 
 // 左栏：照片长条 + 品牌 + 总类导航 + 底部主题/账号。
 function rail() {
-  const nav = h('nav', { id: 'rail', 'aria-label': '总类导航' });
+  const nav = h('nav', { id: 'rail', 'aria-label': 'Навигация по разделам' });
   const toggle = h('button', { id: 'navToggle', type: 'button', 'aria-controls': 'rail railFoot',
     'aria-expanded': 'false', onclick: () => toggle.setAttribute('aria-expanded', String(toggle.getAttribute('aria-expanded') !== 'true')) },
-    icon('list', 18), '菜单');
+    icon('list', 18), 'Меню');
   NAV.forEach(([key, label, sub, ic]) => {
     nav.append(h('a', { href: '#' + key, title: sub, dataset: { route: key }, onpointerenter: () => warm(key), onfocus: () => warm(key),
       onclick: () => { if (location.hash === '#' + key) closeNavigation(); } },
@@ -78,7 +78,7 @@ function rail() {
       h('span', { class: 'txt' }, h('b', { text: label }))));
   });
   const signedIn = !!getToken();
-  const accountAction = signedIn ? '退出登录' : '登录';
+  const accountAction = signedIn ? 'Выйти' : 'Войти';
   return h('aside', { class: 'rail', id: 'workspaceRail', onkeydown: (e) => {
     if (e.key === 'Escape' && toggle.getAttribute('aria-expanded') === 'true') closeNavigation();
   } },
@@ -88,7 +88,7 @@ function rail() {
     nav,
     h('div', { class: 'rail-foot', id: 'railFoot' },
       h('div', { class: 'who' },
-        h('span', { text: signedIn ? (me?.username || '管理员') : '未登录' }),
+        h('span', { text: signedIn ? (me?.username || 'Администратор') : 'Не выполнен вход' }),
         h('button', { class: 'who-out', type: 'button', title: accountAction, onclick: signedIn ? logout : () => loginDialog() },
           icon('logout', 15), accountAction))));
 }
@@ -114,7 +114,7 @@ function topBar() {
   } });
   function sync() {
     document.body.classList.toggle('rail-collapsed', collapsed);
-    const action = collapsed ? '展开侧边栏' : '收起侧边栏';
+    const action = collapsed ? 'Развернуть боковую панель' : 'Свернуть боковую панель';
     toggle.setAttribute('aria-expanded', String(!collapsed));
     toggle.setAttribute('aria-label', action);
     toggle.title = action;
@@ -124,27 +124,27 @@ function topBar() {
   return h('div', { class: 'top' },
     h('div', { class: 'crumb', id: 'crumb' },
       toggle,
-      h('span', { text: 'RF4' }), h('i', { text: '/' }), h('span', { id: 'crumbGroup', text: '总览' })),
+      h('span', { text: 'RF4' }), h('i', { text: '/' }), h('span', { id: 'crumbGroup', text: 'Обзор' })),
     h('div', { class: 'tools' },
       // 在控制中心的 iframe 里才出现「回控制中心」，单独打开 /admin/ 时不打扰
-      inFrame() ? h('a', { class: 'ghost back-home', href: '/', target: '_top', text: '← 控制中心' }) : null,
-      h('span', { id: 'stamp', text: '本地 · ' + portNow() + ' · ' + BUILD }),
-      getToken() ? null : h('button', { class: 'ghost', id: 'loginBtn', type: 'button', onclick: () => loginDialog(), text: '登录' }),
-      h('button', { class: 'ghost', id: 'reload', type: 'button', onclick: reloadPage, text: '刷新本页' })));
+      inFrame() ? h('a', { class: 'ghost back-home', href: '/', target: '_top', text: '← Назад', title: 'Вернуться в центр управления' }) : null,
+      h('span', { id: 'stamp', text: 'Локально · ' + portNow() + ' · ' + BUILD }),
+      getToken() ? null : h('button', { class: 'ghost', id: 'loginBtn', type: 'button', onclick: () => loginDialog(), text: 'Войти' }),
+      h('button', { class: 'ghost', id: 'reload', type: 'button', onclick: reloadPage, text: 'Обновить страницу' })));
 }
 
 function pageFoot() {
   return h('footer', { class: 'pagefoot' },
-    h('span', { text: '本地管理后台 · 数据来自正在运行的服务器' }),
-    h('span', { text: '每一步操作都会写进「审计日志」' }));
+    h('span', { text: 'Локальная админ-панель · данные с работающего сервера' }),
+    h('span', { text: 'Каждое действие записывается в «Журнал аудита»' }));
 }
 
 function setCrumb(name) {
   const item = NAV.find(([k]) => k === name);
   const g = $('#crumbGroup');
-  if (g) g.textContent = item ? item[1] : '总览';
+  if (g) g.textContent = item ? item[1] : 'Обзор';
   const mobile = $('#mobilePage');
-  if (mobile) mobile.textContent = item ? item[1] : '总览';
+  if (mobile) mobile.textContent = item ? item[1] : 'Обзор';
   // 换页时清掉上一页留下的末级（二级页签名），避免面包屑挂错分类。
   const c = document.getElementById('crumb');
   if (c) c.querySelectorAll('i.tail,b').forEach((n) => n.remove());
@@ -161,7 +161,7 @@ document.addEventListener('rf4:route', (e) => {
 });
 
 // ---- 主题 ----
-const THEMES = [['system', '跟随系统'], ['light', '浅色 · 骨白'], ['dark', '深色 · 墨黑']];
+const THEMES = [['system', 'Как в системе'], ['light', 'Светлая · кость'], ['dark', 'Тёмная · тушь']];
 const themeLabel = (v) => (THEMES.find(([k]) => k === v) || THEMES[0])[1];
 
 // 只改页面状态，不碰任何节点：这样没挂进 DOM 的控件也能先算好文案。
@@ -201,7 +201,7 @@ export function themeMenu() {
   }, label);
 
   const menu = h('ul', {
-    id: 'themeMenu', class: 'theme-menu', role: 'listbox', 'aria-label': '界面主题',
+    id: 'themeMenu', class: 'theme-menu', role: 'listbox', 'aria-label': 'Тема интерфейса',
     hidden: true,
     onkeydown: (ev) => {
       const items = [...menu.children];
@@ -253,7 +253,7 @@ export function themeMenu() {
 
   const btn = h('button', {
     id: 'themeBtn', type: 'button', class: 'theme-pick', 'aria-haspopup': 'listbox',
-    'aria-expanded': 'false', 'aria-controls': 'themeMenu', title: '界面主题',
+    'aria-expanded': 'false', 'aria-controls': 'themeMenu', title: 'Тема интерфейса',
     onclick: (e) => {
       e.stopPropagation();
       if (menu.hidden) open(); else close();
@@ -261,7 +261,7 @@ export function themeMenu() {
     onkeydown: (e) => {
       if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); if (menu.hidden) open(); }
     },
-  }, h('span', { class: 'tb-lab', text: '界面主题选择' }), h('span', { id: 'themeNow', text: themeLabel(saved) }));
+  }, h('span', { class: 'tb-lab', text: 'Выбор темы интерфейса' }), h('span', { id: 'themeNow', text: themeLabel(saved) }));
 
   // 按钮此刻还没挂进文档，paintTheme 直接对齐这两个本地节点，
   // 否则回到总览时按钮文案会退回默认值（localStorage 已经是新主题）。
@@ -295,24 +295,24 @@ export function updateBanner(u, slotEl) {
   if (!slot) return;
   if (!u || !u.available) { slot.replaceChildren(); return; }
   const links = [
-    [u.download_mirror_url, '下载（国内加速）', 'primary'],
-    [u.download_url, '从 GitHub 下载', ''],
-    [u.channel === 'preview' ? '' : u.preview_download_mirror, '抢先体验预览版', 'ghost'],
-    [u.notes_url, '看看更新了什么', 'ghost'],
+    [u.download_mirror_url, 'Скачать (зеркало для Китая)', 'primary'],
+    [u.download_url, 'Скачать с GitHub', ''],
+    [u.channel === 'preview' ? '' : u.preview_download_mirror, 'Попробовать предварительную версию', 'ghost'],
+    [u.notes_url, 'Что нового', 'ghost'],
   ].filter(([url]) => safeURL(url)).map(([url, label, kind]) => h('a', { class: 'pill ' + (kind === 'primary' ? 'ok' : ''), href: safeURL(url), target: '_blank', rel: 'noreferrer', text: label }));
   const dismiss = u.forced ? null : h('button', {
-    class: 'ghost', text: '跳过这个版本', onclick: async () => {
+    class: 'ghost', text: 'Пропустить эту версию', onclick: async () => {
       try {
         const r = await fetch('/api/update/dismiss', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ version: u.latest_version }) });
         if (!r.ok) throw new Error('HTTP ' + r.status);
         slot.replaceChildren();
-      } catch (e) { toast('操作失败：' + errText(e), 'bad'); }
+      } catch (e) { toast('Действие не выполнено: ' + errText(e), 'bad'); }
     },
   });
   slot.replaceChildren(h('div', { class: 'upd', style: { margin: '0 0 14px' } },
-    h('b', { text: u.forced ? '需要升级' : '有新版本' }),
+    h('b', { text: u.forced ? 'Требуется обновление' : 'Есть новая версия' }),
     h('span', { class: 'ver', text: u.latest_version }),
-    h('span', { class: 'hint', style: { margin: '0' }, text: '当前 ' + (u.current_version || '未上报') + (u.size_text ? ' · 更新包 ' + u.size_text : '') }),
+    h('span', { class: 'hint', style: { margin: '0' }, text: 'Текущая ' + (u.current_version || 'Нет данных') + (u.size_text ? ' · Пакет обновления ' + u.size_text : '') }),
     h('span', { class: 'sp' }),
     ...links,
     dismiss || null));
@@ -332,10 +332,10 @@ function noticeBar() {
     try { txt = decodeURIComponent(escape(s)); } catch (e) { txt = s; }
   } catch (e) { return null; }
   if (!txt) return null;
-  const p = txt.lastIndexOf('：');
+  const p = txt.lastIndexOf(': ');
   const msg = p > 0 ? [txt.slice(0, p + 1), h('b', { text: txt.slice(p + 1) })] : [txt];
   const bar = h('div', { class: 'notice-bar' }, h('span', {}, msg),
-    h('button', { 'aria-label': '关闭', title: '关闭', onclick: () => { bar.remove(); try { localStorage.setItem(KEY, '1'); } catch (e) {} } }, icon('x', 16)));
+    h('button', { 'aria-label': 'Закрыть', title: 'Закрыть', onclick: () => { bar.remove(); try { localStorage.setItem(KEY, '1'); } catch (e) {} } }, icon('x', 16)));
   return bar;
 }
 
@@ -343,7 +343,7 @@ function noticeBar() {
 function loginView() {
   const user = h('input', { id: 'lu', autocomplete: 'username', required: true });
   const pass = h('input', { id: 'lp', type: 'password', autocomplete: 'current-password', required: true });
-  const submit = h('button', { class: 'primary', style: { width: '100%' }, type: 'submit', text: '登录' });
+  const submit = h('button', { class: 'primary', style: { width: '100%' }, type: 'submit', text: 'Войти' });
   const err = h('p', { class: 'alert', hidden: true });
   const form = h('form', {
     class: 'login-card',
@@ -356,17 +356,17 @@ function loginView() {
         setToken(d.token);
       } catch (ex) {
         err.hidden = false;
-        err.textContent = ex.status === 401 || ex.status === 403 ? '账号或密码不对。' : errText(ex);
+        err.textContent = ex.status === 401 || ex.status === 403 ? 'Неверный логин или пароль.' : errText(ex);
       } finally { submit.disabled = false; }
     },
   },
-  h('h1', { text: '登录管理后台' }),
-  h('p', { class: 'lede', text: '管理玩家、钓鱼玩法、商店和系统设置' }),
+  h('h1', { text: 'Вход в админ-панель' }),
+  h('p', { class: 'lede', text: 'Управление игроками, ловлей, магазином и настройками системы' }),
   err,
-  h('label', { class: 'field' }, h('span', { text: '账号' }), user),
-  h('label', { class: 'field' }, h('span', { text: '密码' }), pass),
+  h('label', { class: 'field' }, h('span', { text: 'Логин' }), user),
+  h('label', { class: 'field' }, h('span', { text: 'Пароль' }), pass),
   submit,
-  h('p', { class: 'hint', html: '忘记密码？账号和密码写在服务器目录的 <code>config.yaml</code> 里（<code>admin.username</code> / <code>admin.password</code>）。发布包默认是 <code>admin</code> / <code>admin123</code>。' }));
+  h('p', { class: 'hint', html: 'Забыли пароль? Логин и пароль записаны в папке сервера в файле <code>config.yaml</code> в папке сервера (<code>admin.username</code> / <code>admin.password</code>). В сборке по умолчанию: <code>admin</code> / <code>admin123</code>. ' }));
   return h('div', { class: 'login' }, form);
 }
 
@@ -378,7 +378,7 @@ async function boot() {
     catch (e) {
       if (e.status === 401 || e.status === 403) { setToken(''); }
       else if (!e.status) {
-        app.replaceChildren(h('div', { class: 'login' }, h('p', { class: 'alert' }, '连接不上管理后台：' + errText(e))));
+        app.replaceChildren(h('div', { class: 'login' }, h('p', { class: 'alert' }, 'Нет связи с админ-панелью: ' + errText(e))));
         return;
       }
     }

@@ -126,18 +126,18 @@ func TestEmptyRodRealCastSettlesNothing(t *testing.T) {
 		if env == nil {
 			t.Fatal("收到空推送帧")
 		}
-		t.Fatal("空竿结算不应推送任何 4/22（官服空竿零磨损、无账可推）")
+		t.Fatal("空竿结算不应推送任何 4/22 (官服空竿零磨损, 无账可推)")
 	case <-time.After(500 * time.Millisecond):
 		// 预期路径：没有推送。
 	}
 
 	row := wearReelRow(t, db, ctx, reelGUID)
 	if row.Durability != 1 {
-		t.Fatalf("空竿后本体耐久应保持 1，实得 %v", row.Durability)
+		t.Fatalf("空竿后本体耐久应保持 1, 实得 %v", row.Durability)
 	}
 	for _, category := range reelWearPartCategories {
 		if _, _, durability := srv.reelPartStateFromRow(ctx, row, category); durability != 1 {
-			t.Fatalf("空竿后品类 %d 耐久应保持 1，实得 %v", category, durability)
+			t.Fatalf("空竿后品类 %d 耐久应保持 1, 实得 %v", category, durability)
 		}
 	}
 }
@@ -193,10 +193,10 @@ func TestWorkshopPartSwapWritesPerformanceAfterBodyRecalc(t *testing.T) {
 	_, afterAgg := reelBodyFromStore(t, srv, db, ctx, reel.GUID)
 	// 换上的必须是满耐久的新件：零件聚合与本体都应随之抬回来。
 	if afterAgg <= 0 {
-		t.Fatalf("换上新零件后零件聚合不应为 0，实得 %.4f", afterAgg)
+		t.Fatalf("换上新零件后零件聚合不应为 0, 实得 %.4f", afterAgg)
 	}
 	if afterRow.Durability <= 0 {
-		t.Fatalf("换上新零件后本体应抬回，实得 %.4f", afterRow.Durability)
+		t.Fatalf("换上新零件后本体应抬回, 实得 %.4f", afterRow.Durability)
 	}
 	fresh, err := srv.syncReelPerformance(ctx, wearReelRow(t, db, ctx, reel.GUID))
 	if err != nil || fresh == nil {
@@ -205,7 +205,7 @@ func TestWorkshopPartSwapWritesPerformanceAfterBodyRecalc(t *testing.T) {
 	if math.Abs(stored.Durability-fresh.Durability) > 1e-9 ||
 		math.Abs(stored.LockedDragKg-fresh.LockedDragKg) > 1e-9 ||
 		math.Abs(stored.CastFriction-fresh.CastFriction) > 1e-9 {
-		t.Fatalf("换件后表里仍是旧本体：本体 %.4f 锁轮承力 %.4f 摩擦 %.4f，按新本体应为本体 %.4f 锁轮承力 %.4f 摩擦 %.4f",
+		t.Fatalf("换件后表里仍是旧本体: 本体 %.4f 锁轮承力 %.4f 摩擦 %.4f, 按新本体应为本体 %.4f 锁轮承力 %.4f 摩擦 %.4f",
 			stored.Durability, stored.LockedDragKg, stored.CastFriction,
 			fresh.Durability, fresh.LockedDragKg, fresh.CastFriction)
 	}
@@ -258,7 +258,7 @@ func TestRepairAbortsWhenReelInternalsFail(t *testing.T) {
 
 	// 自检：确认注入真的会拦住这一次零件写库。
 	if _, uerr := db.SQL.ExecContext(ctx, `UPDATE item SET fields_json = fields_json WHERE guid=?`, reel.GUID); uerr == nil {
-		t.Fatal("注入未生效：零件字段写库没有失败")
+		t.Fatal("注入未生效: 零件字段写库没有失败")
 	}
 
 	before, err := db.GetProfile(ctx, reviewWearUID)
@@ -279,6 +279,6 @@ func TestRepairAbortsWhenReelInternalsFail(t *testing.T) {
 		t.Fatalf("修理失败不应扣费: %v -> %v", before.Silver, after.Silver)
 	}
 	if row := wearReelRow(t, db, ctx, reel.GUID); math.Abs(row.Durability-0.6) > 1e-9 {
-		t.Fatalf("修理失败后本体耐久应保持 0.6，实得 %v", row.Durability)
+		t.Fatalf("修理失败后本体耐久应保持 0.6, 实得 %v", row.Durability)
 	}
 }

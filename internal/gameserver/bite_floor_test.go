@@ -106,7 +106,7 @@ func TestBiteFloorUsesEffectiveLocConfig(t *testing.T) {
 			st.mu.Unlock()
 			got := time.Until(due)
 			if got < c.want-200*time.Millisecond || got > c.want+300*time.Millisecond {
-				t.Fatalf("下一次咬钩排期=%v，期望约 %v", got, c.want)
+				t.Fatalf("下一次咬钩排期=%v, 期望约 %v", got, c.want)
 			}
 		})
 	}

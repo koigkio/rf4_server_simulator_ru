@@ -65,7 +65,7 @@ func (a *app) updateHealthSnapshot() updateHealth {
 func (a *app) runUpdateChecks() {
 	if buildinfo.BuildTs == "0" {
 		a.finishUpdateCheck(updatecheck.ErrUnknownLocalBuildTs)
-		a.log.Warn("跳过更新检测: " + updatecheck.ErrUnknownLocalBuildTs.Error())
+		a.log.Warn("Проверка обновлений пропущена: " + updatecheck.ErrUnknownLocalBuildTs.Error())
 		return
 	}
 	select {
@@ -88,7 +88,7 @@ func (a *app) runUpdateChecks() {
 
 func (a *app) checkUpdates() {
 	if a.updates == nil {
-		a.finishUpdateCheck(errors.New("更新检测未初始化"))
+		a.finishUpdateCheck(errors.New("Проверка обновлений не инициализирована"))
 		return
 	}
 	a.beginUpdateCheck()
@@ -96,12 +96,12 @@ func (a *app) checkUpdates() {
 	if err != nil {
 		// 保留上一次成功结论供卡片展示，同时记录本次连接失败。
 		a.finishUpdateCheck(err)
-		a.log.Warn("检查更新失败（将按周期重试）: " + err.Error())
+		a.log.Warn("Не удалось проверить обновления (будет повтор по расписанию): " + err.Error())
 		return
 	}
 	a.finishUpdateCheck(nil)
 	if res.Available {
-		a.log.Info("发现新版本 " + res.LatestVersion + "（当前 " + res.CurrentVersion + "），详见控制中心版本卡片")
+		a.log.Info("Найдена новая версия " + res.LatestVersion + "(текущая " + res.CurrentVersion + "), подробности в карточке версии центра управления")
 	}
 	a.pushUpdateInfo(res)
 }
@@ -140,7 +140,7 @@ func adminUpdateInfo(res *updatecheck.Result) *admin.UpdateInfo {
 // 记住"本版本不再提醒"，写入 update_state.json，重启后仍生效。
 func (a *app) handleUpdateDismiss(w http.ResponseWriter, r *http.Request) {
 	if a.updates == nil {
-		httpError(w, "更新检测未初始化")
+		httpError(w, "Проверка обновлений не инициализирована")
 		return
 	}
 	var body struct {
@@ -148,11 +148,11 @@ func (a *app) handleUpdateDismiss(w http.ResponseWriter, r *http.Request) {
 	}
 	raw, err := io.ReadAll(io.LimitReader(r.Body, 4<<10))
 	if err != nil || json.Unmarshal(raw, &body) != nil || strings.TrimSpace(body.Version) == "" {
-		httpError(w, "version 不能为空")
+		httpError(w, "version не может быть пустым")
 		return
 	}
 	if err := a.updates.Dismiss(strings.TrimSpace(body.Version)); err != nil {
-		httpError(w, "保存不再提醒状态失败: "+err.Error())
+		httpError(w, "Не удалось сохранить отказ от напоминания: "+err.Error())
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)

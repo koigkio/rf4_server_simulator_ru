@@ -13,7 +13,7 @@ func (s *Server) handlePlayerMembership(w http.ResponseWriter, r *http.Request) 
 		ExpiresAt int64 `json:"expiresAt"`
 	}
 	if err := readJSON(r, &req); err != nil || req.UID <= 0 {
-		httpError(w, 400, "参数错误")
+		httpError(w, 400, "Неверные параметры")
 		return
 	}
 	if err := s.db.SetMembership(r.Context(), req.UID, req.Kind, req.ExpiresAt, adminOf(r), time.Now().Unix()); err != nil {

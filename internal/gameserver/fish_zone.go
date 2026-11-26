@@ -46,7 +46,7 @@ func (s *Server) fishZonesFor(ctx context.Context, loc string) []store.FishZone 
 	}
 	all, err := s.DB.ListFishZones(ctx)
 	if err != nil {
-		s.log.Warn("读取区域鱼种名册失败", "err", err)
+		s.log.Warn("Не удалось прочитать список видов рыб зоны", "err", err)
 		all = nil
 	}
 	m := map[string][]store.FishZone{}
@@ -134,7 +134,7 @@ func zoneHitNote(zones []store.FishZone, c fishRollContext) string {
 		if name == "" {
 			name = "#" + fmt.Sprint(z.ID)
 		}
-		parts = append(parts, name+"（"+z.Mode+"）")
+		parts = append(parts, name+" ("+z.Mode+")")
 	}
 	return strings.Join(parts, "+")
 }

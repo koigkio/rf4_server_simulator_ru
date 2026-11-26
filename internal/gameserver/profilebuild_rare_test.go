@@ -25,12 +25,12 @@ func TestProfile307StarCountsRareSpecies(t *testing.T) {
 			t.Fatalf("插入钓获记录 %s: %v", fish, err)
 		}
 	}
-	insert(uid, "fish_common", 2)    // 普通鱼，不计
+	insert(uid, "fish_common", 2)    // 普通鱼, 不计
 	insert(uid, "fish_rare_a", 3)    // 稀有
-	insert(uid, "fish_rare_a", 3)    // 同鱼种第二条稀有，去重后不重复计
-	insert(uid, "fish_super", 4)     // 超级稀有，也计入
+	insert(uid, "fish_rare_a", 3)    // 同鱼种第二条稀有, 去重后不重复计
+	insert(uid, "fish_super", 4)     // 超级稀有, 也计入
 	insert(uid, "fish_rare_b", 3)    // 稀有
-	insert(uid+1, "fish_foreign", 4) // 其他玩家，不应计入
+	insert(uid+1, "fish_foreign", 4) // 其他玩家, 不应计入
 
 	// store 层口径（24/19 f5 与 307.f16 共用）。
 	n, err := db.RareSpeciesCount(ctx, uid, 3)
@@ -38,7 +38,7 @@ func TestProfile307StarCountsRareSpecies(t *testing.T) {
 		t.Fatal(err)
 	}
 	if n != 3 {
-		t.Fatalf("RareSpeciesCount 应为 3 个鱼种（按条数会是 4），实得 %d", n)
+		t.Fatalf("RareSpeciesCount 应为 3 个鱼种 (按条数会是 4), 实得 %d", n)
 	}
 
 	p, err := srv.BuildProfile307(ctx, uid)
@@ -46,6 +46,6 @@ func TestProfile307StarCountsRareSpecies(t *testing.T) {
 		t.Fatal(err)
 	}
 	if got := u32Of(p.Fields[16].Num); got != 3 {
-		t.Fatalf("307.f16 奖杯鱼种数应为 3，实得 %d", got)
+		t.Fatalf("307.f16 奖杯鱼种数应为 3, 实得 %d", got)
 	}
 }

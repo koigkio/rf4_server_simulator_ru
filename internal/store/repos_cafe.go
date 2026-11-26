@@ -11,11 +11,11 @@ import (
 )
 
 var (
-	ErrCafeOrderInvalid      = errors.New("咖啡厅订单参数无效")
-	ErrCafeOrderNotFound     = errors.New("咖啡厅订单不存在")
-	ErrCafeOrderExpired      = errors.New("咖啡厅订单已过期")
-	ErrCafeOrderFishMismatch = errors.New("交付的鱼不符合咖啡厅订单")
-	ErrCafeOrderFishLocked   = errors.New("交付的鱼已被其他挂单占用")
+	ErrCafeOrderInvalid      = errors.New("Неверные параметры заказа кафе")
+	ErrCafeOrderNotFound     = errors.New("Заказ кафе не существует")
+	ErrCafeOrderExpired      = errors.New("Заказ кафе истёк")
+	ErrCafeOrderFishMismatch = errors.New("Сданная рыба не подходит под заказ кафе")
+	ErrCafeOrderFishLocked   = errors.New("Сданная рыба уже занята другим лотом")
 )
 
 type CafeOrderTemplate struct {

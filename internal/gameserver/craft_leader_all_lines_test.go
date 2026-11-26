@@ -109,29 +109,29 @@ func assertCraftedLeaderUsable(
 	}
 	wireClass := categoryWireClass[lineCategory]
 	if lineObj.Class != wireClass.Class || lineObj.TypeID != uint32(wireClass.TypeID) {
-		t.Fatalf("内线协议类型=%s/%d，期望 %s/%d",
+		t.Fatalf("内线协议类型=%s/%d, 期望 %s/%d",
 			lineObj.Class, lineObj.TypeID, wireClass.Class, wireClass.TypeID)
 	}
 	numericID := int64(u64Of(lineObj.Fields[fieldIdxByCS(lineObj.Class, csNumericID)].Num))
 	wireDef, err := db.GetItemDef(ctx, numericID)
 	if err != nil || wireDef == nil {
-		t.Fatalf("内线定义不存在: %d", numericID)
+		t.Fatalf("Определение внутренней лески не существует: %d", numericID)
 	}
 	if wireDef.Category != lineCategory {
-		t.Fatalf("内线模型 %s 品类=%d，期望材料品类 %d",
+		t.Fatalf("内线模型 %s 品类=%d, 期望材料品类 %d",
 			wireDef.ItemID, wireDef.Category, lineCategory)
 	}
 	if got := u64Of(lineObj.Fields[fieldIdxByCS(lineObj.Class, gearAttrLineLen)].Num); got != leaderSweepLengthCM {
-		t.Fatalf("内线长度=%d，期望 %dcm", got, leaderSweepLengthCM)
+		t.Fatalf("内线长度=%d, 期望 %dcm", got, leaderSweepLengthCM)
 	}
 	if got := wireFloatForTest(t, lineObj, csStrength); got < wantLineKg-0.01 || got > wantLineKg+0.01 {
-		t.Fatalf("内线强度=%f，期望按真实线材 %.2fkg", got, wantLineKg)
+		t.Fatalf("内线强度=%f, 期望按真实线材 %.2fkg", got, wantLineKg)
 	}
 	root := wireFloatForTest(t, &proto.Value{
 		Kind: proto.KindObj, Class: crafted.WireClass, Fields: fields, TypeID: uint32(crafted.TypeID),
 	}, csStrength)
 	if root <= 0 {
-		t.Fatalf("成品引线总强度=%f，必须为正", root)
+		t.Fatalf("成品引线总强度=%f, 必须为正", root)
 	}
 
 	tree, err := srv.ItemToTree(ctx, crafted)
@@ -183,7 +183,7 @@ func TestRepresentativeLinesCanCraftCraftedLeader(t *testing.T) {
 			continue
 		}
 		if wireDef.Category != gearCatLeaderWire {
-			t.Errorf("线材 %s 映射到 %s（品类 %d），期望前导线 %d",
+			t.Errorf("线材 %s 映射到 %s (品类 %d), 期望前导线 %d",
 				itemID, wireDef.ItemID, wireDef.Category, gearCatLeaderWire)
 			continue
 		}
@@ -223,12 +223,12 @@ func TestLeaderWireMappingCoversEveryLine(t *testing.T) {
 			continue
 		}
 		if wireDef.Category != gearCatLeaderWire {
-			t.Errorf("线材 %s 映射到 %s（品类 %d），期望前导线 %d",
+			t.Errorf("线材 %s 映射到 %s (品类 %d), 期望前导线 %d",
 				def.ItemID, wireDef.ItemID, wireDef.Category, gearCatLeaderWire)
 			continue
 		}
 		if want := itemDefF32(def, gearAttrMaxLoad); want > 0 && itemDefF32(wireDef, gearAttrMaxLoad) <= 0 {
-			t.Errorf("线材 %s（%.2fkg）映射到零拉力前导线 %s",
+			t.Errorf("线材 %s (%.2fkg)映射到零拉力前导线 %s",
 				def.ItemID, want, wireDef.ItemID)
 		}
 	}
@@ -252,8 +252,8 @@ func TestCraftedLeaderFromUnmappedLineEquipsIntoRig(t *testing.T) {
 	if err != nil {
 		t.Fatalf("造海竿失败: %v", err)
 	}
-	if !srv.rigSetType(ctx, uid, rod.GUID, 50) { // rig_MarinePilker：前导只有 175 一个槽
-		t.Fatal("rigSetType 失败")
+	if !srv.rigSetType(ctx, uid, rod.GUID, 50) { // rig_MarinePilker: 前导只有 175 一个槽
+		t.Fatal("rigSetType Ошибка")
 	}
 	res := srv.rigSetComponent(ctx, uid, rod.GUID, 0, crafted.GUID, 175,
 		rigSetOpts{ParentType: familyRod, EnforceCategory: true})
@@ -265,7 +265,7 @@ func TestCraftedLeaderFromUnmappedLineEquipsIntoRig(t *testing.T) {
 		t.Fatal(err)
 	}
 	if installed.Container != "rig" {
-		t.Fatalf("自制引线装配后容器=%s，期望 rig", installed.Container)
+		t.Fatalf("自制引线装配后容器=%s, 期望 rig", installed.Container)
 	}
 	if gear := srv.rigGearIDs(ctx, uid, rod.GUID); gear.Leader == "" {
 		t.Fatal("钓组没有把自制引线识别为前导")
@@ -297,7 +297,7 @@ func TestCraftedLeaderStaysOnBottomSimple(t *testing.T) {
 		t.Fatalf("引线装不上简易底钓: %+v", res)
 	}
 	if rt := srv.rigTypeForWrite(ctx, rod.GUID); rt != 12 {
-		t.Fatalf("装引线后钓组类型=%d，应保持 BottomSimple(12)", rt)
+		t.Fatalf("装引线后钓组类型=%d, 应保持 BottomSimple(12)", rt)
 	}
 	row, err := db.GetItemByGUID(ctx, rod.GUID)
 	if err != nil || row == nil {
@@ -321,7 +321,7 @@ func TestCraftedLeaderStaysOnBottomSimple(t *testing.T) {
 			t.Fatalf("引线 GUID 不符: %s", shortGUID(c.GUID))
 		}
 		if c.Extra != 150 {
-			t.Fatalf("引线规范索引=%d，期望 150", c.Extra)
+			t.Fatalf("引线规范索引=%d, 期望 150", c.Extra)
 		}
 		found = true
 	}

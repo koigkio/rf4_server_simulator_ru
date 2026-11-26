@@ -16,7 +16,7 @@ type MailRow struct {
 	ID                        int64
 	UID                       int64
 	Sender                    int64
-	Kind                      int64 // 0 纯文本 / 1 带附件（内部记账，协议 type 恒 0）
+	Kind                      int64 // 0 纯文本 / 1 带附件 (内部记账, 协议 type 恒 0)
 	Text                      string
 	ItemsJSON                 string
 	AttachmentSnapshotVersion int64
@@ -111,7 +111,7 @@ func (d *DB) MailInsert(ctx context.Context, uid, sender int64, kind int64, text
 			}
 		}
 		if snapshotVersion != 0 && snapshotVersion != int64(len(items)) {
-			return 0, fmt.Errorf("邮件附件快照格式混用")
+			return 0, fmt.Errorf("Смешанный формат снимков вложений писем")
 		}
 		if snapshotVersion > 0 {
 			snapshotVersion = 1

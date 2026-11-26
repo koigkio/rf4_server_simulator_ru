@@ -43,7 +43,7 @@ func newArmMultiHookRod(t *testing.T, s *Server) string {
 		t.Fatal(err)
 	}
 	if !s.rigSetType(t.Context(), 1000001, rod.GUID, 50) {
-		t.Fatal("rigSetType(50) 失败")
+		t.Fatal("rigSetType(50) Ошибка")
 	}
 	return rod.GUID
 }
@@ -63,7 +63,7 @@ func TestMarineArmHooksFormSeparateBaitGroups(t *testing.T) {
 
 	groups := s.baitedHookSets(ctx, rod)
 	if len(groups) != 2 {
-		t.Fatalf("两枚钩各一枚饵的分组数 = %d，期望 2 组（单钩处理会把饵并到第一枚钩上）: %+v",
+		t.Fatalf("两枚钩各一枚饵的分组数 = %d, 期望 2 组 (单钩处理会把饵并到第一枚钩上): %+v",
 			len(groups), groups)
 	}
 	got := map[string][]string{}
@@ -74,10 +74,10 @@ func TestMarineArmHooksFormSeparateBaitGroups(t *testing.T) {
 		t.Fatalf("分组落到同一枚钩上: %+v", groups)
 	}
 	if b := got[mainHook]; len(b) != 1 || b[0] != baitMain {
-		t.Fatalf("250 钩位分组 = %v，期望仅 %s", b, shortGUID(baitMain))
+		t.Fatalf("250 钩位分组 = %v, 期望仅 %s", b, shortGUID(baitMain))
 	}
 	if b := got[armHook]; len(b) != 1 || b[0] != baitArm {
-		t.Fatalf("1001 钩位分组 = %v，期望仅 %s", b, shortGUID(baitArm))
+		t.Fatalf("1001 钩位分组 = %v, 期望仅 %s", b, shortGUID(baitArm))
 	}
 }
 
@@ -93,14 +93,14 @@ func TestMarineArmFourHooksAllKept(t *testing.T) {
 		mountArmHook(t, s, rod, extra)
 	}
 	if n := len(rigCompKeysOfCategory(s.storedRigComponents(ctx, rod), catHook)); n != 4 {
-		t.Fatalf("f5 钩组件 = %d 个，期望 4 个", n)
+		t.Fatalf("f5 钩组件 = %d 个, 期望 4 个", n)
 	}
 	_, bait0 := baitTestMount(t, s, rod, "worm_01", 1, 350)
 	_, bait1 := baitTestMount(t, s, rod, "muckworm", 1, 351)
 
 	groups := s.baitedHookSets(ctx, rod)
 	if len(groups) != 2 {
-		t.Fatalf("4 钩 2 饵的分组数 = %d，期望 2 组（只判挂了饵的钩）: %+v", len(groups), groups)
+		t.Fatalf("4 钩 2 饵的分组数 = %d, 期望 2 组 (只判挂了饵的钩): %+v", len(groups), groups)
 	}
 	seen := map[string]bool{}
 	for _, g := range groups {
@@ -137,7 +137,7 @@ func TestMarineArmRebaitCoversAllHookOrdinals(t *testing.T) {
 	}
 	groups := s.baitedHookSets(ctx, rod)
 	if len(groups) != 1 || groups[0].hookGUID != hookThird {
-		t.Fatalf("第三枚钩的挂饵分组 = %+v，期望 1 组且钩 = %s", groups, shortGUID(hookThird))
+		t.Fatalf("第三枚钩的挂饵分组 = %+v, 期望 1 组且钩 = %s", groups, shortGUID(hookThird))
 	}
 	if _, err := s.consumeBaitEvent(ctx, 1000001, rod, "arm-bite", groups[0].baitGUIDs, false); err != nil {
 		t.Fatal(err)
@@ -148,18 +148,18 @@ func TestMarineArmRebaitCoversAllHookOrdinals(t *testing.T) {
 		t.Fatalf("断饵后未写 rebait 记录: %v", err)
 	}
 	if key != "rebait:2" {
-		t.Fatalf("rebait 键 = %q，期望 rebait:2（按钩序号记录）", key)
+		t.Fatalf("rebait 键 = %q, 期望 rebait:2 (按钩序号记录)", key)
 	}
 	if _, err := s.reloadBaitForCast(ctx, 1000001, rod); err != nil {
 		t.Fatal(err)
 	}
 	reloaded := s.baitedHookSets(ctx, rod)
 	if len(reloaded) != 1 || reloaded[0].hookGUID != hookThird {
-		t.Fatalf("补饵后分组 = %+v，期望钩 %s 重新挂上饵（遍历上限未覆盖钩序号 2 时补不上）",
+		t.Fatalf("补饵后分组 = %+v, 期望钩 %s 重新挂上饵 (遍历上限未覆盖钩序号 2 时补不上)",
 			reloaded, shortGUID(hookThird))
 	}
 	if row, err := db.GetItemByGUID(ctx, source); err != nil || row == nil || baitQuantity(row) != 3 {
-		t.Fatalf("补饵后来源堆 = %+v，期望剩 3 份（挂 1 吃 1 补 1）", row)
+		t.Fatalf("补饵后来源堆 = %+v, 期望剩 3 份 (挂 1 吃 1 补 1)", row)
 	}
 }
 
@@ -183,11 +183,11 @@ func TestMarineArmBreakOneHookKeepsOthers(t *testing.T) {
 		t.Fatalf("断钩失败: %v", err)
 	}
 	if len(out.RemovedGUIDs) != 1 || out.RemovedGUIDs[0] != broken {
-		t.Fatalf("断 1 枚钩的移除集合 = %v，期望只含 %s", out.RemovedGUIDs, shortGUID(broken))
+		t.Fatalf("断 1 枚钩的移除集合 = %v, 期望只含 %s", out.RemovedGUIDs, shortGUID(broken))
 	}
 	after := s.storedRigComponents(ctx, rod)
 	if n := len(rigCompKeysOfCategory(after, catHook)); n != 3 {
-		t.Fatalf("剩余钩 = %d，期望 3", n)
+		t.Fatalf("剩余钩 = %d, 期望 3", n)
 	}
 	remaining := map[int64]bool{}
 	for _, key := range rigCompKeysOfCategory(after, catHook) {
@@ -195,7 +195,7 @@ func TestMarineArmBreakOneHookKeepsOthers(t *testing.T) {
 	}
 	for _, extra := range []int64{250, 1005, 1009} {
 		if !remaining[extra] {
-			t.Fatalf("钩位 %d 意外丢失，剩余索引 = %v", extra, remaining)
+			t.Fatalf("钩位 %d 意外丢失, 剩余索引 = %v", extra, remaining)
 		}
 	}
 }

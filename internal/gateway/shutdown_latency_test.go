@@ -43,7 +43,7 @@ func TestShutdownNotBlockedByTunnelBackoff(t *testing.T) {
 	}
 	if !waitOpened() {
 		opened, _, _ := stub.Stats()
-		t.Fatalf("隧道上只建立了 %d/%d 条会话，测试前提不成立", len(opened), sessions)
+		t.Fatalf("隧道上只建立了 %d/%d 条会话, 测试前提不成立", len(opened), sessions)
 	}
 
 	// 掐断隧道：此后会话收尾的 sendClose 会走重连路径。
@@ -54,14 +54,14 @@ func TestShutdownNotBlockedByTunnelBackoff(t *testing.T) {
 	_ = gw.RT.Close()
 	rtElapsed := time.Since(start)
 	if rtElapsed > 10*time.Second {
-		t.Fatalf("隧道断开后 rt.Close() 耗时 %v，超过 10s 上界：关闭链被重连退避拖住了", rtElapsed)
+		t.Fatalf("隧道断开后 rt.Close() 耗时 %v, 超过 10s 上界: 关闭链被重连退避拖住了", rtElapsed)
 	}
 
 	start = time.Now()
 	gw.TM.Close()
 	tmElapsed := time.Since(start)
 	if tmElapsed > 10*time.Second {
-		t.Fatalf("隧道断开后 tm.Close() 耗时 %v，超过 10s 上界：会话收尾在隧道管理器锁上串行排队", tmElapsed)
+		t.Fatalf("隧道断开后 tm.Close() 耗时 %v, 超过 10s 上界: 会话收尾在隧道管理器锁上串行排队", tmElapsed)
 	}
 
 	for _, c := range clients {

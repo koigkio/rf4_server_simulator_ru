@@ -39,11 +39,11 @@ const (
 )
 
 type gearBreakOutcome struct {
-	OverloadProtected bool // 取消破坏，不生成成功断件响应或改变当前鱼
+	OverloadProtected bool // 取消破坏, 不生成成功断件响应或改变当前鱼
 	LineBroken        bool
 	ReelDamaged       bool
-	ReelBroken        bool // 轮子耐久本次被打到 0：已损坏，须修理才能再抛投。
-	FrictionWorn      bool // 摩擦片(cat9)磨穿：泄力失效，最大泄力归零，需换摩擦片。
+	ReelBroken        bool // 轮子耐久本次被打到 0: 已损坏, 须修理才能再抛投.
+	FrictionWorn      bool // 摩擦片(cat9)磨穿: 泄力失效, 最大泄力归零, 需换摩擦片.
 	ComponentBroken   bool
 	BreakPart         string // hook / leader / line / reel / rod / component
 	LineLossM         int64
@@ -286,7 +286,7 @@ func (s *Server) breakLineOrRodWithLineOut(ctx context.Context, uid int64, rodGU
 	}
 	if report.category != 0 {
 		if s.log != nil {
-			s.log.Info("17/9 按客户端上报断件", "rod", guidShort(rodGUID),
+			s.log.Info("17/9 Поломка элемента по данным клиента", "rod", guidShort(rodGUID),
 				"reported", guidShort(reportedGUID), "category", report.category)
 		}
 		switch {
@@ -369,7 +369,7 @@ func (s *Server) validateBreakReport(ctx context.Context, uid int64, rodGUID, re
 	// 不能冒充断件，否则任意背包/装饰物品都可能触发真实损坏。
 	if !terminal && !sourceLineCategories[def.Category] &&
 		def.Category != catHook && def.Category != gearCatReel {
-		return validatedBreakReport{}, errors.New("断件类型不支持")
+		return validatedBreakReport{}, errors.New("Тип поломки не поддерживается")
 	}
 
 	fields, err := FieldsFromJSON(rod.FieldsJSON)
@@ -381,7 +381,7 @@ func (s *Server) validateBreakReport(ctx context.Context, uid int64, rodGUID, re
 		return validatedBreakReport{}, err
 	}
 	if !mounted {
-		return validatedBreakReport{}, errors.New("断件不在该钓组中")
+		return validatedBreakReport{}, errors.New("Сломанного элемента нет в этой оснастке")
 	}
 	if terminal {
 		return validatedBreakReport{terminalCategory: def.Category, category: def.Category}, nil
@@ -734,7 +734,7 @@ func (s *Server) breakComponentTx(ctx context.Context, uid int64, rodGUID, compG
 		return nil, err
 	}
 	if !mounted {
-		return nil, errors.New("断件不在该钓组中")
+		return nil, errors.New("Сломанного элемента нет в этой оснастке")
 	}
 	before := comp.Durability
 	// 投影可能先于 f5 存在；摘除投影不能依赖 f5 是否命中。
@@ -920,7 +920,7 @@ func (s *Server) resolveGearBreak(ctx context.Context, uid int64, rodGUID, repor
 		}
 		if s.log != nil {
 			kg2 := func(v float64) float64 { return math.Round(v*100) / 100 }
-			s.log.Info("17/9 断件裁决", "rod", guidShort(rodGUID), "part", best.part,
+			s.log.Info("17/9 Решение по поломке", "rod", guidShort(rodGUID), "part", best.part,
 				"drag_setting", setting, "kg", kg2(best.kg), "rod_kg", kg2(spec.RodPowerKg),
 				"line_kg", kg2(spec.LineStrengthKg), "leader_kg", kg2(spec.LeaderStrengthKg),
 				"hook_kg", kg2(spec.HookStrengthKg),
@@ -1226,7 +1226,7 @@ func (s *Server) breakLineTxWithLineOut(ctx context.Context, uid int64, rodGUID,
 // 主线以下的前导、子线、钩、饵、拟饵、浮漂全部随线丢失，主线本体保留。
 func (s *Server) cutLineTx(ctx context.Context, uid int64, rodGUID string, cutM int64) (*gearBreakOutcome, error) {
 	if cutM <= 0 {
-		return nil, errors.New("剪线长度必须大于 0")
+		return nil, errors.New("Длина обрезки лески должна быть больше 0")
 	}
 	return s.lineLossTx(ctx, uid, rodGUID, "", catLine, lineLossPolicy{
 		requestedM: cutM,
@@ -1402,7 +1402,7 @@ func (s *Server) lineLossTx(ctx context.Context, uid int64, rodGUID, brokenGUID 
 					return nil, ferr
 				}
 				if !setItemQty(row.WireClass, compFields, uint64(qty-1)) {
-					return nil, errors.New("钩饵实例缺少数量字段")
+					return nil, errors.New("У экземпляра наживки на крючке нет поля количества")
 				}
 				row.Qty = qty - 1
 				row.Container = "backpack"
@@ -1631,7 +1631,7 @@ func (s *Server) breakRodTx(ctx context.Context, uid int64, rodGUID, brokenGUID 
 		// f3 是陈旧引用（线已被拆回背包或挂到别的竿）：只清引用不动物品，
 		// 否则会把玩家手里的线改短甚至删掉。lineRow 置空走"无主线"分支。
 		if s.log != nil {
-			s.log.Info("断竿跳过陈旧主线引用", "rod", guidShort(rodGUID),
+			s.log.Info("При поломке удилища пропущена устаревшая ссылка на основную леску", "rod", guidShort(rodGUID),
 				"line", guidShort(lineGUID), "container", lineRow.Container)
 		}
 		lineRow = nil
@@ -1869,11 +1869,11 @@ func buildGearBreakResult(outcome *gearBreakOutcome) (*proto.Value, error) {
 
 // 这些错误只在字段结构异常时返回，调用方可回退到兼容响应。
 var (
-	errLineLengthField = errors.New("鱼线长度字段不存在")
-	errDurabilityField = errors.New("耐久字段不存在")
+	errLineLengthField = errors.New("Нет поля длины лески")
+	errDurabilityField = errors.New("Нет поля прочности")
 	// errReelAlreadyBroken 表示上报的渔轮在本次之前就已经损坏，属于重复上报
 	// （TCP 重传、客户端重试的 17/9 帧），本次不再产生耐久变更或损伤日志。
-	errReelAlreadyBroken = errors.New("渔轮已损坏")
+	errReelAlreadyBroken = errors.New("Катушка сломана")
 )
 
 // frictionWearDetail 组装渔轮磨损日志的 detail。extra 是本次结算的补充诊断字段，

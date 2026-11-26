@@ -97,7 +97,7 @@ func TestTungusShopShelfUsesPricedLocalGoods(t *testing.T) {
 	}
 	for _, id := range []string{"tungus_bot", "tungus_12pack"} {
 		if _, exists := want[id]; exists {
-			t.Fatalf("上游已提供%s，应重新核对本地补齐是否仍有必要", id)
+			t.Fatalf("上游已提供%s, 应重新核对本地补齐是否仍有必要", id)
 		}
 		p, err := db.ItemPriceGet(t.Context(), id)
 		if err != nil || p.Silver != 0 || p.Gold <= 0 || p.Stock != 1 {
@@ -111,7 +111,7 @@ func TestTungusShopShelfUsesPricedLocalGoods(t *testing.T) {
 		id := itemID.StrOr()
 		p, exists := want[id]
 		if !exists || silver.U64() != uint64(p.Silver) || price.U64() != uint64(p.Gold) || stock.U64() != uint64(p.Stock) {
-			t.Fatalf("货架不应漏项、重复、改动实录或估价特产: %s silver=%d gold=%d stock=%d",
+			t.Fatalf("货架不应漏项, 重复, 改动实录或估价特产: %s silver=%d gold=%d stock=%d",
 				id, silver.U64(), price.U64(), stock.U64())
 		}
 		delete(want, id)
@@ -158,7 +158,7 @@ func TestTungusShopPurchaseGrantsDrinkAndGift(t *testing.T) {
 			}
 			goods := response.Field(tc.field).Val
 			if goods == nil || goods.ArgCodeStr() != "61" || goods.ArgCount() != 1 {
-				t.Fatalf("购买响应f%d应包含一件商品，礼盒购买时不展开: %+v", tc.field, goods)
+				t.Fatalf("购买响应f%d应包含一件商品, 礼盒购买时不展开: %+v", tc.field, goods)
 			}
 			items, err := db.ListItemsByContainer(t.Context(), tungusShopTestUID, "backpack")
 			if err != nil || len(items) != 1 || items[0].ItemID != tc.itemID || items[0].Qty != tc.qty || items[0].BuyPrice != tc.buyPrice {
@@ -187,7 +187,7 @@ func TestTungusShopRejectsInvalidPurchases(t *testing.T) {
 		sub    int
 		gold   int64
 	}{
-		{"余额不足", "tungus_bot", 3, 21},
+		{"Недостаточно средств", "tungus_bot", 3, 21},
 		{"没有银币价格", "tungus_bot", 2, 1000},
 		{"其他店的有价饮品", "kvas_bottle", 3, 1000},
 		{"其他店的有价商品", "wallet_50", 3, 1000},
@@ -215,7 +215,7 @@ func TestTungusShopKeepsOverridesAndAutomaticRestock(t *testing.T) {
 	}
 	price, err := db.ShopItemGet(t.Context(), "tungus_015", "tungus_bot")
 	if err != nil || price.Gold != 30 || price.Stock != 1000 {
-		t.Fatalf("零库存应沿用既有自动补货，覆盖价应生效: %+v %v", price, err)
+		t.Fatalf("零库存应沿用既有自动补货, 覆盖价应生效: %+v %v", price, err)
 	}
 	result := srv.dispatch.executeRequest(tungusShopBuyRequest(srv, "tungus_bot", 3), true)
 	if result.failed || result.nativeFailure || !result.hasResponse {

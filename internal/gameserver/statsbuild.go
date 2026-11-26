@@ -263,7 +263,7 @@ func (s *Server) buildStats321(ctx context.Context, uid int64) (*proto.Value, er
 	return wiregen.MustMakeObj("jahbacemfof", map[int]*proto.Value{
 		0: proto.U32(uint32(total)),
 		1: proto.U32(uint32(rare)),
-		2: proto.U32(uint32(superRare)), // 蓝冠（grade>=4）
+		2: proto.U32(uint32(superRare)), // 蓝冠 (grade>=4)
 		3: proto.U32(uint32(s.playerCounter(ctx, uid, "escapes"))),
 		4: proto.U32(uint32(maxDailyCount)),
 		// 客户端反编译实证：DTO ilhlknehckb.cpenllldpnk 是 float（典型范围
@@ -274,9 +274,9 @@ func (s *Server) buildStats321(ctx context.Context, uid int64) (*proto.Value, er
 		8:  card("strongest"),
 		9:  proto.Null(),
 		10: card("max_silver"),
-		11: proto.U64(0), // 语义未定，见上方说明
+		11: proto.U64(0), // 语义未定, 见上方说明
 		12: card("max_xp"),
-		13: proto.U64(0), // 语义未定，见上方说明
+		13: proto.U64(0), // 语义未定, 见上方说明
 		14: card("max_float"),
 		15: card("max_spin"),
 		16: card("max_bottom"),

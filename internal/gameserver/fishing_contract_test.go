@@ -30,27 +30,27 @@ func TestFish27UsesVerifiedFightFields(t *testing.T) {
 	f := &RolledFish{FishGUID: "11111111111111111111111111111111", Species: "c.roach", Grade: 1, WeightG: 186, LengthM: 0.1981}
 	tree := srv.buildFish27(f, "22222222222222222222222222222222", "33333333333333333333333333333333", 24)
 	if defaultFishStaminaScale != 1 {
-		t.Fatalf("默认体力倍率=%f，期望使用真实样本校准值 1", defaultFishStaminaScale)
+		t.Fatalf("默认体力倍率=%f, 期望使用真实样本校准值 1", defaultFishStaminaScale)
 	}
 	if defaultFishInitialStaminaRatio != verifiedInitialStaminaRatio {
-		t.Fatalf("默认初始体力=%f，期望真实样本校准值 %f",
+		t.Fatalf("默认初始体力=%f, 期望真实样本校准值 %f",
 			defaultFishInitialStaminaRatio, verifiedInitialStaminaRatio)
 	}
 	// c.roach 已入官方均值表（2.51/g，P2），不再走 archetype StaminaScale。
 	wantStamina := fishStaminaRatePerGram["c.roach"] * 186
 	if got := f32At(tree, 5); math.Abs(got-wantStamina) > 0.001 {
-		t.Fatalf("c.roach f5 体力池=%f，期望%f", got, wantStamina)
+		t.Fatalf("c.roach f5 体力池=%f, 期望%f", got, wantStamina)
 	}
 	// c.roach 官方 3 样本 f6 恒 0.50（0.05 量化表，specs/changes/fish-official-data-tables）。
 	if got := f32At(tree, 6); math.Abs(got-0.50) > 1e-6 {
-		t.Fatalf("c.roach f6 初始体力=%f，期望官方量化值 0.50", got)
+		t.Fatalf("c.roach f6 初始体力=%f, 期望官方量化值 0.50", got)
 	}
 	// c.roach K0=16.36/slope=0.23（v2 表，3 样本自拟合）：
 	// f8 = 0.186kg × (16.36 + 0.23·ln(0.186)) = 2.9710N。
 	// 官方锚点：150g→2.39N、680g→11.07N、713g→11.61N（同公式 ±2%）。
 	wantPull := 0.186 * (16.36 + 0.23*math.Log(0.186))
 	if got := f32At(tree, 8); math.Abs(got-wantPull) > 0.0001 {
-		t.Fatalf("c.roach f8 拉力=%f，期望%f", got, wantPull)
+		t.Fatalf("c.roach f8 拉力=%f, 期望%f", got, wantPull)
 	}
 }
 
@@ -62,22 +62,22 @@ func TestFish27UnknownSpeciesFallback(t *testing.T) {
 	tree := srv.buildFish27(f, "", "", 24)
 	wantStamina := fishStaminaRateGroup["default"] * 100
 	if got := f32At(tree, 5); math.Abs(got-wantStamina) > 0.001 {
-		t.Fatalf("未知鱼 f5 体力池=%f，期望%f", got, wantStamina)
+		t.Fatalf("未知鱼 f5 体力池=%f, 期望%f", got, wantStamina)
 	}
 	if got := f32At(tree, 6); math.Abs(got-fishF6Group["default"]) > 1e-6 {
-		t.Fatalf("未知鱼 f6 初始体力=%f，期望%f", got, fishF6Group["default"])
+		t.Fatalf("未知鱼 f6 初始体力=%f, 期望%f", got, fishF6Group["default"])
 	}
 	if got := f32At(tree, 9); math.Abs(got-2.5) > 1e-6 {
-		t.Fatalf("未知鱼 f9=%f，期望 default 组 2.5", got)
+		t.Fatalf("未知鱼 f9=%f, 期望 default 组 2.5", got)
 	}
 	if got := f32At(tree, 13); math.Abs(got-0.30) > 1e-6 {
-		t.Fatalf("未知鱼 f13=%f，期望 default 组 0.30", got)
+		t.Fatalf("未知鱼 f13=%f, 期望 default 组 0.30", got)
 	}
 	if got := f32At(tree, 16); math.Abs(got-0.9) > 1e-5 {
-		t.Fatalf("未知鱼 f16=%f，期望 default 组 0.9", got)
+		t.Fatalf("未知鱼 f16=%f, 期望 default 组 0.9", got)
 	}
 	if got := f32At(tree, 20); math.Abs(got-0.9995) > 1e-5 {
-		t.Fatalf("未知鱼 f20=%f，期望 default 组 0.9995", got)
+		t.Fatalf("未知鱼 f20=%f, 期望 default 组 0.9995", got)
 	}
 }
 
@@ -95,7 +95,7 @@ func TestFish27F19AutoHookByRigFamily(t *testing.T) {
 	for _, rig := range []int64{24, 55, 6} {
 		for _, species := range []string{"c.roach", "not_in_calib"} {
 			if got := f32At(srv.buildFish27(mk(species), "", "", rig), 19); got != 1 {
-				t.Fatalf("rig=%d %s f19=%f，期望 1", rig, species, got)
+				t.Fatalf("rig=%d %s f19=%f, 期望 1", rig, species, got)
 			}
 		}
 	}
@@ -103,13 +103,13 @@ func TestFish27F19AutoHookByRigFamily(t *testing.T) {
 	for _, species := range []string{"c.roach", "not_in_calib"} {
 		got := f32At(srv.buildFish27(mk(species), "", "", 1), 19)
 		if got <= 0 || got >= 0.01 {
-			t.Fatalf("浮钓 %s f19=%f，期望官方量级小值 (0, 0.01)", species, got)
+			t.Fatalf("浮钓 %s f19=%f, 期望官方量级小值 (0, 0.01)", species, got)
 		}
 	}
 	// 应急回滚开关：浮钓族也应恢复为精确 1。
 	srv.tunCache = map[string]float64{"float_f19_force_one": 1}
 	srv.tunAt = time.Now()
 	if got := f32At(srv.buildFish27(mk("c.roach"), "", "", 1), 19); got != 1 {
-		t.Fatalf("float_f19_force_one=1 时浮钓 f19=%f，期望 1", got)
+		t.Fatalf("float_f19_force_one=1 时浮钓 f19=%f, 期望 1", got)
 	}
 }

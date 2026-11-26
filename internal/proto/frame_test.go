@@ -17,7 +17,7 @@ func TestTryParseAuthPacketAcceptsLegacyAndAuthorTokens(t *testing.T) {
 			packet = append(packet, tc.token...)
 			got, consumed, ok := TryParseAuthPacket(packet)
 			if !ok || consumed != len(packet) || got != tc.token {
-				t.Fatalf("解析失败: token=%q consumed=%d ok=%v", got, consumed, ok)
+				t.Fatalf("Ошибка разбора: token=%q consumed=%d ok=%v", got, consumed, ok)
 			}
 		})
 	}

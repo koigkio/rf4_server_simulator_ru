@@ -27,7 +27,7 @@ type wireClassEntry struct {
 var categoryWireClass = map[int64]wireClassEntry{
 	3:  {"cnolibojkao", 157},
 	4:  {"hgabifpnhmk", 156},
-	5:  {"knocoeggfdk", 159}, // 导环（spin 竿实例使用 rcs_basic_spin）
+	5:  {"knocoeggfdk", 159}, // 导环 (spin 竿实例使用 rcs_basic_spin)
 	6:  {"dgjinoebdop", 149},
 	7:  {"oiebifopill", 146},
 	8:  {"lcajgpjolbo", 151},
@@ -35,10 +35,10 @@ var categoryWireClass = map[int64]wireClassEntry{
 	10: {"plefjjahdgh", 150},
 	11: {"ohciikgjghe", 140},
 	12: {"agedjipcnpe", 131},
-	13: {"oldfpclaabo", 137}, // 前导（f1/f2 钢丝/配件子实例物化）
+	13: {"oldfpclaabo", 137}, // 前导 (f1/f2 钢丝/配件子实例物化)
 	14: {"donkbnnmgjm", 139}, // 前导锁/配件
 	15: {"cjigljdikhe", 138}, // 钢丝/编织前导
-	17: {"ioombppcnlh", 141}, // 拟饵（f0 gpoaffnjbdo=args(60) 出厂钩数组）
+	17: {"ioombppcnlh", 141}, // 拟饵 (f0 gpoaffnjbdo=args(60) 出厂钩数组)
 	18: {"bigdipenecj", 124},
 	// 手套：ny_mitts 的六个服装属性对应定义 peomolgjoeh/12017，
 	// 实例为 bdbcnhkogcc/113（同一组六属性 + 物品实例公共字段）。
@@ -52,18 +52,18 @@ var categoryWireClass = map[int64]wireClassEntry{
 	28: {"gjdmdcpoifh", 101},
 	29: {"igjimikeadh", 161},
 	31: {"cdgdbeoejeo", 119}, // 食笼
-	34: {"bndpebpblfk", 148}, // 握丸（13 字段 reader；渔轮 f5 必需）
+	34: {"bndpebpblfk", 148}, // 握丸 (13 字段 reader; 渔轮 f5 必需)
 	35: {"dbmbnkpkafb", 164},
 	36: {"kjggkpflhjp", 155},
 	37: {"gfkbfjgkjoh", 116},
 	39: {"bplepbfgpmk", 162},
 	40: {"dbojlbebaca", 143},
-	41: {"jceogpbfpjh", 163}, // 工坊工具；定义类型 12056 夹在票据实例 162 与露营灯 164 之间
-	42: {"nacllfpgomk", 142}, // 工坊材料，可堆叠；定义类型 12026 夹在拟饵 141 与地图 143 之间
+	41: {"jceogpbfpjh", 163}, // 工坊工具; 定义类型 12056 夹在票据实例 162 与露营灯 164 之间
+	42: {"nacllfpgomk", 142}, // 工坊材料, 可堆叠; 定义类型 12026 夹在拟饵 141 与地图 143 之间
 	44: {"fcdgfdomnjm", 160}, // Sbirolino
 	46: {"cilmgoaoofg", 120}, // 成品窝料
 	47: {"eebdgfednim", 700}, // 铃铛/咬钩信号器 dadgbbiijki
-	57: {"fmaajjlcdmc", 167}, // 铅芯线（客户端 emfindpkead；f0=强度）
+	57: {"fmaajjlcdmc", 167}, // 铅芯线 (客户端 emfindpkead; f0=强度)
 	48: {"npnkhkicfkg", 613}, // 渔轮导线环
 	49: {"bnfpgceodij", 616}, // 制动钮
 	50: {"jjikombcnnj", 614}, // 轮手柄
@@ -73,7 +73,7 @@ var categoryWireClass = map[int64]wireClassEntry{
 	54: {"gpldfemlfch", 612},   // 蜗杆轴
 	59: {"iknkgeomkip", 3200},  // Cobra 打窝器
 	60: {"ifnaghdaolg", 3201},  // Slingshot 弹弓
-	79: {"abmokghdbhf", 11500}, // 竿架（rod pod），客户端模型 pphmpibfgea
+	79: {"abmokghdbhf", 11500}, // 竿架 (rod pod), 客户端模型 pphmpibfgea
 	// 提取物/蘸饵（dip）与竿架同属 UI 家族 dfignppokoh，但走 nledogicnfe 变体：
 	// 鱼饵类条目在背包列表排序比较器里被强转成 nledogicnfe（hook 栈实证
 	// InvalidCastException 'pphmpibfgea'->'nledogicnfe'，鱼饵筛选必现、
@@ -109,11 +109,11 @@ var categoryWireClass = map[int64]wireClassEntry{
 	45: {"pcngolccead", 144},
 	// 以下映射取自 mcjpaeakaep 分发表的 cat→DTO 配对（每类 DTO 在 tables.go
 	// 唯一对应一个 wire 类），取代兜底类；均未实测，购买后按鱼饵页/背包渲染验证。
-	2:  {"ecknbkpeeji", 25},    // 鱼护（case 0 lmeocpochih）
-	30: {"fgbnhjmpdmd", 145},   // 干饵/重量饵（case 28 fadkdmoigli）
-	33: {"oplokpidmdi", 129},   // 水晶珠（case 31 aiecmhcnioo）
-	38: {"nikamphcfoe", 127},   // spod 炸弹（case 36 chffnbpekig）
-	55: {"coacllgmnml", 3100},  // 礼包（case 53 niodmhfbkag）
+	2:  {"ecknbkpeeji", 25},    // 鱼护 (case 0 lmeocpochih)
+	30: {"fgbnhjmpdmd", 145},   // 干饵/重量饵 (case 28 fadkdmoigli)
+	33: {"oplokpidmdi", 129},   // 水晶珠 (case 31 aiecmhcnioo)
+	38: {"nikamphcfoe", 127},   // spod 炸弹 (case 36 chffnbpekig)
+	55: {"coacllgmnml", 3100},  // 礼包 (case 53 niodmhfbkag)
 	61: {"cddbbllbjim", 3103},  // case 59 mdagojpmfba
 	62: {"omkmkofjhcf", 12600}, // case 60 kmlgiiefbmh
 	63: {"dbjjakbbbfc", 12601}, // case 61 bepeekbhdck
@@ -126,12 +126,12 @@ var categoryWireClass = map[int64]wireClassEntry{
 	// 找不到这张券，制作无法进行。定义类 fpcfjngdcho/13015 的域字段
 	// fopbhlmkcpe/ppiooalfgii/eiofdcjlaai 与 coupon_chuchelo.attrs_json
 	// 完全吻合，其配对实例类为 ahgeldclmdj/13018（同族锚点：cat76→13041）。
-	74: {"ahgeldclmdj", 13018}, // case 72 mpjcnoimibo：梦鱼优惠券
+	74: {"ahgeldclmdj", 13018}, // case 72 mpjcnoimibo: 梦鱼优惠券
 	76: {"fdnngkgnmon", 13041}, // case 74 ghikepgmojg
 	78: {"dapkdcghfmg", 11301}, // case 76 ipdpoaiekem
 	82: {"ckfmndabaei", 11304}, // imdcjllgdcn 卡册
-	80: {"ipdakkbfoja", 13301}, // 技能书（客户端按 wrapper 承载书目配置）
-	81: {"kbpmmclfipg", 1470},  // 渔轮电机（装在轮 f14 扩展槽，DTO odlknjlbooh）
+	80: {"ipdakkbfoja", 13301}, // 技能书 (客户端按 wrapper 承载书目配置)
+	81: {"kbpmmclfipg", 1470},  // 渔轮电机 (装在轮 f14 扩展槽, DTO odlknjlbooh)
 }
 
 const fallbackWireClass = "ohciikgjghe"
@@ -192,7 +192,7 @@ func fieldOpAt(class string, idx int) string {
 func metaQtyFamily(class string) bool {
 	return class == "abmokghdbhf" || class == "bpmmimcmpof" || class == "deckldefiap" ||
 		class == "dpghngjmnap" || class == "pcngolccead" ||
-		class == "ahgeldclmdj" // 梦鱼优惠券：13 字段 meta 基类，权威数量槽 dnmfciolgep
+		class == "ahgeldclmdj" // 梦鱼优惠券: 13 字段 meta 基类, 权威数量槽 dnmfciolgep
 }
 
 // itemQtyFieldIdx 可堆叠数量槽 idx。多数实例类的数量字段就叫 ljnnpokapig；
@@ -474,7 +474,7 @@ func (s *Server) materializeInto(ctx context.Context, class string, def *store.I
 	switch class {
 	case "dgjinoebdop": // 渔轮 f2..f14
 		fill(reelPartKeys, false)
-	case "oldfpclaabo": // 前导 f1 前导线、f2 连接件、f3 普通主线
+	case "oldfpclaabo": // 前导 f1 前导线, f2 连接件, f3 普通主线
 		fill(leaderPartKeys, false)
 		if idx := fieldIdxByCS(class, gearAttrLeaderIn); idx >= 0 && idx < len(obj.Fields) {
 			if normalized, changed := normalizeLeaderInnerWire(obj.Fields[idx].Val); changed {
@@ -821,7 +821,7 @@ func setWireFloat(fields []proto.Field, class string, idx int, v float64) bool {
 func (s *Server) rebuildRod(ctx context.Context, it *store.Item, obj *proto.Value) error {
 	def, err := s.DB.GetItemDef(ctx, it.NumericID)
 	if err != nil {
-		return nil // 无定义：保留快照
+		return nil // 无定义: 保留快照
 	}
 	// 出厂部件 f0/f1/f2（attrs: ajkflmejnih/ofpkgghjmmf/ddbadcmdkcl，值是内嵌
 	// 部件定义对象，systemID 在 nhjofmmmngl —— 不能当字符串取）
@@ -1003,8 +1003,8 @@ func (s *Server) buildFactoryChild(ctx context.Context, rod *store.Item, sysID s
 		}
 	}
 	setGUID()
-	setNum(csNumericID, uint64(def.NumericID)) // numeric_id（基类 cs）
-	setNum(csSlotEnum, 4)                      // 装配子件：容器为 rig(4)
+	setNum(csNumericID, uint64(def.NumericID)) // numeric_id (基类 cs)
+	setNum(csSlotEnum, 4)                      // 装配子件: 容器为 rig(4)
 	// 类前缀字段按 attrs 回填；状态位来源是**部件独立定义行**。
 	s.applyDefAttrs(def, cls.Class, obj)
 	base := u64Of(firstNonNil(obj.Fields, fieldIdxByCS(cls.Class, csStateEnum)).Num)
@@ -1052,7 +1052,7 @@ func (s *Server) defaultRig153(ctx context.Context, it *store.Item) *proto.Value
 				continue
 			}
 			if _, special := categorySlotField[rc.Slot]; special {
-				continue // 钓线/渔轮：写竿的 f3/f4 专用字段，不进 f5
+				continue // 钓线/渔轮: 写竿的 f3/f4 专用字段, 不进 f5
 			}
 			if bottomRigTypes[rigType] && rc.Slot == 28 {
 				continue // 沉底族无浮漂槽
@@ -1403,7 +1403,7 @@ func (s *Server) reclassifyStoredItem(ctx context.Context, it *store.Item, def *
 func (s *Server) CreateItem(ctx context.Context, uid int64, itemID, container string, units int64) (*store.Item, error) {
 	def, err := s.DB.GetItemDefByItemID(ctx, itemID)
 	if err != nil || def == nil {
-		return nil, fmt.Errorf("物品定义不存在: %s", itemID)
+		return nil, fmt.Errorf("Определение предмета не существует: %s", itemID)
 	}
 	cls, ok := resolveWireClass(def)
 	if !ok {
@@ -1447,7 +1447,7 @@ func (s *Server) CreateItem(ctx context.Context, uid int64, itemID, container st
 		// 一券一实例：数量槽固定 1，行数即张数。units 必须严格等于 1：
 		// 多张请走 grantItemUnits/prepareCouponRows；units<1 也不能白送一张。
 		if units != 1 {
-			return nil, fmt.Errorf("梦鱼券需按张建行，CreateItem 不支持 units=%d", units)
+			return nil, fmt.Errorf("Купоны на чучело создаются построчно по одному, CreateItem не поддерживает units=%d", units)
 		}
 		writeItemQty(cls.Class, obj, 1)
 	}
@@ -1513,7 +1513,7 @@ func (s *Server) prepareNewItemWithCount(ctx context.Context, uid int64, itemID,
 	}
 	if it.WireClass == couponWireClass {
 		// 券不接受「一行多张」：多张必须走 prepareCouponRows 逐张建行。
-		return nil, fmt.Errorf("梦鱼券需按张建行，prepareNewItemWithCount 不支持 count=%d", count)
+		return nil, fmt.Errorf("Купоны на чучело создаются построчно по одному, prepareNewItemWithCount не поддерживает count=%d", count)
 	}
 	fields, err := FieldsFromJSON(it.FieldsJSON)
 	if err != nil {
@@ -1538,10 +1538,10 @@ func (s *Server) prepareCouponRows(ctx context.Context, uid int64, itemID, conta
 	// 券是一券一实例：张数必须由调用方明确给出，不能把 0/负数夹成 1，
 	// 否则调用方少传一个参数就会凭空多出一张券。
 	if count < 1 {
-		return nil, fmt.Errorf("梦鱼券张数必须大于 0: %d", count)
+		return nil, fmt.Errorf("Количество купонов на чучело должно быть больше 0: %d", count)
 	}
 	if count > maxBundlePreparedItems {
-		return nil, fmt.Errorf("梦鱼券张数 %d 超过上限 %d", count, maxBundlePreparedItems)
+		return nil, fmt.Errorf("Количество купонов на чучело %d превышает предел %d", count, maxBundlePreparedItems)
 	}
 	rows := make([]*store.Item, 0, count)
 	for i := int64(0); i < count; i++ {
@@ -1580,7 +1580,7 @@ func (s *Server) insertPreparedRows(ctx context.Context, rows []*store.Item) err
 func (s *Server) grantItemUnits(ctx context.Context, uid int64, itemID, container string, units int64) ([]*store.Item, error) {
 	def, err := s.DB.GetItemDefByItemID(ctx, itemID)
 	if err != nil || def == nil {
-		return nil, fmt.Errorf("物品定义不存在: %s", itemID)
+		return nil, fmt.Errorf("Определение предмета не существует: %s", itemID)
 	}
 	if def.Category != couponCategory {
 		it, _, aerr := s.AddToStack(ctx, uid, itemID, container, units)
@@ -1603,7 +1603,7 @@ func (s *Server) grantItemUnits(ctx context.Context, uid int64, itemID, containe
 func (s *Server) AddToStack(ctx context.Context, uid int64, itemID, container string, units int64) (*store.Item, bool, error) {
 	def, err := s.DB.GetItemDefByItemID(ctx, itemID)
 	if err != nil || def == nil {
-		return nil, false, fmt.Errorf("物品定义不存在: %s", itemID)
+		return nil, false, fmt.Errorf("Определение предмета не существует: %s", itemID)
 	}
 	if def.Category == couponCategory {
 		// 梦鱼券：一张一个实例。调用方给的是张数，就逐张建行。
@@ -1612,7 +1612,7 @@ func (s *Server) AddToStack(ctx context.Context, uid int64, itemID, container st
 			return nil, false, err
 		}
 		if len(rows) == 0 {
-			return nil, false, fmt.Errorf("梦鱼券张数无效: %d", units)
+			return nil, false, fmt.Errorf("Неверное количество купонов на чучело: %d", units)
 		}
 		if err := s.insertPreparedRows(ctx, rows); err != nil {
 			return nil, false, err

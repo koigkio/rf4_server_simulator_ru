@@ -192,7 +192,7 @@ func TestBitePushInFlightDoesNotRepush(t *testing.T) {
 	srv.repushPending14_14(sess.Userid)
 	st.mu.Lock()
 	if st.pendingTimer != nil || st.biteTimer != nil || st.PushSent {
-		t.Error("正在发送时又排入恢复推送，或过早记录成功")
+		t.Error("正在发送时又排入恢复推送, 或过早记录成功")
 	}
 	st.mu.Unlock()
 	rt, _, _, err := peer.ReadRecord()

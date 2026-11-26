@@ -91,13 +91,13 @@ func (s *Server) handleHookProfileSave(w http.ResponseWriter, r *http.Request) {
 		OverCapacityHoldFloor float64 `json:"over_capacity_hold_floor"`
 	}
 	if err := readJSON(r, &req); err != nil || strings.TrimSpace(req.ItemID) == "" {
-		httpError(w, 400, "参数错误")
+		httpError(w, 400, "Неверные параметры")
 		return
 	}
 	if req.SolidScale < 0 || req.SolidScale > 3 || req.HoldScale < 0 || req.HoldScale > 3 ||
 		req.SmallFishFloor < 0 || req.SmallFishFloor > 1 ||
 		req.OverCapacityHoldFloor < 0 || req.OverCapacityHoldFloor > 1 {
-		httpError(w, 400, "倍率必须在 0~3，兜底概率必须在 0~1")
+		httpError(w, 400, "Множитель должен быть 0~3, минимальная вероятность — в пределах 0~1")
 		return
 	}
 	profile, err := s.db.GetHookBiteProfile(r.Context(), req.ItemID)
@@ -106,7 +106,7 @@ func (s *Server) handleHookProfileSave(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if profile == nil {
-		httpError(w, 404, "鱼钩型号不存在")
+		httpError(w, 404, "Модель крючка не существует")
 		return
 	}
 	if err := s.db.SetHookBiteProfileTuning(r.Context(), req.ItemID,

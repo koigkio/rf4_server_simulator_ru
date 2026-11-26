@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 const path = require('node:path');
 const {chromium} = require('playwright');
 
-test('同名玩家分别标明 UID 和在线状态，名单失效不误报离线', async t => {
+test('同名玩家分别标明 UID 和在线状态, 名单失效不误报离线', async t => {
   const browser = await chromium.launch({executablePath: process.env.RF4_TEST_BROWSER});
   t.after(() => browser.close());
   const page = await browser.newPage({reducedMotion:'reduce'});
@@ -17,8 +17,8 @@ test('同名玩家分别标明 UID 和在线状态，名单失效不误报离线
   });
   await page.goto('http://fixture.test/#players/1/profile');
   const row = page.locator('.whorow');
-  await row.getByRole('button',{name:/UID 1.*在线/,pressed:true}).waitFor();
-  const other = row.getByRole('button',{name:/UID 2.*离线.*已封禁/});
+  await row.getByRole('button',{name:/UID 1.*Онлайн/,pressed:true}).waitFor();
+  const other = row.getByRole('button',{name:/UID 2.*Офлайн.*Забанен/});
   for (const width of [320,1280]) {
     await page.setViewportSize({width,height:800});
     const geometry = await other.evaluate(button => {
@@ -45,18 +45,18 @@ test('同名玩家分别标明 UID 和在线状态，名单失效不误报离线
   await other.focus();
   list[0].online = false; list[1].online = true;
   await page.clock.fastForward(8100);
-  await page.locator('.player-heading').getByText('离线',{exact:true}).waitFor();
-  assert.ok(await row.getByRole('button',{name:/UID 2.*在线/}).evaluate(el=>el===document.activeElement));
+  await page.locator('.player-heading').getByText('Офлайн',{exact:true}).waitFor();
+  assert.ok(await row.getByRole('button',{name:/UID 2.*Онлайн/}).evaluate(el=>el===document.activeElement));
   list.forEach(p=>{p.online=false;p.online_known=false;});
   await page.clock.fastForward(8100);
-  await page.locator('.player-heading').getByText('状态未上报').waitFor();
-  assert.equal(await row.getByText('状态未上报',{exact:true}).count(),2);
-  await other.or(row.getByRole('button',{name:/UID 2.*状态未上报/})).press('Enter');
+  await page.locator('.player-heading').getByText('Состояние не передано').waitFor();
+  assert.equal(await row.getByText('Состояние не передано',{exact:true}).count(),2);
+  await other.or(row.getByRole('button',{name:/UID 2.*Состояние не передано/})).press('Enter');
   await page.locator('.player-heading').getByText(/UID 2/).waitFor();
   await row.getByRole('button',{name:/UID 2/,pressed:true}).waitFor();
 });
 
-test('登录重试保留邮件，确认 UID 后入队，改昵称只提交该字段', async t => {
+test('登录重试保留邮件, 确认 UID 后入队, 改昵称只提交该字段', async t => {
   const browser = await chromium.launch({executablePath: process.env.RF4_TEST_BROWSER});
   t.after(() => browser.close());
   const page = await browser.newPage({reducedMotion:'reduce'});
@@ -74,23 +74,23 @@ test('登录重试保留邮件，确认 UID 后入队，改昵称只提交该字
   });
   await page.goto('http://fixture.test/#mail/42');
   await page.locator('textarea').fill('未发送的正文');
-  await page.locator('#view').getByRole('button',{name:'登录管理后台'}).click();
-  const login = page.getByRole('dialog',{name:'登录管理后台'});
-  await login.getByRole('button',{name:'登录',exact:true}).click();
+  await page.locator('#view').getByRole('button',{name:'Вход в админ-панель'}).click();
+  const login = page.getByRole('dialog',{name:'Вход в админ-панель'});
+  await login.getByRole('button',{name:'Войти',exact:true}).click();
   await login.getByRole('alert').waitFor();
-  await login.getByLabel('密码').fill('fixture');
-  await login.getByRole('button',{name:'登录',exact:true}).click();
-  await page.getByRole('button',{name:'换一个'}).waitFor();
+  await login.getByLabel('Пароль').fill('fixture');
+  await login.getByRole('button',{name:'Войти',exact:true}).click();
+  await page.getByRole('button',{name:'Сменить'}).waitFor();
   assert.equal(await page.locator('textarea').inputValue(),'未发送的正文');
-  await page.getByRole('button',{name:'发送',exact:true}).click();
-  await page.getByRole('dialog',{name:/UID 42/}).getByRole('button',{name:'发送'}).click();
-  await page.getByText('已加入发送队列',{exact:true}).waitFor();
+  await page.getByRole('button',{name:'Отправить',exact:true}).click();
+  await page.getByRole('dialog',{name:/UID 42/}).getByRole('button',{name:'Отправить'}).click();
+  await page.getByText('Добавлено в очередь отправки',{exact:true}).waitFor();
   await page.goto('http://fixture.test/#players/42/profile');
-  const nickname = page.locator('#view label').filter({has:page.getByText('昵称',{exact:true})}).locator('input');
+  const nickname = page.locator('#view label').filter({has:page.getByText('Ник',{exact:true})}).locator('input');
   await nickname.fill('新昵称');
   player.silver = 6100;
-  await page.getByRole('button',{name:'保存修改'}).click();
-  await page.getByText('已保存。在线玩家立即收到刷新。',{exact:true}).waitFor();
+  await page.getByRole('button',{name:'Сохранить изменения'}).click();
+  await page.getByText(/^Сохранено\. Игроки онлайн/,{exact:true}).waitFor();
   assert.deepEqual(writes,[['/api/mail/send',{uid:42,text:'未发送的正文',items:[]}],['/api/players/update',{uid:42,name:'新昵称'}]]);
   assert.deepEqual(errors,[]);
 });

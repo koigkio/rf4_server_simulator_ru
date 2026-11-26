@@ -42,7 +42,7 @@ func TestCraftBatchSpec(t *testing.T) {
 		})
 	}
 	if spec := craftBatchSpecFor(nil); spec.Limit != 1 || spec.Yield != 1 {
-		t.Fatalf("nil 定义应按 1 套出 1，实得 %+v", spec)
+		t.Fatalf("nil 定义应按 1 套出 1, 实得 %+v", spec)
 	}
 }
 
@@ -84,7 +84,7 @@ func TestScaleDemandsOverflow(t *testing.T) {
 	four := int64(4)
 	got, ok := scaleDemands([]craftDemand{{DemandID: "loaf", Qty: &four}}, 101)
 	if !ok || got[0].need() != 404 {
-		t.Fatalf("scaleDemands 应为 404，实得 %d ok=%v", got[0].need(), ok)
+		t.Fatalf("scaleDemands 应为 404, 实得 %d ok=%v", got[0].need(), ok)
 	}
 }
 
@@ -147,7 +147,7 @@ func TestCraftBatchCapsAndSlotScaling(t *testing.T) {
 		}
 		v := decodeTreeValue(t, srv, body)
 		if !v.IsKind(proto.KindObj) || v.TypeID != 803 {
-			t.Fatalf("%s 响应应为 803，实得 %v/%d", recipe, v.Kind, v.TypeID)
+			t.Fatalf("%s 响应应为 803, 实得 %v/%d", recipe, v.Kind, v.TypeID)
 		}
 		return u64Of(v.Fields[0].Num) == 1
 	}
@@ -162,7 +162,7 @@ func TestCraftBatchCapsAndSlotScaling(t *testing.T) {
 		}
 		v := decodeTreeValue(t, srv, body)
 		if !v.IsKind(proto.KindObj) || v.TypeID != 803 {
-			t.Fatalf("%s 响应应为 803，实得 %v/%d", recipe, v.Kind, v.TypeID)
+			t.Fatalf("%s 响应应为 803, 实得 %v/%d", recipe, v.Kind, v.TypeID)
 		}
 		return u64Of(v.Fields[0].Num) == 1
 	}
@@ -177,13 +177,13 @@ func TestCraftBatchCapsAndSlotScaling(t *testing.T) {
 		}
 		// 上限 60 套，每套固定 60 个。
 		if got := countOf(uid, "feedcompleted"); got != 60*60 {
-			t.Fatalf("窝料应为 3600 个，实得 %d", got)
+			t.Fatalf("窝料应为 3600 个, 实得 %d", got)
 		}
 		if rows, qty := rowsOf(uid, "feedcompleted"); rows != 1 || qty != 60*60 {
-			t.Fatalf("一组窝料应只占一格 1x3600，实得 rows=%d qty=%d", rows, qty)
+			t.Fatalf("一组窝料应只占一格 1x3600, 实得 rows=%d qty=%d", rows, qty)
 		}
 		if got := countOf(uid, "mix_combi"); got != 40 {
-			t.Fatalf("应扣 60 份混合饲料，实得剩余 %d", got)
+			t.Fatalf("应扣 60 份混合饲料, 实得剩余 %d", got)
 		}
 		// 客户端临时 GUID 走类目补扣路径，份数同样收敛到 60 套以内。
 		if !craft(box, "craft_feed_universal", []craftSlot{{
@@ -193,13 +193,13 @@ func TestCraftBatchCapsAndSlotScaling(t *testing.T) {
 			t.Fatal("类目补扣制作应成功")
 		}
 		if got := countOf(uid, "feedcompleted"); got != 70*60 {
-			t.Fatalf("两次制作应共 4200 个，实得 %d", got)
+			t.Fatalf("两次制作应共 4200 个, 实得 %d", got)
 		}
 		if rows, qty := rowsOf(uid, "feedcompleted"); rows != 2 || qty != 70*60 {
-			t.Fatalf("窝料两组应各占一格，实得 rows=%d qty=%d", rows, qty)
+			t.Fatalf("窝料两组应各占一格, 实得 rows=%d qty=%d", rows, qty)
 		}
 		if got := countOf(uid, "mix_combi"); got != 30 {
-			t.Fatalf("类目补扣后应剩 30 份混合饲料，实得 %d", got)
+			t.Fatalf("类目补扣后应剩 30 份混合饲料, 实得 %d", got)
 		}
 		// 自定义名称必须原样落进实例名称字段。
 		if !craftNamed(box, "craft_feed_universal", slot, 1, "我的窝料") {
@@ -219,7 +219,7 @@ func TestCraftBatchCapsAndSlotScaling(t *testing.T) {
 		nameIdx := fieldIdxByCS("cilmgoaoofg", csCustomName)
 		if nameIdx < 0 || nameIdx >= len(fields) || fields[nameIdx].Str == nil ||
 			*fields[nameIdx].Str != "我的窝料" {
-			t.Fatalf("成品窝料应保留自定义名称，实得 %v", fields[nameIdx].Str)
+			t.Fatalf("成品窝料应保留自定义名称, 实得 %v", fields[nameIdx].Str)
 		}
 		// 同一袋料还要记下制作时实际扣掉的原料：客户端只看得到 feedcompleted，
 		// 吸引判定得靠这份实例用料才知道它到底是植物配还是动物配。
@@ -235,7 +235,7 @@ func TestCraftBatchCapsAndSlotScaling(t *testing.T) {
 		}
 		mats := groundbaitDecodeMaterials(matsJSON)
 		if len(mats) != 1 || mats[0] != "mix_combi" {
-			t.Fatalf("自制窝料应记下实际用料 mix_combi，实得 %q", mats)
+			t.Fatalf("自制窝料应记下实际用料 mix_combi, 实得 %q", mats)
 		}
 	})
 
@@ -265,16 +265,16 @@ func TestCraftBatchCapsAndSlotScaling(t *testing.T) {
 				t.Fatal("PVA 制作应成功")
 			}
 			if got := countOf(uid, c.output); got != c.units {
-				t.Fatalf("%s 应为 %d 份，实得 %d", c.output, c.units, got)
+				t.Fatalf("%s 应为 %d 份, 实得 %d", c.output, c.units, got)
 			}
 			if rows, qty := rowsOf(uid, c.output); rows != 1 || qty != c.units {
-				t.Fatalf("%s 应只占一格 1x%d，实得 rows=%d qty=%d", c.output, c.units, rows, qty)
+				t.Fatalf("%s 应只占一格 1x%d, 实得 rows=%d qty=%d", c.output, c.units, rows, qty)
 			}
 			if want := 200 - c.dryEach*c.cap; countOf(uid, "feed_dry") != want {
-				t.Fatalf("干混合应剩 %d，实得 %d", want, countOf(uid, "feed_dry"))
+				t.Fatalf("干混合应剩 %d, 实得 %d", want, countOf(uid, "feed_dry"))
 			}
 			if want := 200 - c.cap; countOf(uid, "hvz_pva_material") != want {
-				t.Fatalf("PVA 原料应剩 %d，实得 %d", want, countOf(uid, "hvz_pva_material"))
+				t.Fatalf("PVA 原料应剩 %d, 实得 %d", want, countOf(uid, "hvz_pva_material"))
 			}
 			// PVA 棒也要按实例记下实际填充：10/20/50 克规格分别消耗 1/2/5 份干饵，
 			// 吸引判定不能只看水溶网，也不能把三种规格算成同一种饵料。
@@ -299,10 +299,10 @@ func TestCraftBatchCapsAndSlotScaling(t *testing.T) {
 				}
 			}
 			if want := c.dryEach * c.cap; dryCount != want {
-				t.Fatalf("PVA %s 应记下 %d 份干饵，实得 %d", c.output, want, dryCount)
+				t.Fatalf("PVA %s 应记下 %d 份干饵, 实得 %d", c.output, want, dryCount)
 			}
 			if pvaCount != c.cap {
-				t.Fatalf("PVA %s 应记下 %d 份水溶网，实得 %d", c.output, c.cap, pvaCount)
+				t.Fatalf("PVA %s 应记下 %d 份水溶网, 实得 %d", c.output, c.cap, pvaCount)
 			}
 			// 再做一组：PVA 不与其他批次合并，应新增一格。
 			if !craft(box, c.recipe, slots, 1) {
@@ -310,7 +310,7 @@ func TestCraftBatchCapsAndSlotScaling(t *testing.T) {
 			}
 			per := c.units / c.cap
 			if rows, qty := rowsOf(uid, c.output); rows != 2 || qty != c.units+per {
-				t.Fatalf("%s 两组应各占一格，实得 rows=%d qty=%d", c.output, rows, qty)
+				t.Fatalf("%s 两组应各占一格, 实得 rows=%d qty=%d", c.output, rows, qty)
 			}
 		})
 	}
@@ -325,11 +325,11 @@ func TestCraftBatchCapsAndSlotScaling(t *testing.T) {
 			t.Fatal("拟饵制作应成功")
 		}
 		if got := countOf(uid, "hm_crank_65s_hq"); got != 1 {
-			t.Fatalf("拟饵应只产出 1 个，实得 %d", got)
+			t.Fatalf("拟饵应只产出 1 个, 实得 %d", got)
 		}
 		for _, id := range []string{"material_najdak", "material_steel_wire", "material_birch_bar"} {
 			if got := countOf(uid, id); got != 4 {
-				t.Fatalf("材料 %s 应只扣 1 份，实得剩余 %d", id, got)
+				t.Fatalf("材料 %s 应只扣 1 份, 实得剩余 %d", id, got)
 			}
 		}
 	})
@@ -342,10 +342,10 @@ func TestCraftBatchCapsAndSlotScaling(t *testing.T) {
 			t.Fatal("面包制作应成功")
 		}
 		if got := countOf(uid, "bread"); got != 30*101 {
-			t.Fatalf("面包应为 %d 份，实得 %d", 30*101, got)
+			t.Fatalf("面包应为 %d 份, 实得 %d", 30*101, got)
 		}
 		if got := countOf(uid, "loaf_01"); got != 96 {
-			t.Fatalf("面包胚应剩 96，实得 %d", got)
+			t.Fatalf("面包胚应剩 96, 实得 %d", got)
 		}
 	})
 
@@ -357,19 +357,19 @@ func TestCraftBatchCapsAndSlotScaling(t *testing.T) {
 			t.Fatal("茶制作应成功")
 		}
 		if got := countOf(uid, "thermos_tea"); got != 6 {
-			t.Fatalf("一套茶材应出 6 份，实得 %d", got)
+			t.Fatalf("一套茶材应出 6 份, 实得 %d", got)
 		}
 		if got := countOf(uid, "ab_tea_can"); got != 49 {
-			t.Fatalf("茶包应只扣 1 份，实得剩余 %d", got)
+			t.Fatalf("茶包应只扣 1 份, 实得剩余 %d", got)
 		}
 		if !craft(box, "craft_cook_thermos_tea", nil, 3) {
 			t.Fatal("批量茶制作应成功")
 		}
 		if got := countOf(uid, "thermos_tea"); got != 6+3*6 {
-			t.Fatalf("再 3 套应共 24 份，实得 %d", got)
+			t.Fatalf("再 3 套应共 24 份, 实得 %d", got)
 		}
 		if got := countOf(uid, "ab_tea_can"); got != 46 {
-			t.Fatalf("再扣 3 份茶包后应剩 46，实得 %d", got)
+			t.Fatalf("再扣 3 份茶包后应剩 46, 实得 %d", got)
 		}
 	})
 
@@ -387,10 +387,10 @@ func TestCraftBatchCapsAndSlotScaling(t *testing.T) {
 			t.Fatal(err)
 		}
 		if rows != 1 || qty != 1 {
-			t.Fatalf("PVA 网应为 1 个实例 x1，实得 rows=%d qty=%d", rows, qty)
+			t.Fatalf("PVA 网应为 1 个实例 x1, 实得 rows=%d qty=%d", rows, qty)
 		}
 		if got := countOf(uid, "hvz_pva_string"); got != 4 {
-			t.Fatalf("PVA 线应只扣 1 份，实得剩余 %d", got)
+			t.Fatalf("PVA 线应只扣 1 份, 实得剩余 %d", got)
 		}
 	})
 
@@ -410,22 +410,22 @@ func TestCraftBatchCapsAndSlotScaling(t *testing.T) {
 		}
 		v := decodeTreeValue(t, srv, body)
 		if !v.IsKind(proto.KindObj) || v.TypeID != 803 || u64Of(v.Fields[0].Num) != 1 {
-			t.Fatalf("制作应成功，实得 %v/%d", v.Kind, v.TypeID)
+			t.Fatalf("制作应成功, 实得 %v/%d", v.Kind, v.TypeID)
 		}
 		f8 := v.Fields[8].Val
 		if f8 == nil || f8.Kind != proto.KindGuidArr {
-			t.Fatalf("803.f8 应为 GUID 列表，实得 %+v", f8)
+			t.Fatalf("803.f8 应为 GUID 列表, 实得 %+v", f8)
 		}
 		removed := map[string]bool{}
 		for _, it := range f8.Items {
 			removed[it.GuidHex()] = true
 		}
 		if len(removed) != 2 || !removed[first.GUID] || !removed[second.GUID] {
-			t.Fatalf("803.f8 应包含两个耗尽的材料堆 %s/%s，实得 %v",
+			t.Fatalf("803.f8 应包含两个耗尽的材料堆 %s/%s, 实得 %v",
 				first.GUID, second.GUID, removed)
 		}
 		if got := countOf(uid, "mix_combi"); got != 0 {
-			t.Fatalf("两个材料堆都应耗尽，实得剩余 %d", got)
+			t.Fatalf("两个材料堆都应耗尽, 实得剩余 %d", got)
 		}
 	})
 
@@ -457,15 +457,15 @@ func TestCraftBatchCapsAndSlotScaling(t *testing.T) {
 				t.Fatalf("%s 流水缺失: %v", c.recipe, err)
 			}
 			if !strings.HasSuffix(note, "qty=1") {
-				t.Fatalf("%s 零材料配方应限制 1 套，流水为 %q", c.recipe, note)
+				t.Fatalf("%s 零材料配方应限制 1 套, 流水为 %q", c.recipe, note)
 			}
 			if got := countOf(uid, c.output); got <= 0 || got >= 1000 {
-				t.Fatalf("%s 零材料配方发生批量产出，实得 %d", c.output, got)
+				t.Fatalf("%s 零材料配方发生批量产出, 实得 %d", c.output, got)
 			}
 		}
 		// 材料被真实消耗：碎沸粒官服 25 粒/份（30→5），鱼护里选中的鱼消失。
 		if got := countOf(uid, "boils_hvz_van12"); got != 5 {
-			t.Fatalf("碎沸粒应扣 25 粒沸粒，实得剩余 %d", got)
+			t.Fatalf("碎沸粒应扣 25 粒沸粒, 实得剩余 %d", got)
 		}
 		if keepnetGUIDs(t, db, uid)[fishGUID] {
 			t.Fatal("切鱼应吃掉鱼护里选中的鱼")
@@ -485,13 +485,13 @@ func TestCraftBatchCapsAndSlotScaling(t *testing.T) {
 			t.Fatal("干混合不足时不应产出")
 		}
 		if got := countOf(uid, "pva_stick_l"); got != 0 {
-			t.Fatalf("失败后不应有产物，实得 %d", got)
+			t.Fatalf("失败后不应有产物, 实得 %d", got)
 		}
 		if got := countOf(uid, "feed_dry"); got != 10 {
-			t.Fatalf("失败后材料不应被扣，实得 %d", got)
+			t.Fatalf("失败后材料不应被扣, 实得 %d", got)
 		}
 		if got := countOf(uid, "hvz_pva_material"); got != 200 {
-			t.Fatalf("失败后 PVA 原料不应被扣，实得 %d", got)
+			t.Fatalf("失败后 PVA 原料不应被扣, 实得 %d", got)
 		}
 	})
 }

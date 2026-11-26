@@ -26,7 +26,7 @@ func TestMainLineBreakLosesWholeRig(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	line, err := srv.CreateItem(ctx, uid, "mono_15095", "backpack", 1) // 5kg，最弱环
+	line, err := srv.CreateItem(ctx, uid, "mono_15095", "backpack", 1) // 5kg, 最弱环
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -57,7 +57,7 @@ func TestMainLineBreakLosesWholeRig(t *testing.T) {
 	}
 	for _, guid := range []string{line.GUID, hook.GUID, mountedBait} {
 		if row, _ := db.GetItemByGUID(ctx, guid); row != nil {
-			t.Fatalf("清杯后 %s 应丢失销毁，实得 %+v", guid, row)
+			t.Fatalf("清杯后 %s 应丢失销毁, 实得 %+v", guid, row)
 		}
 		if !containsGUID(out.RemovedGUIDs, guid) {
 			t.Fatalf("移除列表缺少 %s: %+v", guid, out.RemovedGUIDs)
@@ -120,7 +120,7 @@ func TestReportedReelBreakKeepsFishHooked(t *testing.T) {
 		t.Fatal(err)
 	}
 	if u64Of(dec.Fields[0].Num) != 0 {
-		t.Fatal("断轮响应 f0（LineBroken）应为 false")
+		t.Fatal("断轮响应 f0 (LineBroken)应为 false")
 	}
 	st.mu.Lock()
 	hooked, resolved, pending, gear := st.Hooked, st.Resolved, st.Pending, st.GearGuid
@@ -140,7 +140,7 @@ func TestReportedReelBreakKeepsFishHooked(t *testing.T) {
 	}
 	// 轮坏后不能再次抛投。
 	if got := srv.rigBrokenReelGUID(ctx, uid, rod.GUID); got != reel.GUID {
-		t.Fatalf("断轮后应拦截抛投，rigBrokenReelGUID=%q", got)
+		t.Fatalf("断轮后应拦截抛投, rigBrokenReelGUID=%q", got)
 	}
 }
 
@@ -198,7 +198,7 @@ func TestReelBreakBumpsReelBreaksCounter(t *testing.T) {
 		t.Fatal(err)
 	}
 	if reels != 1 {
-		t.Fatalf("断轮后 reel_breaks=%d，期望 1", reels)
+		t.Fatalf("断轮后 reel_breaks=%d, 期望 1", reels)
 	}
 
 	// 重复上报：客户端重试/TCP 重传会把同一帧 17/9 再发一次。ReelBroken 的语义是
@@ -229,7 +229,7 @@ func TestReelBreakBumpsReelBreaksCounter(t *testing.T) {
 		t.Fatal(err)
 	}
 	if reelsAfterReplay != 1 {
-		t.Fatalf("重复上报后 reel_breaks=%d，期望仍为 1", reelsAfterReplay)
+		t.Fatalf("重复上报后 reel_breaks=%d, 期望仍为 1", reelsAfterReplay)
 	}
 
 	var damageAfterReplay int64
@@ -238,13 +238,13 @@ func TestReelBreakBumpsReelBreaksCounter(t *testing.T) {
 		t.Fatal(err)
 	}
 	if damageAfterReplay != damageAfterFirst {
-		t.Fatalf("重复上报后损伤日志 %d 行，期望仍为 %d 行", damageAfterReplay, damageAfterFirst)
+		t.Fatalf("重复上报后损伤日志 %d 行, 期望仍为 %d 行", damageAfterReplay, damageAfterFirst)
 	}
 
 	// 上面两条断言在「没有守卫」时也会通过：那时 setWireFloat 把 0 写回已经是 0 的
 	// 字段会返回 false，于是偶然地也走失败退出。要让本用例真正守住显式守卫，必须
 	// 钉住错误身份——守卫在，返回 errReelAlreadyBroken；守卫被删，返回 errDurabilityField。
 	if _, err := srv.damageReelLockOverload(ctx, uid, rod.GUID, reel.GUID); !errors.Is(err, errReelAlreadyBroken) {
-		t.Fatalf("对已损坏渔轮再次断轮应返回 errReelAlreadyBroken，实际 err=%v", err)
+		t.Fatalf("对已损坏渔轮再次断轮应返回 errReelAlreadyBroken, 实际 err=%v", err)
 	}
 }

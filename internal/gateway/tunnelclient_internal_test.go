@@ -102,16 +102,16 @@ func TestOldReadLoopDoesNotClobberNewConn(t *testing.T) {
 	}
 
 	if m.conn != newConn {
-		t.Fatal("旧连接的读循环把当前连接清掉了：新隧道会被当成断开，随后的会话全部重连")
+		t.Fatal("旧连接的读循环把当前连接清掉了: 新隧道会被当成断开, 随后的会话全部重连")
 	}
 	if sess.closed.Load() {
-		t.Fatal("旧连接的读循环 dropAll 杀掉了新隧道上的健康会话：玩家会看到又一次突然掉线")
+		t.Fatal("旧连接的读循环 dropAll 杀掉了新隧道上的健康会话: 玩家会看到又一次突然掉线")
 	}
 	mu.Lock()
 	n := len(states)
 	mu.Unlock()
 	if n != 0 {
-		t.Fatalf("旧连接的读循环上报了离线状态 %d 次：隧道在线指标会被打错", n)
+		t.Fatalf("旧连接的读循环上报了离线状态 %d 次: 隧道在线指标会被打错", n)
 	}
 }
 
@@ -145,15 +145,15 @@ func TestCurrentReadLoopStillReportsOffline(t *testing.T) {
 	}
 
 	if m.conn != nil {
-		t.Fatal("当前连接断开后应清空 m.conn，否则后续 send 会一直打到死连接上")
+		t.Fatal("当前连接断开后应清空 m.conn, 否则后续 send 会一直打到死连接上")
 	}
 	if !sess.closed.Load() {
-		t.Fatal("当前隧道断开必须踢掉会话，否则客户端会挂在半死状态上")
+		t.Fatal("当前隧道断开必须踢掉会话, 否则客户端会挂在半死状态上")
 	}
 	mu.Lock()
 	defer mu.Unlock()
 	if len(states) != 1 || states[0] != false {
-		t.Fatalf("当前连接断开应上报一次离线，实际 %v", states)
+		t.Fatalf("当前连接断开应上报一次离线, 实际 %v", states)
 	}
 }
 
@@ -196,11 +196,11 @@ func TestWriteFailureStillDropsSessions(t *testing.T) {
 	}
 
 	if !sess.closed.Load() {
-		t.Fatal("写失败清空连接后读循环跳过了 dropAll：会话会一直挂在一个主服已不存在的隧道会话上")
+		t.Fatal("写失败清空连接后读循环跳过了 dropAll: 会话会一直挂在一个主服已不存在的隧道会话上")
 	}
 	mu.Lock()
 	defer mu.Unlock()
 	if len(states) != 1 || states[0] != false {
-		t.Fatalf("写失败后仍应上报一次离线，实际 %v", states)
+		t.Fatalf("写失败后仍应上报一次离线, 实际 %v", states)
 	}
 }

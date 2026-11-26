@@ -33,7 +33,7 @@ func TestSettle813ReportsActualSkillGain(t *testing.T) {
 		t.Fatalf("未增长时 310.f3=%v, want 0", got)
 	}
 	if got := u32Of(obj.Field(8).Val.Field(2).Num); got != 0 {
-		t.Fatalf("未增长时 310.f2=%d, want 0（隐藏技能加成行）", got)
+		t.Fatalf("未增长时 310.f2=%d, want 0 (隐藏技能加成行)", got)
 	}
 }
 
@@ -47,7 +47,7 @@ func TestSettle813SuppressesReplayedSkillGain(t *testing.T) {
 		t.Fatalf("重放 310.f3=%v, want 0", got)
 	}
 	if got := u32Of(replayObj.Field(8).Val.Field(2).Num); got != 0 {
-		t.Fatalf("重放 310.f2=%d, want 0（重放不得再触发熟练度行）", got)
+		t.Fatalf("重放 310.f2=%d, want 0 (重放不得再触发熟练度行)", got)
 	}
 	r.replayed = false
 	firstObj := srv.buildSettle813(ctx, 1000001, f, r)
@@ -72,7 +72,7 @@ func TestSettle813UsesIntegerMassFields(t *testing.T) {
 		for idx, want := range []uint32{220, 1200, 2000, 2498} {
 			field := obj.Field(idx)
 			if got := field.U32(); got != want {
-				t.Fatalf("%s 813.f%d=%d，期望 U32 %d（不能是 f32 位型）", tag, idx, got, want)
+				t.Fatalf("%s 813.f%d=%d, 期望 U32 %d (不能是 f32 位型)", tag, idx, got, want)
 			}
 		}
 	}

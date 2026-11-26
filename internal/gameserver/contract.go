@@ -54,7 +54,7 @@ func loadContract() *contractData {
 	contractOnce.Do(func() {
 		c := &contractData{}
 		if err := json.Unmarshal(contractJSON, c); err != nil {
-			panic(fmt.Sprintf("command_contract.json 解析失败: %v", err))
+			panic(fmt.Sprintf("command_contract.json Ошибка разбора: %v", err))
 		}
 		contract = c
 	})
@@ -83,26 +83,26 @@ func checkPushArgs(main, sub uint8, body *proto.Value) string {
 	if len(decl) > 0 && strings.HasSuffix(decl[len(decl)-1], "...") {
 		base, tail := decl[:len(decl)-1], strings.TrimSuffix(decl[len(decl)-1], "...")
 		if len(items) < len(base) {
-			return fmt.Sprintf("推送参数个数 %d < 合同前缀 %d（形状 %v）", len(items), len(base), decl)
+			return fmt.Sprintf("Количество параметров отправки %d < Префикс контракта %d (форма %v)", len(items), len(base), decl)
 		}
 		for i := 0; i < len(base); i++ {
 			if reason := matchPattern(base[i], items[i]); reason != "" {
-				return fmt.Sprintf("推送参数[%d] %s", i, reason)
+				return fmt.Sprintf("Параметр отправки[%d] %s", i, reason)
 			}
 		}
 		for i := len(base); i < len(items); i++ {
 			if reason := matchPattern(tail, items[i]); reason != "" {
-				return fmt.Sprintf("推送参数[%d] %s", i, reason)
+				return fmt.Sprintf("Параметр отправки[%d] %s", i, reason)
 			}
 		}
 		return ""
 	}
 	if len(decl) != len(items) {
-		return fmt.Sprintf("合同要求 %d 个参数, 实得 %d", len(decl), len(items))
+		return fmt.Sprintf("Контракт требует %d параметров, получено %d", len(decl), len(items))
 	}
 	for i, want := range decl {
 		if reason := matchPattern(want, items[i]); reason != "" {
-			return fmt.Sprintf("推送参数[%d] %s", i, reason)
+			return fmt.Sprintf("Параметр отправки[%d] %s", i, reason)
 		}
 	}
 	return ""
@@ -142,37 +142,37 @@ func matchPattern(want string, it *proto.Value) string {
 		// 物品实例包装对象：type_id 必须命中 categoryWireClass 派生的
 		// 实例白名单（见 itemTypeIDs 注释）。
 		if it == nil || !it.IsKind(proto.KindObj) {
-			return "应为 item(obj 实例白名单)"
+			return "ожидается item (белый список экземпляров obj)"
 		}
 		if !isItemTypeID(it.TypeID) {
-			return fmt.Sprintf("应为 item(obj 实例白名单), 实得 %d", it.TypeID)
+			return fmt.Sprintf("ожидается item (белый список экземпляров obj), получено %d", it.TypeID)
 		}
 		return ""
 	case want == "guid":
 		if !it.IsKind(proto.KindGuid) {
-			return fmt.Sprintf("应为 guid, 实得 %s", kindName(it))
+			return fmt.Sprintf("ожидается guid, получено %s", kindName(it))
 		}
 		return ""
 	case want == "obj" || strings.HasPrefix(want, "obj:"):
 		if !it.IsKind(proto.KindObj) {
-			return fmt.Sprintf("应为 obj, 实得 %s", kindName(it))
+			return fmt.Sprintf("ожидается obj, получено %s", kindName(it))
 		}
 		if rest := strings.TrimPrefix(want, "obj:"); rest != want && rest != "" {
 			var wantTid uint32
 			fmt.Sscanf(rest, "%d", &wantTid)
 			if wantTid != 0 && it.TypeID != wantTid {
-				return fmt.Sprintf("应为 type_id %d, 实得 %d", wantTid, it.TypeID)
+				return fmt.Sprintf("ожидается type_id %d, получено %d", wantTid, it.TypeID)
 			}
 		}
 		return ""
 	case want == "str":
 		if !it.IsKind(proto.KindStr) {
-			return fmt.Sprintf("应为 str, 实得 %s", kindName(it))
+			return fmt.Sprintf("ожидается str, получено %s", kindName(it))
 		}
 		return ""
 	case want == "int" || want == "u32" || want == "u64":
 		if !it.IsKind(proto.KindU32) && !it.IsKind(proto.KindU64) {
-			return fmt.Sprintf("应为整数, 实得 %s", kindName(it))
+			return fmt.Sprintf("ожидается целое, получено %s", kindName(it))
 		}
 		return ""
 	}
@@ -203,7 +203,7 @@ func loadArgcode() *argcodeData {
 	argcodeOnce.Do(func() {
 		a := &argcodeData{}
 		if err := json.Unmarshal(argcodeJSON, a); err != nil {
-			panic(fmt.Sprintf("argcode_table.json 解析失败: %v", err))
+			panic(fmt.Sprintf("argcode_table.json Ошибка разбора: %v", err))
 		}
 		argcode = a
 	})

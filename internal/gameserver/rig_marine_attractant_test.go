@@ -34,7 +34,7 @@ func marineAttractantRig(t *testing.T, rodItemID string, rigType int64) (*Server
 		t.Fatalf("造竿失败: %v", err)
 	}
 	if !srv.rigSetType(ctx, uid, rod.GUID, rigType) {
-		t.Fatalf("rigSetType(%d) 失败", rigType)
+		t.Fatalf("rigSetType(%d) Ошибка", rigType)
 	}
 	leader, err := srv.CreateItem(ctx, uid, "sh_leader_40818", "backpack", 1)
 	if err != nil {
@@ -83,7 +83,7 @@ func TestMarineRigAttractantGetsOwnLureIndex(t *testing.T) {
 	for _, rigType := range []int64{50, 51, 52, 53, 54} {
 		t.Run(rigNameForType(rigType), func(t *testing.T) {
 			if got := len(slotIndicesFor(rigType, catLure)); got < 2 {
-				t.Fatalf("钓组 %d 的拟饵族槽位 = %d 个，至少需要 2 个（亮片 + 基本吸引成分）",
+				t.Fatalf("钓组 %d 的拟饵族槽位 = %d 个, 至少需要 2 个 (亮片 + 基本吸引成分)",
 					rigType, got)
 			}
 		})
@@ -120,12 +120,12 @@ func TestMarineRigAttractantMountKeepsDistinctIndices(t *testing.T) {
 			}
 
 			if n := lureCompCount(t, srv, ctx, rod); n != 2 {
-				t.Fatalf("f5 拟饵族组件 = %d 个，期望 2 个（亮片 + 吸引成分）", n)
+				t.Fatalf("f5 拟饵族组件 = %d 个, 期望 2 个 (亮片 + 吸引成分)", n)
 			}
 			pilkerIdx := lureIndexByGUID(t, srv, ctx, rod, pilker)
 			beadIdx := lureIndexByGUID(t, srv, ctx, rod, res.MountedGUID)
 			if pilkerIdx == beadIdx {
-				t.Fatalf("亮片索引 %d 与吸引成分索引相同，客户端会把两者叠在同一槽位",
+				t.Fatalf("亮片索引 %d 与吸引成分索引相同, 客户端会把两者叠在同一槽位",
 					pilkerIdx)
 			}
 
@@ -135,10 +135,10 @@ func TestMarineRigAttractantMountKeepsDistinctIndices(t *testing.T) {
 			}
 			f5 := rigStoredF5(t, row)
 			if got := f5.Fields[0].StrOr(); got != tc.wantName {
-				t.Fatalf("钓组名被改成 %q，期望保持 %q", got, tc.wantName)
+				t.Fatalf("钓组名被改成 %q, 期望保持 %q", got, tc.wantName)
 			}
 			if got := int64(u64Of(f5.Fields[1].Num)); got != tc.rigType {
-				t.Fatalf("钓组类型被改成 %d，期望保持 %d", got, tc.rigType)
+				t.Fatalf("钓组类型被改成 %d, 期望保持 %d", got, tc.rigType)
 			}
 		})
 	}
@@ -162,7 +162,7 @@ func TestMarineRigAttractantDeclaredInTemplate(t *testing.T) {
 
 	comps := srv.storedRigComponents(ctx, rod)
 	if !rigTypeFitsInstalledComps(50, comps) {
-		t.Fatalf("装了两件拟饵族后与钓组 50 不兼容，会被自动换类型")
+		t.Fatalf("装了两件拟饵族后与钓组 50 不兼容, 会被自动换类型")
 	}
 }
 
@@ -188,13 +188,13 @@ func TestPilkerRigKeepsSingleHookPosition(t *testing.T) {
 
 	groups := srv.baitedHookSets(ctx, rod)
 	if len(groups) != 1 {
-		t.Fatalf("单钩铁板竿的挂饵分组 = %d 组，期望 1 组（一个钩位）", len(groups))
+		t.Fatalf("单钩铁板竿的挂饵分组 = %d 组, 期望 1 组 (一个钩位)", len(groups))
 	}
 	if groups[0].hookGUID != hook {
-		t.Fatalf("分组钩位 = %s，期望 %s", shortGUID(groups[0].hookGUID), shortGUID(hook))
+		t.Fatalf("分组钩位 = %s, 期望 %s", shortGUID(groups[0].hookGUID), shortGUID(hook))
 	}
 	if hpc := hookPositionsFor(50); hpc != 1 {
-		t.Fatalf("钓组 50 钩位数 = %d，期望 1", hpc)
+		t.Fatalf("钓组 50 钩位数 = %d, 期望 1", hpc)
 	}
 	_ = lure
 }
@@ -214,7 +214,7 @@ func TestBrokenMarineRigLureCollisionIsRepaired(t *testing.T) {
 		t.Fatal(err)
 	}
 	if !srv.rigSetType(ctx, uid, rod.GUID, 53) {
-		t.Fatal("rigSetType 失败")
+		t.Fatal("rigSetType Ошибка")
 	}
 	pilker, err := srv.CreateItem(ctx, uid, "monojig_2418", "backpack", 1)
 	if err != nil {
@@ -255,11 +255,11 @@ func TestBrokenMarineRigLureCollisionIsRepaired(t *testing.T) {
 	comps = srv.storedRigComponents(ctx, rod.GUID)
 	lureKeys := rigCompKeysOfCategory(comps, catLure)
 	if len(lureKeys) != 1 {
-		t.Fatalf("修复后拟饵族组件 = %d 个，期望收敛成 1 个", len(lureKeys))
+		t.Fatalf("修复后拟饵族组件 = %d 个, 期望收敛成 1 个", len(lureKeys))
 	}
 	// 先装的亮片保留，多出来的吸引成分退回背包。
 	if comps[lureKeys[0]].GUID != pilker.GUID {
-		t.Fatalf("保留的是 %s，期望保留先装的亮片 %s",
+		t.Fatalf("保留的是 %s, 期望保留先装的亮片 %s",
 			shortGUID(comps[lureKeys[0]].GUID), shortGUID(pilker.GUID))
 	}
 	back, err := db.GetItemByGUID(ctx, bead.GUID)
@@ -267,7 +267,7 @@ func TestBrokenMarineRigLureCollisionIsRepaired(t *testing.T) {
 		t.Fatal(err)
 	}
 	if back.Container != "backpack" || back.RigGUID != "" {
-		t.Fatalf("被拆下的吸引成分应在背包：container=%q rig=%q", back.Container, back.RigGUID)
+		t.Fatalf("被拆下的吸引成分应在背包: container=%q rig=%q", back.Container, back.RigGUID)
 	}
 }
 
@@ -282,7 +282,7 @@ func TestMarineRigBothAttractantsGetDistinctIndices(t *testing.T) {
 	for _, rigType := range []int64{50, 51, 52, 53, 54} {
 		t.Run(rigNameForType(rigType), func(t *testing.T) {
 			if got := len(slotIndicesFor(rigType, catLure)); got < 3 {
-				t.Fatalf("钓组 %d 的拟饵族槽位 = %d 个，至少需要 3 个（亮片 + 基本吸引成分 + 钓钩吸引成分）",
+				t.Fatalf("钓组 %d 的拟饵族槽位 = %d 个, 至少需要 3 个 (亮片 + 基本吸引成分 + 钓钩吸引成分)",
 					rigType, got)
 			}
 		})
@@ -313,7 +313,7 @@ func TestMarineRigTwoAttractantsKeepDistinctIndices(t *testing.T) {
 	tube := mount("fire_tube_003")
 
 	if n := lureCompCount(t, srv, ctx, rod); n != 3 {
-		t.Fatalf("f5 拟饵族组件 = %d 个，期望 3 个（亮片 + 两只吸引成分）", n)
+		t.Fatalf("f5 拟饵族组件 = %d 个, 期望 3 个 (亮片 + 两只吸引成分)", n)
 	}
 	seen := map[int64]string{}
 	for _, comp := range srv.storedRigComponents(ctx, rod) {
@@ -326,7 +326,7 @@ func TestMarineRigTwoAttractantsKeepDistinctIndices(t *testing.T) {
 		seen[comp.Extra] = shortGUID(comp.GUID)
 	}
 	if len(seen) != 3 {
-		t.Fatalf("不同的拟饵族索引 = %d 个，期望 3 个", len(seen))
+		t.Fatalf("不同的拟饵族索引 = %d 个, 期望 3 个", len(seen))
 	}
 	_ = pilker
 	_ = bead
@@ -368,10 +368,10 @@ func TestMarineRigAttractantsDoNotDisplaceEachOther(t *testing.T) {
 	for name, guid := range map[string]string{"柳叶亮片": pilker, "钓钩吸引成分": tube, "基本吸引成分": bead} {
 		c, ok := byGUID[guid]
 		if !ok {
-			t.Fatalf("%s 被顶掉了，f5 中已不存在", name)
+			t.Fatalf("%s 被顶掉了, f5 中已不存在", name)
 		}
 		if c.Category != catLure {
-			t.Fatalf("%s 品类 = %d，期望 %d", name, c.Category, catLure)
+			t.Fatalf("%s 品类 = %d, 期望 %d", name, c.Category, catLure)
 		}
 	}
 	// 三件各自的规范索引必须互不相同。
@@ -385,13 +385,13 @@ func TestMarineRigAttractantsDoNotDisplaceEachOther(t *testing.T) {
 		seen[idx] = name
 	}
 	if len(seen) != 3 {
-		t.Fatalf("不同索引 = %d 个，期望 3 个：%v", len(seen), seen)
+		t.Fatalf("不同索引 = %d 个, 期望 3 个: %v", len(seen), seen)
 	}
 	// 火管不能退回背包。
 	if row, err := srv.DB.GetItemByGUID(ctx, tube); err != nil || row == nil {
 		t.Fatal(err)
 	} else if row.Container != "rig" {
-		t.Fatalf("钓钩吸引成分被退回 %q，应仍在 rig 上", row.Container)
+		t.Fatalf("钓钩吸引成分被退回 %q, 应仍在 rig 上", row.Container)
 	}
 }
 
@@ -417,7 +417,7 @@ func TestMarinePilkerLureFamilySurvivesHookSlotSubIndices(t *testing.T) {
 		t.Fatalf("造竿失败: %v", err)
 	}
 	if !srv.rigSetType(ctx, uid, rod.GUID, 50) {
-		t.Fatal("rigSetType(50) 失败")
+		t.Fatal("rigSetType(50) Ошибка")
 	}
 
 	mount := func(cat, extra int64, itemID string) string {
@@ -471,10 +471,10 @@ func TestMarinePilkerLureFamilySurvivesHookSlotSubIndices(t *testing.T) {
 	for _, tc := range want {
 		c, ok := byGUID[tc.guid]
 		if !ok {
-			t.Fatalf("%s 被顶掉，f5 中已不存在（装配落到了 ordinal=0 同槽换件）", tc.name)
+			t.Fatalf("%s 被顶掉, f5 中已不存在 (装配落到了 ordinal=0 同槽换件)", tc.name)
 		}
 		if c.Extra != tc.idx {
-			t.Fatalf("%s 索引 = %d，期望 %d", tc.name, c.Extra, tc.idx)
+			t.Fatalf("%s 索引 = %d, 期望 %d", tc.name, c.Extra, tc.idx)
 		}
 		if prev, dup := seen[c.Extra]; dup {
 			t.Fatalf("索引 %d 被 %s 与 %s 同时占用", c.Extra, prev, tc.name)
@@ -482,6 +482,6 @@ func TestMarinePilkerLureFamilySurvivesHookSlotSubIndices(t *testing.T) {
 		seen[c.Extra] = tc.name
 	}
 	if n := lureCompCount(t, srv, ctx, rod.GUID); n != 12 {
-		t.Fatalf("拟饵族组件 = %d 个，期望 12 个（9 条钩位子槽 + 3 条普通槽）", n)
+		t.Fatalf("拟饵族组件 = %d 个, 期望 12 个 (9 条钩位子槽 + 3 条普通槽)", n)
 	}
 }

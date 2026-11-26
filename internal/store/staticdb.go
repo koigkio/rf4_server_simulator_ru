@@ -51,7 +51,7 @@ func (c *staticConnector) Driver() driver.Driver { return c.base.Driver() }
 // fallback. Open() remains the seed/test path and does not attach.
 func OpenWithStatic(path, staticPath string) (*DB, error) {
 	if strings.TrimSpace(staticPath) == "" {
-		return nil, fmt.Errorf("静态配置库路径为空")
+		return nil, fmt.Errorf("Путь к статической базе пуст")
 	}
 	return openDatabase(path, staticPath)
 }
@@ -63,7 +63,7 @@ func openDatabase(path, staticPath string) (*DB, error) {
 	dsn := fmt.Sprintf("file:%s?_pragma=journal_mode(WAL)&_pragma=busy_timeout(10000)&_pragma=synchronous(NORMAL)&_pragma=foreign_keys(OFF)", path)
 	base, err := sqlite.NewConnector(dsn)
 	if err != nil {
-		return nil, fmt.Errorf("创建 SQLite 连接器 %s: %w", path, err)
+		return nil, fmt.Errorf("Создание коннектора SQLite %s: %w", path, err)
 	}
 
 	var connector driver.Connector = base
@@ -71,14 +71,14 @@ func openDatabase(path, staticPath string) (*DB, error) {
 	if staticPath != "" {
 		abs, err := filepath.Abs(staticPath)
 		if err != nil {
-			return nil, fmt.Errorf("解析静态配置库路径 %s: %w", staticPath, err)
+			return nil, fmt.Errorf("Разбор пути к статической базе %s: %w", staticPath, err)
 		}
 		info, err := os.Stat(abs)
 		if err != nil {
-			return nil, fmt.Errorf("静态配置库不可用 %s: %w", abs, err)
+			return nil, fmt.Errorf("Статическая база недоступна %s: %w", abs, err)
 		}
 		if info.IsDir() {
-			return nil, fmt.Errorf("静态配置库是目录 %s", abs)
+			return nil, fmt.Errorf("Статическая база — это папка %s", abs)
 		}
 		state = &staticState{path: abs}
 		connector = &staticConnector{base: base, state: state}
@@ -115,7 +115,7 @@ func ensureDatabaseDir(path string) error {
 		return nil
 	}
 	if err := os.MkdirAll(dir, 0o755); err != nil {
-		return fmt.Errorf("创建主库目录 %s: %w", dir, err)
+		return fmt.Errorf("Создание папки основной базы %s: %w", dir, err)
 	}
 	return nil
 }
@@ -135,16 +135,16 @@ func prepareStaticConnection(ctx context.Context, conn driver.Conn, state *stati
 	}
 	execer, ok := conn.(sqlite.ExecQuerierContext)
 	if !ok {
-		return fmt.Errorf("SQLite 驱动连接不支持连接初始化 SQL")
+		return fmt.Errorf("SQLite Драйвер соединения не поддерживает инициализацию соединения SQL")
 	}
 	if err := execStaticSQL(ctx, execer, `ATTACH DATABASE ? AS static`, sqliteReadOnlyURI(state.path)); err != nil {
-		return fmt.Errorf("ATTACH 静态配置库（只读）: %w", err)
+		return fmt.Errorf("ATTACH Статическая база (только чтение): %w", err)
 	}
 	for _, table := range StaticTables {
 		stmt := fmt.Sprintf(`CREATE TEMP VIEW %s AS SELECT * FROM static.%s`,
 			quoteIdentifier(table), quoteIdentifier(table))
 		if err := execStaticSQL(ctx, execer, stmt); err != nil {
-			return fmt.Errorf("创建静态表只读视图 %s: %w", table, err)
+			return fmt.Errorf("Создание представлений только для чтения для статических таблиц %s: %w", table, err)
 		}
 	}
 	if state.enabled.Load() {
@@ -159,18 +159,18 @@ func prepareStaticConnection(ctx context.Context, conn driver.Conn, state *stati
 // static.<table>.
 func (d *DB) EnableStaticReadOnly(ctx context.Context) error {
 	if d == nil || d.static == nil {
-		return fmt.Errorf("数据库未挂载静态配置库")
+		return fmt.Errorf("Статическая база не подключена к базе данных")
 	}
 	d.static.enabled.Store(true)
 	conn, err := d.SQL.Conn(ctx)
 	if err != nil {
-		return fmt.Errorf("获取静态只读防护连接: %w", err)
+		return fmt.Errorf("Получение защитного соединения только для чтения: %w", err)
 	}
 	defer conn.Close()
 	if err := conn.Raw(func(driverConn any) error {
 		return registerStaticAuthorizer(driverConn)
 	}); err != nil {
-		return fmt.Errorf("安装静态表写保护: %w", err)
+		return fmt.Errorf("Установка защиты от записи статических таблиц: %w", err)
 	}
 	return nil
 }
@@ -178,7 +178,7 @@ func (d *DB) EnableStaticReadOnly(ctx context.Context) error {
 func registerStaticAuthorizer(driverConn any) error {
 	registerer, ok := driverConn.(sqlite.AuthorizerRegisterer)
 	if !ok {
-		return fmt.Errorf("SQLite 驱动连接不支持 authorizer")
+		return fmt.Errorf("SQLite Драйвер соединения не поддерживает authorizer")
 	}
 	return registerer.RegisterAuthorizer(staticWriteAuthorizer)
 }

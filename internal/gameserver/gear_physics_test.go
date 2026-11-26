@@ -55,7 +55,7 @@ func TestGearPhysicsU32F32AndWeakestLink(t *testing.T) {
 		t.Fatalf("line diameter=%f", got)
 	}
 	if got := lineLengthM(line); got != 100 {
-		t.Fatalf("line length=%d，纯整数字段不能被当 F32", got)
+		t.Fatalf("line length=%d, 纯整数字段不能被当 F32", got)
 	}
 	if got := reelDragMaxKg(reel); math.Abs(got-6.4) > 0.001 {
 		t.Fatalf("reel drag=%f", got)
@@ -69,10 +69,10 @@ func TestGearPhysicsU32F32AndWeakestLink(t *testing.T) {
 		LeaderStrengthKg: 4.2, ReelDragKg: 6.4, LineStretch: 0.85,
 	}
 	if got := gearBreakLimitKg(spec); math.Abs(got-4.2) > 1e-9 {
-		t.Fatalf("最弱环=%f，期望前导 4.2kg", got)
+		t.Fatalf("最弱环=%f, 期望前导 4.2kg", got)
 	}
 	if got := gearWeakestPart(spec); got != "leader" {
-		t.Fatalf("最弱断件=%q，期望 leader", got)
+		t.Fatalf("最弱断件=%q, 期望 leader", got)
 	}
 	// 注意：没有"鱼太重就不给咬钩/上不了岸"的判定函数，派鱼不按强度过滤。
 }
@@ -85,14 +85,14 @@ func TestGearWeightCapUsesHookEntryGeometry(t *testing.T) {
 	// 钩虽然装在末端，但它有真实拉力：80kg 的钩就是这副钓组的最弱环，
 	// 大鱼吃小钩时先被拉直/拉断的是钩。
 	if got := gearWeakestPart(spec); got != "hook" {
-		t.Fatalf("最弱断件=%q，期望 hook", got)
+		t.Fatalf("最弱断件=%q, 期望 hook", got)
 	}
 	if got := gearBreakLimitKg(spec); math.Abs(got-80) > 1e-9 {
-		t.Fatalf("承力链限额=%f，期望钩 80kg", got)
+		t.Fatalf("承力链限额=%f, 期望钩 80kg", got)
 	}
 	// 5mm 钩按立方口径上限 = 8 * 5^3 = 1000g，再允许 35% 控鱼余量。
 	if got := gearWeightCapKg(spec); math.Abs(got-1.35) > 1e-9 {
-		t.Fatalf("钩号体重上限=%f kg，期望 1.35kg", got)
+		t.Fatalf("钩号体重上限=%f kg, 期望 1.35kg", got)
 	}
 }
 
@@ -105,16 +105,16 @@ func TestGearWeightCapUsesStrengthLimit(t *testing.T) {
 	// 打开截断调试时允许超过最弱承力件 35%，给控鱼留操作空间。
 	want := 10.5 * gearOverloadFactor
 	if got := gearWeightCapKg(spec); math.Abs(got-want) > 1e-9 {
-		t.Fatalf("gear cap=%f，期望 %f", got, want)
+		t.Fatalf("gear cap=%f, 期望 %f", got, want)
 	}
 	if got := capWeightGrams(5000, 1234); got != 1234 {
-		t.Fatalf("capWeightGrams=%d，期望1234", got)
+		t.Fatalf("capWeightGrams=%d, 期望1234", got)
 	}
 	if got := poolWeightCapG(0, 0.2); math.Abs(got-780) > 1e-9 {
-		t.Fatalf("fight_tolerance 兜底上限=%f，期望780g", got)
+		t.Fatalf("fight_tolerance 兜底上限=%f, 期望780g", got)
 	}
 	if got := poolWeightCapG(0.9, 0.2); math.Abs(got-900) > 1e-9 {
-		t.Fatalf("真实钓具上限应替换650g兜底，得到%fg", got)
+		t.Fatalf("真实钓具上限应替换650g兜底, 得到%fg", got)
 	}
 }
 
@@ -178,11 +178,11 @@ func TestRigGearIDsReadsCurrentRodFieldsAndComponents(t *testing.T) {
 	weakest := gearWeakestPart(spec)
 	wantCap := (6.4 * 1.4) * gearOverloadFactor
 	if math.Abs(capKg-wantCap) > 1e-4 || weakest != "reel" {
-		t.Fatalf("当前钓组 cap=%f weakest=%q，期望 cap=%f weakest=reel", capKg, weakest, wantCap)
+		t.Fatalf("当前钓组 cap=%f weakest=%q, 期望 cap=%f weakest=reel", capKg, weakest, wantCap)
 	}
 	// 没有装钩时派鱼上限应为 0（不做任何截断）。
 	if got := srv.fishWeightCapKg(spec); got != 0 {
-		t.Fatalf("未装钩时派鱼上限=%f，期望 0", got)
+		t.Fatalf("未装钩时派鱼上限=%f, 期望 0", got)
 	}
 
 	// 实例耐久必须参与服务端最弱环计算：半耐久鱼线 10.5kg -> 5.25kg。
@@ -194,7 +194,7 @@ func TestRigGearIDsReadsCurrentRodFieldsAndComponents(t *testing.T) {
 	weakest = gearWeakestPart(spec)
 	wantCap = 5.25 * gearOverloadFactor
 	if math.Abs(capKg-wantCap) > 1e-4 || weakest != "line" {
-		t.Fatalf("磨损后 cap=%f weakest=%q，期望 cap=%f weakest=line", capKg, weakest, wantCap)
+		t.Fatalf("磨损后 cap=%f weakest=%q, 期望 cap=%f weakest=line", capKg, weakest, wantCap)
 	}
 }
 
@@ -216,7 +216,7 @@ func TestOfficialPushDelayUsesTraceSamples(t *testing.T) {
 	for i := 0; i < 5000; i++ {
 		got := officialPushDelayWith(rng)
 		if got < 6.0 || !eligible[got] {
-			t.Fatalf("采样=%f，不属于过滤后的官服 trace 样本", got)
+			t.Fatalf("采样=%f, 不属于过滤后的官服 trace 样本", got)
 		}
 	}
 }
@@ -237,28 +237,28 @@ func TestBiteDelayConfigPrecedenceAndSkill(t *testing.T) {
 	srv.tunCache["bite_delay_fixed"] = 0
 	got := srv.biteDelay(st, fishingSkillBonus{BiteSpeed: 1})
 	if got < 0.05 || got > 3.5 {
-		t.Fatalf("cap/scale 顺序错误: %f（应先 cap 7 再 scale 0.5）", got)
+		t.Fatalf("cap/scale 顺序错误: %f (应先 cap 7 再 scale 0.5)", got)
 	}
 	if got := standardBiteDelay(12, 0.5, 0, 1); math.Abs(got-6) > 1e-9 {
-		t.Fatalf("技能咬速后=%f，期望下限6s", got)
+		t.Fatalf("技能咬速后=%f, 期望下限6s", got)
 	}
 	if got := standardBiteDelay(12, 1, 7, 0.5); math.Abs(got-3.5) > 1e-9 {
-		t.Fatalf("标准咬钩 cap/scale=%f，期望3.5", got)
+		t.Fatalf("标准咬钩 cap/scale=%f, 期望3.5", got)
 	}
 }
 
 func TestTrophyLuckSamplesRealWeight(t *testing.T) {
 	if got := applyTrophyLuck(300, 2, func() float64 { return 500 }); got != 500 {
-		t.Fatalf("幸运应采用抽到的较重个体，得到%g", got)
+		t.Fatalf("幸运应采用抽到的较重个体, 得到%g", got)
 	}
 	if got := applyTrophyLuck(500, 2, func() float64 { return 300 }); got != 500 {
-		t.Fatalf("额外采样不应减轻体重，得到%g", got)
+		t.Fatalf("额外采样不应减轻体重, 得到%g", got)
 	}
 	if got := applyTrophyLuck(300, 0, func() float64 {
 		t.Fatal("无技能不应额外抽样")
 		return 500
 	}); got != 300 {
-		t.Fatalf("无技能不应改体重，得到%g", got)
+		t.Fatalf("无技能不应改体重, 得到%g", got)
 	}
 }
 
@@ -268,7 +268,7 @@ func TestPoolRollHonorsDynamicGearCap(t *testing.T) {
 	for i := 0; i < 300; i++ {
 		f := srv.rollFishPoolsWithRules("lvl2_01", 0.9, neutralFishingSkillBonus())
 		if f == nil || f.WeightG > 900 {
-			t.Fatalf("内置池体重=%v，超过动态物理上限900g", f)
+			t.Fatalf("内置池体重=%v, 超过动态物理上限900g", f)
 		}
 		if f.WeightG > 650 {
 			overOldMockCap = true
@@ -321,10 +321,10 @@ func TestReelStrengthUsesDragNotGearRatio(t *testing.T) {
 	}
 	got, ok := strengthBitsFor(def, 1)
 	if !ok || math.Abs(got-35.4) > 0.01 {
-		t.Fatalf("渔轮强度=%v ok=%v，期望摩擦制动力 35.4，不能等于传动比 4", got, ok)
+		t.Fatalf("渔轮强度=%v ok=%v, 期望摩擦制动力 35.4, 不能等于传动比 4", got, ok)
 	}
 	if drag := reelDragMaxKg(def); math.Abs(drag-35.4) > 0.05 {
-		t.Fatalf("摩擦制动力=%f，期望 35.4", drag)
+		t.Fatalf("摩擦制动力=%f, 期望 35.4", drag)
 	}
 }
 
@@ -337,7 +337,7 @@ func TestLeaderStrengthBitsUseNestedWireLoad(t *testing.T) {
 	}
 	got, ok := strengthBitsFor(def, 0.5)
 	if !ok || math.Abs(got-18) > 0.01 {
-		t.Fatalf("前导强度=%v ok=%v，期望嵌套线材强度 36kg × 耐久 0.5 = 18", got, ok)
+		t.Fatalf("前导强度=%v ok=%v, 期望嵌套线材强度 36kg × Прочность 0.5 = 18", got, ok)
 	}
 }
 
@@ -357,7 +357,7 @@ func TestDBRollHonorsDynamicGearCap(t *testing.T) {
 	for i := 0; i < 300; i++ {
 		f := srv.rollFishFromDBWithRules("level_001_lake", "", 0.25, neutralFishingSkillBonus())
 		if f == nil || f.WeightG > 250 {
-			t.Fatalf("DB 体重=%v，超过物理上限250g", f)
+			t.Fatalf("DB 体重=%v, 超过物理上限250g", f)
 		}
 	}
 }

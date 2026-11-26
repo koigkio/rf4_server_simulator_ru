@@ -40,7 +40,7 @@ func TestTradingCardSell(t *testing.T) {
 	s.dispatchRequest(ctx)
 	response := awaitPushEnvelope(t, peer)
 	if response.Marker != -2 || response.CallID != 601 {
-		t.Fatalf("出售应先回 27/1 响应，实得 marker=%d call=%d", response.Marker, response.CallID)
+		t.Fatalf("出售应先回 27/1 响应, 实得 marker=%d call=%d", response.Marker, response.CallID)
 	}
 	v, _, err := proto.DecodeValue(response.Body, 0, s.Table())
 	if err != nil {
@@ -61,7 +61,7 @@ func TestTradingCardSell(t *testing.T) {
 	}
 	walletPush := awaitPushEnvelope(t, peer)
 	if walletPush.Marker != -1 || walletPush.Main != 2 || walletPush.Sub != 1 {
-		t.Fatalf("出售后唯一推送=%d/%d，期望推送 2/1", walletPush.Main, walletPush.Sub)
+		t.Fatalf("出售后唯一推送=%d/%d, 期望推送 2/1", walletPush.Main, walletPush.Sub)
 	}
 	var silver int64
 	if err := db.SQL.QueryRow(`SELECT silver FROM profile WHERE uid=7`).Scan(&silver); err != nil {
@@ -81,7 +81,7 @@ func TestTradingCardSell(t *testing.T) {
 	s.dispatchRequest(replay)
 	replayResponse := awaitPushEnvelope(t, peer)
 	if replayResponse.Marker != -2 || replayResponse.CallID != 601 {
-		t.Fatalf("回执重放应返回成功响应，实得 marker=%d call=%d", replayResponse.Marker, replayResponse.CallID)
+		t.Fatalf("回执重放应返回成功响应, 实得 marker=%d call=%d", replayResponse.Marker, replayResponse.CallID)
 	}
 	if !bytes.Equal(replayResponse.Body, response.Body) {
 		t.Fatalf("回执重放响应与原响应不一致")

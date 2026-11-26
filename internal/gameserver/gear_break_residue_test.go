@@ -78,7 +78,7 @@ func TestHookBreakDetachesBaitAndRefundsStack(t *testing.T) {
 	comps := rigSlotGUIDs(t, srv, rod.GUID)
 	mountedBait := comps[catBait]
 	if mountedBait == "" || mountedBait == bait.GUID {
-		t.Fatalf("挂饵应拆出独立子实例，实得 %s", mountedBait)
+		t.Fatalf("挂饵应拆出独立子实例, 实得 %s", mountedBait)
 	}
 	seedBaitHookResidue(t, srv, rod.GUID, mountedBait, hook.GUID)
 
@@ -90,22 +90,22 @@ func TestHookBreakDetachesBaitAndRefundsStack(t *testing.T) {
 		t.Fatalf("应判钩断: %+v", outcome)
 	}
 	if row, _ := db.GetItemByGUID(ctx, mountedBait); row != nil {
-		t.Fatalf("断钩后挂载子饵应删除（并回来源堆），实得 %+v", row)
+		t.Fatalf("断钩后挂载子饵应删除 (并回来源堆), 实得 %+v", row)
 	}
 	if got := stackQtyForTest(t, srv, bait.GUID); got != 3 {
-		t.Fatalf("来源饵堆应恢复到 3，实得 %d", got)
+		t.Fatalf("来源饵堆应恢复到 3, 实得 %d", got)
 	}
 	if !containsGUID(outcome.StackRefreshGUIDs, bait.GUID) {
 		t.Fatalf("结果应刷新来源饵堆 %s: %+v", bait.GUID, outcome.StackRefreshGUIDs)
 	}
 	if got := rodSettingCount(t, srv, rod.GUID, "bait_hook:%"); got != 0 {
-		t.Fatalf("断钩后不应残留饵-钩映射，实得 %d 条", got)
+		t.Fatalf("断钩后不应残留饵-钩映射, 实得 %d 条", got)
 	}
 	if got := rodSettingCount(t, srv, rod.GUID, "rebait:%"); got != 0 {
-		t.Fatalf("断钩后不应残留补饵请求，实得 %d 条", got)
+		t.Fatalf("断钩后不应残留补饵请求, 实得 %d 条", got)
 	}
 	if mounts := rigSlotGUIDs(t, srv, rod.GUID); mounts[catBait] != "" {
-		t.Fatalf("断钩后饵位应清空，实得 %q", mounts[catBait])
+		t.Fatalf("断钩后饵位应清空, 实得 %q", mounts[catBait])
 	}
 }
 
@@ -155,20 +155,20 @@ func TestRodBreakClearsBaitSettingsAndLosesStack(t *testing.T) {
 		t.Fatalf("应判断竿: %+v", outcome)
 	}
 	if row, _ := db.GetItemByGUID(ctx, mountedBait); row != nil {
-		t.Fatalf("断竿后挂载子饵应丢失销毁，实得 %+v", row)
+		t.Fatalf("断竿后挂载子饵应丢失销毁, 实得 %+v", row)
 	}
 	// 挂载时来源堆已减 1；子饵丢失后不再回补，所以是 2 而不是 3。
 	if got := stackQtyForTest(t, srv, bait.GUID); got != 2 {
-		t.Fatalf("断竿饵应丢失，来源饵堆应为 2，实得 %d", got)
+		t.Fatalf("断竿饵应丢失, 来源饵堆应为 2, 实得 %d", got)
 	}
 	if !containsGUID(outcome.StackRefreshGUIDs, bait.GUID) {
 		t.Fatalf("结果应刷新来源饵堆 %s: %+v", bait.GUID, outcome.StackRefreshGUIDs)
 	}
 	if got := rodSettingCount(t, srv, rod.GUID, "bait_hook:%"); got != 0 {
-		t.Fatalf("断竿后不应残留饵-钩映射，实得 %d 条", got)
+		t.Fatalf("断竿后不应残留饵-钩映射, 实得 %d 条", got)
 	}
 	if got := rodSettingCount(t, srv, rod.GUID, "rebait:%"); got != 0 {
-		t.Fatalf("断竿后不应残留补饵请求，实得 %d 条", got)
+		t.Fatalf("断竿后不应残留补饵请求, 实得 %d 条", got)
 	}
 	if got, err := db.GetRodSetting(ctx, rod.GUID, reelDragSettingKey); err != nil || got != "29" {
 		t.Fatalf("断竿不应清掉摩擦档位: %q %v", got, err)
@@ -226,23 +226,23 @@ func TestReelBreakKeepsRigAndBaitSettings(t *testing.T) {
 		t.Fatalf("断轮后轮子应留竿上且耐久为 0: %+v", row)
 	}
 	if !outcome.KeepFight {
-		t.Fatalf("断轮应保持搏鱼（鱼仍挂钩）: %+v", outcome)
+		t.Fatalf("断轮应保持搏鱼 (鱼仍挂钩): %+v", outcome)
 	}
 	if row, _ := db.GetItemByGUID(ctx, mountedBait); row == nil || row.RigGUID != rod.GUID {
-		t.Fatalf("断轮后挂载子饵应仍在钓组上，实得 %+v", row)
+		t.Fatalf("断轮后挂载子饵应仍在钓组上, 实得 %+v", row)
 	}
 	// 子饵还在钓组上，来源堆维持装配时扣减后的 2，不需要回补。
 	if got := stackQtyForTest(t, srv, bait.GUID); got != 2 {
-		t.Fatalf("断轮来源饵堆应保持 2，实得 %d", got)
+		t.Fatalf("断轮来源饵堆应保持 2, 实得 %d", got)
 	}
 	if len(outcome.StackRefreshGUIDs) != 0 {
 		t.Fatalf("断轮不应产生来源堆刷新: %+v", outcome.StackRefreshGUIDs)
 	}
 	if got := rodSettingCount(t, srv, rod.GUID, "bait_hook:%"); got != 1 {
-		t.Fatalf("断轮后饵-钩映射应保留，实得 %d 条", got)
+		t.Fatalf("断轮后饵-钩映射应保留, 实得 %d 条", got)
 	}
 	if got := rodSettingCount(t, srv, rod.GUID, "rebait:%"); got != 1 {
-		t.Fatalf("断轮后补饵请求应保留，实得 %d 条", got)
+		t.Fatalf("断轮后补饵请求应保留, 实得 %d 条", got)
 	}
 }
 
@@ -288,13 +288,13 @@ func TestBaitBreakClearsItsBaitSettings(t *testing.T) {
 		t.Fatalf("应判饵断: %+v", outcome)
 	}
 	if row, _ := db.GetItemByGUID(ctx, mountedBait); row != nil {
-		t.Fatalf("断饵后饵应丢失销毁，实得 %+v", row)
+		t.Fatalf("断饵后饵应丢失销毁, 实得 %+v", row)
 	}
 	if got := rodSettingCount(t, srv, rod.GUID, "bait_hook:%"); got != 0 {
-		t.Fatalf("断饵后不应残留饵-钩映射，实得 %d 条", got)
+		t.Fatalf("断饵后不应残留饵-钩映射, 实得 %d 条", got)
 	}
 	if got := rodSettingCount(t, srv, rod.GUID, "rebait:%"); got != 0 {
-		t.Fatalf("断饵后不应残留补饵请求，实得 %d 条", got)
+		t.Fatalf("断饵后不应残留补饵请求, 实得 %d 条", got)
 	}
 }
 

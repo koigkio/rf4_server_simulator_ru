@@ -134,27 +134,27 @@ func TestRarityMilestoneGrantsOnSettleWithGiftCard(t *testing.T) {
 		WeightG: 2000, LengthM: 0.6, LocLevel: "level_001_lake"}
 	dec := settleWithFish(t, s, sess, fish, 1)
 	if n := countOwnedItem(t, s, uid, "statuette_fisherman_3"); n != 1 {
-		t.Fatalf("结算跨档应立即发 statuette_fisherman_3，实得 %d 枚", n)
+		t.Fatalf("结算跨档应立即发 statuette_fisherman_3, 实得 %d 枚", n)
 	}
 	line := giftRowOf(dec.Field(4).Val, giftSourceTrophyCountReached)
 	if line == nil {
-		t.Fatal("801.f4 应带来源码 3 的「捕获了数条稀有鱼」礼物行")
+		t.Fatal("801.f4 应带来源码 3 的«捕获了数条稀有鱼»礼物行")
 	}
 	if p := line.Field(1).Num; p == nil || *p != 3 {
-		t.Fatalf("礼物行的条数参数应为 3（鱼种数），实得 %v", p)
+		t.Fatalf("礼物行的条数参数应为 3 (鱼种数), 实得 %v", p)
 	}
 	if items := line.Field(2).Val; items == nil || items.Kind != proto.KindArgs || len(items.Items) != 1 {
-		t.Fatalf("礼物行应含 1 件奖座，实得 %#v", items)
+		t.Fatalf("礼物行应含 1 件奖座, 实得 %#v", items)
 	}
 	// 801.f8 奖励列表也要有它，结算界面的物品列表才显示。
 	if grants := dec.Field(8).Val; grants == nil || grants.Kind != proto.KindArgs || len(grants.Items) != 1 {
-		t.Fatalf("801.f8 应含 1 件奖励，实得 %#v", grants)
+		t.Fatalf("801.f8 应含 1 件奖励, 实得 %#v", grants)
 	}
 
 	// 同一条鱼重放（客户端重发 14/4）：不重复发、也不重复挂礼物。
 	settleWithFish(t, s, sess, fish, 2)
 	if n := countOwnedItem(t, s, uid, "statuette_fisherman_3"); n != 1 {
-		t.Fatalf("重放结算不应重复发奖座，实得 %d 枚", n)
+		t.Fatalf("重放结算不应重复发奖座, 实得 %d 枚", n)
 	}
 }
 
@@ -179,11 +179,11 @@ func TestRarityMilestoneCountsReleasedCatch(t *testing.T) {
 		WeightG: 2000, LengthM: 0.6, LocLevel: "level_001_lake"}
 	settleWithFish(t, s, sess, fish, 1)
 	if n := countOwnedItem(t, s, uid, "statuette_fisherman_3"); n != 1 {
-		t.Fatalf("结算跨档应发奖座，实得 %d 枚", n)
+		t.Fatalf("结算跨档应发奖座, 实得 %d 枚", n)
 	}
 	releaseWithFish(t, s, sess, fish, 2)
 	if n := countOwnedItem(t, s, uid, "statuette_fisherman_3"); n != 1 {
-		t.Fatalf("放生不该回收已发的奖座，实得 %d 枚", n)
+		t.Fatalf("放生不该回收已发的奖座, 实得 %d 枚", n)
 	}
 	var logged int
 	var source string
@@ -192,16 +192,16 @@ func TestRarityMilestoneCountsReleasedCatch(t *testing.T) {
 		t.Fatal(err)
 	}
 	if logged != 1 {
-		t.Fatalf("放生的鱼也应留下一条钓获记录（图鉴点亮），实得 %d 行", logged)
+		t.Fatalf("放生的鱼也应留下一条钓获记录 (图鉴点亮), 实得 %d 行", logged)
 	}
 	if source != "catch" {
-		t.Fatalf("放生后 catch_log.source 应为 catch，实得 %q", source)
+		t.Fatalf("放生后 catch_log.source 应为 catch, 实得 %q", source)
 	}
 	// 307.f16（奖杯鱼种数）与 24/19.f5 共用这个口径：3 种都该点亮。
 	if n, err := db.RareSpeciesCount(t.Context(), uid, recordTrophyGrade); err != nil {
 		t.Fatal(err)
 	} else if n != 3 {
-		t.Fatalf("放生后奖杯鱼种数应为 3，实得 %d", n)
+		t.Fatalf("放生后奖杯鱼种数应为 3, 实得 %d", n)
 	}
 }
 
@@ -226,7 +226,7 @@ func TestRarityMilestoneSameSpeciesDoesNotAdvance(t *testing.T) {
 	settleWithFish(t, s, sess, fish, 1)
 
 	if n := countOwnedItem(t, s, uid, "statuette_fisherman_3"); n != 0 {
-		t.Fatalf("同鱼种重复上星不该推进鱼种数，不该发 statuette_fisherman_3，实得 %d 枚", n)
+		t.Fatalf("同鱼种重复上星不该推进鱼种数, 不该发 statuette_fisherman_3, 实得 %d 枚", n)
 	}
 }
 
@@ -248,17 +248,17 @@ func TestSuperRareMilestoneFirstCrownOnSettle(t *testing.T) {
 	dec := settleWithFish(t, s, sess, fish, 1)
 
 	if n := countOwnedItem(t, s, uid, "statuette_supertrophy_1"); n != 1 {
-		t.Fatalf("首冠结算应发 statuette_supertrophy_1，实得 %d 枚", n)
+		t.Fatalf("首冠结算应发 statuette_supertrophy_1, 实得 %d 枚", n)
 	}
 	if n := countOwnedItem(t, s, uid, "statuette_fisherman_3"); n != 0 {
-		t.Fatalf("只有 1 种鱼达标时不该发 statuette_fisherman_3，实得 %d 枚", n)
+		t.Fatalf("只有 1 种鱼达标时不该发 statuette_fisherman_3, 实得 %d 枚", n)
 	}
 	line := giftRowOf(dec.Field(4).Val, giftSourceTrophyCountReached)
 	if line == nil {
 		t.Fatal("蓝冠结算也应带来源码 3 的礼物行")
 	}
 	if p := line.Field(1).Num; p == nil || *p != 1 {
-		t.Fatalf("超级稀有鱼礼物行的条数参数应为 1，实得 %v", p)
+		t.Fatalf("超级稀有鱼礼物行的条数参数应为 1, 实得 %v", p)
 	}
 }
 
@@ -297,19 +297,19 @@ func TestRarityMilestoneTwoFamiliesTwoGiftRows(t *testing.T) {
 			}
 		}
 		if !ok || len(params) != 2 {
-			t.Fatalf("应有 2 行来源码 %d 的礼物行，实得 %v", giftSourceTrophyCountReached, params)
+			t.Fatalf("应有 2 行来源码 %d 的礼物行, 实得 %v", giftSourceTrophyCountReached, params)
 		}
 		if !(params[0] == 3 && params[1] == 1) {
-			t.Fatalf("两行条数参数应分别为 3 与 1，实得 %v", params)
+			t.Fatalf("两行条数参数应分别为 3 与 1, 实得 %v", params)
 		}
 	} else {
-		t.Fatalf("801.f4 应为礼物行数组，实得 %#v", rows)
+		t.Fatalf("801.f4 应为礼物行数组, 实得 %#v", rows)
 	}
 	if n := countOwnedItem(t, s, uid, "statuette_fisherman_3"); n != 1 {
-		t.Fatalf("稀有鱼族第 3 种应发 1 枚，实得 %d", n)
+		t.Fatalf("稀有鱼族第 3 种应发 1 枚, 实得 %d", n)
 	}
 	if n := countOwnedItem(t, s, uid, "statuette_supertrophy_1"); n != 1 {
-		t.Fatalf("超级稀有鱼族首冠应发 1 枚，实得 %d", n)
+		t.Fatalf("超级稀有鱼族首冠应发 1 枚, 实得 %d", n)
 	}
 }
 
@@ -326,15 +326,15 @@ func TestEnsureRarityMilestonesBackfillsCrossedTiers(t *testing.T) {
 	}
 	got := s.ensureRarityMilestones(t.Context(), uid)
 	if len(got) != 3 {
-		t.Fatalf("11 种稀有待补 3/5/10 三档，实得 %d 枚", len(got))
+		t.Fatalf("11 种稀有待补 3/5/10 三档, 实得 %d 枚", len(got))
 	}
 	for _, id := range []string{"statuette_fisherman_3", "statuette_fisherman_5", "statuette_fisherman_10"} {
 		if n := countOwnedItem(t, s, uid, id); n != 1 {
-			t.Fatalf("%s 应已补发 1 枚，实得 %d", id, n)
+			t.Fatalf("%s 应已补发 1 枚, 实得 %d", id, n)
 		}
 	}
 	if again := s.ensureRarityMilestones(t.Context(), uid); len(again) != 0 {
-		t.Fatalf("巡检应幂等，第二次实得 %d 枚", len(again))
+		t.Fatalf("巡检应幂等, 第二次实得 %d 枚", len(again))
 	}
 }
 
@@ -346,22 +346,22 @@ func TestRarityMilestoneLaddersMatchItemDefs(t *testing.T) {
 	wantRare := []int64{3, 5, 10, 15, 30, 50, 75, 100}
 	wantSuper := []int64{1, 3, 5, 7, 10, 15, 20, 30, 50}
 	if len(rareSpeciesMilestones) != len(wantRare) {
-		t.Fatalf("稀有鱼档位应为 %v，实得 %d 档", wantRare, len(rareSpeciesMilestones))
+		t.Fatalf("稀有鱼档位应为 %v, 实得 %d 档", wantRare, len(rareSpeciesMilestones))
 	}
 	for i, m := range rareSpeciesMilestones {
 		if m.Species != wantRare[i] {
-			t.Fatalf("稀有鱼第 %d 档应为 %d，实得 %d", i, wantRare[i], m.Species)
+			t.Fatalf("稀有鱼第 %d 档应为 %d, 实得 %d", i, wantRare[i], m.Species)
 		}
 		if n := countItemDef(t, s, m.ItemID); n == 0 {
 			t.Fatalf("档位物品 %s 在 item_def 里不存在", m.ItemID)
 		}
 	}
 	if len(superRareSpeciesMilestones) != len(wantSuper) {
-		t.Fatalf("超级稀有鱼档位应为 %v，实得 %d 档", wantSuper, len(superRareSpeciesMilestones))
+		t.Fatalf("超级稀有鱼档位应为 %v, 实得 %d 档", wantSuper, len(superRareSpeciesMilestones))
 	}
 	for i, m := range superRareSpeciesMilestones {
 		if m.Species != wantSuper[i] {
-			t.Fatalf("超级稀有鱼第 %d 档应为 %d，实得 %d", i, wantSuper[i], m.Species)
+			t.Fatalf("超级稀有鱼第 %d 档应为 %d, 实得 %d", i, wantSuper[i], m.Species)
 		}
 		if n := countItemDef(t, s, m.ItemID); n == 0 {
 			t.Fatalf("档位物品 %s 在 item_def 里不存在", m.ItemID)

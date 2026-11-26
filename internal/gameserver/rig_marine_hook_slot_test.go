@@ -34,8 +34,8 @@ func TestHookSlotKeepsClientReportedIndex(t *testing.T) {
 	} {
 		got := canonicalIndexForOrdinal(catHook, tc.clientExtra, tc.rigType, 0)
 		if got != tc.clientExtra {
-			t.Fatalf("rig %d：客户端上报钩位索引 %d，被改写成 %d；"+
-				"客户端在自己的槽位上找不到组件会整组判无效（槽位变灰、钩装不上）",
+			t.Fatalf("rig %d: 客户端上报钩位索引 %d, 被改写成 %d; "+
+				"客户端在自己的槽位上找不到组件会整组判无效 (槽位变灰, 钩装不上)",
 				tc.rigType, tc.clientExtra, got)
 		}
 	}
@@ -53,7 +53,7 @@ func TestMarineHookHighIndicesCoexist(t *testing.T) {
 		t.Fatal(err)
 	}
 	if !srv.rigSetType(ctx, uid, rod.GUID, 50) {
-		t.Fatal("rigSetType 失败")
+		t.Fatal("rigSetType Ошибка")
 	}
 
 	mount := func(extra int64) string {
@@ -85,10 +85,10 @@ func TestMarineHookHighIndicesCoexist(t *testing.T) {
 	}
 	for _, want := range []int64{1001, 1005, 1009} {
 		if _, ok := seen[want]; !ok {
-			t.Fatalf("钩位索引 %d 未保留，实际落库 = %v", want, seen)
+			t.Fatalf("钩位索引 %d 未保留, 实际落库 = %v", want, seen)
 		}
 	}
 	if len(seen) != 3 {
-		t.Fatalf("钩位组件 = %d 个，期望 3 个互不冲突的槽位: %v", len(seen), seen)
+		t.Fatalf("钩位组件 = %d 个, 期望 3 个互不冲突的槽位: %v", len(seen), seen)
 	}
 }

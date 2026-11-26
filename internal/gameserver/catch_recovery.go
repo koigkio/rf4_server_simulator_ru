@@ -26,7 +26,7 @@ func (s *Server) recoverCompletedCatchOnLogin(sess *Session) {
 		s.resumeFishingState(st)
 	}
 	if err := s.recoverCompletedCatch(sess.Userid, nil); err != nil && !errors.Is(err, store.ErrKeepnetFull) {
-		s.log.Warn("待处理渔获恢复失败，原鱼已保留", "uid", sess.Userid, "err", err)
+		s.log.Warn("Не удалось восстановить ожидающий улов, исходная рыба сохранена", "uid", sess.Userid, "err", err)
 	}
 }
 
@@ -45,7 +45,7 @@ func (s *Server) recoverCompletedCatch(uid int64, notify *Session) error {
 			// 恢复出来的这尾鱼可能刚好补上该水域最后一种上星鱼（重启前已入护、
 			// 奖杯还没发的场景）。
 			if trophy, terr := s.grantWaterwayTrophy(s.dbCtx(), uid, entry.KeepLevel); terr != nil {
-				s.log.Warn("水域奖杯发放失败", "uid", uid, "water", entry.KeepLevel, "err", terr)
+				s.log.Warn("Не удалось выдать трофей водоёма", "uid", uid, "water", entry.KeepLevel, "err", terr)
 			} else if notify != nil {
 				notify.pushWaterwayTrophies([]*store.Item{trophy})
 			}
@@ -68,7 +68,7 @@ func (s *Server) recoverCompletedCatchLocked(st *FishState) (*store.KeepnetEntry
 	ctx := s.dbCtx()
 	raw, _, err := s.DB.KVGet(ctx, fmt.Sprintf("catch-settlement:%d:%s", uid, strings.ToLower(fish.FishGUID)))
 	if errors.Is(err, sql.ErrNoRows) {
-		return nil, errors.New("待处理渔获尚未完成结算")
+		return nil, errors.New("Расчёт ожидающего улова ещё не завершён")
 	}
 	if err != nil {
 		return nil, err
@@ -117,6 +117,6 @@ func (s *Server) recoverCompletedCatchLocked(st *FishState) (*store.KeepnetEntry
 
 func (s *Server) retryCompletedCatchRecovery(sess *Session) {
 	if err := s.recoverCompletedCatch(sess.Userid, sess); err != nil && !errors.Is(err, store.ErrKeepnetFull) {
-		s.log.Warn("待处理渔获未入护，原鱼已保留", "uid", sess.Userid, "err", err)
+		s.log.Warn("Ожидающий улов не помещён в садок, исходная рыба сохранена", "uid", sess.Userid, "err", err)
 	}
 }

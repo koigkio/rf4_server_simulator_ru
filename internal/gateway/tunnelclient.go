@@ -22,10 +22,10 @@ var (
 )
 
 func initTunnelMetrics(reg *prometheus.Registry) {
-	tlUp = metrics.NewGauge(reg, "gateway_tunnel_up", "隧道是否在线（1/0）")
-	tlSent = metrics.NewLabeledCounter(reg, "gateway_tunnel_sent_total", "隧道发送记录数", "type")
-	tlRecv = metrics.NewLabeledCounter(reg, "gateway_tunnel_recv_total", "隧道接收记录数", "type")
-	tlDialTotal = metrics.NewCounter(reg, "gateway_tunnel_dials_total", "隧道拨号次数")
+	tlUp = metrics.NewGauge(reg, "gateway_tunnel_up", "Туннель онлайн (1/0)")
+	tlSent = metrics.NewLabeledCounter(reg, "gateway_tunnel_sent_total", "Записей отправлено по туннелю", "type")
+	tlRecv = metrics.NewLabeledCounter(reg, "gateway_tunnel_recv_total", "Записей получено по туннелю", "type")
+	tlDialTotal = metrics.NewCounter(reg, "gateway_tunnel_dials_total", "Попыток подключения туннеля")
 }
 
 // TunnelManager 网关侧隧道客户端：维持到 gameserver 的连接，收发会话记录。
@@ -40,7 +40,7 @@ type TunnelManager struct {
 	gw   *RealtimeServer
 
 	mu      sync.Mutex
-	dialMu  sync.Mutex // 串行化拨号；持它期间不睡、不持 mu
+	dialMu  sync.Mutex // 串行化拨号; 持它期间不睡, 不持 mu
 	conn    *tunnel.Conn
 	retryN  int
 	closed  bool
@@ -54,7 +54,7 @@ type TunnelManager struct {
 }
 
 // errTunnelClosed 表示隧道管理器已关闭，不再拨号。
-var errTunnelClosed = errors.New("隧道已关闭")
+var errTunnelClosed = errors.New("Туннель закрыт")
 
 // NewTunnelManager 构建隧道管理器（不拨号；首次 sendOpen 时懒拨）。
 func NewTunnelManager(addr, psk string, log *slog.Logger, obs *metrics.Server, onState func(up bool)) *TunnelManager {
@@ -115,7 +115,7 @@ func (m *TunnelManager) getConn() (*tunnel.Conn, error) {
 	m.mu.Unlock()
 
 	if needBackoff {
-		m.log.Info("隧道重连退避", "wait", backoff)
+		m.log.Info("Пауза перед переподключением туннеля", "wait", backoff)
 		time.Sleep(backoff)
 		m.mu.Lock()
 		closed := m.closed
@@ -147,7 +147,7 @@ func (m *TunnelManager) getConn() (*tunnel.Conn, error) {
 	gen := m.gen
 	tlUp.Set(1)
 	tlDialTotal.Inc()
-	m.log.Info("隧道已连接", "addr", m.addr, "remote", c.RemoteAddr())
+	m.log.Info("Туннель подключён", "addr", m.addr, "remote", c.RemoteAddr())
 	state := m.onState
 	m.mu.Unlock()
 
@@ -191,7 +191,7 @@ func (m *TunnelManager) readLoop(c *tunnel.Conn, gen uint64) {
 		if m.onState != nil {
 			m.onState(false)
 		}
-		m.log.Warn("隧道断开：杀掉全部在线会话（客户端将自动重连并恢复）")
+		m.log.Warn("Туннель разорван: все онлайн-сессии завершены (клиенты переподключатся автоматически)")
 		if m.gw != nil {
 			m.gw.dropAll("tunnel_down")
 		}
@@ -250,7 +250,7 @@ func (m *TunnelManager) send(rt tunnel.RecordType, sid uint64, payload []byte) e
 		return err
 	}
 	if err := c.WriteRecord(rt, sid, payload); err != nil {
-		m.log.Warn("隧道发送失败", "type", rt, "err", err)
+		m.log.Warn("Ошибка отправки через туннель", "type", rt, "err", err)
 		_ = c.Close()
 		m.mu.Lock()
 		if m.conn == c {

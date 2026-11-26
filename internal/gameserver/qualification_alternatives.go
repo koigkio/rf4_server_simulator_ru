@@ -35,7 +35,7 @@ func countQualificationAlternativesTx(ctx context.Context, tx *sql.Tx, uid int64
 	switch err {
 	case nil:
 		if err := json.Unmarshal([]byte(raw), &progress); err != nil {
-			return nil, false, fmt.Errorf("资格备选进度解析失败 id=%d: %w", rule.ID, err)
+			return nil, false, fmt.Errorf("Не удалось разобрать прогресс альтернатив квалификации id=%d: %w", rule.ID, err)
 		}
 	case sql.ErrNoRows:
 		// 旧版本只实现星鱼路径，保留其已有证据。

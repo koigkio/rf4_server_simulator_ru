@@ -43,7 +43,7 @@ func TestMailSnapshotRoundTripPreservesItemInstance(t *testing.T) {
 		t.Fatal(err)
 	}
 	if snapshotVersion != mailItemSnapshotVersion {
-		t.Fatalf("附件快照版本=%d，应为 %d", snapshotVersion, mailItemSnapshotVersion)
+		t.Fatalf("附件快照版本=%d, 应为 %d", snapshotVersion, mailItemSnapshotVersion)
 	}
 	var attachments []store.MailItem
 	if err := json.Unmarshal([]byte(raw), &attachments); err != nil {
@@ -113,7 +113,7 @@ func TestMailAttachmentWithoutSnapshotFallsBackToDefinition(t *testing.T) {
 		t.Fatal(err)
 	}
 	if mail.AttachmentSnapshotVersion != 0 {
-		t.Fatalf("无快照附件版本=%d，应为 0", mail.AttachmentSnapshotVersion)
+		t.Fatalf("无快照附件版本=%d, 应为 0", mail.AttachmentSnapshotVersion)
 	}
 	if buildMail11062(mail) == nil {
 		t.Fatal("无快照附件展示失败")
@@ -220,7 +220,7 @@ func TestMailSnapshotCountableAttachmentReassignsGUID(t *testing.T) {
 		t.Fatal(err)
 	}
 	if receivedGUID == source.GUID {
-		t.Fatalf("计件附件领取应重分配 GUID，仍为源 GUID %s", source.GUID)
+		t.Fatalf("计件附件领取应重分配 GUID, 仍为源 GUID %s", source.GUID)
 	}
 	got, err := db.GetItemByGUID(ctx, receivedGUID)
 	if err != nil {

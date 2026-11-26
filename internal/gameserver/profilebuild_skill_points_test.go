@@ -19,7 +19,7 @@ func TestProfileAndSkillTreeAvailablePoints(t *testing.T) {
 		{
 			name: "shared_groups", level: 23,
 			nodes: map[int64]int64{313: 3, 514: 3, 701: 3, 1002: 3, 501: 2, 503: 2},
-			want:  21, // 26 - 3 - 2；每个共享身份只扣一次。
+			want:  21, // 26 - 3 - 2; 每个共享身份只扣一次.
 		},
 		{name: "exhausted", level: 4, nodes: map[int64]int64{502: 3}, want: 0},
 		{name: "overspent", level: 2, nodes: map[int64]int64{502: 3}, want: 0},

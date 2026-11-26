@@ -58,7 +58,7 @@ func TestHookProfileAPI(t *testing.T) {
 		t.Fatalf("后台鱼钩页面不可用: %d", hooksPage.Code)
 	}
 	if got := call(http.MethodGet, "/api/hooks/profiles", "", "").Code; got != http.StatusOK {
-		t.Fatalf("匿名读取鱼钩档案应 200，实得 %d", got)
+		t.Fatalf("匿名读取鱼钩档案应 200, 实得 %d", got)
 	}
 
 	login := call(http.MethodPost, "/api/login", "",
@@ -91,11 +91,11 @@ func TestHookProfileAPI(t *testing.T) {
 
 	invalid := bytes.NewBufferString(`{"item_id":"triple_20686","solid_scale":4,"hold_scale":1}`)
 	if resp := call(http.MethodPost, "/api/hooks/profiles", auth.Token, invalid.String()); resp.Code != http.StatusBadRequest {
-		t.Fatalf("越界倍率应 400，实得 %d", resp.Code)
+		t.Fatalf("越界倍率应 400, 实得 %d", resp.Code)
 	}
 	if resp := call(http.MethodPost, "/api/hooks/profiles", auth.Token,
 		`{"item_id":"missing_hook","solid_scale":1,"hold_scale":1}`); resp.Code != http.StatusNotFound {
-		t.Fatalf("不存在的型号应 404，实得 %d", resp.Code)
+		t.Fatalf("不存在的型号应 404, 实得 %d", resp.Code)
 	}
 
 	save := `{"item_id":"triple_20686","solid_scale":1.25,"hold_scale":0.8,"small_fish_floor":0.35,"over_capacity_hold_floor":0.6}`

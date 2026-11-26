@@ -78,7 +78,7 @@ func hCafeLots(ctx *Ctx) ([]byte, bool) {
 		now := time.Now().Unix()
 		templates, err := srv.cafeTemplates(cctx, level, now)
 		if err != nil {
-			ctx.Log.Warn("咖啡厅生成订单失败", "err", err)
+			ctx.Log.Warn("Кафе: не удалось создать заказ", "err", err)
 			return nil, false
 		}
 		if len(templates) == 0 {
@@ -87,7 +87,7 @@ func hCafeLots(ctx *Ctx) ([]byte, bool) {
 		}
 		orders, err := srv.DB.GetCafeOrders(cctx, ctx.Sess.Userid, scene, level, now, 3600, templates)
 		if err != nil {
-			ctx.Log.Warn("咖啡厅读取订单失败", "err", err)
+			ctx.Log.Warn("Кафе: не удалось прочитать заказы", "err", err)
 			return nil, false
 		}
 		for _, o := range orders {
@@ -120,7 +120,7 @@ func hCafeSubmit(ctx *Ctx) ([]byte, bool) {
 	guids := deepGUIDs(ctx.Tree.ArgItem(2))
 	res, err := srv.DB.SubmitCafeOrder(cctx, ctx.Sess.Userid, scene, ctx.Tree.ArgItem(1).GuidHex(), guids, time.Now().Unix())
 	if err != nil {
-		ctx.Log.Warn("咖啡厅交鱼失败", "err", err)
+		ctx.Log.Warn("Кафе: не удалось сдать рыбу", "err", err)
 		return encodeMarketSellOfferResult(ctx, 0, 1)
 	}
 	if !res.Replayed {

@@ -53,10 +53,10 @@ func TestSeedThenRuntimeUsesReadOnlyStaticSchema(t *testing.T) {
 		t.Fatal(err)
 	}
 	if mainRows != staticRows+1 {
-		t.Fatalf("主库副本行数=%d static=%d，期望主库多一条测试标记行", mainRows, staticRows)
+		t.Fatalf("主库副本行数=%d static=%d, 期望主库多一条测试标记行", mainRows, staticRows)
 	}
 	if runtimeRows != staticRows {
-		t.Fatalf("运行期未限定 item_def 行数=%d，应等于 static=%d", runtimeRows, staticRows)
+		t.Fatalf("运行期未限定 item_def 行数=%d, 应等于 static=%d", runtimeRows, staticRows)
 	}
 	if _, err := db.SQL.Exec(`UPDATE main.item_def SET item_id='blocked' WHERE numeric_id=-910001`); err == nil {
 		t.Fatal("seed 后运行期 main 静态副本仍可写")

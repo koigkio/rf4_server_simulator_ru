@@ -61,15 +61,15 @@ async function open(t, overrides = {}) {
     return route.fulfill({ status: 404, body: '' });
   });
   await page.goto('http://127.0.0.1:19214/admin/#tuning/event');
-  await page.getByRole('heading', { name: '游戏参数', exact: true }).waitFor();
+  await page.getByRole('heading', { name: 'Параметры игры', exact: true }).waitFor();
   const button = name => page.getByRole('button', { name, exact: true });
   const status = text => page.locator('#view [role=status]').filter({ hasText: text }).waitFor();
-  const preview = async () => JSON.parse(await page.getByLabel('奖励保存内容', { exact: true }).textContent());
+  const preview = async () => JSON.parse(await page.getByLabel('Сохраняемые награды', { exact: true }).textContent());
   const select = (label, value) => page.getByRole('combobox', { name: new RegExp(label) }).selectOption(value);
   return { page, values, writes, files, requests, faults, button, status, preview, select };
 }
 
-test('活动分支在宽窄屏均紧邻标签，点击文字及键盘切换只修改草稿', async t => {
+test('活动分支在宽窄屏均紧邻标签, 点击文字及键盘切换只修改草稿', async t => {
   const { page, writes } = await open(t);
   for (const width of [1920, 1280, 768, 320]) {
     await page.setViewportSize({ width, height: 800 });
@@ -82,7 +82,7 @@ test('活动分支在宽窄屏均紧邻标签，点击文字及键盘切换只�
     assert.equal(bounds.length, 12);
     for (const b of bounds) assert.ok(b.gap >= 4 && b.gap <= 12 && b.lines === 1 && b.right <= Math.min(width,b.limit)+1, JSON.stringify({width,...b}));
   }
-  const group = page.getByRole('group',{name:'2024 新年',exact:true});
+  const group = page.getByRole('group',{name:'2024 Новый год',exact:true});
   const extra = group.getByRole('checkbox',{name:'MMXXIV EXTRA',exact:true});
   await group.getByText('MMXXIV EXTRA',{exact:true}).click();
   assert.ok(await extra.isChecked());
@@ -93,98 +93,98 @@ test('活动分支在宽窄屏均紧邻标签，点击文字及键盘切换只�
 
 test('奖励基线已变时保留草稿且不覆盖另一个编辑器的保存', async t => {
   const { values, writes, button, status, preview } = await open(t);
-  await button('填入所选预设').click();
-  await status('已填入 15 个空白阶段');
+  await button('Заполнить из выбранного шаблона').click();
+  await status('Заполнено 15 пустых этапов');
   const draft = await preview();
   values[G] = JSON.stringify({19:{1:item('external', 3)}});
-  await button('保存修改').click();
-  await status('本次未写入');
+  await button('Сохранить изменения').click();
+  await status('Ничего не записано');
   assert.deepEqual(writes, []);
   assert.deepEqual(await preview(), draft);
 });
 
-test('九周年只补 14 个空阶段，再补 0；草稿、禁用分支及阶段 0 保存回读', async t => {
+test('九周年只补 14 个空阶段, 再补 0; 草稿, 禁用分支及阶段 0 保存回读', async t => {
   const { page, values, writes, requests, button, status, preview, select } = await open(t);
-  await button('添加物品').click();
-  await page.getByPlaceholder(/输入物品名称或 ID/).fill('coffee');
+  await button('Добавить предмет').click();
+  await page.getByPlaceholder(/Введите название или ID предмета/).fill('coffee');
   await page.getByText('测试咖啡', { exact: true }).click();
-  await page.getByLabel('数量', { exact: true }).fill('7');
-  await page.getByText('预览奖励保存内容', { exact: true }).click();
-  await button('填入所选预设').click(); await status('已填入 14 个空白阶段');
+  await page.getByLabel('Количество', { exact: true }).fill('7');
+  await page.getByText('Предпросмотр сохраняемых наград', { exact: true }).click();
+  await button('Заполнить из выбранного шаблона').click(); await status('Заполнено 14 пустых этапов');
   const expected = resource('anniversary-2026');
   expected[11] = initial[11]; expected[19][0] = initial[19][0]; expected[19][1] = item('coffee', 7);
   assert.deepEqual(await preview(), expected);
-  await button('填入所选预设').click(); await status('已填入 0 个空白阶段');
+  await button('Заполнить из выбранного шаблона').click(); await status('Заполнено 0 пустых этапов');
   assert.deepEqual(await preview(), expected);
   assert.deepEqual(writes, []);
   assert.deepEqual(JSON.parse(values[G]), initial);
-  await select('奖励分支', '20'); await select('奖励阶段', '0');
-  await button('保存修改').click(); await status('已保存并回读。请重启游戏客户端并重新登录。');
+  await select('Ветка наград', '20'); await select('Этап наград', '0');
+  await button('Сохранить изменения').click(); await status(/Сохранено и перечитано\. Игрокам нужно перезайти в игру/);
   assert.deepEqual(requests.slice(-2), ['POST:' + G, 'GET']);
   assert.deepEqual(writes.map(([p, w]) => [p, w.key, JSON.parse(w.value)]), [['/admin/api/tunables', G, expected]]);
-  assert.equal(await page.getByLabel(/奖励分支/).inputValue(), '20');
-  assert.equal(await page.getByLabel(/奖励阶段/).inputValue(), '0');
-  assert.equal(await page.getByLabel('数量', { exact: true }).inputValue(), '1');
+  assert.equal(await page.getByLabel(/Ветка наград/).inputValue(), '20');
+  assert.equal(await page.getByLabel(/Этап наград/).inputValue(), '0');
+  assert.equal(await page.getByLabel('Количество', { exact: true }).inputValue(), '1');
   await page.reload(); await page.locator('#pg-gifts').waitFor();
-  assert.equal(await page.getByLabel(/奖励阶段/).inputValue(), '0');
+  assert.equal(await page.getByLabel(/Этап наград/).inputValue(), '0');
   assert.deepEqual(await preview(), expected);
-  await button('清空可选分支奖励').click();
+  await button('Очистить награды необязательных веток').click();
   assert.deepEqual(await preview(), { 11: initial[11] });
-  await button('放弃').click(); assert.deepEqual(await preview(), expected);
+  await button('Отменить').click(); assert.deepEqual(await preview(), expected);
   assert.equal(writes.length, 1);
 });
 
-test('五套资源单独填入；全部预设遇到读取失败时一项也不填', async t => {
+test('五套资源单独填入; 全部预设遇到读取失败时一项也不填', async t => {
   const { page, faults, files, writes, button, preview, select, status } = await open(t, { event_branches: '9,10,11,13,15,17,18,19', [G]: '{}' });
   // Independent selection and counts (disabled extra branches must stay absent).
   const selected = [['11'], ['15'], ['19'], ['13'], ['17', '18']];
   const all = {};
   for (const [i, id] of presets.entries()) {
-    await select('奖励预设', id);
-    await button('填入所选预设').click(); await status(`已填入 ${i === 4 ? 19 : 8} 个空白阶段`);
+    await select('Шаблон наград', id);
+    await button('Заполнить из выбранного шаблона').click(); await status(`Заполнено ${i === 4 ? 19 : 8} пустых этапов`);
     const file = resource(id), expected = Object.fromEntries(selected[i].map(b => [b, file[b]]));
     Object.assign(all, expected);
     assert.deepEqual(await preview(), expected);
     assert.equal(files.at(-1), id);
-    await button('放弃').click(); assert.deepEqual(await preview(), {});
+    await button('Отменить').click(); assert.deepEqual(await preview(), {});
   }
-  await select('奖励分支', '18');
-  assert.equal(await page.getByLabel(/奖励阶段/).locator('option').count(), 11);
-  await select('奖励预设', 'all');
+  await select('Ветка наград', '18');
+  assert.equal(await page.getByLabel(/Этап наград/).locator('option').count(), 11);
+  await select('Шаблон наград', 'all');
   faults.file = 'newyear-2026';
-  await button('填入所选预设').click(); await status('预设读取失败');
+  await button('Заполнить из выбранного шаблона').click(); await status('Не удалось прочитать шаблон');
   assert.deepEqual(await preview(), {});
   delete faults.file;
-  await button('填入所选预设').click(); await status('已填入 51 个空白阶段');
+  await button('Заполнить из выбранного шаблона').click(); await status('Заполнено 51 пустых этапов');
   assert.deepEqual(await preview(), all);
   assert.deepEqual(files.slice(-5).sort(), [...presets].sort());
   assert.deepEqual(writes, []);
 });
 
-test('数量、移除、时间及分支均可放弃；切页和切换活动保护草稿，失败按实际模式回显', async t => {
+test('数量, 移除, 时间及分支均可放弃; 切页和切换活动保护草稿, 失败按实际模式回显', async t => {
   const { page, writes, requests, values, faults, button, select, preview, status } = await open(t);
-  const date = page.getByLabel('活动结束时间'), box = page.getByRole('checkbox', { name: 'VIII', exact: true });
+  const date = page.getByLabel('Время окончания события'), box = page.getByRole('checkbox', { name: 'VIII', exact: true });
   const originalDate = await date.inputValue();
-  const rewardTab = page.getByRole('link', { name: '收益与通知', exact: true });
-  await select('奖励阶段', '0'); await page.getByLabel('数量').fill('8');
-  await rewardTab.click(); await button('取消').click();
-  assert.equal(await page.getByRole('link', { name: '限时活动', exact: true }).getAttribute('aria-current'), 'page');
+  const rewardTab = page.getByRole('link', { name: 'Доход', exact: true });
+  await select('Этап наград', '0'); await page.getByLabel('Количество').fill('8');
+  await rewardTab.click(); await button('Отмена').click();
+  assert.equal(await page.getByRole('link', { name: 'События', exact: true }).getAttribute('aria-current'), 'page');
   assert.equal(new URL(page.url()).hash, '#tuning/event');
   assert.equal((await preview())[19][0][0].qty, 8);
-  const remove = button('移除物品 completion');
-  assert.equal(await remove.innerText(), '移除');
+  const remove = button('Убрать предмет completion');
+  assert.equal(await remove.innerText(), 'Убрать');
   const glyph = await remove.locator('svg').boundingBox();
   assert.ok(glyph && glyph.width >= 16 && glyph.height >= 16);
   await remove.click(); assert.deepEqual(await preview(), { 11: initial[11] }); assert.deepEqual(writes, []);
   await box.check(); await date.fill('2028-01-12T10:30');
-  await button('放弃').click();
+  await button('Отменить').click();
   assert.equal(await box.isChecked(), false); assert.equal(await date.inputValue(), originalDate);
-  assert.deepEqual(await preview(), initial); assert.ok(await button('保存修改').isDisabled());
-  await box.check(); await date.fill('2028-01-12T10:30'); await page.getByLabel('数量').fill('9');
-  const next = page.getByRole('radio', { name: '新年活动' });
-  await next.click(); await button('取消').click();
+  assert.deepEqual(await preview(), initial); assert.ok(await button('Сохранить изменения').isDisabled());
+  await box.check(); await date.fill('2028-01-12T10:30'); await page.getByLabel('Количество').fill('9');
+  const next = page.getByRole('radio', { name: 'Новогоднее событие' });
+  await next.click(); await button('Отмена').click();
   assert.deepEqual(writes, []); assert.equal((await preview())[19][0][0].qty, 9);
-  await button('保存修改').click(); await status('已保存并回读。服务端最多 30 秒生效；请重启游戏客户端并重新登录。');
+  await button('Сохранить изменения').click(); await status(/Сохранено и перечитано\. Сервер применит до 30 с; Игрокам нужно перезайти/);
   assert.equal(values.event_branches, '15,19,20');
   assert.equal(values.event_anniversary_end_unix, String(Date.UTC(2028, 0, 12, 10, 30) / 1000));
   assert.equal(JSON.parse(values[G])[19][0][0].qty, 9);
@@ -192,90 +192,90 @@ test('数量、移除、时间及分支均可放弃；切页和切换活动保�
   // Simulate server-side mode changing even though this POST failed: do not
   // leave the optimistic selection, or just roll back to the old local mode.
   faults.write = 'event_newyear_enabled'; faults.actual = { event_anniversary_enabled: '0' };
-  await next.click(); await status('切换失败');
+  await next.click(); await status('Не удалось переключить');
   assert.deepEqual(requests.slice(-2), ['POST:event_newyear_enabled', 'GET']);
-  assert.ok(await page.getByRole('radio', { name: '不开启' }).isChecked());
-  assert.equal(await next.isChecked(), false); await page.getByText('还没有开启活动', { exact: true }).waitFor();
-  assert.equal(await button('填入所选预设').count(), 0); assert.ok(await button('保存修改').isDisabled());
-  await box.uncheck(); await rewardTab.click(); await button('放弃并切换').click();
-  await page.getByText('经验与奖励', { exact: true }).first().waitFor();
+  assert.ok(await page.getByRole('radio', { name: 'Не включать' }).isChecked());
+  assert.equal(await next.isChecked(), false); await page.getByText('Событие ещё не включено', { exact: true }).waitFor();
+  assert.equal(await button('Заполнить из выбранного шаблона').count(), 0); assert.ok(await button('Сохранить изменения').isDisabled());
+  await box.uncheck(); await rewardTab.click(); await button('Отменить и переключить').click();
+  await page.getByText('Опыт и награды', { exact: true }).first().waitFor();
   assert.equal(new URL(page.url()).hash, '#tuning/reward');
-  await page.getByRole('link', { name: '限时活动', exact: true }).click();
+  await page.getByRole('link', { name: 'События', exact: true }).click();
   await box.waitFor(); assert.ok(await box.isChecked()); assert.equal(writes.length, 4);
 });
 
-test('显式空分支不可编辑奖励；只保存分支后才出现奖励编辑器', async t => {
+test('显式空分支不可编辑奖励; 只保存分支后才出现奖励编辑器', async t => {
   const { page, writes, button, select, status } = await open(t, { event_branches: '' });
-  await page.getByText('还没有选择活动分支', { exact: true }).waitFor();
-  assert.equal(await button('添加物品').count(), 0);
-  assert.equal(await button('填入所选预设').count(), 0);
+  await page.getByText('Ветка события ещё не выбрана', { exact: true }).waitFor();
+  assert.equal(await button('Добавить предмет').count(), 0);
+  assert.equal(await button('Заполнить из выбранного шаблона').count(), 0);
   await page.getByRole('checkbox', { name: 'IX', exact: true }).check();
-  assert.equal(await button('添加物品').count(), 0);
-  await button('保存修改').click(); await status('已保存并回读');
-  await select('奖励阶段', '0'); assert.equal(await page.getByLabel('数量').inputValue(), '4');
+  assert.equal(await button('Добавить предмет').count(), 0);
+  await button('Сохранить изменения').click(); await status('Сохранено и перечитано');
+  await select('Этап наград', '0'); assert.equal(await page.getByLabel('Количество').inputValue(), '4');
   assert.deepEqual(writes, [['/admin/api/tunables', { key: 'event_branches', value: '19' }]]);
 });
 
 test('切换失败回读后仍用奖励草稿的原始基线检查冲突', async t => {
   const base = {19:{1:item('A',1)}};
   const {page,button,faults,writes,values,status,preview} = await open(t,{[G]:JSON.stringify(base)});
-  await page.getByLabel('数量',{exact:true}).fill('5');
+  await page.getByLabel('Количество',{exact:true}).fill('5');
   const external = {19:{0:item('external',1),1:item('A',1)}};
   faults.write = 'event_newyear_enabled'; faults.actual = {[G]:JSON.stringify(external)};
-  await page.getByRole('radio',{name:'新年活动'}).click(); await button('放弃并切换').click();
-  await status('切换失败'); await button('保存修改').click(); await status('本次未写入');
+  await page.getByRole('radio',{name:'Новогоднее событие'}).click(); await button('Отменить и переключить').click();
+  await status('Не удалось переключить'); await button('Сохранить изменения').click(); await status('Ничего не записано');
   assert.deepEqual(await preview(),{19:{1:item('A',5)}});
   assert.deepEqual(JSON.parse(values[G]),external); assert.equal(writes.length,1);
-  await button('放弃').click(); assert.deepEqual(await preview(),external);
+  await button('Отменить').click(); assert.deepEqual(await preview(),external);
 });
 
-test('选物品期间切到另一阶段，过期选择不修改任何阶段', async t => {
+test('选物品期间切到另一阶段, 过期选择不修改任何阶段', async t => {
   const base = {19:{1:item('A',1),2:item('B',2)}};
   const {page,button,select,writes,preview} = await open(t,{[G]:JSON.stringify(base)});
-  await button('添加物品').click(); await page.getByPlaceholder(/输入物品名称或 ID/).fill('coffee');
-  await select('奖励阶段','2'); await page.getByText('测试咖啡',{exact:true}).click();
+  await button('Добавить предмет').click(); await page.getByPlaceholder(/Введите название или ID предмета/).fill('coffee');
+  await select('Этап наград','2'); await page.getByText('测试咖啡',{exact:true}).click();
   assert.deepEqual(await preview(),base); assert.deepEqual(writes,[]);
 });
 
 test('读取 null 奖励时显示空阶段且不回写', async t => {
   const {page,writes,preview,button} = await open(t,{[G]:'null'});
-  await page.getByText('这个阶段没有额外奖励',{exact:true}).waitFor();
-  assert.deepEqual(await preview(),{}); assert.ok(await button('保存修改').isDisabled()); assert.deepEqual(writes,[]);
+  await page.getByText('На этом этапе нет дополнительных наград',{exact:true}).waitFor();
+  assert.deepEqual(await preview(),{}); assert.ok(await button('Сохранить изменения').isDisabled()); assert.deepEqual(writes,[]);
 });
 
-test('保存失败留下待重试项，不重复写入已经成功的奖励', async t => {
+test('保存失败留下待重试项, 不重复写入已经成功的奖励', async t => {
   const { page, faults, writes, button, select, status } = await open(t);
   const extra = page.getByRole('checkbox', { name: 'VIII', exact: true });
-  await select('奖励阶段', '0'); await page.getByLabel('数量').fill('12'); await extra.check();
+  await select('Этап наград', '0'); await page.getByLabel('Количество').fill('12'); await extra.check();
   faults.write = 'event_branches';
-  await button('保存修改').click(); await status('保存失败');
-  assert.ok(await extra.isChecked()); assert.ok(await button('保存修改').isEnabled());
-  assert.equal(await page.getByLabel('数量').inputValue(), '12');
+  await button('Сохранить изменения').click(); await status('Не удалось сохранить');
+  assert.ok(await extra.isChecked()); assert.ok(await button('Сохранить изменения').isEnabled());
+  assert.equal(await page.getByLabel('Количество').inputValue(), '12');
   delete faults.write;
-  await button('保存修改').click(); await status('已保存并回读');
+  await button('Сохранить изменения').click(); await status('Сохранено и перечитано');
   assert.deepEqual(writes.map(([, w]) => w.key), [G, 'event_branches', 'event_branches']);
-  assert.equal(await page.getByLabel(/奖励阶段/).inputValue(), '0');
-  assert.ok(await button('保存修改').isDisabled());
+  assert.equal(await page.getByLabel(/Этап наград/).inputValue(), '0');
+  assert.ok(await button('Сохранить изменения').isDisabled());
 });
 
-test('写入成功但响应丢失：重试先回读，已生效项不当成外部冲突、也不重写', async t => {
+test('写入成功但响应丢失: 重试先回读, 已生效项不当成外部冲突, 也不重写', async t => {
   const { page, faults, writes, button, select, status } = await open(t);
   const extra = page.getByRole('checkbox', { name: 'VIII', exact: true });
-  await select('奖励阶段', '0'); await page.getByLabel('数量').fill('12'); await extra.check();
+  await select('Этап наград', '0'); await page.getByLabel('Количество').fill('12'); await extra.check();
   faults.lost = 'event_branches';
-  await button('保存修改').click(); await status('保存失败');
-  await button('保存修改').click(); await status('已保存并回读');
+  await button('Сохранить изменения').click(); await status('Не удалось сохранить');
+  await button('Сохранить изменения').click(); await status('Сохранено и перечитано');
   assert.deepEqual(writes.map(([, w]) => w.key), [G, 'event_branches']);
-  assert.ok(await button('保存修改').isDisabled());
+  assert.ok(await button('Сохранить изменения').isDisabled());
 });
 
 test('奖励写入响应丢失后只重试仍等于原基线的剩余项', async t => {
   const { page, faults, writes, button, select, status } = await open(t);
   const extra = page.getByRole('checkbox', { name: 'VIII', exact: true });
-  await select('奖励阶段', '0'); await page.getByLabel('数量').fill('12'); await extra.check();
+  await select('Этап наград', '0'); await page.getByLabel('Количество').fill('12'); await extra.check();
   faults.lost = G;
-  await button('保存修改').click(); await status('保存失败');
+  await button('Сохранить изменения').click(); await status('Не удалось сохранить');
   assert.deepEqual(writes.map(([, w]) => w.key), [G]);
-  await button('保存修改').click(); await status('已保存并回读');
+  await button('Сохранить изменения').click(); await status('Сохранено и перечитано');
   assert.deepEqual(writes.map(([, w]) => w.key), [G, 'event_branches']);
 });

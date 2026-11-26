@@ -15,7 +15,7 @@ func TestEnsureProfileUsesDefaultName(t *testing.T) {
 		t.Fatal(err)
 	}
 	if p.Name != "player" {
-		t.Fatalf("默认昵称=%q，期望 player", p.Name)
+		t.Fatalf("默认昵称=%q, 期望 player", p.Name)
 	}
 }
 
@@ -35,7 +35,7 @@ func TestCatchLogTimestampKeepsSubsecondPrecision(t *testing.T) {
 		t.Fatalf("catch_log.ts=%f 不在写入时间窗 [%f,%f]", ts, before, after)
 	}
 	if math.Abs(ts-math.Round(ts)) < 1e-9 {
-		t.Fatalf("catch_log.ts=%f 被截成整秒，FILETIME 精度丢失", ts)
+		t.Fatalf("catch_log.ts=%f 被截成整秒, FILETIME 精度丢失", ts)
 	}
 }
 
@@ -48,7 +48,7 @@ func TestNamedFishInsertRejectsDuplicateConcurrentWinner(t *testing.T) {
 	}
 	later := &NamedFish{FishID: "abc", Species: "perch", Name: "Second", Grade: 4}
 	if err := db.NamedFishInsert(ctx, later); err == nil {
-		t.Fatal("重复命名必须返回冲突，不能误报成功")
+		t.Fatal("重复命名必须返回冲突, 不能误报成功")
 	}
 	got, err := db.NamedFishGet(ctx, "abc")
 	if err != nil || got.Name != "First" {
@@ -74,7 +74,7 @@ func TestMigrateAddsItemConditionColumns(t *testing.T) {
 		t.Fatal(err)
 	}
 	if n != 2 {
-		t.Fatalf("item 表补列数=%d，期望 2", n)
+		t.Fatalf("item 表补列数=%d, 期望 2", n)
 	}
 }
 
@@ -96,10 +96,10 @@ func TestTableOwnershipMatchesSchema(t *testing.T) {
 	}
 	owner := TableOwnership()
 	if owner["membership_order"] != "player" {
-		t.Fatalf("membership_order 归属=%q，期望 player", owner["membership_order"])
+		t.Fatalf("membership_order 归属=%q, 期望 player", owner["membership_order"])
 	}
 	if owner["place_access"] != "player" {
-		t.Fatalf("place_access 归属=%q，期望 player", owner["place_access"])
+		t.Fatalf("place_access 归属=%q, 期望 player", owner["place_access"])
 	}
 	if owner["item_def"] != "static" || owner["kv"] != "runtime" {
 		t.Fatalf("关键表归属错误: item_def=%q kv=%q", owner["item_def"], owner["kv"])
@@ -224,6 +224,6 @@ func assertCount(t *testing.T, db *DB, query string, want int) {
 		t.Fatal(err)
 	}
 	if got != want {
-		t.Fatalf("%s = %d，期望 %d", query, got, want)
+		t.Fatalf("%s = %d, 期望 %d", query, got, want)
 	}
 }

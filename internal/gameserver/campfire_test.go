@@ -37,23 +37,23 @@ func TestCampfireStartReturnsActiveFireAndPersists(t *testing.T) {
 	}
 	dec, _, err := proto.DecodeValue(body, 0, srv.Table())
 	if err != nil || dec.Class != "ihaaofcmopp" {
-		t.Fatalf("3/11 应回 802 ihaaofcmopp，实得 %v err=%v", dec, err)
+		t.Fatalf("3/11 应回 802 ihaaofcmopp, 实得 %v err=%v", dec, err)
 	}
 	// 到期分钟与 307.f13.f0 同时间线（世界总游戏分钟）。
 	clientNow := float64(worldTotalGameMin(time.Now()))
 	wantExpiry := clientNow + float64(defCampfireDurationGameMin)
 	gotExpiry := float64(dec.Fields[0].U32())
 	if math.Abs(gotExpiry-wantExpiry) > 2 {
-		t.Fatalf("篝火结束游戏分钟=%v，当前=%.2f，期望约=%.2f", gotExpiry, clientNow, wantExpiry)
+		t.Fatalf("篝火结束游戏分钟=%v, 当前=%.2f, 期望约=%.2f", gotExpiry, clientNow, wantExpiry)
 	}
 	if f1 := dec.Fields[1].Val; f1 == nil || f1.Kind != proto.KindArgs || f1.ArgCodeStr() != "61" || f1.ArgCount() != 1 {
-		t.Fatalf("802.f1 应携带扣减后的木柴实例，实得 %v", f1)
+		t.Fatalf("802.f1 应携带扣减后的木柴实例, 实得 %v", f1)
 	}
 	if f2 := dec.Fields[2].Val; f2 == nil || f2.Kind != proto.KindArgs || f2.ArgCodeStr() != "61" || f2.ArgCount() != 1 {
-		t.Fatalf("802.f2 应携带扣减后的火柴实例，实得 %v", f2)
+		t.Fatalf("802.f2 应携带扣减后的火柴实例, 实得 %v", f2)
 	}
 	if f3 := dec.Fields[3].Val; f3 == nil || f3.Kind != proto.KindGuidArr || len(f3.Items) != 0 {
-		t.Fatalf("802.f3 应为空 GUID 数组，实得 %v", f3)
+		t.Fatalf("802.f3 应为空 GUID 数组, 实得 %v", f3)
 	}
 	drinkUseTestQty(t, srv, woodGUID, 4, 0)
 	drinkUseTestQty(t, srv, matchGUID, 49, 0)
@@ -67,7 +67,7 @@ func TestCampfireStartReturnsActiveFireAndPersists(t *testing.T) {
 	}
 	remainingRealSec := float64(state.ExpiresFT-int64(proto.WindowsFiletimeNow())) / 10_000_000
 	if math.Abs(remainingRealSec-gameMinutesToRealDuration(defCampfireDurationGameMin).Seconds()) > 3 {
-		t.Fatalf("篝火现实剩余秒=%.2f，期望约=%.2f", remainingRealSec, gameMinutesToRealDuration(defCampfireDurationGameMin).Seconds())
+		t.Fatalf("篝火现实剩余秒=%.2f, 期望约=%.2f", remainingRealSec, gameMinutesToRealDuration(defCampfireDurationGameMin).Seconds())
 	}
 	expiry := state.ExpiresFT
 	firstClientExpiry := dec.Fields[0].U32()
@@ -114,7 +114,7 @@ func TestCampfireDurationTunable(t *testing.T) {
 	}
 	clientNow := float64(worldTotalGameMin(time.Now()))
 	if got, want := float64(dec.Fields[0].U32()), clientNow+480; math.Abs(got-want) > 2 {
-		t.Fatalf("802.f0=%v，期望约 %.2f（480 游戏分钟）", got, want)
+		t.Fatalf("802.f0=%v, 期望约 %.2f (480 游戏分钟)", got, want)
 	}
 	state, err := db.GetCampfireState(t.Context(), sess.Userid)
 	if err != nil || state == nil || state.DurationMin != 480 {
@@ -122,7 +122,7 @@ func TestCampfireDurationTunable(t *testing.T) {
 	}
 	remainingRealSec := float64(state.ExpiresFT-int64(proto.WindowsFiletimeNow())) / 10_000_000
 	if math.Abs(remainingRealSec-gameMinutesToRealDuration(480).Seconds()) > 3 {
-		t.Fatalf("篝火现实剩余秒=%.2f，期望约=%.2f", remainingRealSec,
+		t.Fatalf("篝火现实剩余秒=%.2f, 期望约=%.2f", remainingRealSec,
 			gameMinutesToRealDuration(480).Seconds())
 	}
 }
@@ -148,7 +148,7 @@ func TestCampfireDurationTunableClamped(t *testing.T) {
 				srv.tunCache = map[string]float64{}
 			}
 			if got := srv.campfireDurationGameMin(); got != tc.want {
-				t.Fatalf("燃烧时长=%d，期望 %d", got, tc.want)
+				t.Fatalf("燃烧时长=%d, 期望 %d", got, tc.want)
 			}
 		})
 	}

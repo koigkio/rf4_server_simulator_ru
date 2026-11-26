@@ -82,7 +82,7 @@ func TestRodDetachPushesRodTreeAfterResponse(t *testing.T) {
 		}
 		foundRod = true
 		if h := it.Fields[4].GuidHex(); h != "" {
-			t.Fatalf("推送竿树 f4=%s, want 空（轮应已拆）", h)
+			t.Fatalf("推送竿树 f4=%s, want 空 (轮应已拆)", h)
 		}
 		cidx := fieldIdxByCS(it.Class, csCreated)
 		if cidx < 0 || it.Fields[cidx].Num == nil || *it.Fields[cidx].Num <= respVer {

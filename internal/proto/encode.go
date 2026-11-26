@@ -5,7 +5,7 @@ import "fmt"
 // 401.f4 官方 KV 参数数组的线上常量（客户端 mdbadlkabhk/dejdolfnooh）。
 const (
 	kvListElementType = "dejdolfnooh"
-	kvEntryTypeID     = 400 // wiregen 注册表：400 = plbmkhnmeim（dejdolfnooh codec）
+	kvEntryTypeID     = 400 // wiregen 注册表: 400 = plbmkhnmeim (dejdolfnooh codec)
 )
 
 // EncodeValue 将树节点编码为 wire 字节。

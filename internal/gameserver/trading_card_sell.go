@@ -22,7 +22,7 @@ func hTradingCardSell(ctx *Ctx) ([]byte, bool) {
 	}
 	if !ctx.DecodeOK || ctx.Tree == nil || ctx.Tree.Kind != proto.KindArgs || ctx.Tree.ArgCount() < 1 ||
 		ctx.Tree.ArgItem(0) == nil || ctx.Tree.ArgItem(0).Kind != proto.KindGuidArr {
-		ctx.ReplyFailure("System.ArgumentException", "卡片出售参数无效")
+		ctx.ReplyFailure("System.ArgumentException", "Неверные параметры продажи карточек")
 		return nil, true
 	}
 	clientQuote := uint64(0)
@@ -35,28 +35,28 @@ func hTradingCardSell(ctx *Ctx) ([]byte, bool) {
 	receiptKey := fmt.Sprintf("card-sell:%d:%s:%d:%d:%d", uid, key.TokenHash, key.Main, key.Sub, key.CallID)
 	tx, err := beginEconomyTx(c, s.DB)
 	if err != nil {
-		ctx.Log.Warn("卡片出售开事务失败", "err", err)
-		ctx.ReplyFailure("System.IO.IOException", "卡片出售失败，请重试")
+		ctx.Log.Warn("Продажа карточек: не удалось начать транзакцию", "err", err)
+		ctx.ReplyFailure("System.IO.IOException", "Продажа карточек не удалась, попробуйте ещё раз")
 		return nil, true
 	}
 	defer tx.Rollback()
 	if _, err := tx.ExecContext(c, `UPDATE kv SET v=v WHERE k=?`, receiptKey); err != nil {
-		ctx.Log.Warn("卡片出售写锁失败", "err", err)
-		ctx.ReplyFailure("System.IO.IOException", "卡片出售失败，请重试")
+		ctx.Log.Warn("Продажа карточек: не удалось записать блокировку", "err", err)
+		ctx.ReplyFailure("System.IO.IOException", "Продажа карточек не удалась, попробуйте ещё раз")
 		return nil, true
 	}
 	var raw string
 	if err := tx.QueryRowContext(c, `SELECT v FROM kv WHERE k=?`, receiptKey).Scan(&raw); err == nil {
 		var receipt cardAlbumReceipt
 		if err := json.Unmarshal([]byte(raw), &receipt); err != nil || receipt.RequestSHA != sha {
-			ctx.Log.Warn("卡片出售回执不匹配", "err", err)
-			ctx.ReplyFailure("System.InvalidOperationException", "重复请求的内容不一致")
+			ctx.Log.Warn("Продажа карточек: квитанция не совпадает", "err", err)
+			ctx.ReplyFailure("System.InvalidOperationException", "Содержимое повторного запроса не совпадает")
 			return nil, true
 		}
 		return receipt.Body, true
 	} else if err != sql.ErrNoRows {
-		ctx.Log.Warn("卡片出售读回执失败", "err", err)
-		ctx.ReplyFailure("System.IO.IOException", "卡片出售失败，请重试")
+		ctx.Log.Warn("Продажа карточек: не удалось прочитать квитанцию", "err", err)
+		ctx.ReplyFailure("System.IO.IOException", "Продажа карточек не удалась, попробуйте ещё раз")
 		return nil, true
 	}
 	sold := make([]string, 0, len(ctx.Tree.ArgItem(0).Items))
@@ -65,39 +65,39 @@ func hTradingCardSell(ctx *Ctx) ([]byte, bool) {
 		card, err := getOwnedItemTx(c, tx, uid, item.Hex)
 		if err != nil || card.WireClass != cardClass || card.Qty != 1 ||
 			card.Container != tradingCardContainer || card.RigGUID != "" {
-			ctx.Log.Warn("卡片出售跳过无效卡", "guid", item.Hex, "err", err)
+			ctx.Log.Warn("Продажа карточек: пропущена неверная карточка", "guid", item.Hex, "err", err)
 			continue
 		}
 		def, err := itemDefByItemIDTx(c, tx, card.ItemID)
 		if err != nil || def.Category != 78 {
-			ctx.Log.Warn("卡片出售跳过无定义卡", "guid", item.Hex, "item", card.ItemID)
+			ctx.Log.Warn("Продажа карточек: пропущена карточка без определения", "guid", item.Hex, "item", card.ItemID)
 			continue
 		}
 		price, _ := defAttrU64(def, "obcephkkfhi")
 		if price <= 0 {
-			ctx.Log.Warn("卡片出售跳过无价卡", "guid", item.Hex, "item", card.ItemID)
+			ctx.Log.Warn("Продажа карточек: пропущена карточка без цены", "guid", item.Hex, "item", card.ItemID)
 			continue
 		}
 		if _, err := tx.ExecContext(c, `DELETE FROM item WHERE guid=? AND uid=?`, item.Hex, uid); err != nil {
-			ctx.Log.Warn("卡片出售删卡失败", "guid", item.Hex, "err", err)
-			ctx.ReplyFailure("System.IO.IOException", "卡片出售失败，请重试")
+			ctx.Log.Warn("Продажа карточек: не удалось удалить карточку", "guid", item.Hex, "err", err)
+			ctx.ReplyFailure("System.IO.IOException", "Продажа карточек не удалась, попробуйте ещё раз")
 			return nil, true
 		}
 		sold = append(sold, item.Hex)
 		total += int64(price)
 	}
 	if len(sold) == 0 {
-		ctx.ReplyFailure("System.InvalidOperationException", "没有可出售的卡片")
+		ctx.ReplyFailure("System.InvalidOperationException", "Нет карточек для продажи")
 		return nil, true
 	}
 	if clientQuote != 0 && clientQuote != uint64(total) {
-		ctx.Log.Info("卡片出售报价与成交价不一致（以服务端为准）",
+		ctx.Log.Info("Цена продажи карточек не совпадает с итоговой (решает сервер)",
 			"uid", uid, "client", clientQuote, "server", total)
 	}
 	if err := applyWalletTx(c, tx, uid, total, 0, "sell_card", "", "",
-		fmt.Sprintf("收藏册出售 %d 张", len(sold))); err != nil {
-		ctx.Log.Warn("卡片出售入账失败", "err", err)
-		ctx.ReplyFailure("System.IO.IOException", "卡片出售失败，请重试")
+		fmt.Sprintf("Продано карточек из коллекции: %d", len(sold))); err != nil {
+		ctx.Log.Warn("Продажа карточек: ошибка зачисления", "err", err)
+		ctx.ReplyFailure("System.IO.IOException", "Продажа карточек не удалась, попробуйте ещё раз")
 		return nil, true
 	}
 	body, err := proto.EncodeValue(build800(
@@ -105,23 +105,23 @@ func hTradingCardSell(ctx *Ctx) ([]byte, bool) {
 		proto.Args(proto.S("61")),
 		proto.GuidArr(sold)), s.Table())
 	if err != nil {
-		ctx.Log.Warn("卡片出售编码失败", "err", err)
-		ctx.ReplyFailure("System.IO.IOException", "卡片出售失败，请重试")
+		ctx.Log.Warn("Продажа карточек: ошибка кодирования", "err", err)
+		ctx.ReplyFailure("System.IO.IOException", "Продажа карточек не удалась, попробуйте ещё раз")
 		return nil, true
 	}
 	receipt, err := json.Marshal(cardAlbumReceipt{RequestSHA: sha, Body: body})
 	if err != nil {
-		ctx.ReplyFailure("System.IO.IOException", "卡片出售失败，请重试")
+		ctx.ReplyFailure("System.IO.IOException", "Продажа карточек не удалась, попробуйте ещё раз")
 		return nil, true
 	}
 	if _, err := tx.ExecContext(c, `INSERT INTO kv(k,v) VALUES(?,?)`, receiptKey, string(receipt)); err != nil {
-		ctx.Log.Warn("卡片出售写回执失败", "err", err)
-		ctx.ReplyFailure("System.IO.IOException", "卡片出售失败，请重试")
+		ctx.Log.Warn("Продажа карточек: не удалось записать квитанцию", "err", err)
+		ctx.ReplyFailure("System.IO.IOException", "Продажа карточек не удалась, попробуйте ещё раз")
 		return nil, true
 	}
 	if err := tx.Commit(); err != nil {
-		ctx.Log.Warn("卡片出售提交失败", "err", err)
-		ctx.ReplyFailure("System.IO.IOException", "卡片出售失败，请重试")
+		ctx.Log.Warn("Продажа карточек: ошибка фиксации", "err", err)
+		ctx.ReplyFailure("System.IO.IOException", "Продажа карточек не удалась, попробуйте ещё раз")
 		return nil, true
 	}
 	// 800.f2 已经会让客户端删除成交卡；不再追加 4/21 或全量卡片
@@ -129,6 +129,6 @@ func hTradingCardSell(ctx *Ctx) ([]byte, bool) {
 	ctx.AfterResponse(func() {
 		ctx.Sess.Push2_1()
 	})
-	ctx.Log.Info("卡片出售完成", "uid", uid, "cards", len(sold), "silver", total)
+	ctx.Log.Info("Продажа карточек завершена", "uid", uid, "cards", len(sold), "silver", total)
 	return body, true
 }

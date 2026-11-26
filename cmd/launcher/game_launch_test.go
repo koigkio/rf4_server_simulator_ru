@@ -180,3 +180,63 @@ func panelPOSTRequest(path string, body io.Reader) *http.Request {
 	req.Header.Set("Content-Type", "application/json")
 	return req
 }
+
+func TestBuildSteamCommandFindsSteamExeFromGamePath(t *testing.T) {
+	root := t.TempDir()
+	steamExe := filepath.Join(root, "steam.exe")
+	if err := os.WriteFile(steamExe, []byte("stub"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	gameDir := filepath.Join(root, "steamapps", "common", "Russian Fishing 4")
+	if err := os.MkdirAll(gameDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	game := filepath.Join(gameDir, "rf4_x64.exe")
+	cmd, err := buildSteamCommand(game, "RU", 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := strings.Join(cmd.Args[1:], " "); got != "-applaunch 766570 -region RU" {
+		// В реестре мог найтись настоящий Steam — проверяем только аргументы.
+		t.Fatalf("args=%q", got)
+	}
+}
+
+func TestBuildSteamCommandFallsBackToProtocol(t *testing.T) {
+	if steamExeFromRegistry() != "" {
+		t.Skip("на машине установлен Steam")
+	}
+	cmd, err := buildSteamCommand("", "RU", 766570)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := cmd.Args[len(cmd.Args)-1]; got != "steam://run/766570//-region%20RU/" {
+		t.Fatalf("uri=%q", got)
+	}
+}
+
+func TestNormalizeLaunchVia(t *testing.T) {
+	for in, want := range map[string]string{"": launchDirect, "direct": launchDirect, "Steam": launchSteam, " steam ": launchSteam, "x": launchDirect} {
+		if got := normalizeLaunchVia(in); got != want {
+			t.Fatalf("normalizeLaunchVia(%q)=%q, want %q", in, got, want)
+		}
+	}
+}
+
+func TestGameLaunchViaSteamDoesNotRequireGamePath(t *testing.T) {
+	var launched *exec.Cmd
+	a := &app{
+		cfg:       &config.Config{Launcher: config.Launcher{GameRegion: "RU", LaunchVia: "steam", SteamAppID: 766570}},
+		startGame: func(cmd *exec.Cmd) error { launched = cmd; return nil },
+		log:       panelLogger{},
+	}
+	rr := httptest.NewRecorder()
+	a.handleGameLaunch(rr, panelPOSTRequest("/api/game/launch", bytes.NewBufferString("{}")))
+	if rr.Code != http.StatusOK {
+		t.Fatalf("code=%d body=%s", rr.Code, rr.Body.String())
+	}
+	args := strings.Join(launched.Args, " ")
+	if !strings.Contains(args, "766570") || !strings.Contains(args, "RU") {
+		t.Fatalf("args=%q", args)
+	}
+}

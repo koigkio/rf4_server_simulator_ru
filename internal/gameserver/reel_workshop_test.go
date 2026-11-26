@@ -50,16 +50,16 @@ func TestWorkshopExposesAllCompatibleReelParts(t *testing.T) {
 	// Spark 2 2000S 的精确表含 6 个线杯、6 个齿轮、2 个摩擦片，
 	// 再加当前零件自身；不得被旧的 3/4 个上限截断。
 	if counts[8] != 7 {
-		t.Fatalf("线杯工单=%d，期望当前件+6个兼容件", counts[8])
+		t.Fatalf("线杯工单=%d, 期望当前件+6个兼容件", counts[8])
 	}
 	if counts[52] != 7 {
-		t.Fatalf("齿轮工单=%d，期望当前件+6个兼容件", counts[52])
+		t.Fatalf("齿轮工单=%d, 期望当前件+6个兼容件", counts[52])
 	}
 	if counts[9] != 3 {
-		t.Fatalf("摩擦片工单=%d，期望当前件+2个兼容件", counts[9])
+		t.Fatalf("摩擦片工单=%d, 期望当前件+2个兼容件", counts[9])
 	}
 	if counts[10] != 21 {
-		t.Fatalf("润滑油工单=%d，期望静态库全部21种品质油", counts[10])
+		t.Fatalf("润滑油工单=%d, 期望静态库全部21种品质油", counts[10])
 	}
 	if _, ok := counts[34]; !ok {
 		t.Fatal("摇柄应出现在轮子零件诊断中")
@@ -109,7 +109,7 @@ func TestWorkshopOrderRefreshesDragVersionAndPerformance(t *testing.T) {
 		t.Fatalf("21/3 响应不可解码: %v", err)
 	}
 	if len(hctx.afterResponse) != 1 {
-		t.Fatalf("工作坊成功后应注册一次 4/22 刷新，实得 %d", len(hctx.afterResponse))
+		t.Fatalf("工作坊成功后应注册一次 4/22 刷新, 实得 %d", len(hctx.afterResponse))
 	}
 
 	fresh, _ := db.GetItemByGUID(ctx, reel.GUID)
@@ -125,7 +125,7 @@ func TestWorkshopOrderRefreshesDragVersionAndPerformance(t *testing.T) {
 	dragField := drag.Field(dragIdx)
 	gotDrag := float64(proto.F32FromBits(dragField.U32()))
 	if math.Abs(gotDrag-3.5) > 0.001 {
-		t.Fatalf("改装摩擦力=%f，期望 3.5kg", gotDrag)
+		t.Fatalf("改装摩擦力=%f, 期望 3.5kg", gotDrag)
 	}
 	perf, err := db.GetReelPerformance(ctx, reel.GUID)
 	if err != nil {
@@ -136,7 +136,7 @@ func TestWorkshopOrderRefreshesDragVersionAndPerformance(t *testing.T) {
 	_, _, bearingDur := srv.reelPartStateFromRow(ctx, fresh, reelPartCatBearing)
 	wantLocked := 3.4 * clampUnit(bearingDur)
 	if math.Abs(perf.BaseDragKg-3.5) > 0.001 || math.Abs(perf.LockedDragKg-wantLocked) > 0.001 {
-		t.Fatalf("轮子物理参数=%+v，期望 base=3.5 locked=%f", perf, wantLocked)
+		t.Fatalf("轮子物理参数=%+v, 期望 base=3.5 locked=%f", perf, wantLocked)
 	}
 	if perf.BearingItemID != "ef-sp_001_bb" || perf.BearingQuality != 10 ||
 		perf.OilItemID != "ef_reel_oil" || perf.OilQuality != 15 {
@@ -205,7 +205,7 @@ func TestReelWorkshopStatsSurviveRelogTreeBuild(t *testing.T) {
 	gotRatio := float64(proto.F32FromBits(uint32(u64Of(tree.Fields[si].Num))))
 	_, gearDef, _, ok := srv.selectedReelPart(ctx, tree.Fields, 52)
 	if !ok || gearDef == nil || gearDef.ItemID != "rgm_zmn_jet_jsg-r" {
-		t.Fatalf("重登后齿轮=%v ok=%v，期望保留JSG-R", gearDef, ok)
+		t.Fatalf("重登后齿轮=%v ok=%v, 期望保留JSG-R", gearDef, ok)
 	}
 	// 统一口径：重登后轮根=出厂规格×轴承耐久（spin_5354 规格 20.84），
 	// 不能是传动比，也不再跟随摩擦片值。
@@ -214,12 +214,12 @@ func TestReelWorkshopStatsSurviveRelogTreeBuild(t *testing.T) {
 		t.Fatal("规格表缺 spin_5354")
 	}
 	if math.Abs(gotRatio-wantStrength) > 0.001 {
-		t.Fatalf("重登后轮子力度上限=%f，期望规格%f，不能是传动比%f", gotRatio, wantStrength, itemDefF32(gearDef, gearAttrRatio)*fresh.Workmanship)
+		t.Fatalf("重登后轮子力度上限=%f, 期望规格%f, 不能是传动比%f", gotRatio, wantStrength, itemDefF32(gearDef, gearAttrRatio)*fresh.Workmanship)
 	}
 
 	drag, dragDef, _, ok := srv.selectedReelPart(ctx, tree.Fields, 9)
 	if !ok || dragDef == nil || dragDef.ItemID != "ef-fb-sp.orig-5805" {
-		t.Fatalf("重登后摩擦片=%v ok=%v，期望保留5805", dragDef, ok)
+		t.Fatalf("重登后摩擦片=%v ok=%v, 期望保留5805", dragDef, ok)
 	}
 	di := fieldIdxByCS(drag.Class, csDragForce)
 	if di < 0 || drag.Fields[di].Num == nil {
@@ -227,7 +227,7 @@ func TestReelWorkshopStatsSurviveRelogTreeBuild(t *testing.T) {
 	}
 	gotDrag := float64(proto.F32FromBits(uint32(u64Of(drag.Fields[di].Num))))
 	if math.Abs(gotDrag-3.5) > 0.001 {
-		t.Fatalf("重登后摩擦力=%f，期望保留3.5kg", gotDrag)
+		t.Fatalf("重登后摩擦力=%f, 期望保留3.5kg", gotDrag)
 	}
 
 }
@@ -238,36 +238,36 @@ func TestReelOverloadUsesDurabilityStages(t *testing.T) {
 		1.0: 1.4, 0.8: 1.3, 0.6: 1.2, 0.4: 1.1, 0.2: 1.0,
 	} {
 		if got := reelLockMultiplier(durability); math.Abs(got-want) > 1e-9 {
-			t.Fatalf("耐久 %.1f 倍率=%f，期望 %f", durability, got, want)
+			t.Fatalf("耐久 %.1f 倍率=%f, 期望 %f", durability, got, want)
 		}
 	}
 	for quality, want := range map[float64]float64{0: 0.90, 10: 0.91, 75: 0.975, 100: 1.0} {
 		if got := reelBearingFactor(quality, 1); math.Abs(got-want) > 1e-9 {
-			t.Fatalf("轴承品质 %.0f 传力系数=%f，期望 %f", quality, got, want)
+			t.Fatalf("轴承品质 %.0f 传力系数=%f, 期望 %f", quality, got, want)
 		}
 	}
 	// 轴承自身磨旧：耐久从 1 掉到 0 最多再减 15%，换件能整段找回来。
 	for durability, want := range map[float64]float64{1: 1.0, 0.6: 0.94, 0.2: 0.88, 0: 0.85} {
 		if got := reelBearingFactor(100, durability); math.Abs(got-want) > 1e-9 {
-			t.Fatalf("轴承耐久 %.1f 传力系数=%f，期望 %f", durability, got, want)
+			t.Fatalf("轴承耐久 %.1f 传力系数=%f, 期望 %f", durability, got, want)
 		}
 	}
 	// 齿轮效率：满品质满耐久不加成，磨完最多再减 10%。
 	for durability, want := range map[float64]float64{1: 1.0, 0.5: 0.95, 0: 0.90} {
 		if got := reelGearFactor(100, durability); math.Abs(got-want) > 1e-9 {
-			t.Fatalf("齿轮耐久 %.1f 传动系数=%f，期望 %f", durability, got, want)
+			t.Fatalf("齿轮耐久 %.1f 传动系数=%f, 期望 %f", durability, got, want)
 		}
 	}
 	if got := reelGearFactor(0, 1); math.Abs(got-0.95) > 1e-9 {
-		t.Fatalf("0 品质齿轮传动系数=%f，期望 0.95", got)
+		t.Fatalf("0 品质齿轮传动系数=%f, 期望 0.95", got)
 	}
 	for quality, want := range map[float64]float64{15: 1.175, 70: 0.90, 100: 0.75} {
 		if got := reelOilWearFactor(quality, 1); math.Abs(got-want) > 1e-9 {
-			t.Fatalf("润滑油品质 %.0f 磨损系数=%f，期望 %f", quality, got, want)
+			t.Fatalf("润滑油品质 %.0f 磨损系数=%f, 期望 %f", quality, got, want)
 		}
 	}
 	if got := reelOilWearFactor(100, 0); math.Abs(got-1.0) > 1e-9 {
-		t.Fatalf("轮油干涸后应失去品质保护，磨损系数=%f，期望 1.0", got)
+		t.Fatalf("轮油干涸后应失去品质保护, 磨损系数=%f, 期望 1.0", got)
 	}
 	if !(reelOilWearFactor(100, 1) < reelOilWearFactor(100, .5) &&
 		reelOilWearFactor(100, .5) < reelOilWearFactor(100, 0)) {
@@ -313,7 +313,7 @@ func TestReelOverloadUsesDurabilityStages(t *testing.T) {
 	}
 	lockFresh, _ := db.GetItemByGUID(ctx, reel.GUID)
 	if lockFresh.Durability != 0 {
-		t.Fatalf("渔轮损坏后耐久应直接归 0，实得 %f", lockFresh.Durability)
+		t.Fatalf("渔轮损坏后耐久应直接归 0, 实得 %f", lockFresh.Durability)
 	}
 }
 
@@ -340,7 +340,7 @@ func TestReelSlipDegradesFrictionWasherByStep(t *testing.T) {
 	// 不会把本体一次性打掉；但它确实会动，不再是“磨件不伤本体”。
 	wantBody := 1 - reelBodyWeightWasher*reelSlipWear
 	if math.Abs(fresh.Durability-wantBody) > 1e-6 {
-		t.Fatalf("首次打滑后本体耐久=%f，应只随摩擦片权重微降", fresh.Durability)
+		t.Fatalf("首次打滑后本体耐久=%f, 应只随摩擦片权重微降", fresh.Durability)
 	}
 	after, perr := srv.syncReelPerformance(ctx, fresh)
 	if perr != nil {
@@ -348,7 +348,7 @@ func TestReelSlipDegradesFrictionWasherByStep(t *testing.T) {
 	}
 	want := before.BaseDragKg * (1 - reelSlipWear)
 	if math.Abs(after.BaseDragKg-want) > 0.01 {
-		t.Fatalf("摩擦片制动力应按单次基准衰减：before=%v after=%v want=%v", before.BaseDragKg, after.BaseDragKg, want)
+		t.Fatalf("摩擦片制动力应按单次基准衰减: before=%v after=%v want=%v", before.BaseDragKg, after.BaseDragKg, want)
 	}
 }
 

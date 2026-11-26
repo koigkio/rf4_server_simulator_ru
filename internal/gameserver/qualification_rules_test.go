@@ -39,31 +39,31 @@ func TestQualificationRule1001DistinctSpecies(t *testing.T) {
 
 	// 同一事件会推进所有适用分支（1001/4001/4101/4301…），这里只看 1001。
 	if ch := land("perch"); ch[1001].RuleID != 1001 {
-		t.Fatalf("第一种鱼应产生 1001 变化，实得 %v", ch)
+		t.Fatalf("第一种鱼应产生 1001 变化, 实得 %v", ch)
 	}
 	if n, ts := state(); n != 1 || ts != 0 {
-		t.Fatalf("第一种鱼后应为 1/未完成，实得 %d/%g", n, ts)
+		t.Fatalf("第一种鱼后应为 1/未完成, 实得 %d/%g", n, ts)
 	}
-	if ch := land("perch"); ch[1001].RuleID != 0 { // 同种重复，无变化
-		t.Fatalf("重复鱼种不应产生 1001 变化，实得 %v", ch[1001])
+	if ch := land("perch"); ch[1001].RuleID != 0 { // 同种重复, 无变化
+		t.Fatalf("重复鱼种不应产生 1001 变化, 实得 %v", ch[1001])
 	}
 	land("roach")
 	if n, ts := state(); n != 2 || ts != 0 {
-		t.Fatalf("两种鱼后应为 2/未完成，实得 %d/%g", n, ts)
+		t.Fatalf("两种鱼后应为 2/未完成, 实得 %d/%g", n, ts)
 	}
-	if ch := land("bream"); ch[1001].CompletedTS == 0 { // 第三种，达标
-		t.Fatalf("第三种鱼应达标并返回 1001 变化，实得 %v", ch)
+	if ch := land("bream"); ch[1001].CompletedTS == 0 { // 第三种, 达标
+		t.Fatalf("第三种鱼应达标并返回 1001 变化, 实得 %v", ch)
 	}
 	n, ts := state()
 	if n != 3 || ts == 0 {
-		t.Fatalf("三种鱼后应为 3/已完成，实得 %d/%g", n, ts)
+		t.Fatalf("三种鱼后应为 3/已完成, 实得 %d/%g", n, ts)
 	}
-	if ch := land("pike"); ch[1001].RuleID != 0 { // 达标后封顶，不再计数
-		t.Fatalf("达标后 1001 应封顶无变化，实得 %v", ch[1001])
+	if ch := land("pike"); ch[1001].RuleID != 0 { // 达标后封顶, 不再计数
+		t.Fatalf("达标后 1001 应封顶无变化, 实得 %v", ch[1001])
 	}
 	n2, ts2 := state()
 	if n2 != 3 || ts2 != ts {
-		t.Fatalf("达标后应停在 3 且完成时刻不变，实得 %d/%g（原 %g）", n2, ts2, ts)
+		t.Fatalf("达标后应停在 3 且完成时刻不变, 实得 %d/%g (原 %g)", n2, ts2, ts)
 	}
 }
 
@@ -96,17 +96,17 @@ func TestQualificationCounterObjectShape(t *testing.T) {
 		t.Fatal(err)
 	}
 	if root.TypeID != 5004 {
-		t.Fatalf("计数器类型应为 5004，实得 %d", root.TypeID)
+		t.Fatalf("计数器类型应为 5004, 实得 %d", root.TypeID)
 	}
 	if got := *root.Fields[0].Num; got != 1001 {
-		t.Fatalf("Idx0 规则编号应为 1001，实得 %d", got)
+		t.Fatalf("Idx0 规则编号应为 1001, 实得 %d", got)
 	}
 	list := root.Fields[1].Val
 	if list == nil || len(list.Items) != 2 {
-		t.Fatalf("Idx1 鱼列表长度应为 2（进度分子），实得 %v", list)
+		t.Fatalf("Idx1 鱼列表长度应为 2 (进度分子), 实得 %v", list)
 	}
 	if got := *root.Fields[2].Num; got != 0 {
-		t.Fatalf("未完成时 Idx2 应为 0，实得 %d", got)
+		t.Fatalf("未完成时 Idx2 应为 0, 实得 %d", got)
 	}
 	// 完成时 Idx2 > 0，客户端据此直接判满。
 	done := qualificationCounterObject(1001, counted, 1_700_000_000)
@@ -142,11 +142,11 @@ func TestBuild5003CarriesCountersAndFishRecords(t *testing.T) {
 		t.Fatal(err)
 	}
 	if root.TypeID != 5003 {
-		t.Fatalf("根对象应为 5003，实得 %d", root.TypeID)
+		t.Fatalf("根对象应为 5003, 实得 %d", root.TypeID)
 	}
 	counters := root.Fields[2].Val
 	if counters == nil || len(counters.Items) == 0 {
-		t.Fatalf("应下发计数器（至少含 1001），实得 %v", counters)
+		t.Fatalf("应下发计数器 (至少含 1001), 实得 %v", counters)
 	}
 	var counter *proto.Value
 	for _, it := range counters.Items {
@@ -156,23 +156,23 @@ func TestBuild5003CarriesCountersAndFishRecords(t *testing.T) {
 		}
 	}
 	if counter == nil {
-		t.Fatalf("计数器列表缺少 1001，实得 %v", counters)
+		t.Fatalf("计数器列表缺少 1001, 实得 %v", counters)
 	}
 	guids := counter.Fields[1].Val
 	if guids == nil || len(guids.Items) != 3 {
-		t.Fatalf("1001 进度分子应为 3，实得 %v", guids)
+		t.Fatalf("1001 进度分子应为 3, 实得 %v", guids)
 	}
 	if *counter.Fields[2].Num == 0 {
 		t.Fatal("集满 3 种后完成时刻应 > 0")
 	}
 	fish := root.Fields[1].Val
 	if fish == nil || len(fish.Items) != 3 {
-		t.Fatalf("应配套下发 3 条鱼记录，实得 %v", fish)
+		t.Fatalf("应配套下发 3 条鱼记录, 实得 %v", fish)
 	}
 	byGUID := make(map[string]bool)
 	for _, f := range fish.Items {
 		if f.TypeID != 5005 {
-			t.Fatalf("鱼记录应为 5005，实得 %d", f.TypeID)
+			t.Fatalf("鱼记录应为 5005, 实得 %d", f.TypeID)
 		}
 		byGUID[f.Fields[0].Hex] = true
 	}
@@ -218,11 +218,11 @@ func TestQualificationBranch1Filters(t *testing.T) {
 	// 1002「3 公斤以上（含）」：2999g 不计，3000g 达标。
 	catch(qualificationEvent{Species: "carp", WeightG: 2999})
 	if n, ts := state(1002); n != 0 || ts != 0 {
-		t.Fatalf("2999g 不应计入 1002，实得 %d/%g", n, ts)
+		t.Fatalf("2999g 不应计入 1002, 实得 %d/%g", n, ts)
 	}
 	catch(qualificationEvent{Species: "carp", WeightG: 3000})
 	if n, ts := state(1002); n != 1 || ts == 0 {
-		t.Fatalf("3000g 应达标 1002，实得 %d/%g", n, ts)
+		t.Fatalf("3000g 应达标 1002, 实得 %d/%g", n, ts)
 	}
 
 	// 1003「7 种不同的拟饵」：天然饵与重复拟饵不计，第 7 种拟饵达标。
@@ -232,11 +232,11 @@ func TestQualificationBranch1Filters(t *testing.T) {
 	}
 	catch(qualificationEvent{Species: "perch", Bait: "spoon_a", BaitCat: 17}) // 重复
 	if n, ts := state(1003); n != 6 || ts != 0 {
-		t.Fatalf("6 种拟饵后应为 6/未完成，实得 %d/%g", n, ts)
+		t.Fatalf("6 种拟饵后应为 6/未完成, 实得 %d/%g", n, ts)
 	}
 	catch(qualificationEvent{Species: "perch", Bait: "crank_x", BaitCat: 17})
 	if n, ts := state(1003); n != 7 || ts == 0 {
-		t.Fatalf("7 种拟饵应达标，实得 %d/%g", n, ts)
+		t.Fatalf("7 种拟饵应达标, 实得 %d/%g", n, ts)
 	}
 
 	// 1302「每种勺子/旋转亮片/鱼形硬饵/表水路亚钓获稀有鱼」：普通鱼不计。
@@ -248,11 +248,11 @@ func TestQualificationBranch1Filters(t *testing.T) {
 	catch(rare("crank_a"))
 	catch(qualificationEvent{Species: "perch", Bait: "topwater_a", BaitCat: 17, Grade: 2}) // 非奖杯
 	if n, ts := state(1302); n != 3 || ts != 0 {
-		t.Fatalf("3 个拟饵族后应为 3/未完成（普通鱼不计），实得 %d/%g", n, ts)
+		t.Fatalf("3 个拟饵族后应为 3/未完成 (普通鱼不计), 实得 %d/%g", n, ts)
 	}
 	catch(rare("topwater_a"))
 	if n, ts := state(1302); n != 4 || ts == 0 {
-		t.Fatalf("4 个拟饵族应达标，实得 %d/%g", n, ts)
+		t.Fatalf("4 个拟饵族应达标, 实得 %d/%g", n, ts)
 	}
 
 	// 1201「白河、人造拟饵、至少 5kg 的哲罗鱼」：地点、钓组、重量匹配，档位不限。
@@ -265,11 +265,11 @@ func TestQualificationBranch1Filters(t *testing.T) {
 		LocLevel: "level_011_ladoga_02",
 	})
 	if n, ts := state(1201); n != 0 || ts != 0 {
-		t.Fatalf("地点不符不应计入 1201，实得 %d/%g", n, ts)
+		t.Fatalf("地点不符不应计入 1201, 实得 %d/%g", n, ts)
 	}
 	catch(taimen)
 	if n, ts := state(1201); n != 1 || ts == 0 {
-		t.Fatalf("白河 5kg 普通档哲罗应达标 1201，实得 %d/%g", n, ts)
+		t.Fatalf("白河 5kg 普通档哲罗应达标 1201, 实得 %d/%g", n, ts)
 	}
 
 	// 1601「岸边、人造拟饵、稀有白北鲑或白鲑鱼」：船上不计。
@@ -278,14 +278,14 @@ func TestQualificationBranch1Filters(t *testing.T) {
 		IsShore: false,
 	})
 	if n, ts := state(1601); n != 0 || ts != 0 {
-		t.Fatalf("船上不应计入从岸边条件，实得 %d/%g", n, ts)
+		t.Fatalf("船上不应计入从岸边条件, 实得 %d/%g", n, ts)
 	}
 	catch(qualificationEvent{
 		Species: "wfish", RigType: 5, Grade: 3, LocLevel: "level_010_belaya",
 		IsShore: true,
 	})
 	if n, ts := state(1601); n != 1 || ts == 0 {
-		t.Fatalf("岸边稀有白鲑鱼应达标 1601，实得 %d/%g", n, ts)
+		t.Fatalf("岸边稀有白鲑鱼应达标 1601, 实得 %d/%g", n, ts)
 	}
 }
 
@@ -321,27 +321,27 @@ func TestQualificationTrophyUsesIndividualGrade(t *testing.T) {
 	// 2103「ThreeWay 钓组奖杯河鲈」：perch 物种稀有度 0；合格档不计，奖杯档计。
 	catch(qualificationEvent{Species: "perch", RigType: 10, Grade: 2, Rarity: 1})
 	if n, _ := state(2103); n != 0 {
-		t.Fatalf("合格档不应计入 2103（物种稀有度不再参与判定），实得 %d", n)
+		t.Fatalf("合格档不应计入 2103 (物种稀有度不再参与判定), 实得 %d", n)
 	}
 	catch(qualificationEvent{Species: "perch", RigType: 10, Grade: 3, Rarity: 0})
 	if n, ts := state(2103); n != 1 || ts == 0 {
-		t.Fatalf("常见鱼种的奖杯个体应达标 2103，实得 %d/%g", n, ts)
+		t.Fatalf("常见鱼种的奖杯个体应达标 2103, 实得 %d/%g", n, ts)
 	}
 
 	// 8501「稀有鳕鱼」：atl_cod 物种稀有度 0；蓝冠个体（>=3）达标。
 	catch(qualificationEvent{Species: "atl_cod", Grade: 4, Rarity: 0, RigType: 50, LocLevel: evLocNorthSea})
 	if n, ts := state(8501); n != 1 || ts == 0 {
-		t.Fatalf("鳕鱼蓝冠个体应达标 8501，实得 %d/%g", n, ts)
+		t.Fatalf("鳕鱼蓝冠个体应达标 8501, 实得 %d/%g", n, ts)
 	}
 
 	// 7602「rare trophy 野生鲤」：奖杯档(3)不计，蓝冠档(4)才计。
 	catch(qualificationEvent{Species: "common_carp", RigType: 24, Grade: 3})
 	if n, _ := state(7602); n != 0 {
-		t.Fatalf("奖杯档不应计入 7602（需蓝冠），实得 %d", n)
+		t.Fatalf("奖杯档不应计入 7602 (需蓝冠), 实得 %d", n)
 	}
 	catch(qualificationEvent{Species: "common_carp", RigType: 24, Grade: 4})
 	if n, ts := state(7602); n != 1 || ts == 0 {
-		t.Fatalf("野生鲤蓝冠应达标 7602，实得 %d/%g", n, ts)
+		t.Fatalf("野生鲤蓝冠应达标 7602, 实得 %d/%g", n, ts)
 	}
 }
 
@@ -405,31 +405,31 @@ func TestQualificationBranch2Filters(t *testing.T) {
 	catch(qualificationEvent{Species: "perch", RigType: 6})
 	catch(qualificationEvent{Species: "roach", RigType: 7})
 	if n, ts := state(2001); n != 2 || ts != 0 {
-		t.Fatalf("两种汲钩族鱼后应为 2/未完成，实得 %d/%g", n, ts)
+		t.Fatalf("两种汲钩族鱼后应为 2/未完成, 实得 %d/%g", n, ts)
 	}
 	catch(qualificationEvent{Species: "bream", RigType: 11})
 	if n, ts := state(2001); n != 3 || ts == 0 {
-		t.Fatalf("三种鱼应达标 2001，实得 %d/%g", n, ts)
+		t.Fatalf("三种鱼应达标 2001, 实得 %d/%g", n, ts)
 	}
 
 	// 2103「分支子线(ThreeWay=10) 稀有河鲈」：链斗式(13) 不计。
 	catch(qualificationEvent{Species: "perch", RigType: 13, Grade: 3})
 	if n, ts := state(2103); n != 0 || ts != 0 {
-		t.Fatalf("非分支子线钓组不应计入 2103，实得 %d/%g", n, ts)
+		t.Fatalf("非分支子线钓组不应计入 2103, 实得 %d/%g", n, ts)
 	}
 	catch(qualificationEvent{Species: "perch", RigType: 10, Grade: 3})
 	if n, ts := state(2103); n != 1 || ts == 0 {
-		t.Fatalf("分支子线稀有河鲈应达标 2103，实得 %d/%g", n, ts)
+		t.Fatalf("分支子线稀有河鲈应达标 2103, 实得 %d/%g", n, ts)
 	}
 
 	// 2301「旧奥斯特罗格湖 汲钩 10kg 欧鲇」：水域不符不计。
 	catch(qualificationEvent{Species: "w_catfish", RigType: 6, WeightG: 12000, LocLevel: "level_010_belaya"})
 	if n, ts := state(2301); n != 0 || ts != 0 {
-		t.Fatalf("水域不符不应计入 2301，实得 %d/%g", n, ts)
+		t.Fatalf("水域不符不应计入 2301, 实得 %d/%g", n, ts)
 	}
 	catch(qualificationEvent{Species: "w_catfish", RigType: 6, WeightG: 12000, LocLevel: "level_004_torfyanoe_ozero"})
 	if n, ts := state(2301); n != 1 || ts == 0 {
-		t.Fatalf("旧奥斯特罗格湖 10kg 欧鲇应达标 2301，实得 %d/%g", n, ts)
+		t.Fatalf("旧奥斯特罗格湖 10kg 欧鲇应达标 2301, 实得 %d/%g", n, ts)
 	}
 
 	// 2501「维基钓组 10 种 5kg 以上」：重复鱼种与不足 5kg 不计。
@@ -437,7 +437,7 @@ func TestQualificationBranch2Filters(t *testing.T) {
 	catch(qualificationEvent{Species: "perch", RigType: 11, WeightG: 7000})
 	catch(qualificationEvent{Species: "roach", RigType: 11, WeightG: 4999})
 	if n, ts := state(2501); n != 1 || ts != 0 {
-		t.Fatalf("维基钓组应只累计 1 种足重鱼，实得 %d/%g", n, ts)
+		t.Fatalf("维基钓组应只累计 1 种足重鱼, 实得 %d/%g", n, ts)
 	}
 
 	// 2601「除维基外任何汲钩族 10 种稀有鱼」：维基不计，其他汲钩族计入。
@@ -445,17 +445,17 @@ func TestQualificationBranch2Filters(t *testing.T) {
 	before, _ := state(2601)
 	catch(qualificationEvent{Species: "chartus_kuoriius", RigType: 11, Grade: 3})
 	if n, ts := state(2601); n != before || ts != 0 {
-		t.Fatalf("维基不应增加 2601，实得 %d/%g（原 %d）", n, ts, before)
+		t.Fatalf("维基不应增加 2601, 实得 %d/%g (原 %d)", n, ts, before)
 	}
 	catch(qualificationEvent{Species: "chartus_kuoriius", RigType: 10, Grade: 3})
 	if n, ts := state(2601); n != before+1 || ts != 0 {
-		t.Fatalf("分支子线稀有鱼应增加 2601，实得 %d/%g（原 %d）", n, ts, before)
+		t.Fatalf("分支子线稀有鱼应增加 2601, 实得 %d/%g (原 %d)", n, ts, before)
 	}
 
 	// 2603「维基钓组 任何稀有鲟鱼」：sterlet 属鲟鱼，达标。
 	catch(qualificationEvent{Species: "sterlet", RigType: 11, Grade: 3})
 	if n, ts := state(2603); n != 1 || ts == 0 {
-		t.Fatalf("维基稀有鲟鱼应达标 2603，实得 %d/%g", n, ts)
+		t.Fatalf("维基稀有鲟鱼应达标 2603, 实得 %d/%g", n, ts)
 	}
 }
 
@@ -491,7 +491,7 @@ func TestQualificationBranch3Filters(t *testing.T) {
 	catch(qualificationEvent{Species: "perch", RodPower: "L"})
 	catch(qualificationEvent{Species: "roach", RodPower: "UL"})
 	if n, ts := state(3001); n != 2 || ts != 0 {
-		t.Fatalf("轻型两种鱼后应为 2/未完成，实得 %d/%g", n, ts)
+		t.Fatalf("轻型两种鱼后应为 2/未完成, 实得 %d/%g", n, ts)
 	}
 
 	// 3301「岸边 超轻 ≤4cm 鱼形硬饵 稀有鱼」：船长、超尺寸、非超轻都不计。
@@ -506,31 +506,31 @@ func TestQualificationBranch3Filters(t *testing.T) {
 	ev.RodPower = "L"
 	catch(ev)
 	if n, ts := state(3301); n != 0 || ts != 0 {
-		t.Fatalf("船/超尺寸/非超轻不应计入 3301，实得 %d/%g", n, ts)
+		t.Fatalf("船/超尺寸/非超轻不应计入 3301, 实得 %d/%g", n, ts)
 	}
 	catch(base)
 	if n, ts := state(3301); n != 1 || ts == 0 {
-		t.Fatalf("岸边超轻 4cm 鱼形硬饵稀有鱼应达标 3301，实得 %d/%g", n, ts)
+		t.Fatalf("岸边超轻 4cm 鱼形硬饵稀有鱼应达标 3301, 实得 %d/%g", n, ts)
 	}
 
 	// 3601「超轻型纺车竿 50 种鱼」：超轻枪柄竿(竿型2)不计，超轻纺车竿(1)计入。
 	catch(qualificationEvent{Species: "perch", RodPower: "UL", RodType: 2})
 	if n, ts := state(3601); n != 0 || ts != 0 {
-		t.Fatalf("超轻枪柄竿不应计入超轻纺车竿，实得 %d/%g", n, ts)
+		t.Fatalf("超轻枪柄竿不应计入超轻纺车竿, 实得 %d/%g", n, ts)
 	}
 	catch(qualificationEvent{Species: "perch", RodPower: "UL", RodType: 1})
 	if n, ts := state(3601); n != 1 || ts != 0 {
-		t.Fatalf("超轻纺车竿应计入 3601，实得 %d/%g", n, ts)
+		t.Fatalf("超轻纺车竿应计入 3601, 实得 %d/%g", n, ts)
 	}
 
 	// 3102「轻型/超轻 小拟饵 拟鲤/梅花鲈/银鲷/白眼欧鳊」：鱼种不符不计。
 	catch(qualificationEvent{Species: "bream", RodPower: "L", Bait: "spoon_a", BaitCat: 17, LureLenCM: 3})
 	if n, ts := state(3102); n != 0 || ts != 0 {
-		t.Fatalf("鱼种不符不应计入 3102，实得 %d/%g", n, ts)
+		t.Fatalf("鱼种不符不应计入 3102, 实得 %d/%g", n, ts)
 	}
 	catch(qualificationEvent{Species: "ruffe", RodPower: "UL", Bait: "spoon_a", BaitCat: 17, LureLenCM: 3})
 	if n, ts := state(3102); n != 1 || ts == 0 {
-		t.Fatalf("超轻小拟饵梅花鲈应达标 3102，实得 %d/%g", n, ts)
+		t.Fatalf("超轻小拟饵梅花鲈应达标 3102, 实得 %d/%g", n, ts)
 	}
 }
 
@@ -546,7 +546,7 @@ func TestRodPowerClass(t *testing.T) {
 	}
 	for id, want := range cases {
 		if got := rodPowerClass(id); got != want {
-			t.Fatalf("%s 硬度档应为 %q，实得 %q", id, want, got)
+			t.Fatalf("%s 硬度档应为 %q, 实得 %q", id, want, got)
 		}
 	}
 }
@@ -585,72 +585,72 @@ func TestQualificationBranch4Filters(t *testing.T) {
 	catch(qualificationEvent{Species: "perch", Bait: "worm_01", BaitCat: 27})
 	catch(qualificationEvent{Species: "perch", Bait: "spoon_a", BaitCat: 17})
 	if n, ts := state(4003); n != 1 || ts != 0 {
-		t.Fatalf("重复饵/拟饵不应计入 4003，实得 %d/%g", n, ts)
+		t.Fatalf("重复饵/拟饵不应计入 4003, 实得 %d/%g", n, ts)
 	}
 
 	// 4302「夜里 ≥6kg」：白天不计。
 	catch(qualificationEvent{Species: "carp", WeightG: 7000, IsNight: false})
 	if n, ts := state(4302); n != 0 || ts != 0 {
-		t.Fatalf("白天不应计入 4302，实得 %d/%g", n, ts)
+		t.Fatalf("白天不应计入 4302, 实得 %d/%g", n, ts)
 	}
 	catch(qualificationEvent{Species: "carp", WeightG: 7000, IsNight: true})
 	if n, ts := state(4302); n != 1 || ts == 0 {
-		t.Fatalf("夜间 7kg 应达标 4302，实得 %d/%g", n, ts)
+		t.Fatalf("夜间 7kg 应达标 4302, 实得 %d/%g", n, ts)
 	}
 
 	// 4401「≤150g 稀有鱼」：151g 不计。
 	catch(qualificationEvent{Species: "perch", WeightG: 151, Grade: 3})
 	if n, ts := state(4401); n != 0 || ts != 0 {
-		t.Fatalf("151g 不应计入 4401，实得 %d/%g", n, ts)
+		t.Fatalf("151g 不应计入 4401, 实得 %d/%g", n, ts)
 	}
 	catch(qualificationEvent{Species: "perch", WeightG: 150, Grade: 3})
 	if n, ts := state(4401); n != 1 || ts == 0 {
-		t.Fatalf("150g 稀有鱼应达标 4401，实得 %d/%g", n, ts)
+		t.Fatalf("150g 稀有鱼应达标 4401, 实得 %d/%g", n, ts)
 	}
 
 	// 4402「单尾 ≥7000 经验」。
 	catch(qualificationEvent{Species: "perch", WeightG: 500, BaseXP: 6999, XP: 13998})
 	if n, ts := state(4402); n != 0 || ts != 0 {
-		t.Fatalf("6999 XP 不应计入 4402，实得 %d/%g", n, ts)
+		t.Fatalf("6999 XP 不应计入 4402, 实得 %d/%g", n, ts)
 	}
 	catch(qualificationEvent{Species: "perch", WeightG: 500, BaseXP: 7000, XP: 14000})
 	if n, ts := state(4402); n != 1 || ts == 0 {
-		t.Fatalf("7000 XP 应达标 4402，实得 %d/%g", n, ts)
+		t.Fatalf("7000 XP 应达标 4402, 实得 %d/%g", n, ts)
 	}
 
 	// 4501 真实条件仅允许昆虫类 7，幼虫类 2 不计。
 	catch(qualificationEvent{Species: "roach", Bait: "worm_01", BaitCat: 27, BaitClass: 6})
 	if n, ts := state(4501); n != 0 || ts != 0 {
-		t.Fatalf("蚯蚓不应计入昆虫饵，实得 %d/%g", n, ts)
+		t.Fatalf("蚯蚓不应计入昆虫饵, 实得 %d/%g", n, ts)
 	}
 	catch(qualificationEvent{Species: "roach", Bait: "maggot", BaitCat: 27, BaitClass: 2})
 	if n, _ := state(4501); n != 0 {
-		t.Fatalf("幼虫类不应计入 4501，实得 %d", n)
+		t.Fatalf("幼虫类不应计入 4501, 实得 %d", n)
 	}
 	catch(qualificationEvent{Species: "roach", Bait: "grasshopper", BaitCat: 27, BaitClass: 7})
 	if n, ts := state(4501); n != 1 || ts != 0 {
-		t.Fatalf("昆虫类应计入 4501，实得 %d/%g", n, ts)
+		t.Fatalf("昆虫类应计入 4501, 实得 %d/%g", n, ts)
 	}
 
 	// 4502「超轻 + 尼龙/碳线 + ≥500g 稀有鱼」：编织主线且无前导不计。
 	catch(qualificationEvent{Species: "perch", WeightG: 600, Grade: 3, RodTestMax: 5, MainLine: 3, LineStrengthKG: 1.5})
 	if n, ts := state(4502); n != 0 || ts != 0 {
-		t.Fatalf("编织线不应计入 4502，实得 %d/%g", n, ts)
+		t.Fatalf("编织线不应计入 4502, 实得 %d/%g", n, ts)
 	}
 	catch(qualificationEvent{Species: "perch", WeightG: 600, Grade: 3, RodTestMax: 5, MainLine: 3, LeaderMat: 2, LineStrengthKG: 1.5})
 	if n, ts := state(4502); n != 1 || ts == 0 {
-		t.Fatalf("碳线前导应达标 4502，实得 %d/%g", n, ts)
+		t.Fatalf("碳线前导应达标 4502, 实得 %d/%g", n, ts)
 	}
 
 	// 4603 的十种白鲑名单不包含 wfish，深度不足也不计。
 	catch(qualificationEvent{Species: "wfish", WeightG: 800, Grade: 3, DepthCM: 400})
 	catch(qualificationEvent{Species: "sig", WeightG: 800, Grade: 3, DepthCM: 399})
 	if n, ts := state(4603); n != 0 || ts != 0 {
-		t.Fatalf("3.99m 不应计入 4603，实得 %d/%g", n, ts)
+		t.Fatalf("3.99m 不应计入 4603, 实得 %d/%g", n, ts)
 	}
 	catch(qualificationEvent{Species: "sig", WeightG: 800, Grade: 3, DepthCM: 400})
 	if n, ts := state(4603); n != 1 || ts == 0 {
-		t.Fatalf("4m 稀有白鲑应达标 4603，实得 %d/%g", n, ts)
+		t.Fatalf("4m 稀有白鲑应达标 4603, 实得 %d/%g", n, ts)
 	}
 }
 
@@ -686,7 +686,7 @@ func TestQualificationBranches56Filters(t *testing.T) {
 	catch(qualificationEvent{Species: "roach", RigType: 2})
 	catch(qualificationEvent{Species: "bream", RigType: 5})
 	if n, ts := state(5001); n != 2 || ts != 0 {
-		t.Fatalf("5001 应为 2/未完成，实得 %d/%g", n, ts)
+		t.Fatalf("5001 应为 2/未完成, 实得 %d/%g", n, ts)
 	}
 
 	// 5003 博洛尼亚钓组 + 5 种幼虫饵：蚯蚓(6) 不算幼虫。
@@ -694,86 +694,86 @@ func TestQualificationBranches56Filters(t *testing.T) {
 	catch(qualificationEvent{Species: "perch", RigType: 2, Bait: "bloodworm", BaitCat: 27, BaitClass: 2})
 	catch(qualificationEvent{Species: "perch", RigType: 2, Bait: "worm_01", BaitCat: 27, BaitClass: 6})
 	if n, ts := state(5003); n != 2 || ts != 0 {
-		t.Fatalf("5003 应为 2/未完成，实得 %d/%g", n, ts)
+		t.Fatalf("5003 应为 2/未完成, 实得 %d/%g", n, ts)
 	}
 
 	// 5202 博洛尼亚竿(4) + 昆虫饵 + 3kg。
 	catch(qualificationEvent{Species: "carp", WeightG: 3000, RodType: 4, Bait: "maggot", BaitCat: 27, BaitClass: 2})
 	if n, ts := state(5202); n != 1 || ts == 0 {
-		t.Fatalf("5202 应达标，实得 %d/%g", n, ts)
+		t.Fatalf("5202 应达标, 实得 %d/%g", n, ts)
 	}
 
 	// 5402 竞赛竿(5) + ≥30m + ≥10000 XP。
 	catch(qualificationEvent{Species: "bream", RodType: 5, CastM: 29.9, XP: 12000})
 	if n, ts := state(5402); n != 0 || ts != 0 {
-		t.Fatalf("29.9m 不应计入 5402，实得 %d/%g", n, ts)
+		t.Fatalf("29.9m 不应计入 5402, 实得 %d/%g", n, ts)
 	}
 	catch(qualificationEvent{Species: "bream", RodType: 5, CastM: 30, XP: 10000})
 	if n, ts := state(5402); n != 1 || ts == 0 {
-		t.Fatalf("5402 应达标，实得 %d/%g", n, ts)
+		t.Fatalf("5402 应达标, 实得 %d/%g", n, ts)
 	}
 
 	// 5502 竞赛钓组(21) + 黑鲩 ≥20kg。
 	catch(qualificationEvent{Species: "b_carp", WeightG: 20000, RigType: 21})
 	if n, ts := state(5502); n != 1 || ts == 0 {
-		t.Fatalf("5502 应达标，实得 %d/%g", n, ts)
+		t.Fatalf("5502 应达标, 实得 %d/%g", n, ts)
 	}
 
 	// 6001 飞德竿(10) 5 种鱼；Picker(9) 不计飞德竿任务。
 	catch(qualificationEvent{Species: "perch", RodType: 9})
 	catch(qualificationEvent{Species: "perch", RodType: 10})
 	if n, ts := state(6001); n != 1 || ts != 0 {
-		t.Fatalf("6001 应为 1/未完成，实得 %d/%g", n, ts)
+		t.Fatalf("6001 应为 1/未完成, 实得 %d/%g", n, ts)
 	}
 
 	// 6201 飞德/Picker + 面团(13) 10 种鱼。
 	catch(qualificationEvent{Species: "roach", RodType: 10, Bait: "dough_cottage", BaitCat: 27, BaitClass: 13})
 	if n, ts := state(6201); n != 1 || ts != 0 {
-		t.Fatalf("6201 面团应计入，实得 %d/%g", n, ts)
+		t.Fatalf("6201 面团应计入, 实得 %d/%g", n, ts)
 	}
 	catch(qualificationEvent{Species: "bream", RodType: 10, Bait: "dough_cottage", BaitCat: 27, BaitClass: 13})
 	if n, _ := state(6201); n != 2 {
-		t.Fatalf("6201 应为 2，实得 %d", n)
+		t.Fatalf("6201 应为 2, 实得 %d", n)
 	}
 
 	// 6202 Picker + 红虫 + 2kg。
 	catch(qualificationEvent{Species: "roach", RodType: 9, WeightG: 2000, Bait: "bloodworm", BaitCat: 27})
 	if n, ts := state(6202); n != 1 || ts == 0 {
-		t.Fatalf("6202 应达标，实得 %d/%g", n, ts)
+		t.Fatalf("6202 应达标, 实得 %d/%g", n, ts)
 	}
 
 	// 6301 飞德/Picker + 鳗鱼 ≥2kg；6303 Picker + 稀有长吻梅花鲈。
 	catch(qualificationEvent{Species: "eel", RodType: 10, WeightG: 2000})
 	if n, ts := state(6301); n != 1 || ts == 0 {
-		t.Fatalf("6301 应达标，实得 %d/%g", n, ts)
+		t.Fatalf("6301 应达标, 实得 %d/%g", n, ts)
 	}
 	catch(qualificationEvent{Species: "ruffe_n", RodType: 9, Grade: 3})
 	if n, ts := state(6303); n != 1 || ts == 0 {
-		t.Fatalf("6303 应达标，实得 %d/%g", n, ts)
+		t.Fatalf("6303 应达标, 实得 %d/%g", n, ts)
 	}
 
 	// 6501 Picker ≥30kg；6502 飞德钓组 + 稀有鱼。
 	catch(qualificationEvent{Species: "carp", RodType: 9, WeightG: 30000})
 	if n, ts := state(6501); n != 1 || ts == 0 {
-		t.Fatalf("6501 应达标，实得 %d/%g", n, ts)
+		t.Fatalf("6501 应达标, 实得 %d/%g", n, ts)
 	}
 	catch(qualificationEvent{Species: "perch", RigType: 2, Grade: 3})
 	if n, ts := state(6502); n != 0 || ts != 0 {
-		t.Fatalf("非飞德钓组不应计入 6502，实得 %d/%g", n, ts)
+		t.Fatalf("非飞德钓组不应计入 6502, 实得 %d/%g", n, ts)
 	}
 	catch(qualificationEvent{Species: "perch", RigType: 13, Grade: 3})
 	if n, ts := state(6502); n != 1 || ts != 0 {
-		t.Fatalf("6502 应为 1/5，实得 %d/%g", n, ts)
+		t.Fatalf("6502 应为 1/5, 实得 %d/%g", n, ts)
 	}
 	catch(qualificationEvent{Species: "perch", RigType: 16, Grade: 3})
 	if n, _ := state(6502); n != 1 {
-		t.Fatalf("发丝钓组 16 不应计入 6502，实得 %d", n)
+		t.Fatalf("发丝钓组 16 不应计入 6502, 实得 %d", n)
 	}
 	for _, rig := range []int64{12, 14, 15, 17} {
 		catch(qualificationEvent{Species: "perch", RigType: rig, Grade: 3})
 	}
 	if n, ts := state(6502); n != 5 || ts == 0 {
-		t.Fatalf("6502 五种飞德钓组应达标，实得 %d/%g", n, ts)
+		t.Fatalf("6502 五种飞德钓组应达标, 实得 %d/%g", n, ts)
 	}
 }
 
@@ -808,7 +808,7 @@ func TestQualificationBranches78Filters(t *testing.T) {
 	catch(qualificationEvent{Species: "carp", RigType: 2})
 	catch(qualificationEvent{Species: "carp", RigType: 24})
 	if n, ts := state(7001); n != 1 || ts != 0 {
-		t.Fatalf("7001 应为 1/未完成，实得 %d/%g", n, ts)
+		t.Fatalf("7001 应为 1/未完成, 实得 %d/%g", n, ts)
 	}
 
 	// 7002 十种味道（颗粒类 9）：味道按饵 ID 去掉尾部尺寸区分。
@@ -820,57 +820,57 @@ func TestQualificationBranches78Filters(t *testing.T) {
 		catch(qualificationEvent{Species: "carp", Bait: item, BaitCat: 27, BaitClass: 9})
 	}
 	if n, ts := state(7002); n != 10 || ts == 0 {
-		t.Fatalf("7002 十种味道应达标，实得 %d/%g", n, ts)
+		t.Fatalf("7002 十种味道应达标, 实得 %d/%g", n, ts)
 	}
 
 	// 7102 颗粒 ≥25mm + ≥20kg；7201 ≤10mm + 稀有。
 	catch(qualificationEvent{Species: "carp", WeightG: 20000, Bait: "plt_x", BaitCat: 27, BaitClass: 9, BaitSizeMM: 24})
 	if n, ts := state(7102); n != 0 || ts != 0 {
-		t.Fatalf("24mm 不应计入 7102，实得 %d/%g", n, ts)
+		t.Fatalf("24mm 不应计入 7102, 实得 %d/%g", n, ts)
 	}
 	catch(qualificationEvent{Species: "carp", WeightG: 20000, Bait: "plt_x", BaitCat: 27, BaitClass: 9, BaitSizeMM: 25})
 	if n, ts := state(7102); n != 1 || ts == 0 {
-		t.Fatalf("7102 应达标，实得 %d/%g", n, ts)
+		t.Fatalf("7102 应达标, 实得 %d/%g", n, ts)
 	}
 	catch(qualificationEvent{Species: "carp", Grade: 3, Bait: "zbb_x", BaitCat: 27, BaitClass: 17, BaitSizeMM: 11})
 	if n, ts := state(7201); n != 0 || ts != 0 {
-		t.Fatalf("11mm 不应计入 7201，实得 %d/%g", n, ts)
+		t.Fatalf("11mm 不应计入 7201, 实得 %d/%g", n, ts)
 	}
 	catch(qualificationEvent{Species: "carp", Grade: 3, Bait: "zbb_x", BaitCat: 27, BaitClass: 17, BaitSizeMM: 10})
 	if n, ts := state(7201); n != 1 || ts == 0 {
-		t.Fatalf("7201 应达标，实得 %d/%g", n, ts)
+		t.Fatalf("7201 应达标, 实得 %d/%g", n, ts)
 	}
 
 	// 7301 Maggot 钓组(29) 稀有鱼。
 	catch(qualificationEvent{Species: "carp", Grade: 3, RigType: 29})
 	if n, ts := state(7301); n != 1 || ts == 0 {
-		t.Fatalf("7301 应达标，实得 %d/%g", n, ts)
+		t.Fatalf("7301 应达标, 实得 %d/%g", n, ts)
 	}
 
 	// 7401 五种人面鲤；7402 白化鲤 ≥15kg；7603 五种指定鲤。
 	catch(qualificationEvent{Species: "carp_ghost"})
 	if n, ts := state(7401); n != 1 || ts != 0 {
-		t.Fatalf("7401 应为 1/5，实得 %d/%g", n, ts)
+		t.Fatalf("7401 应为 1/5, 实得 %d/%g", n, ts)
 	}
 	for _, species := range []string{"n_carp_ghost", "m_carp_ghost", "l_carp_ghost", "r_carp_ghost"} {
 		catch(qualificationEvent{Species: species})
 	}
 	if n, ts := state(7401); n != 5 || ts == 0 {
-		t.Fatalf("7401 五种人面鲤应达标，实得 %d/%g", n, ts)
+		t.Fatalf("7401 五种人面鲤应达标, 实得 %d/%g", n, ts)
 	}
 	catch(qualificationEvent{Species: "m_carp_albino", WeightG: 15000, RigType: 24})
 	if n, ts := state(7402); n != 1 || ts == 0 {
-		t.Fatalf("7402 应达标，实得 %d/%g", n, ts)
+		t.Fatalf("7402 应达标, 实得 %d/%g", n, ts)
 	}
 	for _, sp := range []string{"n_carp", "r_carp", "l_carp", "m_carp_red"} {
 		catch(qualificationEvent{Species: sp})
 	}
 	if n, ts := state(7603); n != 4 || ts != 0 {
-		t.Fatalf("7603 四种后应未完成，实得 %d/%g", n, ts)
+		t.Fatalf("7603 四种后应未完成, 实得 %d/%g", n, ts)
 	}
 	catch(qualificationEvent{Species: "carp_red"})
 	if n, ts := state(7603); n != 5 || ts == 0 {
-		t.Fatalf("7603 五种应达标，实得 %d/%g", n, ts)
+		t.Fatalf("7603 五种应达标, 实得 %d/%g", n, ts)
 	}
 
 	// 8003 七种不同饵（拟饵或天然饵）。
@@ -886,19 +886,19 @@ func TestQualificationBranches78Filters(t *testing.T) {
 		marineCatch(qualificationEvent{Species: "perch", Bait: "spoon_" + string(rune('a'+i)), BaitCat: 17})
 	}
 	if n, ts := state(8003); n != 7 || ts == 0 {
-		t.Fatalf("8003 七种饵应达标，实得 %d/%g", n, ts)
+		t.Fatalf("8003 七种饵应达标, 实得 %d/%g", n, ts)
 	}
 
 	// 8101 柳叶亮片(50) ≥15kg；8202 海洋汲钩(51) 15 种鱼。
 	marineCatch(qualificationEvent{Species: "atl_cod", WeightG: 15000, RigType: 50})
 	if n, ts := state(8101); n != 1 || ts == 0 {
-		t.Fatalf("8101 应达标，实得 %d/%g", n, ts)
+		t.Fatalf("8101 应达标, 实得 %d/%g", n, ts)
 	}
 	for i := 0; i < 15; i++ {
 		marineCatch(qualificationEvent{Species: "m" + string(rune('a'+i)), RigType: 51})
 	}
 	if n, ts := state(8202); n != 15 || ts == 0 {
-		t.Fatalf("8202 应达标，实得 %d/%g", n, ts)
+		t.Fatalf("8202 应达标, 实得 %d/%g", n, ts)
 	}
 
 	// 8303 海洋底部/带响珠 20 种鱼。
@@ -906,23 +906,23 @@ func TestQualificationBranches78Filters(t *testing.T) {
 		marineCatch(qualificationEvent{Species: "n" + string(rune('a'+i)), RigType: 55})
 	}
 	if n, ts := state(8303); n != 20 || ts == 0 {
-		t.Fatalf("8303 应达标，实得 %d/%g", n, ts)
+		t.Fatalf("8303 应达标, 实得 %d/%g", n, ts)
 	}
 
 	// 8401 ≥120m 五种鱼；8503 ≥120m 稀有鱼。
 	marineCatch(qualificationEvent{Species: "o1", DepthCM: 11999})
 	if n, ts := state(8401); n != 0 || ts != 0 {
-		t.Fatalf("119.99m 不应计入 8401，实得 %d/%g", n, ts)
+		t.Fatalf("119.99m 不应计入 8401, 实得 %d/%g", n, ts)
 	}
 	for i := 0; i < 5; i++ {
 		marineCatch(qualificationEvent{Species: "o" + string(rune('a'+i)), DepthCM: 12000})
 	}
 	if n, ts := state(8401); n != 5 || ts == 0 {
-		t.Fatalf("8401 应达标，实得 %d/%g", n, ts)
+		t.Fatalf("8401 应达标, 实得 %d/%g", n, ts)
 	}
 	marineCatch(qualificationEvent{Species: "red_fish", DepthCM: 12000, Grade: 3})
 	if n, ts := state(8503); n != 1 || ts == 0 {
-		t.Fatalf("8503 应达标，实得 %d/%g", n, ts)
+		t.Fatalf("8503 应达标, 实得 %d/%g", n, ts)
 	}
 
 	// 8502 死鱼底部(59) 3 种奖杯鱼；8603 罕见/极其罕见鱼种（物种稀有度）。
@@ -930,19 +930,19 @@ func TestQualificationBranches78Filters(t *testing.T) {
 		marineCatch(qualificationEvent{Species: "p" + string(rune('a'+i)), RigType: 59, Grade: 3})
 	}
 	if n, ts := state(8502); n != 3 || ts == 0 {
-		t.Fatalf("8502 应达标，实得 %d/%g", n, ts)
+		t.Fatalf("8502 应达标, 实得 %d/%g", n, ts)
 	}
 	marineCatch(qualificationEvent{Species: "q0", Rarity: 0})
 	if n, _ := state(8603); n != 0 {
-		t.Fatalf("普通鱼种不应计入 8603，实得 %d", n)
+		t.Fatalf("普通鱼种不应计入 8603, 实得 %d", n)
 	}
 	marineCatch(qualificationEvent{Species: "q1", Rarity: 1, Grade: 2})
 	if n, _ := state(8603); n != 0 {
-		t.Fatalf("罕见鱼种未达星不应计入 8603，实得 %d", n)
+		t.Fatalf("罕见鱼种未达星不应计入 8603, 实得 %d", n)
 	}
 	marineCatch(qualificationEvent{Species: "q1", Rarity: 1, Grade: 3})
 	if n, ts := state(8603); n != 1 || ts == 0 {
-		t.Fatalf("8603 稀有鱼种应达标，实得 %d/%g", n, ts)
+		t.Fatalf("8603 稀有鱼种应达标, 实得 %d/%g", n, ts)
 	}
 }
 
@@ -988,7 +988,7 @@ func TestQualificationRodTypesFollowTaskText(t *testing.T) {
 			want++
 		}
 		if n, _ := state(4602); n != want {
-			t.Fatalf("竿型 %d 的 4602 进度应为 %d，实得 %d", rod, want, n)
+			t.Fatalf("竿型 %d 的 4602 进度应为 %d, 实得 %d", rod, want, n)
 		}
 	}
 
@@ -996,11 +996,11 @@ func TestQualificationRodTypesFollowTaskText(t *testing.T) {
 	// 纺车杆 + 路亚钓组 + 抽停饵不算（文案点名的是抽停硬饵钓组）。
 	land(qualificationEvent{Species: "n.pike", Grade: 3, RodType: 1, RigType: 5, Bait: "jerkbaits_1148", BaitCat: 17})
 	if n, _ := state(1402); n != 0 {
-		t.Fatalf("纺车竿+路亚钓组不应计入 1402，实得 %d", n)
+		t.Fatalf("纺车竿+路亚钓组不应计入 1402, 实得 %d", n)
 	}
 	land(qualificationEvent{Species: "n.pike", Grade: 3, RodType: 12, RigType: 22, Bait: "jerkbaits_1148", BaitCat: 17})
 	if n, ts := state(1402); n != 1 || ts == 0 {
-		t.Fatalf("抽停竿+抽停钓组钓获奖杯狗鱼应完成 1402，实得 %d/%g", n, ts)
+		t.Fatalf("抽停竿+抽停钓组钓获奖杯狗鱼应完成 1402, 实得 %d/%g", n, ts)
 	}
 
 	// 1501：水表路亚 + 稀有细鳞鲑，枪柄竿(2)必须能完成。
@@ -1008,31 +1008,31 @@ func TestQualificationRodTypesFollowTaskText(t *testing.T) {
 	// 成鱼形硬饵，必须按 item_def 的拟饵类型归族。
 	land(qualificationEvent{Species: "lenok_o", Grade: 3, RodType: 2, Bait: "plug_w_2368", BaitCat: 17})
 	if n, _ := state(1501); n != 0 {
-		t.Fatalf("拟饵类型缺失时不应把 X-Walker 当水表饵，实得 %d", n)
+		t.Fatalf("拟饵类型缺失时不应把 X-Walker 当水表饵, 实得 %d", n)
 	}
 	land(qualificationEvent{Species: "lenok_o", Grade: 3, RodType: 2, Bait: "plug_w_2368", BaitCat: 17, LureType: 5})
 	if n, ts := state(1501); n != 1 || ts == 0 {
-		t.Fatalf("枪柄竿水表路亚钓获奖杯细鳞鲑应完成 1501，实得 %d/%g", n, ts)
+		t.Fatalf("枪柄竿水表路亚钓获奖杯细鳞鲑应完成 1501, 实得 %d/%g", n, ts)
 	}
 
 	// 文案明确写「博洛尼亚钓竿」的 5101 仍只认竿型 4：竞赛竿(5)不计。
 	land(qualificationEvent{Species: "burbot", RodType: 5, RigType: 21, WeightG: 3200, Bait: "worm_01", BaitCat: 27, Drift: true})
 	if n, _ := state(5101); n != 0 {
-		t.Fatalf("竞赛竿不应计入 5101（文案写博洛尼亚钓竿），实得 %d", n)
+		t.Fatalf("竞赛竿不应计入 5101 (文案写博洛尼亚钓竿), 实得 %d", n)
 	}
 	land(qualificationEvent{Species: "burbot", RodType: 4, RigType: 2, WeightG: 3200, Bait: "worm_01", BaitCat: 27, Drift: true})
 	if n, _ := state(5101); n != 1 {
-		t.Fatalf("博洛尼亚竿应计入 5101，实得 %d", n)
+		t.Fatalf("博洛尼亚竿应计入 5101, 实得 %d", n)
 	}
 
 	// 文案明确写「飞德竿」的 6001：Picker(9) 不计，飞德竿(10) 才计。
 	land(qualificationEvent{Species: "zander", RodType: 9})
 	if n, _ := state(6001); n != 0 {
-		t.Fatalf("Picker 不应计入 6001（文案写飞德竿），实得 %d", n)
+		t.Fatalf("Picker 不应计入 6001 (文案写飞德竿), 实得 %d", n)
 	}
 	land(qualificationEvent{Species: "zander", RodType: 10})
 	if n, _ := state(6001); n != 1 {
-		t.Fatalf("飞德竿应计入 6001，实得 %d", n)
+		t.Fatalf("飞德竿应计入 6001, 实得 %d", n)
 	}
 }
 
@@ -1065,11 +1065,11 @@ func TestQualificationRodTypesCoverage(t *testing.T) {
 			want[r.ID] = []int64{3}
 		}
 		if !slices.Equal(got, want[r.ID]) {
-			t.Fatalf("规则 %d 竿型应为 %v，实得 %v", r.ID, want[r.ID], got)
+			t.Fatalf("规则 %d 竿型应为 %v, 实得 %v", r.ID, want[r.ID], got)
 		}
 	}
 	if seen != 168 {
-		t.Fatalf("永久资格任务应为 168 条，实得 %d", seen)
+		t.Fatalf("永久资格任务应为 168 条, 实得 %d", seen)
 	}
 	for id := range want {
 		found := false
@@ -1098,14 +1098,14 @@ func TestQualificationOldSnapshotBackfillsLureType(t *testing.T) {
 	}
 	f := &RolledFish{
 		Species: "lenok_o", Grade: 3, WeightG: 6000,
-		QualBait: qualificationBait{ID: "plug_w_2368", Cat: 17}, // 旧快照：LureType=0
+		QualBait: qualificationBait{ID: "plug_w_2368", Cat: 17}, // 旧快照: LureType=0
 	}
 	ev := srv.qualificationEventForCatch(context.Background(), f, 5)
 	if ev.LureType != 5 {
-		t.Fatalf("旧快照应按 item_def 回填拟饵类型 5，实得 %d", ev.LureType)
+		t.Fatalf("旧快照应按 item_def 回填拟饵类型 5, 实得 %d", ev.LureType)
 	}
 	if fam := lureFamilyOf(ev); fam != "topwater" {
-		t.Fatalf("回填后应归为 topwater，实得 %q", fam)
+		t.Fatalf("回填后应归为 topwater, 实得 %q", fam)
 	}
 }
 
@@ -1129,7 +1129,7 @@ func TestQualificationMountedBaitReadsLureType(t *testing.T) {
 	}
 	bait := srv.qualificationMountedBait(context.Background(), guid)
 	if bait.Cat != 17 || bait.LureType != 5 {
-		t.Fatalf("挂载快照应解析出拟饵类型 5，实得 %+v", bait)
+		t.Fatalf("挂载快照应解析出拟饵类型 5, 实得 %+v", bait)
 	}
 }
 
@@ -1164,11 +1164,11 @@ func TestQualificationRule7002PelletFlavors(t *testing.T) {
 	catch("plt_cb_pch14")
 	catch("plt_cb_pch18")
 	if n := count(); n != 1 {
-		t.Fatalf("同一味道的不同尺寸应算 1 种，实得 %d", n)
+		t.Fatalf("同一味道的不同尺寸应算 1 种, 实得 %d", n)
 	}
 	catch("plt_cb_cvr14")
 	if n := count(); n != 2 {
-		t.Fatalf("不同味道应算 2 种，实得 %d", n)
+		t.Fatalf("不同味道应算 2 种, 实得 %d", n)
 	}
 }
 
@@ -1189,7 +1189,7 @@ func TestQualificationRule5007Conditions(t *testing.T) {
 	u32s := func(v *proto.Value) []uint32 {
 		t.Helper()
 		if v == nil || v.Kind != proto.KindU32Arr {
-			t.Fatalf("应为 u32 数组，实得 %v", v)
+			t.Fatalf("应为 u32 数组, 实得 %v", v)
 		}
 		out := make([]uint32, 0, len(v.Items))
 		for _, it := range v.Items {
@@ -1200,29 +1200,29 @@ func TestQualificationRule5007Conditions(t *testing.T) {
 
 	r4502 := decode(4502)
 	if got := u32s(r4502.Fields[5].Val); len(got) != 1 || got[0] != 3 {
-		t.Fatalf("4502 竿型应为 [3]，实得 %v", got)
+		t.Fatalf("4502 竿型应为 [3], 实得 %v", got)
 	}
 	if got := u32s(r4502.Fields[6].Val); len(got) != 1 || got[0] != 1 {
-		t.Fatalf("4502 竿硬度应为 [1]，实得 %v", got)
+		t.Fatalf("4502 竿硬度应为 [1], 实得 %v", got)
 	}
 	if got := u32s(r4502.Fields[12].Val); len(got) != 2 || got[0] != 3 || got[1] != 4 {
-		t.Fatalf("4502 鱼档位应为 [3,4]，实得 %v", got)
+		t.Fatalf("4502 鱼档位应为 [3,4], 实得 %v", got)
 	}
 	if got := uint32(*r4502.Fields[14].Num); got != 0x3f000000 {
-		t.Fatalf("4502 最低重量位模式应为 0x3f000000，实得 %#x", got)
+		t.Fatalf("4502 最低重量位模式应为 0x3f000000, 实得 %#x", got)
 	}
 	if got := uint32(*r4502.Fields[15].Num); got != 0x7f7fffff {
-		t.Fatalf("4502 最高重量位模式应为 float32 max，实得 %#x", got)
+		t.Fatalf("4502 最高重量位模式应为 float32 max, 实得 %#x", got)
 	}
 	if got := u32s(r4502.Fields[22].Val); len(got) != 2 || got[0] != 1 || got[1] != 2 {
-		t.Fatalf("4502 线型应为 [1,2]，实得 %v", got)
+		t.Fatalf("4502 线型应为 [1,2], 实得 %v", got)
 	}
 	if got := uint32(*r4502.Fields[23].Num); got != 0x3fc00000 {
-		t.Fatalf("4502 线强上限位模式应为 1.5，实得 %#x", got)
+		t.Fatalf("4502 线强上限位模式应为 1.5, 实得 %#x", got)
 	}
 
 	if got := uint32(*decode(5002).Fields[27].Num); got != 64 {
-		t.Fatalf("5002 应带顺流位 64，实得 %d", got)
+		t.Fatalf("5002 应带顺流位 64, 实得 %d", got)
 	}
 }
 
@@ -1255,20 +1255,20 @@ func TestQualificationDriftRules(t *testing.T) {
 
 	catch(qualificationEvent{Species: "chub", RigType: 2, WeightG: 1000, RodType: 4})
 	if n, _ := state(5002); n != 0 {
-		t.Fatalf("未顺流不应计入 5002，实得 %d", n)
+		t.Fatalf("未顺流不应计入 5002, 实得 %d", n)
 	}
 	catch(qualificationEvent{Species: "chub", RigType: 2, WeightG: 1000, RodType: 4, Drift: true})
 	if n, ts := state(5002); n != 1 || ts == 0 {
-		t.Fatalf("顺流 1kg 应达标 5002，实得 %d/%g", n, ts)
+		t.Fatalf("顺流 1kg 应达标 5002, 实得 %d/%g", n, ts)
 	}
 
 	catch(qualificationEvent{Species: "perch", RigType: 2, RodType: 3, Drift: true, Grade: 3})
 	if n, _ := state(4403); n != 0 {
-		t.Fatalf("非欧飘/红眼鱼不应计入 4403，实得 %d", n)
+		t.Fatalf("非欧飘/红眼鱼不应计入 4403, 实得 %d", n)
 	}
 	catch(qualificationEvent{Species: "sabrefish", RigType: 2, RodType: 3, Drift: true, Grade: 3})
 	if n, ts := state(4403); n != 1 || ts == 0 {
-		t.Fatalf("顺流稀有欧飘鱼应达标 4403，实得 %d/%g", n, ts)
+		t.Fatalf("顺流稀有欧飘鱼应达标 4403, 实得 %d/%g", n, ts)
 	}
 
 	// 手竿没有硬度尾缀时，测试上限 <=5g 视为超轻。
@@ -1302,7 +1302,7 @@ func TestLureFamilyPrefixes(t *testing.T) {
 	}
 	for bait, want := range cases {
 		if got := lureFamily(bait); got != want {
-			t.Fatalf("%s 应归为 %q，实得 %q", bait, want, got)
+			t.Fatalf("%s 应归为 %q, 实得 %q", bait, want, got)
 		}
 	}
 }
@@ -1327,7 +1327,7 @@ func TestLureFamilyUsesLureType(t *testing.T) {
 	}
 	for _, tc := range cases {
 		if got := lureFamilyOf(tc.ev); got != tc.want {
-			t.Fatalf("%+v 应归为 %q，实得 %q", tc.ev, tc.want, got)
+			t.Fatalf("%+v 应归为 %q, 实得 %q", tc.ev, tc.want, got)
 		}
 	}
 }
@@ -1363,14 +1363,14 @@ func TestQualificationIncrementalDelivery(t *testing.T) {
 	}
 	// 达标当尾：增量含 1001 计数器。
 	if ids := counterIDs(last); !ids[1001] {
-		t.Fatalf("达标当尾增量应含 1001 计数器，实得 %v", ids)
+		t.Fatalf("达标当尾增量应含 1001 计数器, 实得 %v", ids)
 	}
 	// 后续鱼：1001 已封顶，不再出现在增量里。
 	after := srv.evaluateQualifications(ctx, qualificationEvent{Kind: qevFishLanded, Species: "pike"})
 	if after[1001].RuleID != 0 {
-		t.Fatalf("达标后 1001 不应再变化，实得 %v", after[1001])
+		t.Fatalf("达标后 1001 不应再变化, 实得 %v", after[1001])
 	}
 	if ids := counterIDs(after); ids[1001] {
-		t.Fatalf("后续鱼增量不应重发 1001 计数器，实得 %v", ids)
+		t.Fatalf("后续鱼增量不应重发 1001 计数器, 实得 %v", ids)
 	}
 }

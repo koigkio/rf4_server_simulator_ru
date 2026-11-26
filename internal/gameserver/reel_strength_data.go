@@ -31,7 +31,7 @@ type reelStrengthEntry struct {
 	Model    string  `json:"model"`
 	RootSpec float64 `json:"root_spec"`
 	BaseDrag float64 `json:"base_drag"`
-	Tier     string  `json:"tier"` // exact=精确锁轮表；estimate=沿用旧估算
+	Tier     string  `json:"tier"` // exact=精确锁轮表; estimate=沿用旧估算
 }
 
 // loadReelStrengthTable 解析编译期嵌入的规格表。使用 go:embed 而不是读取工作目录，
@@ -80,5 +80,5 @@ func reelRootMissOnce(logf func(msg string, keys ...any), itemID string) {
 		return
 	}
 	reelStrengthMissed[itemID] = true
-	logf("轮根规格表未收录该轮子，回退摩擦片值口径", "item_id", itemID)
+	logf("Катушки нет в таблице характеристик, используется значение шайб фрикциона", "item_id", itemID)
 }

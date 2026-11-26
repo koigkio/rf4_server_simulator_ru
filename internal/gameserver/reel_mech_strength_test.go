@@ -81,7 +81,7 @@ func TestReelLockedDragScalesWithBearingWear(t *testing.T) {
 	}
 	got := srv.reelLockedDragFromRow(ctx, row)
 	if diff := got - 127.94*0.98779; diff > 0.01 || diff < -0.01 {
-		t.Fatalf("轴承 0.98779 时锁轮承力 = %v, want %v（官方实抓 126.35）", got, 127.94*0.98779)
+		t.Fatalf("轴承 0.98779 时锁轮承力 = %v, want %v (官方实抓 126.35)", got, 127.94*0.98779)
 	}
 }
 
@@ -94,7 +94,7 @@ func TestReelLockedDragDefFallbackWithoutStrength(t *testing.T) {
 		t.Fatalf("读定义失败: %v", err)
 	}
 	if reelMechStrengthKg(def) > 0 {
-		t.Fatalf("old_spinreel 不应带机构强度，得到 %v", reelMechStrengthKg(def))
+		t.Fatalf("old_spinreel 不应带机构强度, 得到 %v", reelMechStrengthKg(def))
 	}
 	ids := rigGearIDs{Reel: def.ItemID, ReelDurability: 0.8}
 	base := reelDragMaxKg(def)

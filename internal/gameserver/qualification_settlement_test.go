@@ -34,7 +34,7 @@ func TestQualificationBiteSnapshotSurvivesBaitConsumption(t *testing.T) {
 	hook := mountHookForBaitTest(t, s, rod.GUID, 0)
 	_, baitChild := baitTestMount(t, s, rod.GUID, "worm_01", 5, 350)
 	if gotRodType, _, _ := s.qualificationRod(t.Context(), rod.GUID); gotRodType != rodTypeTelescope {
-		t.Fatalf("测试竿应为手竿(%d)，实得 %d", rodTypeTelescope, gotRodType)
+		t.Fatalf("测试竿应为手竿(%d), 实得 %d", rodTypeTelescope, gotRodType)
 	}
 
 	fish := &RolledFish{
@@ -60,21 +60,21 @@ func TestQualificationBiteSnapshotSurvivesBaitConsumption(t *testing.T) {
 		t.Fatalf("咬钩未生成 pending 鱼: %+v", pending)
 	}
 	if pending.QualBait.ID != "worm_01" || pending.QualBait.Cat != 27 {
-		t.Fatalf("咬钩饵快照 = %+v，期望 worm_01/27", pending.QualBait)
+		t.Fatalf("咬钩饵快照 = %+v, 期望 worm_01/27", pending.QualBait)
 	}
 	if pending.CastM != 28.5 {
-		t.Fatalf("咬钩抛投距离 = %g，期望本杆实际 28.5", pending.CastM)
+		t.Fatalf("咬钩抛投距离 = %g, 期望本杆实际 28.5", pending.CastM)
 	}
 	nowNight := worldIsNight(time.Now().Unix())
 	if pending.IsNight != nowNight {
-		t.Fatalf("咬钩夜间标记 = %v，期望 %v", pending.IsNight, nowNight)
+		t.Fatalf("咬钩夜间标记 = %v, 期望 %v", pending.IsNight, nowNight)
 	}
 
 	// 14/11 中鱼确认不再扣饵（扣饵挪到搏鱼终局，specs/changes/bait-consume-fight-end）：
 	// 天然饵子实例仍挂在钩上，让客户端搏鱼 ctor 读到完整挂载态。
 	hFishingHooked(miscCtx(sess, 14, 11, rigRequestTree(t, proto.Guid(rod.GUID))))
 	if row, _ := db.GetItemByGUID(t.Context(), baitChild); row == nil {
-		t.Fatal("14/11 中鱼确认不应扣饵，天然饵子实例应仍在钩上")
+		t.Fatal("14/11 中鱼确认不应扣饵, 天然饵子实例应仍在钩上")
 	}
 
 	// 14/4 结算即搏鱼终局：终局扣饵删除子实例，结算仍按快照累计「使用天然饵」任务 4003。
@@ -90,7 +90,7 @@ func TestQualificationBiteSnapshotSurvivesBaitConsumption(t *testing.T) {
 		t.Fatal(err)
 	}
 	if got := len(states[4003].Counted); got != 1 {
-		t.Fatalf("4003 天然饵计数 = %d，期望 1（旧实现扣饵后反查 GUID 会得到 0）", got)
+		t.Fatalf("4003 天然饵计数 = %d, 期望 1 (旧实现扣饵后反查 GUID 会得到 0)", got)
 	}
 }
 
@@ -128,7 +128,7 @@ func TestCastSnapshotsRequestedDistance(t *testing.T) {
 	castM := st.CastM
 	st.mu.Unlock()
 	if castM != 5 {
-		t.Fatalf("14/2 后 CastM = %g，期望本次实际落点 5（旧实现用钓具最大值）", castM)
+		t.Fatalf("14/2 后 CastM = %g, 期望本次实际落点 5 (旧实现用钓具最大值)", castM)
 	}
 }
 
@@ -137,7 +137,7 @@ func TestWorldIsNightBoundaries(t *testing.T) {
 	cases := map[int64]bool{0: true, 5: true, 6: false, 18: false, 19: true, 23: true}
 	for hour, want := range cases {
 		if got := worldIsNight(atHour(hour)); got != want {
-			t.Fatalf("%02d:00 夜间 = %v，期望 %v", hour, got, want)
+			t.Fatalf("%02d:00 夜间 = %v, 期望 %v", hour, got, want)
 		}
 	}
 }
@@ -188,14 +188,14 @@ func TestQualificationSettlementAtomicAndReplayable(t *testing.T) {
 		t.Fatal(err)
 	}
 	if len(first.qualChanges[1001].Counted) != 1 {
-		t.Fatalf("首轮结算应写入 1001 进度，实得 %+v", first.qualChanges)
+		t.Fatalf("首轮结算应写入 1001 进度, 实得 %+v", first.qualChanges)
 	}
 	states, err := db.QualificationStates(ctx, uid)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if got := len(states[1001].Counted); got != 1 {
-		t.Fatalf("1001 进度 = %d，期望 1", got)
+		t.Fatalf("1001 进度 = %d, 期望 1", got)
 	}
 
 	// 新进程重放同一尾鱼：返回回执里的资格变化，但计数不增加。
@@ -209,14 +209,14 @@ func TestQualificationSettlementAtomicAndReplayable(t *testing.T) {
 		t.Fatal("同一尾鱼第二次结算应走重放")
 	}
 	if len(replay.qualChanges[1001].Counted) != 1 {
-		t.Fatalf("重放应从回执补发 1001 变化，实得 %+v", replay.qualChanges)
+		t.Fatalf("重放应从回执补发 1001 变化, 实得 %+v", replay.qualChanges)
 	}
 	states, err = db.QualificationStates(ctx, uid)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if got := len(states[1001].Counted); got != 1 {
-		t.Fatalf("重放后 1001 进度 = %d，期望仍为 1", got)
+		t.Fatalf("重放后 1001 进度 = %d, 期望仍为 1", got)
 	}
 }
 

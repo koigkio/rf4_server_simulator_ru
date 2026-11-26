@@ -35,7 +35,7 @@ func (sess *Session) updateDrinkBonuses(now time.Time) {
 	_, err := s.DB.AdvanceDrinkBonuses(s.dbCtx(), sess.Userid, s.drinkRunKey(), now,
 		s.drinkOnline(sess.Userid), s.drinkMaxGap())
 	if err != nil {
-		s.log.Warn("酒兴剩余时间未保存", "err", err)
+		s.log.Warn("Оставшееся время опьянения не сохранено", "err", err)
 	}
 }
 
@@ -105,10 +105,10 @@ func (s *Server) cleanupDrinkUseReceipts(now time.Time) {
 	defer cancel()
 	removed, err := s.DB.CleanupDrinkUseReceipts(ctx, now.Add(-drinkUseReceiptRetention))
 	if err != nil {
-		s.log.Warn("饮酒事务回执清理失败", "err", err)
+		s.log.Warn("Не удалось очистить квитанции транзакции напитка", "err", err)
 		return
 	}
 	if removed > 0 {
-		s.log.Info("饮酒事务回执已清理", "rows", removed)
+		s.log.Info("Квитанции транзакции напитка очищены", "rows", removed)
 	}
 }

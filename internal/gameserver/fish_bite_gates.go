@@ -120,7 +120,7 @@ func biteGateDietKeys(b ruleBait) []string {
 		return []string{"plant"}
 	case 12, 16: // 钩虾/海虫贝类
 		return []string{"crustacean"}
-	case 1: // 杂类：植物/煮饵/鱼虾贝任一
+	case 1: // 杂类: 植物/煮饵/鱼虾贝任一
 		return []string{"plant", "boilie", "crustacean", "fish"}
 	}
 	return nil

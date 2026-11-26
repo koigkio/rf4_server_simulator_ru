@@ -71,7 +71,7 @@ func rodTipOf(t *testing.T, db *store.DB, guid string) (string, bool) {
 	t.Helper()
 	row, err := db.GetItemByGUID(context.Background(), guid)
 	if err != nil || row == nil {
-		t.Fatalf("取竿 %s: %v", guid[:8], err)
+		t.Fatalf("Взять удилище %s: %v", guid[:8], err)
 	}
 	fields, err := FieldsFromJSON(row.FieldsJSON)
 	if err != nil {
@@ -105,7 +105,7 @@ func TestRodTipAutoInstall(t *testing.T) {
 
 	// 前置：商店竿的 f8 为空。
 	if tip, ok := rodTipOf(t, db, testShopRodGUID); ok && tip != "" {
-		t.Fatalf("前置条件破坏：商店竿尖梢应空，实得 %q", tip)
+		t.Fatalf("前置条件破坏: 商店竿尖梢应空, 实得 %q", tip)
 	}
 
 	// 14/1 钓组查询（抛竿准备的第一条消息）
@@ -120,7 +120,7 @@ func TestRodTipAutoInstall(t *testing.T) {
 		t.Fatal("14/1 后尖梢仍未落库")
 	}
 	if tip != tips[0] {
-		t.Fatalf("尖梢应默认名单第一支 %q，实得 %q", tips[0], tip)
+		t.Fatalf("尖梢应默认名单第一支 %q, 实得 %q", tips[0], tip)
 	}
 	// 校验条件：f8 非空且属于竿定义的尖梢名单。
 	inList := false
@@ -147,7 +147,7 @@ func TestRodTipAutoInstall(t *testing.T) {
 		t.Fatalf("4/22 args[0] 应为竿: %+v", rodTree)
 	}
 	if got := rodTree.Field(8).Str; got == nil || *got != tip {
-		t.Fatalf("4/22 竿树 f8 尖梢应=%q，实得 %v", tip, got)
+		t.Fatalf("4/22 竿树 f8 尖梢应=%q, 实得 %v", tip, got)
 	}
 
 	// 14/2 返回的竿树也必须包含尖梢。
@@ -158,7 +158,7 @@ func TestRodTipAutoInstall(t *testing.T) {
 	}
 	dec, _, err = proto.DecodeValue(resp.Body, 0, wiregen.Table())
 	if err != nil {
-		t.Fatalf("14/2 解码: %v", err)
+		t.Fatalf("14/2 Декодирование: %v", err)
 	}
 	var castRod *proto.Value
 	var walk func(v *proto.Value)
@@ -182,12 +182,12 @@ func TestRodTipAutoInstall(t *testing.T) {
 		t.Fatal("14/2 响应里没有竿树")
 	}
 	if got := castRod.Field(8).Str; got == nil || *got != tip {
-		t.Fatalf("14/2 竿树 f8 尖梢应=%q，实得 %v", tip, got)
+		t.Fatalf("14/2 竿树 f8 尖梢应=%q, 实得 %v", tip, got)
 	}
 
 	// 幂等：再跑一次 ensureRig 不再改写（返回 false）
 	if fixed := srv.ensureRig(context.Background(), uid, testShopRodGUID); fixed {
-		t.Fatal("尖梢已收敛，ensureRig 不应再写")
+		t.Fatal("尖梢已收敛, ensureRig 不应再写")
 	}
 
 	// 补齐时优先使用玩家已经保存的尖梢选择。
@@ -206,7 +206,7 @@ func TestRodTipAutoInstall(t *testing.T) {
 		t.Fatal("尖梢丢失后 ensureRig 应补写")
 	}
 	if tip, _ := rodTipOf(t, db, testShopRodGUID); tip != tips[2] {
-		t.Fatalf("应优先玩家 rod_setting 所选 %q，实得 %q", tips[2], tip)
+		t.Fatalf("应优先玩家 rod_setting 所选 %q, 实得 %q", tips[2], tip)
 	}
 
 	// 定义中没有尖梢名单的竿不写入。
@@ -221,7 +221,7 @@ func TestRodTipAutoInstall(t *testing.T) {
 		t.Fatal("无尖梢名单的竿不应写尖梢")
 	}
 	if tip, ok := rodTipOf(t, db, spinGUID); ok && tip != "" {
-		t.Fatalf("spin 竿尖梢应保持空（客户端按竿型免除该校验），实得 %q", tip)
+		t.Fatalf("spin 竿尖梢应保持空 (客户端按竿型免除该校验), 实得 %q", tip)
 	}
 }
 
@@ -258,7 +258,7 @@ func TestLureBiteGating(t *testing.T) {
 		t.Fatalf("starter 缺路亚竿/拟饵: rod=%q lure=%q", rodGUID, lureGUID)
 	}
 	if lureGUID != testShopLureGUID {
-		t.Logf("拟饵 guid=%s（使用落库出厂钩）", lureGUID[:8])
+		t.Logf("拟饵 guid=%s (使用落库出厂钩)", lureGUID[:8])
 	}
 	lureRow, _ := db.GetItemByGUID(ctx, lureGUID)
 	lureFields, _ := FieldsFromJSON(lureRow.FieldsJSON)
@@ -282,7 +282,7 @@ func TestLureBiteGating(t *testing.T) {
 	// 钓组类型 5 属于路亚族，使用独立的咬钩节奏。
 	row, _ := db.GetItemByGUID(ctx, rodGUID)
 	if rt := srv.rigTypeOfItem(ctx, row); rt != 5 {
-		t.Fatalf("rig_type 应=5 (rig_Lure)，实得 %d", rt)
+		t.Fatalf("rig_type 应=5 (rig_Lure), 实得 %d", rt)
 	}
 	if !rigTypeLureFamily[5] {
 		t.Fatal("类型 5 应属路亚族")
@@ -290,12 +290,12 @@ func TestLureBiteGating(t *testing.T) {
 
 	// f23 必须解析到已落库的出厂钩 GUID。
 	if hook := srv.mountedHookGuid(ctx, rodGUID); hook != wantStoredHook {
-		t.Fatalf("f23 应=落库出厂钩 %s，实得 %s（公式派生则对不上客户端部件→秒弃咬）",
+		t.Fatalf("f23 应=落库出厂钩 %s, 实得 %s (公式派生则对不上客户端部件→秒弃咬)",
 			wantStoredHook, hook)
 	}
 	// 拟饵也作为饵参与鱼种选择：品类 27 优先，17 兜底。
 	if bait := srv.currentBait(ctx, rodGUID); bait != "spinnerbaits_1244" {
-		t.Fatalf("currentBait 应=拟饵 item_id，实得 %q", bait)
+		t.Fatalf("currentBait 应=拟饵 item_id, 实得 %q", bait)
 	}
 	// 路亚咬钩窗为 1.5 到 6 秒。
 	st := srv.stateFor(uid)
@@ -303,7 +303,7 @@ func TestLureBiteGating(t *testing.T) {
 	st.RigType = srv.rigTypeOfItem(ctx, row)
 	st.mu.Unlock()
 	if d := srv.biteDelay(st); d < 0.8 || d > 6.0 {
-		t.Fatalf("路亚咬钩延迟应在 [0.8, 6.0]s，实得 %.2f", d)
+		t.Fatalf("路亚咬钩延迟应在 [0.8, 6.0]s, 实得 %.2f", d)
 	}
 	enableFastBites(t, db, srv)
 
@@ -324,7 +324,7 @@ func TestLureBiteGating(t *testing.T) {
 	// 测试使用固定短延迟并跳过落水保护。
 	fish14 := waitPushCmd(t, fc, 14, 14, 3*time.Second)
 	if fish14 == nil {
-		t.Fatal("路亚挂饵后 15s 内未咬钩（14/14 未达）")
+		t.Fatal("路亚挂饵后 15s 内未咬钩 (14/14 未达)")
 	}
 	dec, _, err := proto.DecodeValue(fish14.Body, 0, wiregen.Table())
 	if err != nil || dec.ArgCount() != 2 {
@@ -335,7 +335,7 @@ func TestLureBiteGating(t *testing.T) {
 		t.Fatalf("14/14 args[1] 应为 27 判鱼对象: %+v", fishObj)
 	}
 	if got := fishObj.Field(23); got.Hex != wantStoredHook {
-		t.Fatalf("14/14 f23 应=落库出厂钩 %s，实得 %s", wantStoredHook, got.Hex)
+		t.Fatalf("14/14 f23 应=落库出厂钩 %s, 实得 %s", wantStoredHook, got.Hex)
 	}
 
 	fc.SendRequest(403, 14, 6)
@@ -349,7 +349,7 @@ func TestLureBiteGating(t *testing.T) {
 	}
 	unmountLure(t, db, rodGUID)
 	if hook := srv.mountedHookGuid(ctx, rodGUID); hook != "" {
-		t.Fatalf("未挂载拟饵时 f23 应回空（线末端不可解析），实得 %s", hook)
+		t.Fatalf("未挂载拟饵时 f23 应回空 (线末端不可解析), 实得 %s", hook)
 	}
 	st.mu.Lock()
 	st.Armed = &RolledFish{FishGUID: newFishGUID(), Species: "perch", WeightG: 100, LengthM: 0.12}
@@ -361,7 +361,7 @@ func TestLureBiteGating(t *testing.T) {
 	fc.SendRequest(405, 14, 7, waterBody...)
 	fish14b := waitPushCmd(t, fc, 14, 14, 15*time.Second)
 	if fish14b == nil {
-		t.Fatal("GM 指定鱼未送达，无法校验 f23 回退")
+		t.Fatal("GM 指定鱼未送达, 无法校验 f23 回退")
 	}
 	dec, _, _ = proto.DecodeValue(fish14b.Body, 0, wiregen.Table())
 	fishObj = dec.ArgItem(1)
@@ -371,7 +371,7 @@ func TestLureBiteGating(t *testing.T) {
 	}
 	wantFishGUID := fishObj.Field(0).Hex
 	if got != wantFishGUID {
-		t.Fatalf("未挂载时 f23 应回退鱼 GUID %s，实得 %s", wantFishGUID, got)
+		t.Fatalf("未挂载时 f23 应回退鱼 GUID %s, 实得 %s", wantFishGUID, got)
 	}
 	if got == rodGUID {
 		t.Fatalf("未挂载时 f23 不应回退竿 GUID %s", rodGUID)
@@ -449,7 +449,7 @@ func TestLureEscapeRebitesSameRetrieve(t *testing.T) {
 	}
 	firstObj := first.ArgItem(1)
 	if firstObj == nil || firstObj.Field(23).Hex != wantHook {
-		t.Fatalf("首次 14/14 f23 应=出厂钩 %s，实得 %+v", wantHook, firstObj)
+		t.Fatalf("首次 14/14 f23 应=出厂钩 %s, 实得 %+v", wantHook, firstObj)
 	}
 	firstFishGUID := firstObj.Field(0).Hex
 
@@ -470,10 +470,10 @@ func TestLureEscapeRebitesSameRetrieve(t *testing.T) {
 	}
 	secondObj := second.ArgItem(1)
 	if secondObj == nil || secondObj.Field(23).Hex != wantHook {
-		t.Fatalf("第二次 14/14 f23 应=出厂钩 %s，实得 %+v", wantHook, secondObj)
+		t.Fatalf("第二次 14/14 f23 应=出厂钩 %s, 实得 %+v", wantHook, secondObj)
 	}
 	if secondObj.Field(0).Hex == firstFishGUID {
-		t.Fatalf("脱钩后应重新判鱼，不能重推已脱钩的鱼 %s", firstFishGUID)
+		t.Fatalf("脱钩后应重新判鱼, 不能重推已脱钩的鱼 %s", firstFishGUID)
 	}
 
 	st := srv.stateFor(uid)
@@ -495,7 +495,7 @@ func mountLure(t *testing.T, db *store.DB, srv *Server, rodGUID, lureGUID string
 	ctx := context.Background()
 	row, err := db.GetItemByGUID(ctx, rodGUID)
 	if err != nil || row == nil {
-		t.Fatalf("取竿: %v", err)
+		t.Fatalf("Взять удилище: %v", err)
 	}
 	fields, err := FieldsFromJSON(row.FieldsJSON)
 	if err != nil || len(fields) <= 5 || fields[5].Val == nil {
@@ -525,7 +525,7 @@ func unmountLure(t *testing.T, db *store.DB, rodGUID string) {
 	ctx := context.Background()
 	row, err := db.GetItemByGUID(ctx, rodGUID)
 	if err != nil || row == nil {
-		t.Fatalf("取竿: %v", err)
+		t.Fatalf("Взять удилище: %v", err)
 	}
 	fields, err := FieldsFromJSON(row.FieldsJSON)
 	if err != nil || len(fields) <= 5 || fields[5].Val == nil {

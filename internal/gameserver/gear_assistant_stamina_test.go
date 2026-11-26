@@ -79,7 +79,7 @@ func TestFishOverloadPct(t *testing.T) {
 		name    string
 		weightG int64
 		stamina float64
-		want    string // 期望文本，空表示只判断方向
+		want    string // 期望文本, 空表示只判断方向
 		zero    bool
 	}{
 		{"small fish at full stamina is free", 400, 1.0, "", true},
@@ -144,42 +144,42 @@ func TestStaminaReportCommandsAndPersistence(t *testing.T) {
 		t.Fatal("stamina report must default off")
 	}
 	// 一级菜单同时列出两个开关。
-	sendGearAssistantForTest(t, env.srv, env.sess, "菜单")
-	if reply := lastReply(); !strings.Contains(reply, "【耐力播报】") || !strings.Contains(reply, "【满红不爆】") {
+	sendGearAssistantForTest(t, env.srv, env.sess, "меню")
+	if reply := lastReply(); !strings.Contains(reply, "[Сводка выносливости] ") || !strings.Contains(reply, "[Без обрывов] ") {
 		t.Fatalf("menu does not list both switches: %q", reply)
 	}
 	// 发 2 进入二级：显示当前状态，不改设置。
 	sendGearAssistantForTest(t, env.srv, env.sess, "2")
-	if reply := lastReply(); !strings.Contains(reply, "【当前状态】：关闭") || staminaOn() {
+	if reply := lastReply(); !strings.Contains(reply, "[Текущее состояние]: выключено") || staminaOn() {
 		t.Fatalf("level two menu: %q", reply)
 	}
 	// 二级 y 开启。
 	sendGearAssistantForTest(t, env.srv, env.sess, "y")
-	if reply := lastReply(); !staminaOn() || !strings.Contains(reply, "已开启") {
+	if reply := lastReply(); !staminaOn() || !strings.Contains(reply, "включена") {
 		t.Fatalf("y did not enable: %q", reply)
 	}
 	// 重复开启幂等。
 	sendGearAssistantForTest(t, env.srv, env.sess, "y")
-	if reply := lastReply(); !strings.Contains(reply, "已经开启") {
+	if reply := lastReply(); !strings.Contains(reply, "Уже включено") {
 		t.Fatalf("repeat on must be idempotent: %q", reply)
 	}
 	// h 显示说明，不改设置也不离开二级。
 	sendGearAssistantForTest(t, env.srv, env.sess, "h")
-	if reply := lastReply(); !strings.Contains(reply, "每 5 秒在聊天框显示当前鱼的耐力与超载") || !staminaOn() {
+	if reply := lastReply(); !strings.Contains(reply, "каждые 5 секунд в чате показываются выносливость") || !staminaOn() {
 		t.Fatalf("h lost the description or the setting: %q", reply)
 	}
 	// n 关闭，重复关闭幂等。
 	sendGearAssistantForTest(t, env.srv, env.sess, "n")
-	if reply := lastReply(); staminaOn() || !strings.Contains(reply, "已关闭") {
+	if reply := lastReply(); staminaOn() || !strings.Contains(reply, "выключено") {
 		t.Fatalf("n did not disable: %q", reply)
 	}
 	sendGearAssistantForTest(t, env.srv, env.sess, "n")
-	if reply := lastReply(); !strings.Contains(reply, "已经关闭") {
+	if reply := lastReply(); !strings.Contains(reply, "Уже выключено") {
 		t.Fatalf("repeat off must be idempotent: %q", reply)
 	}
 	// 返回一级后仍支持「序号 子命令」一次性写法。
 	sendGearAssistantForTest(t, env.srv, env.sess, "b")
-	sendGearAssistantForTest(t, env.srv, env.sess, "2 开")
+	sendGearAssistantForTest(t, env.srv, env.sess, "2 вкл")
 	if !staminaOn() {
 		t.Fatal("level one one-shot command failed")
 	}
@@ -188,7 +188,7 @@ func TestStaminaReportCommandsAndPersistence(t *testing.T) {
 	}
 	// 两个开关互不影响：改满红不爆不能顺带改耐力播报。
 	sendGearAssistantForTest(t, env.srv, env.sess, "b")
-	sendGearAssistantForTest(t, env.srv, env.sess, "1 开")
+	sendGearAssistantForTest(t, env.srv, env.sess, "1 вкл")
 	if on, err := readOverloadProtection(t.Context(), env.db.SQL, uid); err != nil || !on {
 		t.Fatalf("overload switch broken: %v %v", on, err)
 	}
@@ -199,7 +199,7 @@ func TestStaminaReportCommandsAndPersistence(t *testing.T) {
 	sendGearAssistantForTest(t, env.srv, env.sess, "b")
 	reconnected := &Session{ID: 2, Userid: uid, Srv: env.srv, log: env.sess.log}
 	sendGearAssistantForTest(t, env.srv, reconnected, "2")
-	if reply := lastReply(); !strings.Contains(reply, "【当前状态】：开启") {
+	if reply := lastReply(); !strings.Contains(reply, "[Текущее состояние]: включено") {
 		t.Fatalf("reconnected session lost setting: %q", reply)
 	}
 }
@@ -243,7 +243,7 @@ func TestStaminaReportGatingAndThrottle(t *testing.T) {
 			t.Fatalf("%s: got %d chat pushes, want %d: %v", label, len(texts), want, texts)
 		}
 		for _, text := range texts {
-			if !strings.HasPrefix(text, "[耐力] ") {
+			if !strings.HasPrefix(text, "[Выносливость] ") {
 				t.Fatalf("%s: unexpected push %q", label, text)
 			}
 		}
@@ -257,13 +257,13 @@ func TestStaminaReportGatingAndThrottle(t *testing.T) {
 	// Switch off: no push even with a valid fighting state and frame.
 	s.maybeReportStamina(makeCtx(body), stA, advance())
 	collect(0, "switch off")
-	sendGearAssistantForTest(t, s, sess, "2 开")
+	sendGearAssistantForTest(t, s, sess, "2 вкл")
 	collect(0, "switch command uses mail, not chat")
 
 	// 0.4kg perch against an 11kgf rig: pullable, so the overload reads 0%.
 	s.maybeReportStamina(makeCtx(body), stA, advance())
-	if texts := collect(1, "first report"); !strings.Contains(texts[0], "[耐力] 100.0%") ||
-		!strings.Contains(texts[0], "[超载] 0%") {
+	if texts := collect(1, "first report"); !strings.Contains(texts[0], "[Выносливость] 100.0%") ||
+		!strings.Contains(texts[0], "[Перегрузка] 0%") {
 		t.Fatalf("small fish must report a zero overload: %q", texts[0])
 	}
 	// Same fish within the 5s window: throttled.
@@ -272,8 +272,8 @@ func TestStaminaReportGatingAndThrottle(t *testing.T) {
 	collect(0, "throttled")
 	// Same small fish after the window: stamina drops, overload stays at 0.
 	s.maybeReportStamina(makeCtx(loadFrame(t, 0.37131304, 11.0)), stA, advance())
-	if texts := collect(1, "second report"); !strings.Contains(texts[0], "[耐力] 37.1%") ||
-		!strings.Contains(texts[0], "[超载] 0%") {
+	if texts := collect(1, "second report"); !strings.Contains(texts[0], "[Выносливость] 37.1%") ||
+		!strings.Contains(texts[0], "[Перегрузка] 0%") {
 		t.Fatalf("small fish at 37%% stamina is still free: %q", texts[0])
 	}
 	// 20kg perch on the same rig: the fish now out-pulls it, so the overload is
@@ -284,7 +284,7 @@ func TestStaminaReportGatingAndThrottle(t *testing.T) {
 	stA.Pending = bigFish
 	stA.mu.Unlock()
 	s.maybeReportStamina(makeCtx(body), stA, base.Add(time.Duration(step)*time.Second+time.Second))
-	if texts := collect(1, "big fish"); !strings.Contains(texts[0], fmt.Sprintf("[超载] %.0f%%", wantOver)) {
+	if texts := collect(1, "big fish"); !strings.Contains(texts[0], fmt.Sprintf("[Перегрузка] %.0f%%", wantOver)) {
 		t.Fatalf("big fish should overload by %.0f%%: %q", wantOver, texts[0])
 	}
 
@@ -304,7 +304,7 @@ func TestStaminaReportGatingAndThrottle(t *testing.T) {
 
 	// 帧里读不到钓组最弱环（50 字节）时只报耐力，不拿 0 当分母。
 	s.maybeReportStamina(makeCtx(body[:50]), stA, advance())
-	if texts := collect(1, "no rig limit"); strings.Contains(texts[0], "[超载]") {
+	if texts := collect(1, "no rig limit"); strings.Contains(texts[0], "[Перегрузка]") {
 		t.Fatalf("missing rig limit must suppress the overload column: %q", texts[0])
 	}
 
@@ -317,7 +317,7 @@ func TestStaminaReportGatingAndThrottle(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, m := range mails {
-		if strings.HasPrefix(m.Text, "[耐力]") {
+		if strings.HasPrefix(m.Text, "[Выносливость]") {
 			t.Fatal("report was written into the personal mail table")
 		}
 	}
@@ -365,14 +365,14 @@ func TestStaminaReportSwitchCacheInvalidation(t *testing.T) {
 		t.Fatalf("switch off pushed %v", texts)
 	}
 
-	sendGearAssistantForTest(t, s, sess, "2 开")
+	sendGearAssistantForTest(t, s, sess, "2 вкл")
 	s.maybeReportStamina(makeCtx(sess), st, now)
 	if texts := finishHookedChat(t, sess, ch); len(texts) != 1 {
 		t.Fatalf("enabling did not invalidate the cache: %v", texts)
 	}
 
 	sendGearAssistantForTest(t, s, sess, "b")
-	sendGearAssistantForTest(t, s, sess, "2 关")
+	sendGearAssistantForTest(t, s, sess, "2 выкл")
 	s.maybeReportStamina(makeCtx(sess), st, now.Add(10*time.Second))
 	if texts := finishHookedChat(t, sess, ch); len(texts) != 0 {
 		t.Fatalf("disabling did not invalidate the cache: %v", texts)
@@ -391,7 +391,7 @@ func TestStaminaReportSurvivesReconnect(t *testing.T) {
 		return c
 	}
 	now := time.Now()
-	sendGearAssistantForTest(t, s, sess, "2 开")
+	sendGearAssistantForTest(t, s, sess, "2 вкл")
 	s.maybeReportStamina(makeCtx(sess), st, now)
 	if texts := finishHookedChat(t, sess, ch); len(texts) != 1 {
 		t.Fatalf("first fight frame must report: %v", texts)

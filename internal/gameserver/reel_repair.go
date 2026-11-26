@@ -107,7 +107,7 @@ func (s *Server) RepairReelEnginePower(ctx context.Context) (int, error) {
 // 这里以 item_def.attrs_json 为准，逐槽用 buildPartInstance 重建并回写。
 func (s *Server) RepairReelComponents(ctx context.Context) (int, error) {
 	if s.DB == nil {
-		return 0, fmt.Errorf("数据库未连接")
+		return 0, fmt.Errorf("База данных не подключена")
 	}
 	rows, err := s.DB.SQL.QueryContext(ctx,
 		`SELECT guid FROM item WHERE wire_class=?`, "dgjinoebdop")

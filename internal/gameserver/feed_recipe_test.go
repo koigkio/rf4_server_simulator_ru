@@ -51,7 +51,7 @@ func assertFeedIngredients(t *testing.T, feed *proto.Value, want [][]string) {
 	for idx, code := range []string{"50", "52", "51"} {
 		v := feed.Fields[idx].Val
 		if v == nil || v.Kind != proto.KindArgs || v.Code == nil || *v.Code != code {
-			t.Fatalf("f%d 期望 args %s，实得 %+v", idx, code, v)
+			t.Fatalf("f%d 期望 args %s, 实得 %+v", idx, code, v)
 		}
 		got := []string{}
 		for _, elem := range v.Items {
@@ -61,7 +61,7 @@ func assertFeedIngredients(t *testing.T, feed *proto.Value, want [][]string) {
 			got = append(got, *elem.Fields[0].Str)
 		}
 		if !reflect.DeepEqual(got, want[idx]) {
-			t.Fatalf("f%d 用料=%v，期望 %v", idx, got, want[idx])
+			t.Fatalf("f%d 用料=%v, 期望 %v", idx, got, want[idx])
 		}
 	}
 }

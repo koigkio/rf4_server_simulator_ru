@@ -37,7 +37,7 @@ func TestMarineLayerDescendsThenBottomEvent(t *testing.T) {
 	s.updateMarineLayerLocked(st, marineDiveMask, t0.Add(30*time.Second))
 	wantMid := marineLayerStart + (marineLayerBottom-marineLayerStart)*0.5
 	if !marineLayerNear(st.MarineLayer, wantMid) {
-		t.Fatalf("30 秒层数=%f，期望 %f", st.MarineLayer, wantMid)
+		t.Fatalf("30 秒层数=%f, 期望 %f", st.MarineLayer, wantMid)
 	}
 
 	s.updateMarineLayerLocked(st, marineBottomTouchBit, t0.Add(60*time.Second))
@@ -45,7 +45,7 @@ func TestMarineLayerDescendsThenBottomEvent(t *testing.T) {
 		t.Fatalf("触底状态错误: state=%d cycle=%d", st.MarineState, st.BottomCycle)
 	}
 	if !marineLayerNear(st.MarineLayer, marineLayerBottom) {
-		t.Fatalf("触底后层数=%f，期望 %f", st.MarineLayer, marineLayerBottom)
+		t.Fatalf("触底后层数=%f, 期望 %f", st.MarineLayer, marineLayerBottom)
 	}
 }
 
@@ -74,7 +74,7 @@ func TestMarineLayerCycleStartsFromCurrentLayer(t *testing.T) {
 
 	s.updateMarineLayerLocked(st, marineBottomTouchBit, t0.Add(3*time.Second))
 	if st.BottomCycle != 2 {
-		t.Fatalf("第二次到底 cycle=%d，期望 2", st.BottomCycle)
+		t.Fatalf("第二次到底 cycle=%d, 期望 2", st.BottomCycle)
 	}
 }
 
@@ -87,18 +87,18 @@ func TestMarineLayerUniformRetrieveLeavesAfterGrace(t *testing.T) {
 	// 收线：层数每次只降 0.03；从 0.93 降到 0.84 约需 3 次。
 	s.updateMarineLayerLocked(st, marineUniformBit, t0.Add(100*time.Millisecond))
 	if !marineLayerNear(st.MarineLayer, 0.90) {
-		t.Fatalf("第一次收线层数=%f，期望 0.90", st.MarineLayer)
+		t.Fatalf("第一次收线层数=%f, 期望 0.90", st.MarineLayer)
 	}
 	s.updateMarineLayerLocked(st, marineUniformBit, t0.Add(1600*time.Millisecond))
 	if !marineLayerNear(st.MarineLayer, 0.87) {
-		t.Fatalf("第二次收线层数=%f，期望 0.87", st.MarineLayer)
+		t.Fatalf("第二次收线层数=%f, 期望 0.87", st.MarineLayer)
 	}
 	s.updateMarineLayerLocked(st, marineUniformBit, t0.Add(3200*time.Millisecond))
 	if !marineLayerNear(st.MarineLayer, 0.84) {
-		t.Fatalf("第三次收线层数=%f，期望 0.84", st.MarineLayer)
+		t.Fatalf("第三次收线层数=%f, 期望 0.84", st.MarineLayer)
 	}
 	if st.MarineState != marineStateOnBottom {
-		t.Fatalf("刚降到 0.84 仍应保持贴底，state=%d", st.MarineState)
+		t.Fatalf("刚降到 0.84 仍应保持贴底, state=%d", st.MarineState)
 	}
 
 	// 0.85 以下持续不足 1 秒：仍不判离底。
@@ -149,11 +149,11 @@ func TestMarineLayerBottomRigUsesBottomDuration(t *testing.T) {
 
 	s.updateMarineLayerLocked(st, marineDiveMask, t0)
 	if !marineLayerNear(st.MarineDescentSeconds, 45) {
-		t.Fatalf("55 沉底默认时长=%f，期望 45", st.MarineDescentSeconds)
+		t.Fatalf("55 沉底默认时长=%f, 期望 45", st.MarineDescentSeconds)
 	}
 	s.updateMarineLayerLocked(st, marineDiveMask, t0.Add(45*time.Second))
 	if !marineLayerNear(st.MarineLayer, marineLayerBottom) {
-		t.Fatalf("55 沉底满程层数=%f，期望 %f", st.MarineLayer, marineLayerBottom)
+		t.Fatalf("55 沉底满程层数=%f, 期望 %f", st.MarineLayer, marineLayerBottom)
 	}
 }
 
@@ -163,10 +163,10 @@ func TestMarineRigWaterLayerUsesStateOnlyWhenEnabled(t *testing.T) {
 	c55 := fishRollContext{rigType: 55, marineLayer: 0.42, marineLayerKnown: true}
 
 	if got, known := s.rigWaterLayer(c50); !known || !marineLayerNear(got, 0.42) {
-		t.Fatalf("50 海钓层=%f，期望 0.42", got)
+		t.Fatalf("50 海钓层=%f, 期望 0.42", got)
 	}
 	if got, known := s.rigWaterLayer(c55); !known || !marineLayerNear(got, 0.42) {
-		t.Fatalf("55 海钓层=%f，期望 0.42", got)
+		t.Fatalf("55 海钓层=%f, 期望 0.42", got)
 	}
 
 	s.tunCache["marine_layer_enabled"] = 0
@@ -175,10 +175,10 @@ func TestMarineRigWaterLayerUsesStateOnlyWhenEnabled(t *testing.T) {
 	c50.marineLayerKnown = false
 	c55.marineLayerKnown = false
 	if got, known := s.rigWaterLayer(c50); !known || !marineLayerNear(got, 0.5) {
-		t.Fatalf("关闭后 50 应回退 effectiveLureLayer，得到 %f", got)
+		t.Fatalf("关闭后 50 应回退 effectiveLureLayer, 得到 %f", got)
 	}
 	if got, known := s.rigWaterLayer(c55); !known || !marineLayerNear(got, 0.93) {
-		t.Fatalf("关闭后 55 应回退 0.93，得到 %f", got)
+		t.Fatalf("关闭后 55 应回退 0.93, 得到 %f", got)
 	}
 }
 
@@ -194,7 +194,7 @@ func TestMarineLayerLearnsDescentByZoneAndRig(t *testing.T) {
 	// 就应该学成 55 秒，不能再按层差放大。
 	got := s.marineDescentSeconds(&FishState{RigType: 50, Loc: "loc12_198"})
 	if !marineLayerNear(got, 55) {
-		t.Fatalf("学习后的满程时长=%f，期望 55", got)
+		t.Fatalf("学习后的满程时长=%f, 期望 55", got)
 	}
 
 	// 下一次同区号、同钓组类别的下沉：观测时长走到学习值时层数应正好到 0.93。
@@ -203,13 +203,13 @@ func TestMarineLayerLearnsDescentByZoneAndRig(t *testing.T) {
 	s.updateMarineLayerLocked(next, marineDiveMask, t1)
 	s.updateMarineLayerLocked(next, marineDiveMask, t1.Add(55*time.Second))
 	if !marineLayerNear(next.MarineLayer, marineLayerBottom) {
-		t.Fatalf("下一次下沉观测 55 秒后层数=%f，期望 %f", next.MarineLayer, marineLayerBottom)
+		t.Fatalf("下一次下沉观测 55 秒后层数=%f, 期望 %f", next.MarineLayer, marineLayerBottom)
 	}
 	if other := s.marineDescentSeconds(&FishState{RigType: 50, Loc: "loc12_199"}); !marineLayerNear(other, 60) {
-		t.Fatalf("不同区号不应共享学习值，得到 %f", other)
+		t.Fatalf("不同区号不应共享学习值, 得到 %f", other)
 	}
 	if other := s.marineDescentSeconds(&FishState{RigType: 51, Loc: "loc12_198"}); !marineLayerNear(other, 50) {
-		t.Fatalf("不同钓组类别不应共享学习值，得到 %f", other)
+		t.Fatalf("不同钓组类别不应共享学习值, 得到 %f", other)
 	}
 }
 
@@ -225,7 +225,7 @@ func TestMarineLayerLearnIgnoresLegacySwitch(t *testing.T) {
 
 	got := s.marineDescentSeconds(&FishState{RigType: 50, Loc: "loc12_198"})
 	if !marineLayerNear(got, 55) {
-		t.Fatalf("旧开关残留不应关闭学习，得到 %f", got)
+		t.Fatalf("旧开关残留不应关闭学习, 得到 %f", got)
 	}
 }
 
@@ -239,7 +239,7 @@ func TestMarineLayerDoesNotLearnInterruptedDescent(t *testing.T) {
 	s.updateMarineLayerLocked(st, marineBottomTouchBit, t0.Add(55*time.Second))
 
 	if got := s.marineDescentSeconds(&FishState{RigType: 50, Loc: "loc12_198"}); !marineLayerNear(got, 60) {
-		t.Fatalf("中途收线不应学习，得到 %f", got)
+		t.Fatalf("中途收线不应学习, 得到 %f", got)
 	}
 }
 
@@ -254,7 +254,7 @@ func TestMarineLayerDoesNotLearnFromMidwaterRelease(t *testing.T) {
 	s.updateMarineLayerLocked(st, marineBottomTouchBit, t0.Add(3*time.Second))
 
 	if got := s.marineDescentSeconds(&FishState{RigType: 50, Loc: "loc12_198"}); !marineLayerNear(got, 60) {
-		t.Fatalf("从中层放线不应学习，得到 %f", got)
+		t.Fatalf("从中层放线不应学习, 得到 %f", got)
 	}
 }
 
@@ -264,25 +264,25 @@ func TestMarineLayerBiteFactor(t *testing.T) {
 	s := newMarineLayerTestServer()
 	st := &FishState{RigType: 50, MarineLayerSeen: true, MarineLayer: 0.5}
 	if got := s.marineLayerBiteFactor(st); !marineLayerNear(got, 0.5) {
-		t.Fatalf("下沉到 0.5 时开口率应为 0.5：got %g", got)
+		t.Fatalf("下沉到 0.5 时开口率应为 0.5: got %g", got)
 	}
 	st.MarineLayer = 0.93
 	if got := s.marineLayerBiteFactor(st); !marineLayerNear(got, 0.93) {
-		t.Fatalf("贴底时开口率应为 0.93：got %g", got)
+		t.Fatalf("贴底时开口率应为 0.93: got %g", got)
 	}
 	st.MarineLayerSeen = false
 	if got := s.marineLayerBiteFactor(st); !marineLayerNear(got, marineLayerStart) {
-		t.Fatalf("状态机未启动时应按起点 0.05：got %g", got)
+		t.Fatalf("状态机未启动时应按起点 0.05: got %g", got)
 	}
 	if got := s.marineLayerBiteFactor(&FishState{RigType: 5}); got != 1 {
-		t.Fatalf("非海钓钓法应为 1：got %g", got)
+		t.Fatalf("非海钓钓法应为 1: got %g", got)
 	}
 	s.tunMu.Lock()
 	s.tunCache["marine_layer_enabled"] = 0
 	s.tunAt = time.Now()
 	s.tunMu.Unlock()
 	if got := s.marineLayerBiteFactor(st); got != 1 {
-		t.Fatalf("关闭海钓水层影响应为 1：got %g", got)
+		t.Fatalf("关闭海钓水层影响应为 1: got %g", got)
 	}
 }
 
@@ -291,23 +291,23 @@ func TestMarineLayerBiteProbability(t *testing.T) {
 	s := newMarineLayerTestServer()
 	st := &FishState{RigType: 50, MarineLayerSeen: true, MarineLayer: 0.93}
 	if got := s.marineLayerBiteProbability(1, st, 4); !marineLayerNear(got, 0.93/4) {
-		t.Fatalf("贴底 4 饵应为 0.93/4：got %g", got)
+		t.Fatalf("贴底 4 饵应为 0.93/4: got %g", got)
 	}
 	if got := s.marineLayerBiteProbability(1, st, 0); !marineLayerNear(got, 0.93) {
-		t.Fatalf("饵数为 0 按 1 饵处理：got %g", got)
+		t.Fatalf("饵数为 0 按 1 饵处理: got %g", got)
 	}
 	st.MarineLayer = 0.5
 	if got := s.marineLayerBiteProbability(0.8, st, 2); !marineLayerNear(got, 0.8*0.5/2) {
-		t.Fatalf("基础概率也应按水层与饵数缩放：got %g", got)
+		t.Fatalf("基础概率也应按水层与饵数缩放: got %g", got)
 	}
 	if got := s.marineLayerBiteProbability(1, &FishState{RigType: 5}, 4); got != 1 {
-		t.Fatalf("非海钓钓法应原样返回：got %g", got)
+		t.Fatalf("非海钓钓法应原样返回: got %g", got)
 	}
 	s.tunMu.Lock()
 	s.tunCache["marine_layer_enabled"] = 0
 	s.tunAt = time.Now()
 	s.tunMu.Unlock()
 	if got := s.marineLayerBiteProbability(1, st, 4); got != 1 {
-		t.Fatalf("关闭海钓水层影响应原样返回：got %g", got)
+		t.Fatalf("关闭海钓水层影响应原样返回: got %g", got)
 	}
 }

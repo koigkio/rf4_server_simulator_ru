@@ -67,7 +67,7 @@ func testEquippedRodTipSequence(t *testing.T, model string, tips []string) {
 			t.Fatal("更新了错误的物品")
 		}
 		if got := v.Field(8).Str; got == nil || *got != tip {
-			t.Fatalf("竿稍=%q，应为 %q", v.Fields[8].StrOr(), tip)
+			t.Fatalf("竿稍=%q, 应为 %q", v.Fields[8].StrOr(), tip)
 		}
 		if v.Field(4).Hex != reel || !reflect.DeepEqual(v.Field(5).Val, before.Field(5).Val) {
 			t.Fatal("渔轮或钓组改变")
@@ -82,7 +82,7 @@ func testEquippedRodTipSequence(t *testing.T, model string, tips []string) {
 			t.Fatal("17/5 未处理")
 		}
 		if stored, _ := rodTipOf(t, db, rod); stored != tip {
-			t.Fatalf("落库竿稍=%q，应为 %q", stored, tip)
+			t.Fatalf("落库竿稍=%q, 应为 %q", stored, tip)
 		}
 		resp := decode(body)
 		if resp.Class != "dlbahppbdad" {

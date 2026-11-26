@@ -28,7 +28,7 @@ func startGameserverWithDB(t *testing.T, db *store.DB) (string, *Server) {
 	t.Helper()
 	cfg := config.Game{
 		Tunnel:               config.Tunnel{Addr: "127.0.0.1:0", PSK: testutil.TestPSK},
-		KeepaliveIntervalSec: 3600, // 测试期间不发保活，避免干扰推送计数
+		KeepaliveIntervalSec: 3600, // 测试期间不发保活, 避免干扰推送计数
 	}
 	log := logging.Discard()
 	srv := NewServer(cfg, log, nil)
@@ -67,7 +67,7 @@ func TestFishingLoopFull(t *testing.T) {
 		cancel0()
 	}
 	if uid != testUID {
-		t.Logf("userid=%d（非默认 %d，继续）", uid, testUID)
+		t.Logf("userid=%d (非默认 %d, 继续)", uid, testUID)
 	}
 	fc := testutil.NewFakeClient(t, gw.RealAddr)
 	fc.Dial(token, false)
@@ -106,7 +106,7 @@ func TestFishingLoopFull(t *testing.T) {
 		}
 	}
 	if rodGUID == "" {
-		t.Fatal("背包里没有竿（starter 播种失败？）")
+		t.Fatal("背包里没有竿 (starter 播种失败? )")
 	}
 
 	// 14/1 cast_prepare（带钓组 guid）
@@ -145,7 +145,7 @@ func TestFishingLoopFull(t *testing.T) {
 	fF8 := fishObj.Field(8)
 	pull := proto.F32FromBits(fF8.U32()) // f8 是 U32 op 承载 f32 位
 	if pull <= 0 {
-		t.Fatalf("27.f8 拉力应>0（随体重缩放）: %v", pull)
+		t.Fatalf("27.f8 拉力应>0 (随体重缩放): %v", pull)
 	}
 
 	// 14/11 刺中（触发两帧 4/22：先单钩推送，再全树运行位同步）

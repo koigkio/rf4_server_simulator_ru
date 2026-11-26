@@ -204,7 +204,7 @@ func TestAchievementNewBaitDigRules(t *testing.T) {
 	}
 	for _, id := range []int64{250, 258, 259, 261, 272} {
 		if got[id].unlocked {
-			t.Errorf("未产出对应饵，成就 %d 不应解锁", id)
+			t.Errorf("未产出对应饵, 成就 %d 不应解锁", id)
 		}
 	}
 }

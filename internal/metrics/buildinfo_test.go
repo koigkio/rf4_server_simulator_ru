@@ -25,7 +25,7 @@ func TestBuildInfoMetricCarriesVersion(t *testing.T) {
 	s.srv.Handler.ServeHTTP(rec, httptest.NewRequest("GET", "/metrics", nil))
 
 	if rec.Code != 200 {
-		t.Fatalf("/metrics 状态码 = %d，期望 200", rec.Code)
+		t.Fatalf("/metrics 状态码 = %d, 期望 200", rec.Code)
 	}
 	body, err := io.ReadAll(rec.Body)
 	if err != nil {
@@ -40,11 +40,11 @@ func TestBuildInfoMetricCarriesVersion(t *testing.T) {
 		`source="/repo/.agents/worktrees/feature-x"`,
 	} {
 		if !strings.Contains(text, want) {
-			t.Fatalf("/metrics 缺少 %s，实际内容：\n%s", want, firstLines(text, 20))
+			t.Fatalf("/metrics 缺少 %s, 实际内容: \n%s", want, firstLines(text, 20))
 		}
 	}
 	if strings.Contains(text, `commit="unknown"`) || strings.Contains(text, `source="unknown"`) {
-		t.Fatalf("注入 ldflags 后 /metrics 仍出现 unknown 占位符：\n%s", firstLines(text, 20))
+		t.Fatalf("注入 ldflags 后 /metrics 仍出现 unknown 占位符: \n%s", firstLines(text, 20))
 	}
 }
 
@@ -58,11 +58,11 @@ func TestBuildInfoMetricInheritsLDFlags(t *testing.T) {
 	// 「未注入版本」和「版本为空」两种情况无法区分。
 	for _, want := range []string{`version="`, `buildts="`, `commit="`} {
 		if !strings.Contains(text, want) {
-			t.Fatalf("/metrics 缺少标签 %s，实际内容：\n%s", want, firstLines(text, 20))
+			t.Fatalf("/metrics 缺少标签 %s, 实际内容: \n%s", want, firstLines(text, 20))
 		}
 	}
 	if strings.Contains(text, `version=""`) {
-		t.Fatal("version 标签为空串：未注入 -ldflags 时也应回落可读占位符")
+		t.Fatal("version 标签为空串: 未注入 -ldflags 时也应回落可读占位符")
 	}
 }
 

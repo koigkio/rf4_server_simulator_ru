@@ -20,7 +20,7 @@ const (
 	pass745F2                       = uint64(131765184000000000)
 	f32Const801F2                   = uint32(1092571843) // 801.f2 位型
 	castDepthBits                   = uint32(1091032928) // 158.f2 = f32 8.4900818
-	profileFlags                    = uint32(17 | 0x100) // 0x100：跳过绑定邮箱提示
+	profileFlags                    = uint32(17 | 0x100) // 0x100: 跳过绑定邮箱提示
 	defaultPlayerConditionPrimary   = store.DefaultPlayerConditionPrimary
 	defaultPlayerConditionSecondary = store.DefaultPlayerConditionSecondary
 )
@@ -245,7 +245,7 @@ func (s *Server) BuildProfile307W(ctx context.Context, uid int64, wNow int64) (*
 	// 放生的鱼也算（结算 14/4 就落库，入护只把 source 抬成 'keep'）。
 	rareCatches, rareErr := s.DB.RareSpeciesCount(ctx, uid, 3)
 	if rareErr != nil {
-		s.log.Warn("奖杯鱼种数读取失败，按 0 下发", "uid", uid, "err", rareErr)
+		s.log.Warn("Не удалось прочитать число трофейных видов, отправлено 0", "uid", uid, "err", rareErr)
 	}
 
 	// f24(pdomjfdnghk/dlgnjgfjcaj).emegkdcimkp 是欢乐时光状态枚举（客户端
@@ -299,7 +299,7 @@ func (s *Server) BuildProfile307W(ctx context.Context, uid int64, wNow int64) (*
 		19: proto.U64(uint64(p.Bank)),
 		20: proto.ArrayOf(hexOf(houseItems)),
 		21: proto.Str(nil),
-		22: proto.ArrayOf(hexOf(placeItems)), // 已买断地点（f22 只承载买断，钓鱼游不进 f22）
+		22: proto.ArrayOf(hexOf(placeItems)), // 已买断地点 (f22 只承载买断, 钓鱼游不进 f22)
 		// 容器 code=181（by_type_id 实抓推导值，实机验证可用）：服务端始终
 		// 发 181，购票→进图→抛竿→到期回收全链路回归通过——抛竿受
 		// FishingSceneVoucherWathDog 门控，f23 解析作废会直接禁抛竿/黑屏，
@@ -443,7 +443,7 @@ func (s *Server) BuildShortcutList(ctx context.Context, uid int64) *proto.Value 
 func (s *Session) Push2_1() {
 	p, err := s.Srv.BuildProfile307W(s.pushCtx(), s.Userid, worldTotalGameMin(time.Now()))
 	if err != nil {
-		s.log.Warn("2/1 构造失败", "err", err)
+		s.log.Warn("2/1 Ошибка создания", "err", err)
 		return
 	}
 	s.Push(2, 1, proto.Args524(p))
@@ -455,7 +455,7 @@ func (s *Session) Push2_1() {
 func (s *Session) Push2_6(fromLevel int64) {
 	tree, err := s.Srv.BuildSkillTree311(s.pushCtx(), s.Userid, ^uint64(0)) // f0=自然可用点
 	if err != nil {
-		s.log.Warn("2/6 构造失败", "err", err)
+		s.log.Warn("2/6 Ошибка создания", "err", err)
 		return
 	}
 	s.Push(2, 6, proto.Args524(tree))
@@ -516,7 +516,7 @@ func (s *Session) Push4_22FightSync(gear string, extraGUIDs []string) {
 	if herr != nil {
 		// 组件/品类查询失败：整帧放弃——客户端保留上一帧，由下一拍结算/中鱼
 		// 重推；绝不发缺钩/拟饵树的帧，那正是 f0=1 秒脱形状。
-		s.log.Warn("搏鱼帧钩/拟饵挂载树查询失败，放弃本帧", "rod", shortGUID(gear), "err", herr)
+		s.log.Warn("Не удалось запросить дерево крючков/приманок для кадра вываживания, кадр пропущен", "rod", shortGUID(gear), "err", herr)
 		return
 	}
 	items = s.appendFightItemTrees(pctx, hookLure, extraGUIDs)
@@ -545,7 +545,7 @@ func (s *Session) Push4_22FightSync(gear string, extraGUIDs []string) {
 	if cerr != nil {
 		// 查询失败时绝不能静默回退成"裸基值树"——那正是秒脱形状。
 		// 重试一次仍失败就整帧放弃：客户端保留上一帧，由下一拍结算/中鱼重推。
-		s.log.Warn("4/22 搏鱼运行位品类批量查询失败，放弃本帧", "err", cerr)
+		s.log.Warn("4/22 Не удалось запросить категории позиций вываживания, кадр пропущен", "err", cerr)
 		return
 	}
 	catOf := func(numericID int64) (int64, bool) {

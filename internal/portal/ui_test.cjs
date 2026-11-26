@@ -14,7 +14,7 @@ test('portal and membership editor fit supported widths, DPI and long names',asy
   if(url.pathname.startsWith('/portal/api/')){
    const key=url.pathname.slice('/portal/api/'.length);
    if(key==='session')return json({token:'fixture'});
-   if(key==='profile')return json({nickname:name,username:name,userId:42,level:20,region:'中国',goldMinor:2000,silverMinor:12345});
+   if(key==='profile')return json({nickname:name,username:name,userId:42,level:20,region:'Россия',goldMinor:2000,silverMinor:12345});
    if(key==='membership/purchase'){buys++;return json({...member(),purchase:{replayed:false}});}
    return json(member());
   }
@@ -49,7 +49,7 @@ test('portal and membership editor fit supported widths, DPI and long names',asy
       await page.waitForFunction(text=>document.getElementById('account_name').textContent===text,text);
       await page.locator('.local-plan button').first().waitFor();
       const before=buys;await page.locator('.local-plan button').first().click();
-      await page.waitForFunction(()=>document.getElementById('local-member-message').textContent.includes('购买成功'));assert.equal(buys,before+1);
+      await page.waitForFunction(()=>document.getElementById('local-member-message').textContent.includes('Покупка успешна'));assert.equal(buys,before+1);
      }else{
       await page.evaluate(()=>go('players'));await page.waitForFunction(()=>document.querySelector('.player-row'));
       await page.evaluate(()=>selectPlayer(42));await page.locator('#pf_membership,#pf_member_kind').waitFor();assert.equal(await page.locator('#pf_membership,#pf_member_kind').inputValue(),'2');
@@ -63,7 +63,7 @@ test('portal and membership editor fit supported widths, DPI and long names',asy
      assert.deepEqual(measure.controls.filter(c=>(!c.scrollable&&(c.x< -1||c.right>measure.width+2))||c.width<15||c.height<(c.textLink?12:15)||c.clipped),[],JSON.stringify({view,width,scale,text,measure}));
      if(view==='admin'){const last=page.locator('.nav button').last();await last.scrollIntoViewIfNeeded();const r=await last.boundingBox();assert.ok(r.x>=0&&r.x+r.width<=width+2);}
      assert.deepEqual(errors,[]);
-     if(process.env.RF4_UI_SCREENSHOT_DIR&&width===360&&scale===1.5&&text.startsWith('最长'))await page.screenshot({path:path.join(process.env.RF4_UI_SCREENSHOT_DIR,view+'.png'),fullPage:true});
+     if(process.env.RF4_UI_SCREENSHOT_DIR&&width===360&&scale===1.5&&text.startsWith('Максимум'))await page.screenshot({path:path.join(process.env.RF4_UI_SCREENSHOT_DIR,view+'.png'),fullPage:true});
      count++;
     }
    }

@@ -28,29 +28,29 @@ type qualificationCup struct {
 }
 
 var qualificationCupByBranch = map[int64]qualificationCup{
-	1:  {"qual_spin_cup", "纺车竿高手"},
-	2:  {"qual_jig_cup", "汲钩钓(jigging)高手"},
-	3:  {"qual_l_ul_cup", "轻渔具高手"},
-	4:  {"qual_tele_cup", "手竿高手"},
-	5:  {"qual_bolo_match_cup", "博洛尼亚和赛竿高手"},
-	6:  {"qual_feeder_cup", "飞德竿高手"},
-	7:  {"qual_carp_cup", "鲤鱼高手"},
-	8:  {"qual_mlo_cup", "海洋钓鱼高手"},
-	9:  {"ny_2024_cup", "新年奖品 MMXXIV"},
-	10: {"ny_2024_extra_cup", "新年奖品 MMXXIV EXTRA"},
-	11: {"reward_bday24", "RF4-七周年纪念"},
-	12: {"reward_bday24_prem", "RF4-七周年纪念-特别版"},
-	13: {"ny_2025_cup", "新年大奖 2025"},
-	14: {"ny_2025_extra_cup", "新年大奖 2025 特别版"},
-	15: {"reward_bday25", "俄钓8周年纪念"},
-	16: {"reward_bday25_prem", "俄钓8周年纪念-特别版"},
-	17: {"ny_2026_cup", "新年奖品 2026"},
-	18: {"ny_2026_extra_cup", "新年奖品 2026 特别奖"},
-	19: {"reward_bday26", "俄钓4-九周年纪念"},
-	20: {"reward_bday26_prem", "俄钓4-九周年特别纪念"},
+	1:  {"qual_spin_cup", "Мастер спиннинга"},
+	2:  {"qual_jig_cup", "Мастер джиггинга"},
+	3:  {"qual_l_ul_cup", "Мастер лёгких снастей"},
+	4:  {"qual_tele_cup", "Мастер маховой удочки"},
+	5:  {"qual_bolo_match_cup", "Мастер болонской и матчевой ловли"},
+	6:  {"qual_feeder_cup", "Мастер фидера"},
+	7:  {"qual_carp_cup", "Мастер карповой ловли"},
+	8:  {"qual_mlo_cup", "Мастер морской ловли"},
+	9:  {"ny_2024_cup", "Новогодний приз MMXXIV"},
+	10: {"ny_2024_extra_cup", "Новогодний приз MMXXIV EXTRA"},
+	11: {"reward_bday24", "RF4 — 7 лет"},
+	12: {"reward_bday24_prem", "RF4 — 7 лет, особое издание"},
+	13: {"ny_2025_cup", "Новогодний главный приз 2025"},
+	14: {"ny_2025_extra_cup", "Новогодний главный приз 2025, особое издание"},
+	15: {"reward_bday25", "RF4 — 8 лет"},
+	16: {"reward_bday25_prem", "RF4 — 8 лет, особое издание"},
+	17: {"ny_2026_cup", "Новогодний приз 2026"},
+	18: {"ny_2026_extra_cup", "Новогодний приз 2026, особая награда"},
+	19: {"reward_bday26", "RF4 — 9 лет"},
+	20: {"reward_bday26_prem", "RF4 — 9 лет, особое издание"},
 }
 
-var qualificationTotalCup = qualificationCup{"qual_total_cup", "超级高手"}
+var qualificationTotalCup = qualificationCup{"qual_total_cup", "Супермастер"}
 
 // qualificationCupKey 幂等键；branch=0 表示全 8 分支的总杯。
 func qualificationCupKey(uid, branch int64) string {
@@ -67,7 +67,7 @@ func (s *Server) ensureQualificationCups(ctx context.Context, uid int64) []*stor
 	}
 	states, err := s.DB.QualificationStates(ctx, uid)
 	if err != nil {
-		s.log.Warn("资格奖杯巡检读进度失败", "uid", uid, "err", err)
+		s.log.Warn("Проверка квалификационных трофеев: не удалось прочитать прогресс", "uid", uid, "err", err)
 		return nil
 	}
 	branchRules := make(map[int64][]int64)
@@ -138,11 +138,11 @@ func qualificationCupsBroadcastText(names []string) string {
 		return ""
 	}
 	var b strings.Builder
-	b.WriteString("获得奖赏：")
+	b.WriteString("Получена награда: ")
 	for _, n := range names {
-		b.WriteString("「")
+		b.WriteString("«")
 		b.WriteString(n)
-		b.WriteString("」")
+		b.WriteString("»")
 	}
 	return b.String()
 }
@@ -152,19 +152,19 @@ func qualificationCupsBroadcastText(names []string) string {
 func (s *Server) grantQualificationCup(ctx context.Context, uid, branch int64, cup qualificationCup) *store.Item {
 	it, err := s.prepareNewItem(ctx, uid, cup.ItemID, "house", 1, "")
 	if err != nil {
-		s.log.Warn("资格奖杯构造失败", "uid", uid, "branch", branch, "item", cup.ItemID, "err", err)
+		s.log.Warn("Не удалось создать квалификационный трофей", "uid", uid, "branch", branch, "item", cup.ItemID, "err", err)
 		return nil
 	}
 	tx, err := beginEconomyTx(ctx, s.DB)
 	if err != nil {
-		s.log.Warn("资格奖杯事务开启失败", "uid", uid, "branch", branch, "err", err)
+		s.log.Warn("Не удалось начать транзакцию квалификационного трофея", "uid", uid, "branch", branch, "err", err)
 		return nil
 	}
 	defer func() { _ = tx.Rollback() }()
 	res, err := tx.ExecContext(ctx, `INSERT OR IGNORE INTO kv(k,v) VALUES(?,?)`,
 		qualificationCupKey(uid, branch), "granted")
 	if err != nil {
-		s.log.Warn("资格奖杯幂等键写入失败", "uid", uid, "branch", branch, "err", err)
+		s.log.Warn("Не удалось записать ключ идемпотентности квалификационного трофея", "uid", uid, "branch", branch, "err", err)
 		return nil
 	}
 	if n, err := res.RowsAffected(); err != nil || n == 0 {
@@ -172,11 +172,11 @@ func (s *Server) grantQualificationCup(ctx context.Context, uid, branch int64, c
 	}
 	row, _, err := grantPreparedItemTx(ctx, tx, it, true)
 	if err != nil {
-		s.log.Warn("资格奖杯发放失败", "uid", uid, "branch", branch, "item", cup.ItemID, "err", err)
+		s.log.Warn("Не удалось выдать квалификационный трофей", "uid", uid, "branch", branch, "item", cup.ItemID, "err", err)
 		return nil
 	}
 	if err := tx.Commit(); err != nil {
-		s.log.Warn("资格奖杯提交失败", "uid", uid, "branch", branch, "err", err)
+		s.log.Warn("Не удалось зафиксировать квалификационный трофей", "uid", uid, "branch", branch, "err", err)
 		return nil
 	}
 	return row
@@ -193,7 +193,7 @@ func (s *Server) awardItemTree(ctx context.Context, it *store.Item) (*proto.Valu
 	}
 	idx := fieldIdxByCS(it.WireClass, csSlotEnum)
 	if idx < 0 || idx >= len(tree.Fields) {
-		s.log.Warn("奖赏物品缺少容器槽位字段，f4 未投影到奖赏分组（面板可能不显示）",
+		s.log.Warn("У предмета награды нет поля слота контейнера, f4 не отражён в группе наград (может не отображаться на панели)",
 			"item", it.ItemID, "wire_class", it.WireClass, "idx", idx)
 		return tree, nil
 	}
@@ -244,7 +244,7 @@ func (s *Server) qualificationGiftLine(ctx context.Context, cups []*store.Item) 
 	}
 	return wiregen.MakeObj("bkmnmjcfbic", map[int]*proto.Value{
 		0: proto.U32(giftSourceGameEvent),
-		1: proto.U32(1), // 非 0：f1=0 客户端整枚跳过（PR #407 实证）
+		1: proto.U32(1), // 非 0: f1=0 客户端整枚跳过 (PR #407 实证)
 		2: items,
 		3: proto.Args(proto.S("61")),
 	})

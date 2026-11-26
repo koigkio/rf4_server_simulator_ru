@@ -8,18 +8,18 @@ import (
 
 func TestFishDielCurveWeightsParsing(t *testing.T) {
 	if w := dielCurveWeights(""); w != nil {
-		t.Fatalf("空曲线应返回 nil，得到 %v", w)
+		t.Fatalf("空曲线应返回 nil, 得到 %v", w)
 	}
 	if w := dielCurveWeights("[1,0.5,0.2]"); w != nil {
-		t.Fatalf("非四段曲线应返回 nil，得到 %v", w)
+		t.Fatalf("非四段曲线应返回 nil, 得到 %v", w)
 	}
 	if w := dielCurveWeights("not json"); w != nil {
-		t.Fatalf("非法 JSON 应返回 nil，得到 %v", w)
+		t.Fatalf("非法 JSON 应返回 nil, 得到 %v", w)
 	}
 	w := dielCurveWeights("[-1,0.4,0.35,1.2]")
 	want := []float64{0, 0.4, 0.35, 1}
 	if !reflect.DeepEqual(w, want) {
-		t.Fatalf("四段曲线解析或钳制错误: 得到 %v，期望 %v", w, want)
+		t.Fatalf("四段曲线解析或钳制错误: 得到 %v, 期望 %v", w, want)
 	}
 }
 
@@ -49,7 +49,7 @@ func TestFishDielWeightSegmentBoundaries(t *testing.T) {
 		hour int64
 		want float64
 	}{
-		{-1, 0.1}, // 归一化到 23 点，夜
+		{-1, 0.1}, // 归一化到 23 点, 夜
 		{0, 0.1},
 		{4, 0.1},
 		{5, 0.2}, // 晨
@@ -73,10 +73,10 @@ func TestFishDielWeightFallsBackToMask(t *testing.T) {
 	// 无曲线时仍按位图：命中 1.0，未命中 0.35。
 	day := fishEcologyProfile{DielMask: 1 << 2} // 只允许白天
 	if got := fishDielWeight(day, 12); got != 1 {
-		t.Fatalf("白天命中位图应得 1，实得 %.2f", got)
+		t.Fatalf("白天命中位图应得 1, 实得 %.2f", got)
 	}
 	if got := fishDielWeight(day, 23); got != .35 {
-		t.Fatalf("夜间未命中位图应得 0.35，实得 %.2f", got)
+		t.Fatalf("夜间未命中位图应得 0.35, 实得 %.2f", got)
 	}
 }
 
@@ -92,13 +92,13 @@ func TestFishDielCurveAssetMatchesDerivedMaskAndSources(t *testing.T) {
 		t.Fatalf("加载生态基线失败: %v", err)
 	}
 	if len(raw) != 253 {
-		t.Fatalf("生态资产=%d，期望 253", len(raw))
+		t.Fatalf("生态资产=%d, 期望 253", len(raw))
 	}
 
 	sources := map[string]int{}
 	for _, p := range raw {
 		if p.DielSource == "" {
-			t.Fatalf("%s 缺少 diel_source", p.FishKey)
+			t.Fatalf("%s Отсутствует diel_source", p.FishKey)
 		}
 		sources[p.DielSource]++
 		w := dielCurveWeights(p.DielCurve)
@@ -126,7 +126,7 @@ func TestFishDielCurveAssetMatchesDerivedMaskAndSources(t *testing.T) {
 			t.Fatalf("%s 曲线峰值 %.2f 未归一到 1: %v", p.FishKey, peak, rawWeights)
 		}
 		if p.DielMask != expectedMask {
-			t.Fatalf("%s diel_mask=%d，按曲线应为 %d: %v", p.FishKey, p.DielMask, expectedMask, rawWeights)
+			t.Fatalf("%s diel_mask=%d, 按曲线应为 %d: %v", p.FishKey, p.DielMask, expectedMask, rawWeights)
 		}
 	}
 
@@ -143,6 +143,6 @@ func TestFishDielCurveAssetMatchesDerivedMaskAndSources(t *testing.T) {
 		"rf4info+gamekee": 1,
 	}
 	if !reflect.DeepEqual(sources, wantSources) {
-		t.Fatalf("diel_source 覆盖不符: 得到 %v，期望 %v", sources, wantSources)
+		t.Fatalf("diel_source 覆盖不符: 得到 %v, 期望 %v", sources, wantSources)
 	}
 }

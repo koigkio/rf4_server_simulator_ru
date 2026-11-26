@@ -74,13 +74,13 @@ func (s *Server) leaderWireCatalog(ctx context.Context) ([]*store.ItemDef, error
 // 只有目录为空时才失败；成品强度另按玩家真实消耗的线材计算。
 func (s *Server) leaderWireDefForLine(ctx context.Context, lineDef *store.ItemDef) (*store.ItemDef, error) {
 	if lineDef == nil {
-		return nil, errors.New("缺少主线定义")
+		return nil, errors.New("Нет определения основной лески")
 	}
 	if lineDef.Category == gearCatLeaderWire {
 		return lineDef, nil
 	}
 	if lineDef.Category != gearCatLine {
-		return nil, fmt.Errorf("线材品类=%d，不是普通主线或前导线", lineDef.Category)
+		return nil, fmt.Errorf("Категория лески=%d — это не обычная основная леска и не поводок", lineDef.Category)
 	}
 	candidates, err := s.leaderWireCatalog(ctx)
 	if err != nil {
@@ -88,7 +88,7 @@ func (s *Server) leaderWireDefForLine(ctx context.Context, lineDef *store.ItemDe
 	}
 	best := pickLeaderWireDef(lineDef, candidates)
 	if best == nil {
-		return nil, fmt.Errorf("前导线目录为空，主线 %s 无法映射", lineDef.ItemID)
+		return nil, fmt.Errorf("Каталог поводков пуст, основную леску %s нельзя сопоставить", lineDef.ItemID)
 	}
 	return best, nil
 }
@@ -245,18 +245,18 @@ func (s *Server) consumeLeaderCraftMaterialsTx(
 				if explicit {
 					// 玩家在槽位里明确指定的真实实例不合格：整个制作必须
 					// 失败并回滚，绝不能跳过它去扫背包换料。
-					return false, fmt.Errorf("所选材料不符合配方要求: %s", row.ItemID)
+					return false, fmt.Errorf("Выбранные материалы не подходят под рецепт: %s", row.ItemID)
 				}
 				return false, nil
 			}
 			if pick == nil {
 				def, err := itemDefByItemIDTx(ctx, tx, row.ItemID)
 				if err != nil || def == nil {
-					return false, fmt.Errorf("读取材料定义失败: %s", row.ItemID)
+					return false, fmt.Errorf("Не удалось прочитать определение материала: %s", row.ItemID)
 				}
 				pick = &craftedMaterial{row: row, def: def}
 			} else if demand.DemandID == "craft_mat_line" && pick.row.ItemID != row.ItemID {
-				return false, fmt.Errorf("同一条引线不能混用不同线材: %s / %s", pick.row.ItemID, row.ItemID)
+				return false, fmt.Errorf("В одном поводке нельзя смешивать разные лески: %s / %s", pick.row.ItemID, row.ItemID)
 			}
 
 			have := stackCountTx(ctx, tx, row)
@@ -301,7 +301,7 @@ func (s *Server) consumeLeaderCraftMaterialsTx(
 			}
 		}
 		if need > 0 {
-			return nil, selected, fmt.Errorf("%s 还缺 %d 份", demand.DemandID, need)
+			return nil, selected, fmt.Errorf("%s Не хватает ещё %d шт.", demand.DemandID, need)
 		}
 		if pick == nil {
 			continue
@@ -314,7 +314,7 @@ func (s *Server) consumeLeaderCraftMaterialsTx(
 		}
 	}
 	if selected.line.row == nil {
-		return nil, selected, errors.New("配方没有扣除到线材")
+		return nil, selected, errors.New("Рецепт не списал леску")
 	}
 	return touched, selected, nil
 }
@@ -355,7 +355,7 @@ func (s *Server) materializeCraftedLeaderTx(
 	materials craftedLeaderMaterials,
 ) error {
 	if row == nil || materials.line.row == nil || materials.line.def == nil {
-		return errors.New("引线缺少线材")
+		return errors.New("В поводке нет лески")
 	}
 	lineKey := gearAttrLeaderIn
 	switch materials.line.def.Category {
@@ -367,11 +367,11 @@ func (s *Server) materializeCraftedLeaderTx(
 		// wire class/DTO，渲染路径相同；配方数据 [11,15] 本就放行
 		// 前导线（2026-11-09 放开，此前 b0ac5d3 的拒收无实锚证据）。
 	default:
-		return errors.New("引线材料不是主线或前导线")
+		return errors.New("Материал поводка не является основной леской или поводковым материалом")
 	}
 	def, err := itemDefByItemIDTx(ctx, tx, row.ItemID)
 	if err != nil || def == nil {
-		return fmt.Errorf("引线成品定义不存在: %s", row.ItemID)
+		return fmt.Errorf("Определение готового поводка не существует: %s", row.ItemID)
 	}
 	leaderLengthCM := int64(math.Round(itemDefF32(def, gearAttrLength)))
 
@@ -406,10 +406,10 @@ func (s *Server) materializeCraftedLeaderTx(
 		strength = connectorStrength
 	}
 	if strength <= 0 {
-		return errors.New("真实材料的强度都为 0")
+		return errors.New("Прочность всех реальных материалов равна 0")
 	}
 	if !setWireFloat(fields, row.WireClass, fieldIdxByCS(row.WireClass, csStrength), strength) {
-		return errors.New("成品引线没有可写入的强度字段")
+		return errors.New("У готового поводка нет поля прочности для записи")
 	}
 
 	fj, err := FieldsToJSON(fields)
@@ -427,7 +427,7 @@ func (s *Server) craftedMaterialObject(
 	lengthCM int64,
 ) (*proto.Value, error) {
 	if host == nil || material.row == nil || material.def == nil {
-		return nil, errors.New("空材料")
+		return nil, errors.New("Пустой материал")
 	}
 	wireCategory := material.def.Category
 	switch key {
@@ -445,7 +445,7 @@ func (s *Server) craftedMaterialObject(
 		cls = wireClassEntry{fallbackWireClass, fallbackTypeID}
 	}
 	if wiregen.ClassOps[cls.Class] == nil {
-		return nil, fmt.Errorf("材料类没有 wire reader: %s", material.def.ItemID)
+		return nil, fmt.Errorf("У класса материала нет wire reader: %s", material.def.ItemID)
 	}
 	obj, err := wiregen.MakeObj(cls.Class, nil)
 	if err != nil {
@@ -531,7 +531,7 @@ func (s *Server) repairCraftedLeaderWire(
 		return false, true, err
 	}
 	if lineDef == nil {
-		return false, true, fmt.Errorf("内线定义不存在")
+		return false, true, fmt.Errorf("Определение внутренней лески не существует")
 	}
 
 	shock := isCraftedShockLeader(it.ItemID)

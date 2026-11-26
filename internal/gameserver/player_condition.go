@@ -229,9 +229,9 @@ func (s *Server) conditionParamsForUID(ctx context.Context, uid int64) condition
 type conditionEnv struct {
 	Rain     bool // 降雨或雷暴
 	Cold     bool // 气温低于阈值
-	Sun      bool // 白昼且无雨（晒太阳）
+	Sun      bool // 白昼且无雨 (晒太阳)
 	Campfire bool // 有未熄灭的篝火
-	Fishing  bool // 有竿已抛投、入水且未结算（垂钓中）
+	Fishing  bool // 有竿已抛投, 入水且未结算 (垂钓中)
 }
 
 // advancePlayerCondition 按时间差推进精力、饱食度与舒适度；纯函数，单测用手算样例覆盖。
@@ -343,7 +343,7 @@ func (s *Server) resumePlayerConditionClock(ctx context.Context, uid int64) {
 	}
 	cur.UpdatedTS = now
 	if err := s.DB.UpsertPlayerCondition(ctx, *cur); err != nil {
-		s.log.Warn("状态钟冻结失败", "uid", uid, "err", err)
+		s.log.Warn("Не удалось заморозить часы состояния", "uid", uid, "err", err)
 	}
 }
 
@@ -385,7 +385,7 @@ func (s *Server) currentPlayerConditionP(ctx context.Context, uid int64, p condi
 		math.Abs(next.LuckPenalty-cur.LuckPenalty) > conditionWriteBackDelta {
 		// 写回失败不阻断下发：本次返回推进值，下次读取再补写。
 		if err := s.DB.UpsertPlayerCondition(ctx, next); err != nil {
-			s.log.Warn("玩家状态写回失败", "uid", uid, "err", err)
+			s.log.Warn("Не удалось записать состояние игрока", "uid", uid, "err", err)
 		}
 	}
 	return next
@@ -441,7 +441,7 @@ func (s *Server) spendEnergy(ctx context.Context, uid int64, amount float64) {
 	c.Primary = clampFloat(c.Primary-amount, 0, p.EnergyMax)
 	c.UpdatedTS = float64(time.Now().Unix())
 	if err := s.DB.UpsertPlayerCondition(ctx, c); err != nil {
-		s.log.Warn("精力扣减写回失败", "uid", uid, "err", err)
+		s.log.Warn("Не удалось записать списание энергии", "uid", uid, "err", err)
 	}
 }
 
@@ -665,7 +665,7 @@ func hKitchenEat(ctx *Ctx) ([]byte, bool) {
 	var last string
 	if err := srv.DB.SQL.QueryRowContext(cctx, `SELECT v FROM kv WHERE k=?`, key).Scan(&last); err == nil {
 		if lastDay, perr := strconv.ParseInt(last, 10, 64); perr == nil && lastDay == gameDay {
-			ctx.Log.Info("免费餐本游戏日已用，拒绝", "uid", uid, "game_day", gameDay)
+			ctx.Log.Info("Бесплатная еда в этот игровой день уже использована, отказано", "uid", uid, "game_day", gameDay)
 			ctx.ReplyOperationResult(operationResultFoodAidOnceADay)
 			return nil, true
 		}
@@ -674,19 +674,19 @@ func hKitchenEat(ctx *Ctx) ([]byte, bool) {
 	next.Secondary = 1.0
 	next.UpdatedTS = float64(time.Now().Unix())
 	if err := srv.DB.UpsertPlayerCondition(cctx, next); err != nil {
-		ctx.Log.Warn("进食恢复饱食度失败", "uid", uid, "err", err)
-		ctx.ReplyFailure("System.InvalidOperationException", "进食未完成，请重试")
+		ctx.Log.Warn("Не удалось восстановить сытость после еды", "uid", uid, "err", err)
+		ctx.ReplyFailure("System.InvalidOperationException", "Еда не завершена, попробуйте ещё раз")
 		return nil, true
 	}
 	if _, err := srv.DB.SQL.ExecContext(cctx, `
 		INSERT INTO kv(k,v) VALUES(?,?) ON CONFLICT(k) DO UPDATE SET v=excluded.v`,
 		key, strconv.FormatInt(gameDay, 10)); err != nil {
-		ctx.Log.Warn("免费餐冷却戳写入失败", "uid", uid, "err", err)
+		ctx.Log.Warn("Не удалось записать отметку перезарядки бесплатной еды", "uid", uid, "err", err)
 	}
 	if kitchen := argFirstStr(ctx.Tree); kitchen != "" {
-		ctx.Log.Info("玩家进食", "uid", uid, "kitchen", kitchen)
+		ctx.Log.Info("Игрок поел", "uid", uid, "kitchen", kitchen)
 	} else {
-		ctx.Log.Info("玩家进食", "uid", uid)
+		ctx.Log.Info("Игрок поел", "uid", uid)
 	}
 	// 立即补推一次 2/2，让饱食度条在客户端平滑回升。
 	ctx.AfterResponse(func() { pushKeepalive(ctx.Sess) })

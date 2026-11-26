@@ -60,12 +60,12 @@ func TestFishStaminaEnergyPenaltyWithGearCap(t *testing.T) {
 	t.Parallel()
 	const primary = 0.85
 	const penalty = 1.0
-	baseRatio := energyRatioForCap(primary, 0.85) // 满精力，不放大
-	gearRatio := energyRatioForCap(primary, 1.0)  // 只有 85%，仍要惩罚
+	baseRatio := energyRatioForCap(primary, 0.85) // 满精力, 不放大
+	gearRatio := energyRatioForCap(primary, 1.0)  // 只有 85%, 仍要惩罚
 	if got := scaleFishStaminaForEnergy(1000, baseRatio, penalty); got != 1000 {
-		t.Fatalf("基础上限满精力应不放大，实得 %v", got)
+		t.Fatalf("基础上限满精力应不放大, 实得 %v", got)
 	}
 	if got := scaleFishStaminaForEnergy(1000, gearRatio, penalty); got <= 1000 {
-		t.Fatalf("加成上限下 0.85 不是满精力，应放大，实得 %v", got)
+		t.Fatalf("加成上限下 0.85 不是满精力, 应放大, 实得 %v", got)
 	}
 }

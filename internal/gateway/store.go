@@ -122,4 +122,4 @@ func (m *MemStore) NextUserid(_ context.Context) (int64, error) {
 }
 
 // ErrNoToken token 不存在/已过期。
-var ErrNoToken = errors.New("token 不存在或已过期")
+var ErrNoToken = errors.New("token не существует или истёк")

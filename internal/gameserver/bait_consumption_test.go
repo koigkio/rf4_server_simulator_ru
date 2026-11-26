@@ -38,7 +38,7 @@ func baitTestRod(t *testing.T, s *Server) string {
 	// BottomSimple 同样使用 250 钩槽，且属于 Feeder 竿允许的钓组，
 	// 保持本文件验证的逐份拆分配饵路径。
 	if !s.rigSetType(t.Context(), 1000001, rod.GUID, 12) {
-		t.Fatal("rigSetType 失败")
+		t.Fatal("rigSetType Ошибка")
 	}
 	return rod.GUID
 }
@@ -432,12 +432,12 @@ func TestMountBaitRefreshesSourceStackForClient(t *testing.T) {
 	}
 	row, _ := db.GetItemByGUID(ctx, item.GUID)
 	if row == nil || baitQuantity(row) != 4 {
-		t.Fatalf("挂载后来源堆应为 4，实际 %+v", row)
+		t.Fatalf("挂载后来源堆应为 4, 实际 %+v", row)
 	}
 	hctx := &Ctx{Sess: newProbeSess(s), Main: 17, Sub: 2, Log: logging.Discard()}
 	s.queueSplitSourceRefresh(hctx, res)
 	if len(hctx.afterResponse) != 1 {
-		t.Fatalf("应在回包后刷新来源堆，回调数 = %d", len(hctx.afterResponse))
+		t.Fatalf("应在回包后刷新来源堆, 回调数 = %d", len(hctx.afterResponse))
 	}
 	hctx.afterResponse[0]()
 }
@@ -465,7 +465,7 @@ func TestDetachBaitRefreshesSourceStackForClient(t *testing.T) {
 	hctx := &Ctx{Sess: newProbeSess(s), Main: 17, Sub: 3, Log: logging.Discard()}
 	s.queueSourceStackRefresh(hctx, res)
 	if len(hctx.afterResponse) != 1 {
-		t.Fatalf("应在回包后刷新来源堆，回调数 = %d", len(hctx.afterResponse))
+		t.Fatalf("应在回包后刷新来源堆, 回调数 = %d", len(hctx.afterResponse))
 	}
 	hctx.afterResponse[0]()
 }
@@ -488,13 +488,13 @@ func TestBaitReloadRefreshesSourceStackForClient(t *testing.T) {
 		t.Fatal(err)
 	}
 	if !containsGUID(change.Removed, source) {
-		t.Fatalf("来源栈 %s 未进入移除段：%+v", source, change)
+		t.Fatalf("来源栈 %s 未进入移除段: %+v", source, change)
 	}
 	if !containsGUID(change.Updated, source) {
-		t.Fatalf("来源栈 %s 未进入更新段：%+v", source, change)
+		t.Fatalf("来源栈 %s 未进入更新段: %+v", source, change)
 	}
 	if len(change.Removed) != 1 {
-		t.Fatalf("移除段只应包含来源栈，实际 %v", change.Removed)
+		t.Fatalf("移除段只应包含来源栈, 实际 %v", change.Removed)
 	}
 }
 
@@ -522,7 +522,7 @@ func TestBaitReloadSkipsWhenSelectedHookIsGone(t *testing.T) {
 		t.Fatal(err)
 	}
 	if baits := s.currentBaits(ctx, rod); len(baits) != 0 {
-		t.Fatalf("钩已不在钓组上，收竿仍补挂了 %v", baits)
+		t.Fatalf("钩已不在钓组上, 收竿仍补挂了 %v", baits)
 	}
 	if row, err := db.GetItemByGUID(ctx, source); err != nil || row == nil || baitQuantity(row) != 4 {
 		t.Fatalf("来源饵堆不应被再次拆走: %+v err=%v", row, err)
@@ -532,7 +532,7 @@ func TestBaitReloadSkipsWhenSelectedHookIsGone(t *testing.T) {
 		t.Fatal(err)
 	}
 	if pending != 0 {
-		t.Fatalf("已拆钩的补饵请求应清除，仍剩 %d 条", pending)
+		t.Fatalf("已拆钩的补饵请求应清除, 仍剩 %d 条", pending)
 	}
 }
 
@@ -565,7 +565,7 @@ func TestBaitReloadSkipsLegacyRebaitWhenHookIsGone(t *testing.T) {
 		t.Fatalf("来源饵堆不应被拆走: %+v err=%v", row, err)
 	}
 	if got := rodSettingCountForBait(t, db, rod, "rebait:%"); got != 0 {
-		t.Fatalf("无钩钓组的旧格式补饵请求应清除，仍剩 %d 条", got)
+		t.Fatalf("无钩钓组的旧格式补饵请求应清除, 仍剩 %d 条", got)
 	}
 }
 
@@ -601,7 +601,7 @@ func TestBaitReloadInfersLegacyRebaitHookOnSingleHookRig(t *testing.T) {
 		t.Fatalf("旧格式补饵应补写钩饵映射: mapped=%q err=%v", mapped, err)
 	}
 	if got := rodSettingCountForBait(t, db, rod, "rebait:%"); got != 0 {
-		t.Fatalf("补饵完成后应清除 rebait 记录，仍剩 %d 条", got)
+		t.Fatalf("补饵完成后应清除 rebait 记录, 仍剩 %d 条", got)
 	}
 }
 
@@ -633,13 +633,13 @@ func TestBaitReloadSkipsLegacyRebaitOnMultiHookRig(t *testing.T) {
 		t.Fatal(err)
 	}
 	if baits := s.currentBaits(ctx, rod.GUID); len(baits) != 0 {
-		t.Fatalf("多钩钓组旧格式记录不应补饵，实际补挂 %v", baits)
+		t.Fatalf("多钩钓组旧格式记录不应补饵, 实际补挂 %v", baits)
 	}
 	if row, err := db.GetItemByGUID(ctx, source.GUID); err != nil || row == nil || baitQuantity(row) != 5 {
 		t.Fatalf("来源饵堆不应被拆走: %+v err=%v", row, err)
 	}
 	if got := rodSettingCountForBait(t, db, rod.GUID, "rebait:%"); got != 0 {
-		t.Fatalf("多钩钓组的旧格式补饵请求应清除，仍剩 %d 条", got)
+		t.Fatalf("多钩钓组的旧格式补饵请求应清除, 仍剩 %d 条", got)
 	}
 }
 
@@ -688,7 +688,7 @@ func TestBaitRefillsWhenFishIsLanded(t *testing.T) {
 	// 中鱼确认不扣饵（specs/changes/bait-consume-fight-end）：饵留在钩上，
 	// 由 14/4 终局扣饵 + 补挂回调完成"消耗→补挂"闭环。
 	if got := len(s.currentBaits(ctx, rod)); got != 1 {
-		t.Fatalf("中鱼确认后钩上饵数 = %d，期望 1（搏鱼中不扣饵）", got)
+		t.Fatalf("中鱼确认后钩上饵数 = %d, 期望 1 (搏鱼中不扣饵)", got)
 	}
 	ctx14 := &Ctx{Sess: sess, Main: 14, Sub: 4, ExpectResponse: true, Log: logging.Discard()}
 	body, ok := s.fishingEndSettle(ctx14)
@@ -698,20 +698,20 @@ func TestBaitRefillsWhenFishIsLanded(t *testing.T) {
 	// 上鱼还会注册成就解锁推送（2/8），补饵回调不再固定是第一个；
 	// 逐个执行应答后回调，两者互不干扰。
 	if len(ctx14.afterResponse) < 1 {
-		t.Fatalf("补饵推送应在 801 回包后执行，回调数 = %d", len(ctx14.afterResponse))
+		t.Fatalf("补饵推送应在 801 回包后执行, 回调数 = %d", len(ctx14.afterResponse))
 	}
 	for _, fn := range ctx14.afterResponse {
 		fn()
 	}
 	if got := len(s.currentBaits(ctx, rod)); got != 1 {
-		t.Fatalf("收竿后钩上应补挂 1 份同种饵，实际 %d", got)
+		t.Fatalf("收竿后钩上应补挂 1 份同种饵, 实际 %d", got)
 	}
 	row, _ := db.GetItemByGUID(ctx, source)
 	if row == nil || baitQuantity(row) != 3 {
-		t.Fatalf("补挂应从背包预留 1 份（剩余 3），实际 %+v", row)
+		t.Fatalf("补挂应从背包预留 1 份 (剩余 3), 实际 %+v", row)
 	}
 	var pending int
 	if err := db.SQL.QueryRow(`SELECT COUNT(*) FROM rod_setting WHERE guid=? AND key LIKE 'rebait:%'`, rod).Scan(&pending); err != nil || pending != 0 {
-		t.Fatalf("补挂完成后仍残留补饵请求：%d %v", pending, err)
+		t.Fatalf("补挂完成后仍残留补饵请求: %d %v", pending, err)
 	}
 }

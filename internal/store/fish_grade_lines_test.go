@@ -27,7 +27,7 @@ func TestFishGradeLinesCoverEverySpecies(t *testing.T) {
 		t.Fatal(err)
 	}
 	if count != 253 {
-		t.Fatalf("三色标记录=%d，期望253", count)
+		t.Fatalf("三色标记录=%d, 期望253", count)
 	}
 	var missing int
 	if err := db.SQL.QueryRowContext(ctx, `
@@ -60,7 +60,7 @@ func TestGradeLinesFallsBackToSpeciesWeight(t *testing.T) {
 	}
 	q, y, b := db.GradeLines(ctx, "custom_fish")
 	if q == nil || y == nil || b == nil || *q != 100 || *y != 1000 || *b != 2500 {
-		t.Fatalf("无覆盖记录时应回退 species_weight，实得 (%v,%v,%v)", q, y, b)
+		t.Fatalf("无覆盖记录时应回退 species_weight, 实得 (%v,%v,%v)", q, y, b)
 	}
 }
 
@@ -79,7 +79,7 @@ func TestGradeLinesUsesCompleteThreeColorData(t *testing.T) {
 	for _, tc := range tests {
 		q, y, b := db.GradeLines(ctx, tc.key)
 		if q == nil || y == nil || b == nil || *q != tc.want[0] || *y != tc.want[1] || *b != tc.want[2] {
-			t.Fatalf("%s 三色标=(%v,%v,%v)，期望%v", tc.key, q, y, b, tc.want)
+			t.Fatalf("%s 三色标=(%v,%v,%v), 期望%v", tc.key, q, y, b, tc.want)
 		}
 	}
 }

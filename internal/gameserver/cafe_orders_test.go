@@ -66,7 +66,7 @@ func TestCafeGenerationUsesWaterRosterAndSparseLargeOrders(t *testing.T) {
 	if rare == 0 || rare >= ordinary/5 {
 		t.Fatalf("稀有分布不符: rare=%d ordinary=%d", rare, ordinary)
 	}
-	t.Logf("100次现实日期采样：普通/大鱼单%d，稀有单%d；每次稀有单至多1张且只收1条", ordinary, rare)
+	t.Logf("100次现实日期采样: 普通/大鱼单%d, 稀有单%d; 每次稀有单至多1张且只收1条", ordinary, rare)
 	rows, err := db.SQL.Query(`SELECT DISTINCT a.alias FROM loc_alias a JOIN loc_wiki_fish w ON w.loc=a.loc ORDER BY a.alias`)
 	if err != nil {
 		t.Fatal(err)
@@ -92,7 +92,7 @@ func TestCafeGenerationUsesWaterRosterAndSparseLargeOrders(t *testing.T) {
 			t.Fatalf("水域%s生成失败: %v", water, err)
 		}
 	}
-	t.Logf("已检查%d个水域：17个使用核对报价，熊湖暂无报价模板", len(waters))
+	t.Logf("已检查%d个水域: 17个使用核对报价, 熊湖暂无报价模板", len(waters))
 	for _, tc := range []struct{ scene, want string }{{"fmarket_02", "level_002_kirzah_river"}, {"fishmarket_009", "level_009_ahtuba"}, {"level_001_fmarket", level}, {"unknown", ""}} {
 		_, got := srv.cafeScene(ctx, 1, proto.Args524(proto.StrVal(tc.scene)))
 		if got != tc.want {

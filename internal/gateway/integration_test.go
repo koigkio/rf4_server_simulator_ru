@@ -38,7 +38,7 @@ func TestGatewayPlainHTTPCompatLogin(t *testing.T) {
 	body, _ := io.ReadAll(resp.Body)
 	if resp.StatusCode != 200 || !bytes.Contains(body, []byte(`<response success="true">`)) ||
 		!bytes.Contains(body, []byte(`<token>`)) {
-		t.Fatalf("真实客户端路径必须直接返回 200，不能重定向: status=%d location=%q body=%s",
+		t.Fatalf("真实客户端路径必须直接返回 200, 不能重定向: status=%d location=%q body=%s",
 			resp.StatusCode, resp.Header.Get("Location"), body)
 	}
 	text := string(body)
@@ -67,7 +67,7 @@ func TestGatewayPlainHTTPCompatLogin(t *testing.T) {
 		t.Fatalf("读取 realtime 问候失败: %v", err)
 	}
 	if string(greeting) != proto.GreetingUUID {
-		t.Fatalf("realtime 问候不符: %q", greeting)
+		t.Fatalf("realtime Приветствие не совпадает: %q", greeting)
 	}
 }
 

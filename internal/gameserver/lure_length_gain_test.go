@@ -37,26 +37,26 @@ func seedLureLengthFixture(t *testing.T) (*Server, *store.DB) {
 
 func TestLureLengthFloorFactor(t *testing.T) {
 	if got := lureLengthFloorFactor(2.9); got != 0 {
-		t.Fatalf("3cm 以下应为 0，实得 %v", got)
+		t.Fatalf("3cm 以下应为 0, 实得 %v", got)
 	}
 	if got := lureLengthFloorFactor(3); got != 0 {
-		t.Fatalf("3cm 应为 0，实得 %v", got)
+		t.Fatalf("3cm 应为 0, 实得 %v", got)
 	}
 	if got := lureLengthFloorFactor(38); got != 1 {
-		t.Fatalf("38cm 应为 1，实得 %v", got)
+		t.Fatalf("38cm 应为 1, 实得 %v", got)
 	}
 	if got := lureLengthFloorFactor(50); got != 1 {
-		t.Fatalf("38cm 以上应钳到 1，实得 %v", got)
+		t.Fatalf("38cm 以上应钳到 1, 实得 %v", got)
 	}
 	if got := lureLengthFloorFactor(16); math.Abs(got-0.95) > 1e-3 {
-		t.Fatalf("16cm 应约 0.95，实得 %v", got)
+		t.Fatalf("16cm 应约 0.95, 实得 %v", got)
 	}
 	// 两段线性：3-16cm 斜率 0.95/13，16-38cm 斜率 0.05/22。
 	if got := lureLengthFloorFactor(9.5); math.Abs(got-0.475) > 1e-9 {
-		t.Fatalf("9.5cm 应线性插值到 0.475，实得 %v", got)
+		t.Fatalf("9.5cm 应线性插值到 0.475, 实得 %v", got)
 	}
 	if got := lureLengthFloorFactor(27); math.Abs(got-0.975) > 1e-9 {
-		t.Fatalf("27cm 应线性插值到 0.975，实得 %v", got)
+		t.Fatalf("27cm 应线性插值到 0.975, 实得 %v", got)
 	}
 	prev := 0.0
 	for l := 3.0; l <= 38; l += 0.5 {
@@ -71,22 +71,22 @@ func TestLureLengthFloorFactor(t *testing.T) {
 func TestLureLengthCMFiltersRigsAndBaits(t *testing.T) {
 	lure := &fishRollRuntime{lureKnown: true, lure: lureAttributes{SizeCM: 16}}
 	if got := lureLengthCM(fishRollContext{}); got != 0 {
-		t.Fatalf("无 runtime 应为 0，实得 %v", got)
+		t.Fatalf("无 runtime 应为 0, 实得 %v", got)
 	}
 	if got := lureLengthCM(fishRollContext{runtime: &fishRollRuntime{lure: lureAttributes{SizeCM: 16}}}); got != 0 {
-		t.Fatalf("未识别拟饵应为 0，实得 %v", got)
+		t.Fatalf("未识别拟饵应为 0, 实得 %v", got)
 	}
 	if got := lureLengthCM(fishRollContext{runtime: lure, rigType: 1}); got != 0 {
-		t.Fatalf("非路亚/海钓钓组应为 0，实得 %v", got)
+		t.Fatalf("非路亚/海钓钓组应为 0, 实得 %v", got)
 	}
 	if got := lureLengthCM(fishRollContext{runtime: lure, rigType: 5}); got != 16 {
-		t.Fatalf("路亚钓组应取拟饵长度 16，实得 %v", got)
+		t.Fatalf("路亚钓组应取拟饵长度 16, 实得 %v", got)
 	}
 	if got := lureLengthCM(fishRollContext{runtime: lure, rigType: 50}); got != 16 {
-		t.Fatalf("海钓钓组应取拟饵长度 16，实得 %v", got)
+		t.Fatalf("海钓钓组应取拟饵长度 16, 实得 %v", got)
 	}
 	if got := lureLengthCM(fishRollContext{runtime: lure, lureBait: true}); got != 0 {
-		t.Fatalf("仅有拟饵标记、无路亚/海钓钓组时不应启用，实得 %v", got)
+		t.Fatalf("仅有拟饵标记, 无路亚/海钓钓组时不应启用, 实得 %v", got)
 	}
 }
 
@@ -104,10 +104,10 @@ func TestGradeRatioLureLengthRaisesFloorAndCutsBelow(t *testing.T) {
 	}
 	plainBelow, plainWeight, ok := bandOfGrade(plain, 1)
 	if !ok || math.Abs(plainBelow.lo-120) > 1e-9 {
-		t.Fatalf("无拟饵时未达标档下界应为 min_g=120，实得 %+v", plainBelow)
+		t.Fatalf("无拟饵时未达标档下界应为 min_g=120, 实得 %+v", plainBelow)
 	}
 	if math.Abs(plainWeight-baseBelow) > 1e-9 {
-		t.Fatalf("无拟饵时未达标权重应保持配置值 %v，实得 %v", baseBelow, plainWeight)
+		t.Fatalf("无拟饵时未达标权重应保持配置值 %v, 实得 %v", baseBelow, plainWeight)
 	}
 
 	lines.lureSizeCM = 16
@@ -121,10 +121,10 @@ func TestGradeRatioLureLengthRaisesFloorAndCutsBelow(t *testing.T) {
 	}
 	wantLo := 120 + (1000-120)*0.95
 	if math.Abs(midBand.lo-wantLo) > 1 {
-		t.Fatalf("16cm 未达标档下界应约 %.0f，实得 %.0f", wantLo, midBand.lo)
+		t.Fatalf("16cm 未达标档下界应约 %.0f, 实得 %.0f", wantLo, midBand.lo)
 	}
 	if math.Abs(midWeight-baseBelow*0.05) > 1e-9 {
-		t.Fatalf("16cm 未达标权重应为配置值的 5%%=%.4f，实得 %v", baseBelow*0.05, midWeight)
+		t.Fatalf("16cm 未达标权重应为配置值的 5%%=%.4f, 实得 %v", baseBelow*0.05, midWeight)
 	}
 	below := 0
 	for i := 0; i < 4000; i++ {
@@ -145,7 +145,7 @@ func TestGradeRatioLureLengthRaisesFloorAndCutsBelow(t *testing.T) {
 	pBelow := baseBelow * 0.05 / (baseBelow*0.05 + qualified + trophy + super)
 	limit := int(4000*pBelow*4) + 5
 	if below > limit {
-		t.Fatalf("16cm 未达标概率应很小（配置值 5%%），实得 %d/4000，上限 %d", below, limit)
+		t.Fatalf("16cm 未达标概率应很小 (配置值 5%%), 实得 %d/4000, 上限 %d", below, limit)
 	}
 
 	lines.lureSizeCM = 38
@@ -180,7 +180,7 @@ func TestWeightModelDBLureLengthRaisesFloor(t *testing.T) {
 	}
 	model := srv.weightModelDB(context.Background(), key, 1, 1, 0, c)
 	if model.lower < 900 {
-		t.Fatalf("16cm 拟饵的最小鱼重量应被抬到接近达标线，实得 %.0f", model.lower)
+		t.Fatalf("16cm 拟饵的最小鱼重量应被抬到接近达标线, 实得 %.0f", model.lower)
 	}
 }
 
@@ -206,7 +206,7 @@ func TestRollFishWithRulesAppliesLureLengthFloor(t *testing.T) {
 			t.Fatalf("第 %d 次判鱼结果异常: %+v", i, f)
 		}
 		if f.WeightG < int64(wantFloor) {
-			t.Fatalf("16cm 拟饵经真实判鱼仍产出未达标小鱼 %d g，抬升后下界应为 %.0f g", f.WeightG, wantFloor)
+			t.Fatalf("16cm 拟饵经真实判鱼仍产出未达标小鱼 %d g, 抬升后下界应为 %.0f g", f.WeightG, wantFloor)
 		}
 	}
 }
@@ -254,7 +254,7 @@ func TestSonarGradeWeightsTrackLureLength(t *testing.T) {
 		}
 		schools := srv.rosterSonarSchools(t.Context(), "loc12_215", grid, nil, c, rand.New(rand.NewSource(41)))
 		if len(schools) == 0 {
-			t.Fatal("声呐没有生成鱼群，用例无效")
+			t.Fatal("声呐没有生成鱼群, 用例无效")
 		}
 		return schools[0].gradeWeights[0]
 	}

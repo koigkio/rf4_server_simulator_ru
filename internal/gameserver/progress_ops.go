@@ -24,24 +24,24 @@ type settleXpResult struct {
 	droppedCardGUID  string
 	premiumXP        int64
 	replayed         bool
-	baseXP           int64         // 技能倍率后的裸经验（分解中的"基础经验"）
+	baseXP           int64         // 技能倍率后的裸经验 (分解中的"基础经验")
 	totalXP          int64         // 310.f0 = 本条鱼总经验
-	silver           int64         // 展示用银价（catch_silver_cents 口径，不入账）
-	prevBest         int64         // 该鱼种已有纪录重量（813.f6）
+	silver           int64         // 展示用银价 (catch_silver_cents 口径, 不入账)
+	prevBest         int64         // 该鱼种已有纪录重量 (813.f6)
 	newLevel         int64         // grant 后等级
 	totalXp          int64         // grant 后累计经验
-	levelsGained     int64         // 本次升级数（310.f1）
+	levelsGained     int64         // 本次升级数 (310.f1)
 	isRecord         bool          // 是否破个人纪录
-	skillID          int64         // 310.f2 钓法大类（1 浮钓 / 2 纺车 / 3 底钓 / 11 海钓）
+	skillID          int64         // 310.f2 钓法大类 (1 浮钓 / 2 纺车 / 3 底钓 / 11 海钓)
 	skillGain        float64       // 310.f3 本次实际熟练度增量
-	giftItems        []*store.Item // 本次结算直发的升级礼物（仅非重放；挂 801 f8 奖励列表）
-	rarityGifts      []*store.Item // 本次结算新发的「稀有鱼」族奖座（挂 801.f4 来源码 5）
-	superRarityGifts []*store.Item // 本次结算新发的「超级稀有鱼」族奖座（另起一行，同来源码）
-	waterwayGifts    []*store.Item // 本次结算集齐的水域奖杯（挂 801.f4 来源码 6）
+	giftItems        []*store.Item // 本次结算直发的升级礼物 (仅非重放; 挂 801 f8 奖励列表)
+	rarityGifts      []*store.Item // 本次结算新发的«稀有鱼»族奖座 (挂 801.f4 来源码 5)
+	superRarityGifts []*store.Item // 本次结算新发的«超级稀有鱼»族奖座 (另起一行, 同来源码)
+	waterwayGifts    []*store.Item // 本次结算集齐的水域奖杯 (挂 801.f4 来源码 6)
 	// 两族判定时的鱼种数：811.f1 的「条数」参数。填 0 客户端会整枚跳过。
 	raritySpeciesCount      int64
 	superRaritySpeciesCount int64
-	qualChanges             map[int64]store.QualificationState // 本尾鱼带来的资格变化（重放时从回执还原）
+	qualChanges             map[int64]store.QualificationState // 本尾鱼带来的资格变化 (重放时从回执还原)
 }
 
 // allGiftItems 汇总本次结算新发的全部礼物（升级礼物 + 两族奖座 + 水域奖杯），
@@ -98,7 +98,7 @@ func (s *Server) settleCatchXP(ctx context.Context, uid int64, f *RolledFish, ri
 func (s *Server) settleCatchXPWithQualifications(ctx context.Context, uid int64, f *RolledFish, rigType int64, ev *qualificationEvent) (*settleXpResult, map[int64]store.QualificationState) {
 	r, err := s.settleCatchOnceWithQualification(ctx, uid, f, rigType, ev)
 	if err != nil {
-		s.log.Warn("钓获结算未保存", "err", err)
+		s.log.Warn("Расчёт улова не сохранён", "err", err)
 		return nil, nil
 	}
 	st := s.fishingStateForFish(uid, f)
@@ -133,7 +133,7 @@ func (s *Server) wearRigForCatchPersisted(ctx context.Context, rigGUID string) {
 			return
 		}
 		if err := s.persistItemDurability(ctx, row, newD); err != nil {
-			s.log.Warn("钓获磨损写库失败", "guid", shortGUID(row.GUID), "err", err)
+			s.log.Warn("Не удалось записать износ при ловле", "guid", shortGUID(row.GUID), "err", err)
 			return
 		}
 		detail := damageDetailJSON(map[string]any{"slot": slot, "ordinal": ordinal, "category": key})
@@ -141,10 +141,10 @@ func (s *Server) wearRigForCatchPersisted(ctx context.Context, rigGUID string) {
 			UID: row.UID, ItemGUID: row.GUID, ItemID: row.ItemID, Event: damageEventWear,
 			BeforeDurability: ptrFloat64(before), AfterDurability: ptrFloat64(newD), DetailJSON: detail,
 		}); err != nil {
-			s.log.Warn("钓获磨损历史写库失败", "guid", shortGUID(row.GUID), "err", err)
+			s.log.Warn("Не удалось записать историю износа при ловле", "guid", shortGUID(row.GUID), "err", err)
 		}
-		s.log.Info("钓获磨损", "guid", shortGUID(row.GUID), "slot", slot,
-			"ordinal", ordinal, "类别", key, "耐久", fmt.Sprintf("%.4f->%.4f", before, newD))
+		s.log.Info("Износ при ловле", "guid", shortGUID(row.GUID), "slot", slot,
+			"ordinal", ordinal, "Категория", key, "Прочность", fmt.Sprintf("%.4f->%.4f", before, newD))
 	}
 
 	comps, err := s.DB.ListRigComponents(ctx, rigGUID)
@@ -188,7 +188,7 @@ func (s *Server) persistItemDurability(ctx context.Context, row *store.Item, dur
 	idx := fieldIdxByCS(row.WireClass, csDurability)
 	if idx >= 0 {
 		if !setWireFloat(fields, row.WireClass, idx, durability) {
-			return fmt.Errorf("耐久字段写入失败: class=%s idx=%d", row.WireClass, idx)
+			return fmt.Errorf("Ошибка записи поля прочности: class=%s idx=%d", row.WireClass, idx)
 		}
 	}
 	bumpCreatedTicks(fields, row.WireClass)
@@ -389,7 +389,7 @@ func (s *Server) fishingEndSettle(ctx *Ctx) ([]byte, bool) {
 	if pending != nil && !hooked {
 		// 咬饵≠咬钩（2026-11-16 两阶段模型收敛）：未刺中的鱼从未真正
 		// 挂牢，官方对此无播报载体——玩家侧只有饵收回的动画。静默离场。
-		ctx.Log.Info("14/4 未刺中收竿：咬饵未咬钩，官方静默",
+		ctx.Log.Info("14/4 Вытаскивание без засечки: клюнула, но не засеклась, офиц. сервер молчит",
 			"fish", shortGUID(pending.FishGUID), "species", pending.Species)
 	}
 	var res *settleXpResult
@@ -400,14 +400,14 @@ func (s *Server) fishingEndSettle(ctx *Ctx) ([]byte, bool) {
 		// （4/21 + 竿树重建 4/22）不会再打断搏鱼 ctor。与 14/12/14/5/14/6
 		// 共享 txn(uid,'bait_bite',FishGUID) 幂等键（specs/changes/bait-consume-fight-end）。
 		if err := s.consumeHookedBait(ctx.Sess, pending, gearGUID); err != nil {
-			ctx.Log.Warn("收竿结算鱼饵扣减失败", "fish", pending.FishGUID, "err", err)
+			ctx.Log.Warn("Не удалось списать наживку при расчёте вытаскивания", "fish", pending.FishGUID, "err", err)
 		}
 		// 资格事件在结算前用咬钩快照装配；判定与经验/回执在同一事务提交。
 		// 达标当尾的结算响应即带完成（增量下发），重放从回执还原同一增量。
 		ev := s.qualificationEventForCatch(cctx, pending, rigType)
 		res, qualChanges = s.settleCatchXPWithQualifications(cctx, uid, pending, rigType, &ev)
 		if res == nil {
-			ctx.ReplyFailure("System.IO.IOException", "钓获结算未能保存，请重试")
+			ctx.ReplyFailure("System.IO.IOException", "Расчёт улова не сохранён, попробуйте ещё раз")
 			return nil, true
 		}
 		stats813 = s.buildSettle813(cctx, uid, pending, res)
@@ -433,7 +433,7 @@ func (s *Server) fishingEndSettle(ctx *Ctx) ([]byte, bool) {
 	} else if dropped := dropExtraFish(st); dropped > 0 {
 		// 主鱼咬钩未刺中就收竿：本杆没有有效渔获，额外鱼同样按脱落处理，
 		// 不能留到 14/5 被当成"入护"结掉。
-		ctx.Log.Info("14/4 未刺中收竿：额外鱼一并脱落", "rod", shortGUID(gearGUID), "条数", dropped)
+		ctx.Log.Info("14/4 Вытаскивание без засечки: доп. рыба тоже сошла", "rod", shortGUID(gearGUID), "Количество", dropped)
 	}
 	// 同一任务的后续鱼包含累计进度，覆盖主鱼的旧值后一次下发。
 	for _, extra := range extraResults {
@@ -511,13 +511,13 @@ func (s *Server) fishingEndSettle(ctx *Ctx) ([]byte, bool) {
 		}
 		card, err := s.DB.GetItemByGUID(cctx, cardGUID)
 		if err != nil {
-			ctx.ReplyFailure("System.IO.IOException", "钓获卡片未能读取，请重试")
+			ctx.ReplyFailure("System.IO.IOException", "Не удалось прочитать карточку улова, попробуйте ещё раз")
 			return nil, true
 		}
 		if card.UID == uid && card.Container == tradingCardContainer {
 			tree, err := s.ItemToTree(cctx, card)
 			if err != nil {
-				ctx.ReplyFailure("System.IO.IOException", "钓获卡片未能显示，请重试")
+				ctx.ReplyFailure("System.IO.IOException", "Не удалось показать карточку улова, попробуйте ещё раз")
 				return nil, true
 			}
 			grants.Items = append(grants.Items, tree)
@@ -554,14 +554,14 @@ func (s *Server) fishingEndSettle(ctx *Ctx) ([]byte, bool) {
 		// 就能在结算界面同时看到多张卡，用来确定「捕获了数条稀有鱼」到底是几号。
 		if dbg := s.debugGiftRows(cctx, uid); len(dbg) > 0 {
 			lines = append(lines, dbg...)
-			ctx.Log.Info("801.f4 附带调试礼物行", "uid", uid, "rows", len(dbg))
+			ctx.Log.Info("801.f4 Добавлена отладочная строка подарка", "uid", uid, "rows", len(dbg))
 		}
 		// 多钩额外鱼在同一杆里升级/跨奖座档时，卡也得弹出来：同源合并成一行，
 		// 参数取最大值，避免一杆弹出多张同源卡。
 		lines = append(lines, extraGift811Lines(extraResults)...)
 		if len(lines) > 0 {
 			if rows, rerr := s.giftRows811(cctx, lines); rerr != nil {
-				ctx.Log.Warn("礼物行构造失败（801.f4 置空）", "err", rerr)
+				ctx.Log.Warn("Ошибка создания строки подарка (801.f4 пусто)", "err", rerr)
 			} else {
 				giftRows = rows
 			}
@@ -569,7 +569,7 @@ func (s *Server) fishingEndSettle(ctx *Ctx) ([]byte, bool) {
 		// 分支杯：自带 f4=14 的裸 811 行，追加到同一个 args(811)，不替换上面各行。
 		if len(qualCups) > 0 {
 			if line, lerr := s.qualificationGiftLine(cctx, qualCups); lerr != nil {
-				ctx.Log.Warn("资格奖杯礼物行构造失败", "err", lerr)
+				ctx.Log.Warn("Ошибка создания строки подарка за квалификационный трофей", "err", lerr)
 			} else if line != nil {
 				giftRows = append811Row(giftRows, line)
 			}
@@ -581,7 +581,7 @@ func (s *Server) fishingEndSettle(ctx *Ctx) ([]byte, bool) {
 				param:  1,
 				items:  stageGifts,
 			}}); lerr != nil {
-				ctx.Log.Warn("阶段礼物礼物行构造失败", "err", lerr)
+				ctx.Log.Warn("Ошибка создания строки подарка за этап", "err", lerr)
 			} else if line != nil && line.Kind != proto.KindNull {
 				// giftRows811 已经返回 args(173) 容器；合并容器元素，不能
 				// 把整个 args(173) 再作为一个 811 元素嵌进去。
@@ -680,7 +680,7 @@ func (s *Server) fishingEndSettle(ctx *Ctx) ([]byte, bool) {
 	// 补挂后的钓组和背包数量在 801 响应发送后同步，避免结算覆盖数量更新。
 	if gearGUID != "" {
 		if change, rerr := s.reloadBaitForCast(cctx, uid, gearGUID); rerr != nil {
-			ctx.Log.Warn("收竿后补饵失败", "rod", shortGUID(gearGUID), "err", rerr)
+			ctx.Log.Warn("Не удалось пополнить наживку после вытаскивания", "rod", shortGUID(gearGUID), "err", rerr)
 		} else if len(change.Updated) > 0 || len(change.Removed) > 0 {
 			sess := ctx.Sess
 			ctx.AfterResponse(func() { sess.pushBaitChange(change) })

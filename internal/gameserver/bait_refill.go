@@ -39,7 +39,7 @@ func rememberBaitRefillTx(ctx context.Context, tx *sql.Tx, rod, bait *store.Item
 	}
 	_, slot, ok := rigCompKeyForGUID(slots, bait.GUID)
 	if !ok {
-		return fmt.Errorf("消耗饵料缺少装配槽位")
+		return fmt.Errorf("Для расходуемой наживки нет слота оснастки")
 	}
 	fields, err := FieldsFromJSON(owner.FieldsJSON)
 	if err != nil {
@@ -94,7 +94,7 @@ func rememberBaitRefillTx(ctx context.Context, tx *sql.Tx, rod, bait *store.Item
 			}
 			if hook != "" && (selected == "" || selected == hook) {
 				if r.Hook != "" {
-					return fmt.Errorf("无法唯一确定拟饵补饵钩位")
+					return fmt.Errorf("Не удалось однозначно определить крючок приманки для пополнения")
 				}
 				r.Hook, r.Lure = hook, lure.GUID
 			}
@@ -191,7 +191,7 @@ func (s *Server) reloadSlotBait(ctx context.Context, uid int64, rodGUID string) 
 		}
 		idx := fieldIdxByCS(owner.WireClass, csRigObject)
 		if idx < 0 || idx >= len(fields) || fields[idx].Val == nil {
-			return baitChange{}, fmt.Errorf("补饵父对象缺少钓组")
+			return baitChange{}, fmt.Errorf("У родительского объекта пополнения нет оснастки")
 		}
 		f5 := fields[idx].Val
 		name, rt, _ := rigIdentity(f5)
@@ -247,7 +247,7 @@ func (s *Server) reloadSlotBait(ctx context.Context, uid int64, rodGUID string) 
 			return baitChange{}, err
 		}
 		if baitQuantity(source) <= 0 {
-			return baitChange{}, fmt.Errorf("补饵来源数量无效")
+			return baitChange{}, fmt.Errorf("Неверное количество в источнике пополнения")
 		}
 		child := *source
 		child.GUID, child.Container, child.RigGUID, child.Slot, child.Qty = NewItemGUID(), "rig", owner.GUID, r.Slot.Category, 1

@@ -23,7 +23,7 @@ func TestBaitOverrideRoundTripsSeaGuideCondition(t *testing.T) {
 		{"玩家填写的钓点", "80区", true, false, false, true},
 		{"多个纸图钓点", "75或80区", true, true, false, true},
 		{"旧版无标记条件", "海图80号区域", true, false, false, true},
-		{"已保存的标深说明", "海图80号区域（纸图标深）", true, false, false, true},
+		{"已保存的标深说明", "海图80号区域 (纸图标深)", true, false, false, true},
 		{"明确指定声呐网格", "声呐252区", true, false, false, true},
 		{"仅带有声呐前缀的编号使用网格", "80区或声呐第170区", true, false, true, true},
 	} {
@@ -44,7 +44,7 @@ func TestBaitOverrideRoundTripsSeaGuideCondition(t *testing.T) {
 				s.prepareFishRollRuntime(t.Context(), &c, "挪威海")
 				keys, _ := s.filterFishBaitSet("挪威海", []string{"pilkerlures_2687"}, []string{"x_gladius"}, []float64{1}, time.Now(), c)
 				if (len(keys) > 0) != point.want {
-					t.Errorf("保存条件 %q 后，场景 %s、攻略标深 %d 的候选=%v，期望放行=%t", tc.condition, point.scene, c.runtime.guideSpot, keys, point.want)
+					t.Errorf("保存条件 %q 后, 场景 %s, 攻略标深 %d 的候选=%v, 期望放行=%t", tc.condition, point.scene, c.runtime.guideSpot, keys, point.want)
 				}
 			}
 		})
@@ -67,7 +67,7 @@ func TestSeaBaitOverrideMatchesBothPrinted90Areas(t *testing.T) {
 		s.prepareFishRollRuntime(t.Context(), &c, "挪威海")
 		keys, _ := s.filterFishBaitSet("挪威海", []string{"pilkerlures_2687"}, []string{"x_gladius"}, []float64{1}, time.Now(), c)
 		if (len(keys) > 0) != tc.want {
-			t.Errorf("饵落点 (%d,%d) 标深=%d，剑鱼候选=%v", tc.u, tc.v, c.runtime.guideSpot, keys)
+			t.Errorf("饵落点 (%d,%d) 标深=%d, 剑鱼候选=%v", tc.u, tc.v, c.runtime.guideSpot, keys)
 		}
 	}
 }
@@ -94,7 +94,7 @@ func TestSeaBaitOverrideAtHarborShore(t *testing.T) {
 			s.prepareFishRollRuntime(t.Context(), &c, "挪威海")
 			keys, _ := s.filterFishBaitSet("挪威海", []string{"pilkerlures_2687"}, []string{"x_gladius"}, []float64{1}, time.Now(), c)
 			if c.runtime.guideSpot != tc.spot || (len(keys) > 0) != tc.allow {
-				t.Errorf("饵落点 (%g,%g) 标深=%d，候选=%v；期望标深=%d，放行=%t", tc.x, tc.z, c.runtime.guideSpot, keys, tc.spot, tc.allow)
+				t.Errorf("饵落点 (%g,%g) 标深=%d, 候选=%v; 期望标深=%d, 放行=%t", tc.x, tc.z, c.runtime.guideSpot, keys, tc.spot, tc.allow)
 			}
 		})
 	}
@@ -117,12 +117,12 @@ func TestExportedRotationState(t *testing.T) {
 	}
 	next := ExportedRotationState(groups, 3600, "soft", base.Add(3600*time.Second))
 	if want := (st.Active + 1) % 3; next.Active != want {
-		t.Fatalf("下一桶应轮转到 %d，实得 %d", want, next.Active)
+		t.Fatalf("下一桶应轮转到 %d, 实得 %d", want, next.Active)
 	}
 	// 转满一圈回到原组。
 	circle := ExportedRotationState(groups, 3600, "soft", base.Add(3*3600*time.Second))
 	if circle.Active != st.Active {
-		t.Fatalf("满一轮应回到 %d，实得 %d", st.Active, circle.Active)
+		t.Fatalf("满一轮应回到 %d, 实得 %d", st.Active, circle.Active)
 	}
 	// 关闭与非法输入。
 	if d := ExportedRotationState(groups, 30, "soft", base); d.Enabled {
@@ -135,7 +135,7 @@ func TestExportedRotationState(t *testing.T) {
 		t.Fatalf("只有一组时不应启用轮换: %+v", d)
 	}
 	if d := ExportedRotationState(groups, 3600, "weird", base); d.Mode != "soft" {
-		t.Fatalf("未知模式应归一化为 soft，实得 %q", d.Mode)
+		t.Fatalf("未知模式应归一化为 soft, 实得 %q", d.Mode)
 	}
 }
 
@@ -176,17 +176,17 @@ func TestBaitRotationStrictAndSoft(t *testing.T) {
 
 	save("strict")
 	if got, _ := roll("rot_a", at); len(got) != 1 {
-		t.Fatalf("strict 当前组应可咬，实得 %v", got)
+		t.Fatalf("strict 当前组应可咬, 实得 %v", got)
 	}
 	if got, _ := roll("rot_b", at); len(got) != 0 {
-		t.Fatalf("strict 组外不应咬，实得 %v", got)
+		t.Fatalf("strict 组外不应咬, 实得 %v", got)
 	}
 	next := at.Add(600 * time.Second)
 	if got, _ := roll("rot_b", next); len(got) != 1 {
-		t.Fatalf("strict 下一组应可咬，实得 %v", got)
+		t.Fatalf("strict 下一组应可咬, 实得 %v", got)
 	}
 	if got, _ := roll("rot_a", next); len(got) != 0 {
-		t.Fatalf("strict 上一组不应再咬，实得 %v", got)
+		t.Fatalf("strict 上一组不应再咬, 实得 %v", got)
 	}
 
 	save("soft")
@@ -212,7 +212,7 @@ func TestBaitOverrideReplacesDefaultAndResets(t *testing.T) {
 	}
 	// 内置规则：常见拟鲤 不吃拟饵。
 	if got, _ := roll("rule_lure"); len(got) != 0 {
-		t.Fatalf("内置规则应拒绝拟饵，实得 %v", got)
+		t.Fatalf("内置规则应拒绝拟饵, 实得 %v", got)
 	}
 	// 覆盖成允许 Hunter 1-001（拟饵类名）。
 	ov := store.FishBaitOverride{FishZh: "常见拟鲤", Allow: []string{"Hunter 1-001"}, Enabled: true}
@@ -221,7 +221,7 @@ func TestBaitOverrideReplacesDefaultAndResets(t *testing.T) {
 	}
 	s.invalidateBaitOverrides()
 	if got, _ := roll("rule_lure"); len(got) != 1 {
-		t.Fatalf("覆盖后应允许 Hunter 1-001，实得 %v", got)
+		t.Fatalf("覆盖后应允许 Hunter 1-001, 实得 %v", got)
 	}
 	// 恢复默认。
 	if _, err := db.DeleteFishBaitOverride(ctx, "常见拟鲤"); err != nil {
@@ -229,6 +229,6 @@ func TestBaitOverrideReplacesDefaultAndResets(t *testing.T) {
 	}
 	s.invalidateBaitOverrides()
 	if got, _ := roll("rule_lure"); len(got) != 0 {
-		t.Fatalf("恢复默认后应再次拒绝拟饵，实得 %v", got)
+		t.Fatalf("恢复默认后应再次拒绝拟饵, 实得 %v", got)
 	}
 }

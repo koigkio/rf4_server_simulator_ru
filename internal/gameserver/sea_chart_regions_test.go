@@ -33,7 +33,7 @@ func TestSeaGuideAreasOnPrintedChart(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			x, z := (float64(tc.u)-78)/.38, (1970-float64(tc.v))/.38-1957
 			if got := seaGuideSpotForPoint(x, z); got != tc.spot {
-				t.Errorf("海图像素 (%d,%d) 标深=%d，期望 %d", tc.u, tc.v, got, tc.spot)
+				t.Errorf("海图像素 (%d,%d) 标深=%d, 期望 %d", tc.u, tc.v, got, tc.spot)
 			}
 		})
 	}
@@ -45,7 +45,7 @@ func TestSeaGuideAreasOnPrintedChart(t *testing.T) {
 		want bool
 	}{{75, true}, {120, true}, {133, false}, {144, false}, {0, false}} {
 		if got := isSeaGuideSpot(tc.spot); got != tc.want {
-			t.Errorf("标深 %d 有效性=%t，期望 %t", tc.spot, got, tc.want)
+			t.Errorf("标深 %d 有效性=%t, 期望 %t", tc.spot, got, tc.want)
 		}
 	}
 }

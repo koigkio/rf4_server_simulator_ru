@@ -23,11 +23,11 @@ func TestLoadProbeTracksRangesAndBitReadings(t *testing.T) {
 		t.Fatal("有上报时必须给出诊断字段")
 	}
 	if got := fields["load_reports"]; got != 2 {
-		t.Fatalf("上报条数应为 2，实得 %v", got)
+		t.Fatalf("上报条数应为 2, 实得 %v", got)
 	}
 	rows, ok := fields["load_fields"].([]map[string]any)
 	if !ok || len(rows) != 3 {
-		t.Fatalf("应跟踪三个字段路径，实得 %#v", fields["load_fields"])
+		t.Fatalf("应跟踪三个字段路径, 实得 %#v", fields["load_fields"])
 	}
 	byPath := map[string]map[string]any{}
 	for _, row := range rows {
@@ -36,29 +36,29 @@ func TestLoadProbeTracksRangesAndBitReadings(t *testing.T) {
 	// 变化的小整数：只给原始值，位型读数会掉进 denormal 噪声，不该污染日志。
 	first := byPath[".0"]
 	if first["kind"] != loadKindU32 || first["min"] != uint64(1) || first["max"] != uint64(2) || first["last"] != uint64(2) {
-		t.Fatalf("u32 路径应记 1..2 且带上末值，实得 %#v", first)
+		t.Fatalf("u32 路径应记 1..2 且带上末值, 实得 %#v", first)
 	}
 	if _, bad := first["bits_min"]; bad {
-		t.Fatalf("不合理位型读数不该出现： %#v", first)
+		t.Fatalf("不合理位型读数不该出现: %#v", first)
 	}
 	// F32 载荷：原始位型是大整数，必须同时给出按位型解出来的浮点范围。
 	load := byPath[".1"]
 	if load["kind"] != loadKindU32 || load["min"].(uint64) < 1<<28 {
-		t.Fatalf("F32 载荷原始值应是位型大整数，实得 %#v", load)
+		t.Fatalf("F32 载荷原始值应是位型大整数, 实得 %#v", load)
 	}
 	if got := load["bits_min"]; got == nil || math.Abs(got.(float64)-3.5) > 1e-6 {
-		t.Fatalf("F32 载荷应解出 3.5 起步，实得 %#v", load)
+		t.Fatalf("F32 载荷应解出 3.5 起步, 实得 %#v", load)
 	}
 	if got := load["bits_max"]; got == nil || math.Abs(got.(float64)-9.25) > 1e-6 {
-		t.Fatalf("F32 载荷应解到 9.25，实得 %#v", load)
+		t.Fatalf("F32 载荷应解到 9.25, 实得 %#v", load)
 	}
 	// 恒定字段：min==max 时不再重复记 last。
 	steady := byPath[".2"]
 	if steady["min"] != uint64(7) || steady["max"] != uint64(7) {
-		t.Fatalf("恒定字段应记 7..7，实得 %#v", steady)
+		t.Fatalf("恒定字段应记 7..7, 实得 %#v", steady)
 	}
 	if _, bad := steady["last"]; bad {
-		t.Fatalf("恒定字段不该带 last： %#v", steady)
+		t.Fatalf("恒定字段不该带 last: %#v", steady)
 	}
 }
 
@@ -73,20 +73,20 @@ func TestLoadProbeWalksObjectFields(t *testing.T) {
 	fields := p.logFields()
 	rows, ok := fields["load_fields"].([]map[string]any)
 	if !ok || len(rows) != 3 {
-		t.Fatalf("对象字段与嵌套值都要走访到，实得 %#v", fields["load_fields"])
+		t.Fatalf("对象字段与嵌套值都要走访到, 实得 %#v", fields["load_fields"])
 	}
 	byPath := map[string]map[string]any{}
 	for _, row := range rows {
 		byPath[row["path"].(string)] = row
 	}
 	if row := byPath[".0.0"]; row == nil || row["min"] != uint64(3) {
-		t.Fatalf("对象第 0 个字段应记 3，实得 %#v", byPath[".0.0"])
+		t.Fatalf("对象第 0 个字段应记 3, 实得 %#v", byPath[".0.0"])
 	}
 	if row := byPath[".0.1"]; row == nil || row["kind"] != loadKindF64 || math.Abs(row["min"].(float64)-12.5) > 1e-9 {
-		t.Fatalf("FLOAT 字段应直接记浮点 12.5，实得 %#v", byPath[".0.1"])
+		t.Fatalf("FLOAT 字段应直接记浮点 12.5, 实得 %#v", byPath[".0.1"])
 	}
 	if row := byPath[".0.2"]; row == nil || row["kind"] != loadKindBool || row["max"] != uint64(1) {
-		t.Fatalf("嵌套 bool 字段应记 0/1，实得 %#v", byPath[".0.2"])
+		t.Fatalf("嵌套 bool 字段应记 0/1, 实得 %#v", byPath[".0.2"])
 	}
 }
 
@@ -98,10 +98,10 @@ func TestLoadProbeCountsUndecodedAndBoundsSlots(t *testing.T) {
 	p.observe(nil, false)
 	p.observe(proto.Args524(proto.Null()), false)
 	if fields := p.logFields(); fields["load_reports"] != 2 || fields["load_undecoded"] != 2 {
-		t.Fatalf("解不出值树也要计数： %#v", fields)
+		t.Fatalf("解不出值树也要计数: %#v", fields)
 	}
 	if len(p.slots) != 0 {
-		t.Fatalf("解不出值树时不该有字段读数： %#v", p.slots)
+		t.Fatalf("解不出值树时不该有字段读数: %#v", p.slots)
 	}
 
 	// 超过槽位上限：新增的只计 dropped，已有字段的累计不能被打断。
@@ -114,13 +114,13 @@ func TestLoadProbeCountsUndecodedAndBoundsSlots(t *testing.T) {
 		p2.observe(proto.Args524(items...), true)
 	}
 	if len(p2.slots) > loadProbeMaxSlots {
-		t.Fatalf("字段槽位必须封顶 %d，实得 %d", loadProbeMaxSlots, len(p2.slots))
+		t.Fatalf("字段槽位必须封顶 %d, 实得 %d", loadProbeMaxSlots, len(p2.slots))
 	}
 	if fields := p2.logFields(); fields["load_dropped"] == nil {
-		t.Fatalf("超出槽位的字段必须计入 dropped： %#v", fields)
+		t.Fatalf("超出槽位的字段必须计入 dropped: %#v", fields)
 	}
 	if p2.slots[0].count != 4 || p2.slots[0].rawMin > p2.slots[0].rawMax {
-		t.Fatalf("封顶后已跟踪字段的累计要完整： %#v", p2.slots[0])
+		t.Fatalf("封顶后已跟踪字段的累计要完整: %#v", p2.slots[0])
 	}
 }
 
@@ -131,10 +131,10 @@ func TestFightWearDetailCarriesLoadProbe(t *testing.T) {
 	w.loadProbe.observe(proto.Args524(proto.F32(6.5)), true)
 	detail := fightWearDetailFields(w, 0.01, nil)
 	if detail["load_reports"] != 1 {
-		t.Fatalf("损伤日志应带负载观测条数： %#v", detail)
+		t.Fatalf("损伤日志应带负载观测条数: %#v", detail)
 	}
 	rows, ok := detail["load_fields"].([]map[string]any)
 	if !ok || len(rows) != 1 || rows[0]["path"] != ".0" {
-		t.Fatalf("损伤日志应带负载字段范围： %#v", detail["load_fields"])
+		t.Fatalf("损伤日志应带负载字段范围: %#v", detail["load_fields"])
 	}
 }

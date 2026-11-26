@@ -17,11 +17,11 @@ import (
 // store.DB 只允许一个 SQLite 连接。事务持有时不能调用任何 store.DB 方法，
 // 文件内读写直接使用 *sql.Tx；依赖 item_def 的只读准备在开启事务前完成。
 
-var errInsufficientFunds = errors.New("余额不足")
+var errInsufficientFunds = errors.New("Недостаточно средств")
 
 func beginEconomyTx(ctx context.Context, db *store.DB) (*sql.Tx, error) {
 	if db == nil || db.SQL == nil {
-		return nil, errors.New("数据库未初始化")
+		return nil, errors.New("База данных не инициализирована")
 	}
 	return db.SQL.BeginTx(ctx, nil)
 }
@@ -179,7 +179,7 @@ func stackCountTx(ctx context.Context, tx *sql.Tx, it *store.Item) int64 {
 
 func insertItemTx(ctx context.Context, tx *sql.Tx, it *store.Item) error {
 	if it == nil || it.GUID == "" || it.WireClass == "" {
-		return errors.New("物品构造不完整")
+		return errors.New("Предмет создан не полностью")
 	}
 	var itemArg, rigArg any
 	if it.ItemID != "" {
@@ -202,7 +202,7 @@ func (s *Server) prepareNewItem(ctx context.Context, uid int64, itemID, containe
 	units int64, explicitGUID string) (*store.Item, error) {
 	def, err := s.DB.GetItemDefByItemID(ctx, itemID)
 	if err != nil || def == nil {
-		return nil, fmt.Errorf("物品定义不存在: %s", itemID)
+		return nil, fmt.Errorf("Определение предмета не существует: %s", itemID)
 	}
 	cls, ok := resolveWireClass(def)
 	if !ok {
@@ -247,7 +247,7 @@ func (s *Server) prepareNewItem(ctx context.Context, uid int64, itemID, containe
 		// 一券一实例：数量槽固定 1，与 CreateItem 对称。units 必须严格等于 1，
 		// 多张请走 prepareCouponRows 逐张建行；这里不夹值，避免静默白送或多发。
 		if units != 1 {
-			return nil, fmt.Errorf("梦鱼券需按张建行，prepareNewItem 不支持 units=%d", units)
+			return nil, fmt.Errorf("Купоны на чучело создаются построчно по одному, prepareNewItem не поддерживает units=%d", units)
 		}
 		writeItemQty(cls.Class, obj, 1)
 	}
@@ -294,7 +294,7 @@ func (s *Server) prepareNewItem(ctx context.Context, uid int64, itemID, containe
 // grantPreparedItemTx 将预处理物品入包；merge=true 时按类别语义并入已有堆。
 func grantPreparedItemTx(ctx context.Context, tx *sql.Tx, prepared *store.Item, merge bool) (*store.Item, bool, error) {
 	if prepared == nil {
-		return nil, false, errors.New("空物品")
+		return nil, false, errors.New("Пустой предмет")
 	}
 	def, err := itemDefByItemIDTx(ctx, tx, prepared.ItemID)
 	if err != nil {
@@ -308,7 +308,7 @@ func grantPreparedItemTx(ctx context.Context, tx *sql.Tx, prepared *store.Item, 
 		if err == nil {
 			fields, err := FieldsFromJSON(row.FieldsJSON)
 			if err != nil {
-				return nil, false, fmt.Errorf("解析旧物品堆 %s: %w", row.GUID, err)
+				return nil, false, fmt.Errorf("Разбор старой стопки предметов %s: %w", row.GUID, err)
 			}
 			cur := stackCountTx(ctx, tx, row)
 			add := prepared.Qty
@@ -317,7 +317,7 @@ func grantPreparedItemTx(ctx context.Context, tx *sql.Tx, prepared *store.Item, 
 			}
 			limit := bundleQuantityLimit(row.WireClass)
 			if cur < 0 || add > limit || cur > limit-add {
-				return nil, false, fmt.Errorf("堆叠物品数量溢出: %s", prepared.ItemID)
+				return nil, false, fmt.Errorf("Переполнение количества в стопке: %s", prepared.ItemID)
 			}
 			setItemQty(row.WireClass, fields, uint64(cur+add))
 			bumpCreatedTicks(fields, row.WireClass)
@@ -348,7 +348,7 @@ func grantPreparedItemTx(ctx context.Context, tx *sql.Tx, prepared *store.Item, 
 
 func consumeItemQtyTx(ctx context.Context, tx *sql.Tx, row *store.Item, n int64) (int64, error) {
 	if row == nil || row.GUID == "" {
-		return 0, errors.New("空材料")
+		return 0, errors.New("Пустой материал")
 	}
 	have := stackCountTx(ctx, tx, row)
 	if have < 1 {

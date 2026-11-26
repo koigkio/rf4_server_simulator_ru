@@ -46,8 +46,8 @@ func TestGearAssistantCommandsAndPersistence(t *testing.T) {
 		return on
 	}
 	// 一级菜单列出全部一级指令。
-	sendGearAssistantForTest(t, env.srv, env.sess, "帮助")
-	if reply := lastReply(); !strings.Contains(reply, "【满红不爆】") || !strings.Contains(reply, "【耐力播报】") {
+	sendGearAssistantForTest(t, env.srv, env.sess, "помощь")
+	if reply := lastReply(); !strings.Contains(reply, "[Без обрывов] ") || !strings.Contains(reply, "[Сводка выносливости] ") {
 		t.Fatalf("help menu missing commands: %q", reply)
 	}
 	// 默认关闭；发序号只进入二级并显示当前状态，不改设置。
@@ -55,7 +55,7 @@ func TestGearAssistantCommandsAndPersistence(t *testing.T) {
 		t.Fatal("overload must default off")
 	}
 	sendGearAssistantForTest(t, env.srv, env.sess, "1")
-	if reply := lastReply(); !strings.Contains(reply, "【当前状态】：关闭") || !strings.Contains(reply, "开(y)") {
+	if reply := lastReply(); !strings.Contains(reply, "[Текущее состояние]: выключено") || !strings.Contains(reply, "вкл (y)") {
 		t.Fatalf("level two menu: %q", reply)
 	}
 	if overloadOn() {
@@ -63,53 +63,53 @@ func TestGearAssistantCommandsAndPersistence(t *testing.T) {
 	}
 	// 二级单字母 y 开启。
 	sendGearAssistantForTest(t, env.srv, env.sess, "y")
-	if reply := lastReply(); !overloadOn() || !strings.Contains(reply, "已开启") {
+	if reply := lastReply(); !overloadOn() || !strings.Contains(reply, "включено") {
 		t.Fatalf("y did not enable: %q", reply)
 	}
 	// 重复开启幂等。
 	sendGearAssistantForTest(t, env.srv, env.sess, "y")
-	if reply := lastReply(); !strings.Contains(reply, "已经开启") {
+	if reply := lastReply(); !strings.Contains(reply, "Уже включено") {
 		t.Fatalf("repeat on must be idempotent: %q", reply)
 	}
 	// h 显示说明，不离开二级也不改设置。
 	sendGearAssistantForTest(t, env.srv, env.sess, "h")
-	if reply := lastReply(); !strings.Contains(reply, "防止断件与锁轮过载烧毁") || !overloadOn() {
+	if reply := lastReply(); !strings.Contains(reply, "защищает от поломки элементов") || !overloadOn() {
 		t.Fatalf("h lost the description or the setting: %q", reply)
 	}
 	// 二级只认二级命令：一级语法在这里算未知输入，重显菜单且不改设置。
-	sendGearAssistantForTest(t, env.srv, env.sess, "1 关")
-	if reply := lastReply(); !strings.Contains(reply, "【当前状态】：开启") || !overloadOn() {
+	sendGearAssistantForTest(t, env.srv, env.sess, "1 выкл")
+	if reply := lastReply(); !strings.Contains(reply, "[Текущее состояние]: включено") || !overloadOn() {
 		t.Fatalf("level one syntax must be rejected inside level two: %q", reply)
 	}
 	// n 关闭。
 	sendGearAssistantForTest(t, env.srv, env.sess, "n")
-	if reply := lastReply(); overloadOn() || !strings.Contains(reply, "已关闭") {
+	if reply := lastReply(); overloadOn() || !strings.Contains(reply, "выключено") {
 		t.Fatalf("n did not disable: %q", reply)
 	}
 	sendGearAssistantForTest(t, env.srv, env.sess, "n")
-	if reply := lastReply(); !strings.Contains(reply, "已经关闭") {
+	if reply := lastReply(); !strings.Contains(reply, "Уже выключено") {
 		t.Fatalf("repeat off must be idempotent: %q", reply)
 	}
 	// b 退回一级。
 	sendGearAssistantForTest(t, env.srv, env.sess, "b")
-	if reply := lastReply(); !strings.Contains(reply, "【满红不爆】") || !strings.Contains(reply, "【耐力播报】") {
+	if reply := lastReply(); !strings.Contains(reply, "[Без обрывов] ") || !strings.Contains(reply, "[Сводка выносливости] ") {
 		t.Fatalf("b did not return to the top menu: %q", reply)
 	}
 	// 一级仍支持「序号 子命令」一次性写法，且前后空格不影响解析。
-	sendGearAssistantForTest(t, env.srv, env.sess, " 1 开 ")
+	sendGearAssistantForTest(t, env.srv, env.sess, " 1 вкл ")
 	if !overloadOn() {
 		t.Fatal("level one one-shot command failed")
 	}
 	sendGearAssistantForTest(t, env.srv, env.sess, "b")
 	// 未知输入不改设置，直接回一级菜单。
 	sendGearAssistantForTest(t, env.srv, env.sess, "foo")
-	if reply := lastReply(); !strings.Contains(reply, "【满红不爆】") || !overloadOn() {
+	if reply := lastReply(); !strings.Contains(reply, "[Без обрывов] ") || !overloadOn() {
 		t.Fatalf("unknown command should show the menu without touching the setting: %q", reply)
 	}
 	// 新会话能读到已保存设置，且不影响其他玩家。
 	reconnected := &Session{ID: 2, Userid: env.sess.Userid, Srv: env.srv, log: env.sess.log}
 	sendGearAssistantForTest(t, env.srv, reconnected, "1")
-	if reply := lastReply(); !strings.Contains(reply, "【当前状态】：开启") {
+	if reply := lastReply(); !strings.Contains(reply, "[Текущее состояние]: включено") {
 		t.Fatalf("reconnected session lost setting: %q", reply)
 	}
 	if on, err := readOverloadProtection(t.Context(), env.db.SQL, env.sess.Userid+1); err != nil || on {
@@ -149,26 +149,26 @@ func TestGearAssistantLegacySingleWordAlias(t *testing.T) {
 		return mails[0].Text
 	}
 	// 旧版单字指令直接作用于满红不爆，不必先记序号。
-	sendGearAssistantForTest(t, env.srv, env.sess, "开")
-	if reply := lastReply(); !overloadOn() || !strings.Contains(reply, "已开启") {
-		t.Fatalf("legacy 开 did not enable overload: %q", reply)
+	sendGearAssistantForTest(t, env.srv, env.sess, "вкл")
+	if reply := lastReply(); !overloadOn() || !strings.Contains(reply, "включено") {
+		t.Fatalf("legacy вкл did not enable overload: %q", reply)
 	}
 	sendGearAssistantForTest(t, env.srv, env.sess, "b")
-	sendGearAssistantForTest(t, env.srv, env.sess, "状态")
-	if reply := lastReply(); !strings.Contains(reply, "【当前状态】：开启") || !overloadOn() {
-		t.Fatalf("legacy 状态 must only show the state: %q", reply)
+	sendGearAssistantForTest(t, env.srv, env.sess, "состояние")
+	if reply := lastReply(); !strings.Contains(reply, "[Текущее состояние]: включено") || !overloadOn() {
+		t.Fatalf("legacy состояние must only show the state: %q", reply)
 	}
 	// 单字别名等价于「1 <动作>」，同样会进入二级；先 b 退回一级，
 	// 才能继续用一级别名验证「关」，并让带参写法在一级被判为未知。
 	sendGearAssistantForTest(t, env.srv, env.sess, "b")
-	sendGearAssistantForTest(t, env.srv, env.sess, "关")
-	if reply := lastReply(); overloadOn() || !strings.Contains(reply, "已关闭") {
-		t.Fatalf("legacy 关 did not disable overload: %q", reply)
+	sendGearAssistantForTest(t, env.srv, env.sess, "выкл")
+	if reply := lastReply(); overloadOn() || !strings.Contains(reply, "выключено") {
+		t.Fatalf("legacy выкл did not disable overload: %q", reply)
 	}
 	sendGearAssistantForTest(t, env.srv, env.sess, "b")
 	// 别名只认单字：带参数的旧写法仍算未知输入，不改设置。
-	sendGearAssistantForTest(t, env.srv, env.sess, "开 关")
-	if reply := lastReply(); overloadOn() || !strings.Contains(reply, "【满红不爆】") {
+	sendGearAssistantForTest(t, env.srv, env.sess, "вкл выкл")
+	if reply := lastReply(); overloadOn() || !strings.Contains(reply, "[Без обрывов] ") {
 		t.Fatalf("legacy alias must stay single-word only: %q", reply)
 	}
 }
@@ -182,7 +182,7 @@ func TestGearAssistantMailReplayAndIsolation(t *testing.T) {
 	first := newMailTestSession(t, s, 1, uid)
 	second := newMailTestSession(t, s, 2, uid+1)
 	first.sess.Token = "gear-assistant-test"
-	body, err := proto.EncodeValue(proto.Args524(proto.U32(uint32(gearAssistantUID)), proto.StrVal("1 开")), s.Table())
+	body, err := proto.EncodeValue(proto.Args524(proto.U32(uint32(gearAssistantUID)), proto.StrVal("1 вкл")), s.Table())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -205,7 +205,7 @@ func TestGearAssistantMailReplayAndIsolation(t *testing.T) {
 	assertMailTestNotification(t, first, mails[0])
 	assertNoMailTestPush(t, second)
 	sendGearAssistantForTest(t, s, first.sess, "n")
-	sendGearAssistantForTest(t, s, first.sess, "b") // 回到一级，让重放真的会命中开关
+	sendGearAssistantForTest(t, s, first.sess, "b") // 回到一级, 让重放真的会命中开关
 	send()                                          // Replaying an old "on" must not undo a later "off".
 	assertNoMailTestPush(t, first)
 	if on, err := readOverloadProtection(t.Context(), db.SQL, uid); err != nil || on {
@@ -222,7 +222,7 @@ func TestGearAssistantRollbackAndMalformedSettings(t *testing.T) {
 	if _, err := env.db.SQL.Exec(`CREATE TRIGGER reject_gear_reply BEFORE INSERT ON mail BEGIN SELECT RAISE(ABORT,'test mail failure'); END`); err != nil {
 		t.Fatal(err)
 	}
-	ctx := env.ctx(19, 1, proto.Args524(proto.U32(uint32(gearAssistantUID)), proto.StrVal("1 开")))
+	ctx := env.ctx(19, 1, proto.Args524(proto.U32(uint32(gearAssistantUID)), proto.StrVal("1 вкл")))
 	result := env.srv.dispatch.executeRequest(ctx, true)
 	if !result.nativeFailure || len(ctx.afterResponse) != 0 {
 		t.Fatal("failed save reported success or scheduled a reply")
@@ -233,7 +233,7 @@ func TestGearAssistantRollbackAndMalformedSettings(t *testing.T) {
 	if _, err := env.db.SQL.Exec(`DROP TRIGGER reject_gear_reply`); err != nil {
 		t.Fatal(err)
 	}
-	ctx = env.ctx(19, 1, proto.Args524(proto.U32(uint32(gearAssistantUID)), proto.StrVal("1 开")))
+	ctx = env.ctx(19, 1, proto.Args524(proto.U32(uint32(gearAssistantUID)), proto.StrVal("1 вкл")))
 	ctx.ExpectResponse = false
 	hMailSendMessage(ctx)
 	if on, _ := readOverloadProtection(t.Context(), env.db.SQL, env.sess.Userid); on {
@@ -251,7 +251,7 @@ func TestGearAssistantProtectsThreeRodsAndKeepsManualActions(t *testing.T) {
 	s, db := newRigTestServer(t)
 	sess := newProbeSess(s)
 	uid := sess.Userid
-	sendGearAssistantForTest(t, s, sess, "1 开")
+	sendGearAssistantForTest(t, s, sess, "1 вкл")
 	var rods, lines, hooks []string
 	for i := 0; i < 3; i++ {
 		created := make([]*store.Item, 0, 4)
@@ -356,7 +356,7 @@ func TestGearAssistantToggleKeepsWearBoundaries(t *testing.T) {
 	st.mu.Unlock()
 	// 满红不爆保护只管断件（17/9），不再有磨损层语义（锁轮烧穿曲线已删）：
 	// 搏鱼受力磨损照常累计，开关只重置时间边界，切换后的一小时空窗不得补记。
-	sendGearAssistantForTest(t, s, sess, "1 开")
+	sendGearAssistantForTest(t, s, sess, "1 вкл")
 	load := miscCtx(sess, 14, 8, nil)
 	for i := 0; i < 3; i++ {
 		st.mu.Lock()

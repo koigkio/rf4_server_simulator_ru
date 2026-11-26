@@ -49,7 +49,7 @@ func environmentNodes(t *testing.T, srv *Server) *proto.Value {
 		t.Fatalf("28/1 解码失败: %v", err)
 	}
 	if root.TypeID != 5011 {
-		t.Fatalf("根对象应为 5011，实得 %d", root.TypeID)
+		t.Fatalf("根对象应为 5011, 实得 %d", root.TypeID)
 	}
 	return root.Fields[1].Val
 }
@@ -57,18 +57,18 @@ func environmentNodes(t *testing.T, srv *Server) *proto.Value {
 func TestAnniversarySwitchSeasonStages(t *testing.T) {
 	off := eventTestServer(t, false).seasonStages()
 	if len(off) != 1 || off[0] != 0 {
-		t.Fatalf("关闭时应只发阶段 0，实得 %v", off)
+		t.Fatalf("关闭时应只发阶段 0, 实得 %v", off)
 	}
 	on := eventTestServer(t, true).seasonStages()
 	if len(on) != 2 || on[0] != 0 || on[1] != eventStageAnniversary {
-		t.Fatalf("开启时应只发 [0 6]（补其它阶段号会把入口切成新年任务），实得 %v", on)
+		t.Fatalf("开启时应只发 [0 6] (补其它阶段号会把入口切成新年任务), 实得 %v", on)
 	}
 }
 
 func TestBuild5012CarriesStageEntries(t *testing.T) {
 	body, err := proto.EncodeValue(build5012([]uint32{0, eventStageAnniversary}, seasonEndFiletime(0)), wiregen.Table())
 	if err != nil {
-		t.Fatalf("5012 编码失败: %v", err)
+		t.Fatalf("5012 Ошибка кодирования: %v", err)
 	}
 	root, _, err := proto.DecodeValue(body, 0, wiregen.Table())
 	if err != nil {
@@ -76,15 +76,15 @@ func TestBuild5012CarriesStageEntries(t *testing.T) {
 	}
 	entries := root.Fields[0].Val
 	if entries == nil || len(entries.Items) != 2 {
-		t.Fatalf("5013 条目应为 2 条，实得 %v", entries)
+		t.Fatalf("5013 条目应为 2 条, 实得 %v", entries)
 	}
 	for i, want := range []uint64{0, uint64(eventStageAnniversary)} {
 		entry := entries.Items[i]
 		if entry.TypeID != 5013 {
-			t.Fatalf("条目应为 5013，实得 %d", entry.TypeID)
+			t.Fatalf("条目应为 5013, 实得 %d", entry.TypeID)
 		}
 		if got := *entry.Fields[0].Num; got != want {
-			t.Fatalf("第 %d 条 Idx0 应为 %d，实得 %d", i, want, got)
+			t.Fatalf("第 %d 条 Idx0 应为 %d, 实得 %d", i, want, got)
 		}
 	}
 }
@@ -92,11 +92,11 @@ func TestBuild5012CarriesStageEntries(t *testing.T) {
 func TestEnvironmentAnniversaryNodesFollowSwitch(t *testing.T) {
 	off := environmentNodes(t, eventTestServer(t, false))
 	if len(off.Items) != qualificationBranches {
-		t.Fatalf("关闭时应只有 8 个资格分支，实得 %d", len(off.Items))
+		t.Fatalf("关闭时应只有 8 个资格分支, 实得 %d", len(off.Items))
 	}
 	for i, node := range off.Items {
 		if got := *node.Fields[1].Num; got != 0 {
-			t.Fatalf("资格节点 %d 的 Idx1 应为 0，实得 %d", i+1, got)
+			t.Fatalf("资格节点 %d 的 Idx1 应为 0, 实得 %d", i+1, got)
 		}
 	}
 
@@ -104,11 +104,11 @@ func TestEnvironmentAnniversaryNodesFollowSwitch(t *testing.T) {
 	on := environmentNodes(t, srv)
 	branches := srv.eventBranches()
 	if len(on.Items) != qualificationBranches+len(branches) {
-		t.Fatalf("开启时应有 %d 个节点，实得 %d", qualificationBranches+len(branches), len(on.Items))
+		t.Fatalf("开启时应有 %d 个节点, 实得 %d", qualificationBranches+len(branches), len(on.Items))
 	}
 	for i := 0; i < qualificationBranches; i++ {
 		if got := *on.Items[i].Fields[1].Num; got != 0 {
-			t.Fatalf("前 8 个仍须是 Idx1=0 的资格节点，第 %d 个实得 %d", i+1, got)
+			t.Fatalf("前 8 个仍须是 Idx1=0 的资格节点, 第 %d 个实得 %d", i+1, got)
 		}
 	}
 	type wantBranch struct {
@@ -128,24 +128,24 @@ func TestEnvironmentAnniversaryNodesFollowSwitch(t *testing.T) {
 	for i, want := range wantCounts {
 		node := on.Items[qualificationBranches+i]
 		if node.TypeID != 5009 {
-			t.Fatalf("活动节点应为 5009，实得 %d", node.TypeID)
+			t.Fatalf("活动节点应为 5009, 实得 %d", node.TypeID)
 		}
 		if got := *node.Fields[0].Num; got != want.branch {
-			t.Fatalf("活动分支 ID 应为 %d，实得 %d", want.branch, got)
+			t.Fatalf("活动分支 ID 应为 %d, 实得 %d", want.branch, got)
 		}
 		if got := *node.Fields[1].Num; got != uint64(eventStageAnniversary) {
-			t.Fatalf("活动节点 Idx1 应为 6，实得 %d", got)
+			t.Fatalf("活动节点 Idx1 应为 6, 实得 %d", got)
 		}
 		stages := node.Fields[3].Val
 		if stages == nil || len(stages.Items) != len(want.counts) {
-			t.Fatalf("分支 %d 应有 %d 阶段，实得 %v", want.branch, len(want.counts), stages)
+			t.Fatalf("分支 %d 应有 %d 阶段, 实得 %v", want.branch, len(want.counts), stages)
 		}
 		total := 0
 		for si, stage := range stages.Items {
 			tasks := stage.Fields[1].Val
 			emittable := eventEmittableCount(want.branch, uint64(si+1), want.counts[si])
 			if tasks == nil || uint64(len(tasks.Items)) != emittable {
-				t.Fatalf("分支 %d 阶段 %d 下发任务数应为 %d，实得 %v",
+				t.Fatalf("分支 %d 阶段 %d 下发任务数应为 %d, 实得 %v",
 					want.branch, si+1, emittable, tasks)
 			}
 			emitIdx := 0
@@ -161,7 +161,7 @@ func TestEnvironmentAnniversaryNodesFollowSwitch(t *testing.T) {
 				rule := rules.Items[0]
 				wantID := qualificationRuleID(want.branch, uint64(si+1), taskNo)
 				if got := *rule.Fields[0].Num; got != wantID {
-					t.Fatalf("活动规则类型应为 %d，实得 %d", wantID, got)
+					t.Fatalf("活动规则类型应为 %d, 实得 %d", wantID, got)
 				}
 				if got := *rule.Fields[3].Num; got == 0 {
 					t.Fatalf("活动规则 %d 进度分母必须 > 0", wantID)
@@ -171,7 +171,7 @@ func TestEnvironmentAnniversaryNodesFollowSwitch(t *testing.T) {
 			total += len(tasks.Items)
 		}
 		if total != want.total {
-			t.Fatalf("分支 %d 应有 %d 条任务，实得 %d", want.branch, want.total, total)
+			t.Fatalf("分支 %d 应有 %d 条任务, 实得 %d", want.branch, want.total, total)
 		}
 	}
 }
@@ -181,11 +181,11 @@ func TestEnvironmentAnniversaryNodesFollowSwitch(t *testing.T) {
 func TestNewYearSwitchSeasonStages(t *testing.T) {
 	ny := eventTestServerWith(t, false, true).seasonStages()
 	if len(ny) != 2 || ny[0] != 0 || ny[1] != eventStageNewYear {
-		t.Fatalf("只开新年应发 [0 5]，实得 %v", ny)
+		t.Fatalf("只开新年应发 [0 5], 实得 %v", ny)
 	}
 	both := eventTestServerWith(t, true, true).seasonStages()
 	if len(both) != 3 || both[1] != eventStageNewYear || both[2] != eventStageAnniversary {
-		t.Fatalf("两个都开应发 [0 5 6]，实得 %v", both)
+		t.Fatalf("两个都开应发 [0 5 6], 实得 %v", both)
 	}
 }
 
@@ -195,11 +195,11 @@ func TestEnvironmentNewYearNodesFollowSwitch(t *testing.T) {
 	on := environmentNodes(t, srv)
 	branches := srv.eventBranches()
 	if len(on.Items) != qualificationBranches+len(branches) {
-		t.Fatalf("只开新年应有 %d 个节点，实得 %d", qualificationBranches+len(branches), len(on.Items))
+		t.Fatalf("只开新年应有 %d 个节点, 实得 %d", qualificationBranches+len(branches), len(on.Items))
 	}
 	for i := 0; i < qualificationBranches; i++ {
 		if got := *on.Items[i].Fields[1].Num; got != 0 {
-			t.Fatalf("前 8 个仍须是 Idx1=0 的资格节点，第 %d 个实得 %d", i+1, got)
+			t.Fatalf("前 8 个仍须是 Idx1=0 的资格节点, 第 %d 个实得 %d", i+1, got)
 		}
 	}
 	type wantBranch struct {
@@ -222,17 +222,17 @@ func TestEnvironmentNewYearNodesFollowSwitch(t *testing.T) {
 	for i, w := range want {
 		node := on.Items[qualificationBranches+i]
 		if node.TypeID != 5009 {
-			t.Fatalf("活动节点应为 5009，实得 %d", node.TypeID)
+			t.Fatalf("活动节点应为 5009, 实得 %d", node.TypeID)
 		}
 		if got := *node.Fields[0].Num; got != w.branch {
-			t.Fatalf("新年分支 ID 应为 %d，实得 %d", w.branch, got)
+			t.Fatalf("新年分支 ID 应为 %d, 实得 %d", w.branch, got)
 		}
 		if got := *node.Fields[1].Num; got != uint64(eventStageNewYear) {
-			t.Fatalf("新年节点 Idx1 应为 5，实得 %d", got)
+			t.Fatalf("新年节点 Idx1 应为 5, 实得 %d", got)
 		}
 		stages := node.Fields[3].Val
 		if stages == nil || len(stages.Items) != w.stages {
-			t.Fatalf("分支 %d 应有 %d 阶段，实得 %v", w.branch, w.stages, stages)
+			t.Fatalf("分支 %d 应有 %d 阶段, 实得 %v", w.branch, w.stages, stages)
 		}
 		total := 0
 		for si, stage := range stages.Items {
@@ -253,7 +253,7 @@ func TestEnvironmentNewYearNodesFollowSwitch(t *testing.T) {
 				rule := rules.Items[0]
 				wantID := qualificationRuleID(w.branch, uint64(si+1), taskNo)
 				if got := *rule.Fields[0].Num; got != wantID {
-					t.Fatalf("新年规则类型应为 %d，实得 %d", wantID, got)
+					t.Fatalf("新年规则类型应为 %d, 实得 %d", wantID, got)
 				}
 				if got := *rule.Fields[3].Num; got == 0 {
 					t.Fatalf("新年规则 %d 进度分母必须 > 0", wantID)
@@ -263,18 +263,18 @@ func TestEnvironmentNewYearNodesFollowSwitch(t *testing.T) {
 			total += len(tasks.Items)
 		}
 		if total != w.total {
-			t.Fatalf("分支 %d 应有 %d 条任务，实得 %d", w.branch, w.total, total)
+			t.Fatalf("分支 %d 应有 %d 条任务, 实得 %d", w.branch, w.total, total)
 		}
 	}
 
 	// 后台已互斥，但两个值同时为 1 时按阶段 5 优先，只下发一份新年节点。
 	both := environmentNodes(t, eventTestServerWith(t, true, true))
 	if len(both.Items) != qualificationBranches+len(branches) {
-		t.Fatalf("两个都开时应只下发一份节点，共 %d 个，实得 %d",
+		t.Fatalf("两个都开时应只下发一份节点, 共 %d 个, 实得 %d",
 			qualificationBranches+len(branches), len(both.Items))
 	}
 	if got := *both.Items[qualificationBranches].Fields[1].Num; got != uint64(eventStageNewYear) {
-		t.Fatalf("两个都开时应按阶段 5 优先，实得 %d", got)
+		t.Fatalf("两个都开时应按阶段 5 优先, 实得 %d", got)
 	}
 }
 
@@ -295,27 +295,27 @@ func TestEventBranchesFromConfig(t *testing.T) {
 		srv := eventTestServerBranches(t, false, true, c.raw)
 		got := srv.eventBranches()
 		if len(got) != len(c.want) {
-			t.Fatalf("%q 应得 %v，实得 %v", c.raw, c.want, got)
+			t.Fatalf("%q 应得 %v, 实得 %v", c.raw, c.want, got)
 		}
 		for i := range got {
 			if got[i] != c.want[i] {
-				t.Fatalf("%q 应得 %v，实得 %v", c.raw, c.want, got)
+				t.Fatalf("%q 应得 %v, 实得 %v", c.raw, c.want, got)
 			}
 		}
 	}
 	// 空配置时 28/1 仍应只有 8 个资格节点。
 	empty := environmentNodes(t, eventTestServerBranches(t, false, true, ""))
 	if len(empty.Items) != qualificationBranches {
-		t.Fatalf("空配置应只有 8 个资格节点，实得 %d", len(empty.Items))
+		t.Fatalf("空配置应只有 8 个资格节点, 实得 %d", len(empty.Items))
 	}
 	// 周年开关改变的是 Idx1，分支集合不变。
 	anniv := eventTestServerBranches(t, true, false, "17,18")
 	nodes := environmentNodes(t, anniv)
 	if len(nodes.Items) != qualificationBranches+2 {
-		t.Fatalf("配置 17,18 应有 10 个节点，实得 %d", len(nodes.Items))
+		t.Fatalf("配置 17,18 应有 10 个节点, 实得 %d", len(nodes.Items))
 	}
 	if got := *nodes.Items[qualificationBranches].Fields[1].Num; got != uint64(eventStageAnniversary) {
-		t.Fatalf("周年开关下 Idx1 应为 6，实得 %d", got)
+		t.Fatalf("周年开关下 Idx1 应为 6, 实得 %d", got)
 	}
 }
 
@@ -342,11 +342,11 @@ func TestPlayerRewards2015EmptyArray(t *testing.T) {
 	}
 	want := []byte{0x03, 0x03, '1', '8', '5', 0x00, 0x00}
 	if len(body) != len(want) {
-		t.Fatalf("3/16 应返回空 args 数组，长度 %d，实得 %x", len(want), body)
+		t.Fatalf("3/16 应返回空 args 数组, 长度 %d, 实得 %x", len(want), body)
 	}
 	for i := range want {
 		if body[i] != want[i] {
-			t.Fatalf("3/16 应返回 args(\"185\") 空数组 %x，实得 %x", want, body)
+			t.Fatalf("3/16 应返回 args(\"185\") 空数组 %x, 实得 %x", want, body)
 		}
 	}
 }
@@ -358,17 +358,17 @@ func TestBuild5013SeasonEndFromConfig(t *testing.T) {
 	configured := seasonEndFiletime(1900000000)
 	body, err := proto.EncodeValue(build5013(eventStageAnniversary, configured), wiregen.Table())
 	if err != nil {
-		t.Fatalf("5013 编码失败: %v", err)
+		t.Fatalf("5013 Ошибка кодирования: %v", err)
 	}
 	dec, _, err := proto.DecodeValue(body, 0, wiregen.Table())
 	if err != nil {
 		t.Fatalf("5013 解码失败: %v", err)
 	}
 	if len(dec.Fields) != 6 {
-		t.Fatalf("5013 应有 6 个字段，实得 %d", len(dec.Fields))
+		t.Fatalf("5013 应有 6 个字段, 实得 %d", len(dec.Fields))
 	}
 	if got := *dec.Fields[0].Num; got != uint64(eventStageAnniversary) {
-		t.Fatalf("Idx0 阶段应为 %d，实得 %d", eventStageAnniversary, got)
+		t.Fatalf("Idx0 阶段应为 %d, 实得 %d", eventStageAnniversary, got)
 	}
 	if got := *dec.Fields[1].Num; got != start {
 		t.Fatalf("Idx1 起点应保持 seasonBounds: got=%d want=%d", got, start)
@@ -377,10 +377,10 @@ func TestBuild5013SeasonEndFromConfig(t *testing.T) {
 		t.Fatalf("Idx2 终点应保持 seasonBounds: got=%d want=%d", got, seasonEnd)
 	}
 	if dec.Fields[3].Op != "OPT" || dec.Fields[3].Num == nil || *dec.Fields[3].Num != 0 {
-		t.Fatalf("Idx3 应为 1 字节 OPT 零值，实得 %+v", dec.Fields[3])
+		t.Fatalf("Idx3 应为 1 字节 OPT 零值, 实得 %+v", dec.Fields[3])
 	}
 	if got := *dec.Fields[4].Num; got != configured {
-		t.Fatalf("Idx4 应为配置结束时间 %d，实得 %d", configured, got)
+		t.Fatalf("Idx4 应为配置结束时间 %d, 实得 %d", configured, got)
 	}
 }
 
@@ -388,16 +388,16 @@ func TestBuild5013SeasonEndFromConfig(t *testing.T) {
 func TestSeasonEndReadsTunable(t *testing.T) {
 	wantDefault := uint64(proto.UnixToFiletime(defaultEventEndUnix))
 	if got := seasonEndFiletime(0); got != wantDefault {
-		t.Fatalf("缺省结束时间应为固定锚点 %d，实得 %d", wantDefault, got)
+		t.Fatalf("缺省结束时间应为固定锚点 %d, 实得 %d", wantDefault, got)
 	}
 	srv := eventTestServer(t, false)
 	if got := srv.seasonEnd(); got != wantDefault {
-		t.Fatalf("未配置时 seasonEnd 应为锚点 %d，实得 %d", wantDefault, got)
+		t.Fatalf("未配置时 seasonEnd 应为锚点 %d, 实得 %d", wantDefault, got)
 	}
 	const custom = 1900000000
 	srv.tunCache[eventEndKey] = custom
 	if got, want := srv.seasonEnd(), uint64(proto.UnixToFiletime(custom)); got != want {
-		t.Fatalf("配置结束时间应为 %d，实得 %d", want, got)
+		t.Fatalf("配置结束时间应为 %d, 实得 %d", want, got)
 	}
 }
 
@@ -411,13 +411,13 @@ func TestEventFactoryDefaults(t *testing.T) {
 	srv.tunAt = time.Now()
 	srv.tunMu.Unlock()
 	if !srv.newYearEnabled() || srv.anniversaryEnabled() {
-		t.Fatalf("出厂默认应为新年开、周年关，实得 新年=%v 周年=%v",
+		t.Fatalf("出厂默认应为新年开, 周年关, 实得 新年=%v 周年=%v",
 			srv.newYearEnabled(), srv.anniversaryEnabled())
 	}
 	if got := srv.seasonStages(); len(got) != 2 || got[0] != 0 || got[1] != eventStageNewYear {
-		t.Fatalf("出厂默认阶段应为 [0,5]，实得 %v", got)
+		t.Fatalf("出厂默认阶段应为 [0,5], 实得 %v", got)
 	}
 	if got := len(srv.eventBranches()); got != 12 {
-		t.Fatalf("出厂默认应挂 12 个分支，实得 %d", got)
+		t.Fatalf("出厂默认应挂 12 个分支, 实得 %d", got)
 	}
 }

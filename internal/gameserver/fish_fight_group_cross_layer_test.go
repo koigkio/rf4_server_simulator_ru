@@ -16,7 +16,7 @@ func TestFishPullGroupFightKeyCompleteness(t *testing.T) {
 	used := map[string]bool{}
 	for species, g := range fishPullSpeciesGroup {
 		if _, ok := fishPullGroupFightKey[g]; !ok {
-			t.Errorf("鱼种 %s 的 f8 组 %s 无 fishPullGroupFightKey 映射（f5/f6/f21 将落词表漂移）", species, g)
+			t.Errorf("鱼种 %s 的 f8 组 %s 无 fishPullGroupFightKey 映射 (f5/f6/f21 将落词表漂移)", species, g)
 		}
 		used[g] = true
 	}
@@ -83,19 +83,19 @@ func TestFishFightCrossLayerConsistency(t *testing.T) {
 	for _, c := range cases {
 		marine := srv.fishMarineGroupHit(c.species)
 		if got := fishFightGroupKeyFor(c.species, marine); got != c.groupKey {
-			t.Errorf("%s f5/f6 组键=%s，期望 %s", c.species, got, c.groupKey)
+			t.Errorf("%s f5/f6 组键=%s, 期望 %s", c.species, got, c.groupKey)
 		}
 		if got := srv.fishPullK0For(c.species); got != c.wantK0 {
-			t.Errorf("%s f8 K0=%f，期望 %f", c.species, got, c.wantK0)
+			t.Errorf("%s f8 K0=%f, 期望 %f", c.species, got, c.wantK0)
 		}
 		if got := srv.fishStaminaFor(&RolledFish{Species: c.species, WeightG: w}); got != c.wantF5Per*float64(w) {
-			t.Errorf("%s 500g f5=%f，期望 %f（%f/g）", c.species, got, c.wantF5Per*float64(w), c.wantF5Per)
+			t.Errorf("%s 500g f5=%f, 期望 %f (%f/g)", c.species, got, c.wantF5Per*float64(w), c.wantF5Per)
 		}
 		if got := srv.fishF6BaseFor(&RolledFish{Species: c.species, WeightG: w}); got != c.wantF6 {
-			t.Errorf("%s f6=%f，期望 %f", c.species, got, c.wantF6)
+			t.Errorf("%s f6=%f, 期望 %f", c.species, got, c.wantF6)
 		}
 		if got := fishCurveArchetypeFor(c.species, marine).CurvePool; got != c.wantPool {
-			t.Errorf("%s f21 曲线池=%s，期望 %s", c.species, got, c.wantPool)
+			t.Errorf("%s f21 曲线池=%s, 期望 %s", c.species, got, c.wantPool)
 		}
 	}
 }
@@ -116,7 +116,7 @@ func TestFishPullAliasInheritsFullFightChain(t *testing.T) {
 	}
 	if got, want := srv.fishStaminaFor(&RolledFish{Species: "midori_g", WeightG: 1000}),
 		srv.fishStaminaFor(&RolledFish{Species: "carp", WeightG: 1000}); got != want {
-		t.Errorf("midori_g 1000g f5=%f 应等于宿主 carp 实测均值 %f（2.10/g）", got, want)
+		t.Errorf("midori_g 1000g f5=%f 应等于宿主 carp 实测均值 %f (2.10/g)", got, want)
 	}
 	if got, want := srv.fishF6BaseFor(&RolledFish{Species: "midori_g", WeightG: 100}),
 		srv.fishF6BaseFor(&RolledFish{Species: "carp", WeightG: 100}); got != want || got != 0.65 {
@@ -137,6 +137,6 @@ func TestFishPullSmallFishUnderPowerScale(t *testing.T) {
 	srv.tunAt = time.Now()
 	srv.tunMu.Unlock()
 	if got := srv.fishFightPullFor(&RolledFish{Species: "tiulka", WeightG: 10}); got != 0.0932 {
-		t.Errorf("tiulka 10g scale=0.5 的 f8=%f，期望 0.0932（0.5N 旧下限会把小鱼抬回）", got)
+		t.Errorf("tiulka 10g scale=0.5 的 f8=%f, 期望 0.0932 (0.5N 旧下限会把小鱼抬回)", got)
 	}
 }

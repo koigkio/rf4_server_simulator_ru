@@ -85,7 +85,7 @@ func legacyBundleMailSnapshot(t *testing.T, srv *Server, uid int64) store.MailIt
 func assertBundleItemQuantity(t *testing.T, row *store.Item, quantity int64) {
 	t.Helper()
 	if row.Qty != quantity {
-		t.Errorf("存储数量=%d，期望%d", row.Qty, quantity)
+		t.Errorf("存储数量=%d, 期望%d", row.Qty, quantity)
 	}
 	fields, err := FieldsFromJSON(row.FieldsJSON)
 	if err != nil {
@@ -96,11 +96,11 @@ func assertBundleItemQuantity(t *testing.T, row *store.Item, quantity int64) {
 		t.Fatalf("缺少权威数量槽: %s", row.WireClass)
 	}
 	if got := int64(u64Of(fields[idx].Num)); got != quantity {
-		t.Errorf("权威数量=%d，期望%d", got, quantity)
+		t.Errorf("权威数量=%d, 期望%d", got, quantity)
 	}
 	if idx := qtyMirrorIdx(row.WireClass); idx >= 0 {
 		if got := int64(u64Of(fields[idx].Num)); got != quantity {
-			t.Errorf("UI镜像数量=%d，期望%d", got, quantity)
+			t.Errorf("UI镜像数量=%d, 期望%d", got, quantity)
 		}
 	}
 }
@@ -126,7 +126,7 @@ func assertBundleContents(t *testing.T, srv *Server, uid, quantity int64) {
 		assertBundleItemQuantity(t, row, row.Qty)
 	}
 	if total != quantity {
-		t.Errorf("包内总份数=%d，期望%d", total, quantity)
+		t.Errorf("包内总份数=%d, 期望%d", total, quantity)
 	}
 }
 
@@ -202,7 +202,7 @@ func TestBundleMailNonStackableContentsAreSeparateItems(t *testing.T) {
 		t.Fatal(err)
 	}
 	if count, _, err := srv.acceptMails(economyTestCtx(srv, uid, proto.Args524()), []int64{id}); err != nil || count != 6 {
-		t.Fatalf("领取物品条数=%d，期望6", count)
+		t.Fatalf("领取物品条数=%d, 期望6", count)
 	}
 	rows, err := db.ListItemsByContainer(context.Background(), uid, "backpack")
 	if err != nil || len(rows) != 6 {
@@ -480,7 +480,7 @@ func TestBundleMetaQuantityAndMirrors(t *testing.T) {
 			}
 			for _, idx := range []int{itemQtyFieldIdx(row.WireClass), qtyMirrorIdx(row.WireClass)} {
 				if got := u64Of(tree.Fields[idx].Num); got != 35 {
-					t.Errorf("客户端数量槽%d=%d，期望35", idx, got)
+					t.Errorf("客户端数量槽%d=%d, 期望35", idx, got)
 				}
 			}
 			if _, err := db.SQL.Exec(`UPDATE item_def SET attrs_json=? WHERE item_id=?`,

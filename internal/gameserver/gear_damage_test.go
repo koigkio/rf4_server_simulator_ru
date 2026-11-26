@@ -90,7 +90,7 @@ func TestWeakestLeaderBreaksAndKeepsMainLine(t *testing.T) {
 	comps := rigSlotGUIDs(t, srv, rod.GUID)
 	lineGUID := comps[catLine]
 	if lineGUID != line.GUID {
-		t.Fatalf("主线 GUID=%s，期望 %s", lineGUID, line.GUID)
+		t.Fatalf("主线 GUID=%s, 期望 %s", lineGUID, line.GUID)
 	}
 	beforeLength := lineLengthOfTestItem(t, srv, lineGUID)
 	if beforeLength <= 1 {
@@ -112,7 +112,7 @@ func TestWeakestLeaderBreaksAndKeepsMainLine(t *testing.T) {
 		t.Fatal("断线响应 f0 应为 true")
 	}
 	if got := dec.Fields[1].GuidHex(); got != leader.GUID {
-		t.Fatalf("断子线响应 f1=%s，期望子线 %s", got, leader.GUID)
+		t.Fatalf("断子线响应 f1=%s, 期望子线 %s", got, leader.GUID)
 	}
 
 	afterLine, err := db.GetItemByGUID(ctx, lineGUID)
@@ -136,7 +136,7 @@ func TestWeakestLeaderBreaksAndKeepsMainLine(t *testing.T) {
 	for _, slot := range []int64{catHook, catLead, catWireLeader, catBait} {
 		if guid := comps[slot]; guid != "" {
 			if row, _ := db.GetItemByGUID(ctx, guid); row != nil {
-				t.Fatalf("断线后槽位 %d 的物品 %s 应被删除，实际仍存在", slot, guid)
+				t.Fatalf("断线后槽位 %d 的物品 %s 应被删除, 实际仍存在", slot, guid)
 			}
 		}
 	}
@@ -156,14 +156,14 @@ func TestWeakestLeaderBreaksAndKeepsMainLine(t *testing.T) {
 		counts[entry.Event]++
 	}
 	if counts[damageEventLineBreak] != 1 {
-		t.Fatalf("line_break 记录=%d，期望 1；全部=%v", counts[damageEventLineBreak], counts)
+		t.Fatalf("line_break 记录=%d, 期望 1; 全部=%v", counts[damageEventLineBreak], counts)
 	}
 	if counts[damageEventLostOnLineBreak] < 3 {
-		t.Fatalf("lost_on_line_break 记录=%d，期望至少 3；全部=%v", counts[damageEventLostOnLineBreak], counts)
+		t.Fatalf("lost_on_line_break 记录=%d, 期望至少 3; 全部=%v", counts[damageEventLostOnLineBreak], counts)
 	}
 	var lineBreaks int64
 	if err := db.SQL.QueryRow(`SELECT value FROM player_counters WHERE uid=? AND key='line_breaks'`, uid).Scan(&lineBreaks); err != nil || lineBreaks != 1 {
-		t.Fatalf("line_breaks 计数=%d err=%v，期望 1", lineBreaks, err)
+		t.Fatalf("line_breaks 计数=%d err=%v, 期望 1", lineBreaks, err)
 	}
 }
 
@@ -208,10 +208,10 @@ func TestMainLineBreakLosesExactlyFiveMeters(t *testing.T) {
 		t.Fatal("主线断裂响应 f0 应为 true")
 	}
 	if got := dec.Fields[1].GuidHex(); got != line.GUID {
-		t.Fatalf("应断主线 %s，实得 %s", line.GUID, got)
+		t.Fatalf("应断主线 %s, 实得 %s", line.GUID, got)
 	}
 	if row, _ := db.GetItemByGUID(ctx, line.GUID); row != nil {
-		t.Fatalf("断主线后主线应整条销毁，实得 %+v", row)
+		t.Fatalf("断主线后主线应整条销毁, 实得 %+v", row)
 	}
 }
 
@@ -288,7 +288,7 @@ func TestBrokenRodPersistsZeroDurabilityAndCannotMount(t *testing.T) {
 		t.Fatal(err)
 	}
 	if got := takeDec.Fields[0].GuidHex(); got != zeroGUID {
-		t.Fatalf("断竿不应被拿到手上，158.f0=%s", got)
+		t.Fatalf("断竿不应被拿到手上, 158.f0=%s", got)
 	}
 	logs, err := db.ListItemDamageLogs(ctx, uid, 20)
 	if err != nil || len(logs) == 0 || logs[0].Event != damageEventRodBreak {
@@ -296,7 +296,7 @@ func TestBrokenRodPersistsZeroDurabilityAndCannotMount(t *testing.T) {
 	}
 	var rodBreaks int64
 	if err := db.SQL.QueryRow(`SELECT value FROM player_counters WHERE uid=? AND key='rod_breaks'`, uid).Scan(&rodBreaks); err != nil || rodBreaks != 1 {
-		t.Fatalf("rod_breaks 计数=%d err=%v，期望 1", rodBreaks, err)
+		t.Fatalf("rod_breaks 计数=%d err=%v, 期望 1", rodBreaks, err)
 	}
 }
 
@@ -320,10 +320,10 @@ func TestWearAddsHistoryAndWearsRodBody(t *testing.T) {
 	freshRod, _ := db.GetItemByGUID(ctx, rod.GUID)
 	freshLine, _ := db.GetItemByGUID(ctx, line.GUID)
 	if freshRod.Durability >= 1 {
-		t.Fatalf("竿本体应产生磨损，耐久=%v", freshRod.Durability)
+		t.Fatalf("竿本体应产生磨损, 耐久=%v", freshRod.Durability)
 	}
 	if freshLine.Durability != 1 {
-		t.Fatalf("主线不应按尾磨损，耐久=%v", freshLine.Durability)
+		t.Fatalf("主线不应按尾磨损, 耐久=%v", freshLine.Durability)
 	}
 	logs, err := db.ListItemDamageLogs(ctx, uid, 20)
 	if err != nil {
@@ -336,7 +336,7 @@ func TestWearAddsHistoryAndWearsRodBody(t *testing.T) {
 		}
 	}
 	if !got[rod.GUID] || got[line.GUID] {
-		t.Fatalf("磨损历史应只有竿、不应有主线: %+v", got)
+		t.Fatalf("磨损历史应只有竿, 不应有主线: %+v", got)
 	}
 }
 
@@ -411,7 +411,7 @@ func TestBrokenHandRodDeletesFloat(t *testing.T) {
 	mountGearForTest(t, srv, sess, rod.GUID, bobber.GUID)
 	comps := rigSlotGUIDs(t, srv, rod.GUID)
 	if comps[catFloat] != bobber.GUID {
-		t.Fatalf("手竿浮漂未装配: slot28=%s，期望 %s", comps[catFloat], bobber.GUID)
+		t.Fatalf("手竿浮漂未装配: slot28=%s, 期望 %s", comps[catFloat], bobber.GUID)
 	}
 
 	tree := rigRequestTree(t, proto.Guid(rod.GUID), proto.Guid(line.GUID), proto.U32(2), proto.Null())
@@ -449,7 +449,7 @@ func TestHookBreakDetachesComponentKeepsRod(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	hook, err := srv.CreateItem(ctx, uid, "orig_20008_18", "backpack", 1) // 3.15kg，最弱环
+	hook, err := srv.CreateItem(ctx, uid, "orig_20008_18", "backpack", 1) // 3.15kg, 最弱环
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -475,10 +475,10 @@ func TestHookBreakDetachesComponentKeepsRod(t *testing.T) {
 		t.Fatal(err)
 	}
 	if u64Of(dec.Fields[0].Num) != 0 {
-		t.Fatal("钩断响应 f0 应为 false（非断线）")
+		t.Fatal("钩断响应 f0 应为 false (非断线)")
 	}
 	if got := dec.Fields[1].GuidHex(); got != hook.GUID {
-		t.Fatalf("钩断响应 f1=%s，期望 %s", got, hook.GUID)
+		t.Fatalf("钩断响应 f1=%s, 期望 %s", got, hook.GUID)
 	}
 	if got := rigSlotGUIDs(t, srv, rod.GUID); got[catHook] != "" {
 		t.Fatalf("钩断后 rig_component 仍残留鱼钩: slot12=%s", got[catHook])
@@ -492,7 +492,7 @@ func TestHookBreakDetachesComponentKeepsRod(t *testing.T) {
 	}
 	// 官服口径：断钩即丢失销毁，不再退回背包。
 	if row, _ := db.GetItemByGUID(ctx, hook.GUID); row != nil {
-		t.Fatalf("断钩后鱼钩应销毁，实得 %+v", row)
+		t.Fatalf("断钩后鱼钩应销毁, 实得 %+v", row)
 	}
 	if mustItem(t, db, line.GUID) == nil {
 		t.Fatal("钩断不应影响鱼线")
@@ -550,7 +550,7 @@ func TestTerminalComponentProjectionOnlyBreakCleansProjection(t *testing.T) {
 	}
 	// 官服口径：终端件断裂即丢失销毁。
 	if row, _ := db.GetItemByGUID(ctx, bobber.GUID); row != nil {
-		t.Fatalf("终端件断裂后应销毁，实得 %+v", row)
+		t.Fatalf("终端件断裂后应销毁, 实得 %+v", row)
 	}
 }
 
@@ -752,7 +752,7 @@ func TestRodBreakDestroysRigGearKeepsBrokenRod(t *testing.T) {
 	}
 	// 配件回背包的刷新必须排在 11028 之后，否则客户端删掉本地模型后要重登才看得见。
 	if len(hctx.afterResponse) != 1 {
-		t.Fatalf("断竿后应注册一次回包后的物品刷新，实得 %d", len(hctx.afterResponse))
+		t.Fatalf("断竿后应注册一次回包后的物品刷新, 实得 %d", len(hctx.afterResponse))
 	}
 	dec, _, err := proto.DecodeValue(body, 0, srv.Table())
 	if err != nil {
@@ -766,7 +766,7 @@ func TestRodBreakDestroysRigGearKeepsBrokenRod(t *testing.T) {
 	}
 	for _, guid := range []string{hook.GUID, bobber.GUID} {
 		if row, _ := db.GetItemByGUID(ctx, guid); row != nil {
-			t.Fatalf("断竿后 %s 应丢失销毁（官服口径），实得 %+v", guid, row)
+			t.Fatalf("断竿后 %s 应丢失销毁 (官服口径), 实得 %+v", guid, row)
 		}
 		if !removed[guid] {
 			t.Fatalf("断竿移除列表缺少 %s", guid)
@@ -782,7 +782,7 @@ func TestRodBreakDestroysRigGearKeepsBrokenRod(t *testing.T) {
 		t.Fatal(err)
 	}
 	if got := itemLengthField(freshLine, lineFields); got != 37 {
-		t.Fatalf("断竿后主线应剩 37 米，实得 %d", got)
+		t.Fatalf("断竿后主线应剩 37 米, 实得 %d", got)
 	}
 	// 更新段要带线树，客户端才能看到扣剩的长度。
 	updatedHasLine := false
@@ -801,10 +801,10 @@ func TestRodBreakDestroysRigGearKeepsBrokenRod(t *testing.T) {
 		t.Fatal(err)
 	}
 	if projRows != 1 {
-		t.Fatalf("断竿后 rig_component 应只剩主线投影 1 行，实得 %d 行", projRows)
+		t.Fatalf("断竿后 rig_component 应只剩主线投影 1 行, 实得 %d 行", projRows)
 	}
 	if got := rigSlotGUIDs(t, srv, rod.GUID)[catLine]; got != line.GUID {
-		t.Fatalf("断竿后 catLine 投影应保留主线 %s，实得 %q", line.GUID, got)
+		t.Fatalf("断竿后 catLine 投影应保留主线 %s, 实得 %q", line.GUID, got)
 	}
 	freshRod := mustItem(t, db, rod.GUID)
 	if freshRod.Durability != 0 {
@@ -823,13 +823,13 @@ func TestRodBreakDestroysRigGearKeepsBrokenRod(t *testing.T) {
 		seen[entry.Event]++
 	}
 	if seen[damageEventRodBreak] != 1 {
-		t.Fatalf("rod_break 记录=%d，期望 1", seen[damageEventRodBreak])
+		t.Fatalf("rod_break 记录=%d, 期望 1", seen[damageEventRodBreak])
 	}
 	if seen[damageEventLostOnRodBreak] != 2 {
-		t.Fatalf("lost_on_rod_break 记录=%d，期望 2（钩+漂）", seen[damageEventLostOnRodBreak])
+		t.Fatalf("lost_on_rod_break 记录=%d, 期望 2 (钩+漂)", seen[damageEventLostOnRodBreak])
 	}
 	if seen[damageEventLineBreak] != 1 {
-		t.Fatalf("line_break 记录=%d，期望 1（扣 13 米）", seen[damageEventLineBreak])
+		t.Fatalf("line_break 记录=%d, 期望 1 (扣 13 米)", seen[damageEventLineBreak])
 	}
 }
 
@@ -860,7 +860,7 @@ func TestBrokenRodCannotCast(t *testing.T) {
 	}
 	healthyF0 := dec.Field(0)
 	if got := healthyF0.GuidHex(); got != rod.GUID {
-		t.Fatalf("健康竿 158.f0=%s，期望 %s", got, rod.GUID)
+		t.Fatalf("健康竿 158.f0=%s, 期望 %s", got, rod.GUID)
 	}
 
 	// 断竿后：14/1 返回空 GUID。
@@ -882,13 +882,13 @@ func TestBrokenRodCannotCast(t *testing.T) {
 	}
 	brokenF0 := dec2.Field(0)
 	if got := brokenF0.GuidHex(); got != zeroGUID {
-		t.Fatalf("断竿 14/1 应返回空 GUID，实得 %s", got)
+		t.Fatalf("断竿 14/1 应返回空 GUID, 实得 %s", got)
 	}
 	st.mu.Lock()
 	gearNow := st.GearGuid
 	st.mu.Unlock()
 	if gearNow != "" {
-		t.Fatalf("断竿 14/1 后 GearGuid 应清空，实得 %s", shortGUID(gearNow))
+		t.Fatalf("断竿 14/1 后 GearGuid 应清空, 实得 %s", shortGUID(gearNow))
 	}
 
 	// 断竿直发 14/2：回失败，不进入抛竿状态。
@@ -1080,7 +1080,7 @@ func TestCutLineLosesReportedMetersAndTerminalTackle(t *testing.T) {
 	}
 	compsBefore := rigSlotGUIDs(t, srv, rod.GUID)
 	if compsBefore[catLine] != line.GUID {
-		t.Fatalf("竿上主线应为 %s，实得 %s", line.GUID, compsBefore[catLine])
+		t.Fatalf("竿上主线应为 %s, 实得 %s", line.GUID, compsBefore[catLine])
 	}
 	// 浮钓会把整包饵装进钩饵子实例，原背包堆随之删除。
 	baitMounted := compsBefore[catBait]
@@ -1102,17 +1102,17 @@ func TestCutLineLosesReportedMetersAndTerminalTackle(t *testing.T) {
 		t.Fatal(err)
 	}
 	if dec.Class != "dlbahppbdad" || dec.TypeID != 800 {
-		t.Fatalf("17/10 响应=%s/%d，期望 dlbahppbdad/800", dec.Class, dec.TypeID)
+		t.Fatalf("17/10 响应=%s/%d, 期望 dlbahppbdad/800", dec.Class, dec.TypeID)
 	}
 	if reason := srv.dispatch.checkRegisteredResponse(17, 10, body, srv.Table()); reason != "" {
 		t.Fatalf("17/10 合同守卫误拒: %s", reason)
 	}
 	// 删除与刷新推送必须排在 800 回包之后，否则客户端本地物品模型不更新。
 	if len(hctx.afterResponse) != 1 {
-		t.Fatalf("剪线后应注册一次回包后的物品刷新，实得 %d", len(hctx.afterResponse))
+		t.Fatalf("剪线后应注册一次回包后的物品刷新, 实得 %d", len(hctx.afterResponse))
 	}
 	if got := lineLengthOfTestItem(t, srv, line.GUID); got != 38 {
-		t.Fatalf("剪线 12m 后主线长度=%d，期望 38", got)
+		t.Fatalf("剪线 12m 后主线长度=%d, 期望 38", got)
 	}
 	for _, guid := range []string{leader.GUID, hook.GUID, bobber.GUID} {
 		if row, _ := db.GetItemByGUID(ctx, guid); row != nil {
@@ -1137,7 +1137,7 @@ func TestCutLineLosesReportedMetersAndTerminalTackle(t *testing.T) {
 		t.Fatalf("剪线回包 f1 没有来源饵堆的顶层树 %s", bait.GUID)
 	}
 	if got := baitDigTreeQuantity(t, baitTree); got != baitQtyBeforeMount-1 {
-		t.Fatalf("剪线回包饵堆数量=%d，期望 %d", got, baitQtyBeforeMount-1)
+		t.Fatalf("剪线回包饵堆数量=%d, 期望 %d", got, baitQtyBeforeMount-1)
 	}
 	// 挂上钩组的饵是从整堆里拆出来的一份，剪线只损失装上去的那一份。
 	for slot, guid := range compsBefore {
@@ -1155,15 +1155,15 @@ func TestCutLineLosesReportedMetersAndTerminalTackle(t *testing.T) {
 	if err != nil || source == nil || source.Container != "backpack" {
 		t.Fatalf("剪线后来源饵堆应留在背包: %+v %v", source, err)
 	} else if got := srv.stackCountOf(ctx, source); got != baitQtyBeforeMount-1 {
-		t.Fatalf("剪线后来源饵数量=%d，期望 %d", got, baitQtyBeforeMount-1)
+		t.Fatalf("剪线后来源饵数量=%d, 期望 %d", got, baitQtyBeforeMount-1)
 	}
 	freshRod := mustItem(t, db, rod.GUID)
 	rodFields, _ := FieldsFromJSON(freshRod.FieldsJSON)
 	if i := fieldIdxByCS(freshRod.WireClass, csLine); i >= 0 && i < len(rodFields) && rodFields[i].GuidHex() != line.GUID {
-		t.Fatal("剪线保留主线，竿 f3 应仍指向主线")
+		t.Fatal("剪线保留主线, 竿 f3 应仍指向主线")
 	}
 	if comps := rigSlotGUIDs(t, srv, rod.GUID); comps[catLine] != line.GUID {
-		t.Fatal("剪线保留主线，rig_component 应仍挂主线")
+		t.Fatal("剪线保留主线, rig_component 应仍挂主线")
 	}
 	if _, hasHook := rigCompsOf(rigStoredF5(t, freshRod))[catHook]; hasHook {
 		t.Fatal("剪线后竿 f5 不应残留鱼钩")
@@ -1178,13 +1178,13 @@ func TestCutLineLosesReportedMetersAndTerminalTackle(t *testing.T) {
 		seen[entry.Event]++
 	}
 	if seen[damageEventLineCut] != 1 {
-		t.Fatalf("line_cut 记录=%d，期望 1；全部=%v", seen[damageEventLineCut], seen)
+		t.Fatalf("line_cut 记录=%d, 期望 1; 全部=%v", seen[damageEventLineCut], seen)
 	}
 	if seen[damageEventLostOnLineCut] < 4 {
-		t.Fatalf("lost_on_line_cut 记录=%d，期望至少 4（前导+钩+饵+漂）；全部=%v", seen[damageEventLostOnLineCut], seen)
+		t.Fatalf("lost_on_line_cut 记录=%d, 期望至少 4 (前导+钩+饵+漂); 全部=%v", seen[damageEventLostOnLineCut], seen)
 	}
 	if seen[damageEventLineBreak] != 0 {
-		t.Fatalf("剪线不能写 line_break；全部=%v", seen)
+		t.Fatalf("剪线不能写 line_break; 全部=%v", seen)
 	}
 	var lineBreaks int64
 	if err := db.SQL.QueryRow(`SELECT value FROM player_counters WHERE uid=? AND key='line_breaks'`, uid).Scan(&lineBreaks); err != nil && err != sql.ErrNoRows {
@@ -1246,10 +1246,10 @@ func TestCutLineExhaustsLineAndDeletesIt(t *testing.T) {
 		seen[entry.Event]++
 	}
 	if seen[damageEventLineCut] != 1 {
-		t.Fatalf("line_cut 记录=%d，期望 1；全部=%v", seen[damageEventLineCut], seen)
+		t.Fatalf("line_cut 记录=%d, 期望 1; 全部=%v", seen[damageEventLineCut], seen)
 	}
 	if seen[damageEventLineExhausted] != 1 {
-		t.Fatalf("line_exhausted 记录=%d，期望 1；全部=%v", seen[damageEventLineExhausted], seen)
+		t.Fatalf("line_exhausted 记录=%d, 期望 1; 全部=%v", seen[damageEventLineExhausted], seen)
 	}
 }
 
@@ -1336,7 +1336,7 @@ func TestCutLineWithZeroLengthRejectedInWater(t *testing.T) {
 		t.Fatal("17/10 零米剪线未回快照")
 	}
 	if got := lineLengthOfTestItem(t, srv, line.GUID); got != 50 {
-		t.Fatalf("零米剪线不应改变主线长度，实得 %d", got)
+		t.Fatalf("零米剪线不应改变主线长度, 实得 %d", got)
 	}
 	if row, _ := db.GetItemByGUID(ctx, hook.GUID); row == nil {
 		t.Fatal("零米剪线不应删除鱼钩")
@@ -1350,12 +1350,12 @@ func TestMainLineLossCategoriesCoverRigComponents(t *testing.T) {
 	for _, cat := range []int64{catHook, catLead, catLeaderLock, catWireLeader, catLure,
 		catBait, catFloat, 29, 31, 33, 35, 44, 47, 57, 18, 19, 20, 30, 38, 46} {
 		if !mainLineLossCategories[cat] {
-			t.Errorf("品类 %d 挂在线上，主线断了应随线丢失", cat)
+			t.Errorf("品类 %d 挂在线上, 主线断了应随线丢失", cat)
 		}
 	}
 	for _, cat := range []int64{catReel, catLine, 36, 56} {
 		if mainLineLossCategories[cat] {
-			t.Errorf("品类 %d 属于竿体/渔轮/主线本身，不应随线丢失", cat)
+			t.Errorf("品类 %d 属于竿体/渔轮/主线本身, 不应随线丢失", cat)
 		}
 	}
 }
@@ -1411,7 +1411,7 @@ func TestCutLineBottomRigDeletesSinkerAndReportsRemovals(t *testing.T) {
 	}
 	// f0 新增段必须为空：剪线不产生新物品。
 	if f0 := dec.Fields[0].Val; f0 != nil && len(f0.Items) > 0 {
-		t.Fatalf("剪线回包 f0 应为空，实得 %d 个新增物品", len(f0.Items))
+		t.Fatalf("剪线回包 f0 应为空, 实得 %d 个新增物品", len(f0.Items))
 	}
 	// f2 是移除清单，沉子和钩都要在里面。
 	removed := map[string]bool{}
@@ -1422,22 +1422,22 @@ func TestCutLineBottomRigDeletesSinkerAndReportsRemovals(t *testing.T) {
 	}
 	for _, guid := range []string{sinker.GUID, hook.GUID} {
 		if !removed[guid] {
-			t.Fatalf("剪线移除清单缺少 %s（沉子/钩应随线删除）", guid)
+			t.Fatalf("剪线移除清单缺少 %s (沉子/钩应随线删除)", guid)
 		}
 		if row, _ := db.GetItemByGUID(ctx, guid); row != nil {
-			t.Fatalf("剪线后 %s 应被删除，实得 container=%s rig=%s", guid, row.Container, row.RigGUID)
+			t.Fatalf("剪线后 %s 应被删除, 实得 container=%s rig=%s", guid, row.Container, row.RigGUID)
 		}
 	}
 	// 主线和渔轮留在竿上，主线扣 9 米。
 	if got := lineLengthOfTestItem(t, srv, line.GUID); got != 21 {
-		t.Fatalf("剪线 9m 后主线长度=%d，期望 21", got)
+		t.Fatalf("剪线 9m 后主线长度=%d, 期望 21", got)
 	}
 	if row, _ := db.GetItemByGUID(ctx, line.GUID); row == nil || row.Container != "rig" {
 		t.Fatalf("主线应仍挂在竿上: %+v", row)
 	}
 	// 竿和主线的更新走 f1。
 	if f1 := dec.Fields[1].Val; f1 == nil || len(f1.Items) < 2 {
-		t.Fatalf("剪线回包 f1 应有竿+主线更新，实得 %+v", f1)
+		t.Fatalf("剪线回包 f1 应有竿+主线更新, 实得 %+v", f1)
 	}
 	if reason := srv.dispatch.checkRegisteredResponse(17, 10, body, srv.Table()); reason != "" {
 		t.Fatalf("17/10 合同守卫误拒: %s", reason)
@@ -1476,7 +1476,7 @@ func TestCutLineSplitChildRefreshesSourceStack(t *testing.T) {
 	comps := rigSlotGUIDs(t, srv, rod.GUID)
 	mountedBait := comps[catBait]
 	if mountedBait == "" || mountedBait == bait.GUID {
-		t.Fatalf("逐份挂饵应拆出独立子实例，实得 %s", mountedBait)
+		t.Fatalf("逐份挂饵应拆出独立子实例, 实得 %s", mountedBait)
 	}
 	source, err := db.GetItemByGUID(ctx, bait.GUID)
 	if err != nil || source == nil {
@@ -1501,7 +1501,7 @@ func TestCutLineSplitChildRefreshesSourceStack(t *testing.T) {
 	if row, _ := db.GetItemByGUID(ctx, bait.GUID); row == nil || row.Container != "backpack" {
 		t.Fatalf("来源饵堆应留在背包: %+v", row)
 	} else if got := srv.stackCountOf(ctx, row); got != wantQty {
-		t.Fatalf("来源饵堆数量=%d，期望保持 %d", got, wantQty)
+		t.Fatalf("来源饵堆数量=%d, 期望保持 %d", got, wantQty)
 	}
 	if f1 := dec.Fields[1].Val; f1 == nil || !containsGUID(deepGUIDs(f1), bait.GUID) {
 		t.Fatalf("剪线回包 f1 缺少来源饵堆 %s", bait.GUID)

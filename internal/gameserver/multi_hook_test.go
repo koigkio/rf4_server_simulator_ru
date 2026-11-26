@@ -31,7 +31,7 @@ func TestMultiHookConfigDefaultsToSingleFish(t *testing.T) {
 		t.Fatal("multi_hook_bite 缺省应关闭")
 	}
 	if cfg.MaxTotal != 1 {
-		t.Fatalf("关闭时最多鱼数应为 1，得到 %d", cfg.MaxTotal)
+		t.Fatalf("关闭时最多鱼数应为 1, 得到 %d", cfg.MaxTotal)
 	}
 }
 
@@ -50,11 +50,11 @@ func TestMultiHookPullBudgetShrinksToBudget(t *testing.T) {
 		total += f.Force
 	}
 	if math.Abs(total-want) > 0.35 {
-		t.Fatalf("压缩后总拉力应约 %.2f N，得到 %.2f N", want, total)
+		t.Fatalf("压缩后总拉力应约 %.2f N, 得到 %.2f N", want, total)
 	}
 	// 1:2:3 的体重占比应保持
 	if math.Abs(fish[0].Force*3-fish[2].Force) > 0.5 {
-		t.Fatalf("应按体重占比分配，得到 %.3f / %.3f", fish[0].Force, fish[2].Force)
+		t.Fatalf("应按体重占比分配, 得到 %.3f / %.3f", fish[0].Force, fish[2].Force)
 	}
 }
 
@@ -68,7 +68,7 @@ func TestMultiHookPullBudgetLeavesRoomWhenUnder(t *testing.T) {
 	s.applyMultiHookPullBudget(fish, 100, 0.8)
 	for _, f := range fish {
 		if f.Force != 10 {
-			t.Fatalf("未超预算不应改写拉力，得到 %.3f", f.Force)
+			t.Fatalf("未超预算不应改写拉力, 得到 %.3f", f.Force)
 		}
 	}
 }
@@ -79,7 +79,7 @@ func TestMultiHookPullBudgetIgnoresSingleFish(t *testing.T) {
 	fish := []*RolledFish{{WeightG: 50000, Force: 500}}
 	s.applyMultiHookPullBudget(fish, 1, 0.8)
 	if fish[0].Force != 500 {
-		t.Fatalf("单鱼不应被压缩，得到 %.3f", fish[0].Force)
+		t.Fatalf("单鱼不应被压缩, 得到 %.3f", fish[0].Force)
 	}
 }
 
@@ -91,17 +91,17 @@ func TestPromoteExtraLockedAdvancesQueue(t *testing.T) {
 	st.Extra = []*RolledFish{a, b}
 
 	if got := promoteExtraLocked(st); got != a {
-		t.Fatalf("应提升队首，得到 %v", got)
+		t.Fatalf("应提升队首, 得到 %v", got)
 	}
 	if st.Pending != a || !st.PushSent || !st.Hooked || st.Resolved {
-		t.Fatalf("提升后状态不对：pending=%v pushSent=%v hooked=%v resolved=%v",
+		t.Fatalf("提升后状态不对: pending=%v pushSent=%v hooked=%v resolved=%v",
 			st.Pending == a, st.PushSent, st.Hooked, st.Resolved)
 	}
 	if !st.HoldMulti {
 		t.Fatal("队列里还有鱼时应保持 HoldMulti")
 	}
 	if got := promoteExtraLocked(st); got != b {
-		t.Fatalf("应提升第二条，得到 %v", got)
+		t.Fatalf("应提升第二条, 得到 %v", got)
 	}
 	if st.HoldMulti {
 		t.Fatal("队列空了以后应清掉 HoldMulti")
@@ -120,10 +120,10 @@ func TestExtraIndexByAnyGUID(t *testing.T) {
 		{FishGUID: "1111"}, {FishGUID: "2222"},
 	}}
 	if i := extraIndexByAnyGUID(st, []string{"rod-guid", "2222"}); i != 1 {
-		t.Fatalf("应在第 2 条命中，得到 %d", i)
+		t.Fatalf("应在第 2 条命中, 得到 %d", i)
 	}
 	if i := extraIndexByAnyGUID(st, []string{"rod-guid"}); i != -1 {
-		t.Fatalf("不匹配时应返回 -1，得到 %d", i)
+		t.Fatalf("不匹配时应返回 -1, 得到 %d", i)
 	}
 }
 
@@ -135,15 +135,15 @@ func TestRemoveExtraAt(t *testing.T) {
 	c := &RolledFish{FishGUID: "cc"}
 	st.Extra = []*RolledFish{a, b, c}
 	if got := removeExtraAt(st, 1); got != b {
-		t.Fatalf("应移除 bb，得到 %v", got)
+		t.Fatalf("应移除 bb, 得到 %v", got)
 	}
 	if len(st.Extra) != 2 || st.Extra[0] != a || st.Extra[1] != c {
-		t.Fatalf("移除后顺序不对：%v", st.Extra)
+		t.Fatalf("移除后顺序不对: %v", st.Extra)
 	}
 	removeExtraAt(st, 0)
 	removeExtraAt(st, 0)
 	if len(st.Extra) != 0 || st.HoldMulti {
-		t.Fatalf("清空后应无 HoldMulti，得到 len=%d hold=%v", len(st.Extra), st.HoldMulti)
+		t.Fatalf("清空后应无 HoldMulti, 得到 len=%d hold=%v", len(st.Extra), st.HoldMulti)
 	}
 }
 
@@ -168,10 +168,10 @@ func TestRepushPromotedAfterTakeoverResetsPushSent(t *testing.T) {
 	}
 
 	if got := srv.promoteAfterActiveGone(st); got != next {
-		t.Fatalf("应接管队首，得到 %v", got)
+		t.Fatalf("应接管队首, 得到 %v", got)
 	}
 	if !st.PushSent {
-		t.Fatal("提升后默认视为已推，避免旧路径重复派鱼")
+		t.Fatal("提升后默认视为已推, 避免旧路径重复派鱼")
 	}
 
 	// 没有通信通道，Push14_14 不会成功；此时 PushSent 必须落回 false，
@@ -182,7 +182,7 @@ func TestRepushPromotedAfterTakeoverResetsPushSent(t *testing.T) {
 	st.cancelPendingTimerLocked()
 	st.mu.Unlock()
 	if sent {
-		t.Fatal("推送未成功时不得保留 PushSent=true，否则客户端永远收不到这尾鱼")
+		t.Fatal("推送未成功时不得保留 PushSent=true, 否则客户端永远收不到这尾鱼")
 	}
 }
 
@@ -234,17 +234,17 @@ func TestReelInSettlesWholeMultiHookCatch(t *testing.T) {
 	hold := st.HoldMulti
 	st.mu.Unlock()
 	if extraLeft != 0 || hold {
-		t.Fatalf("收竿后多钩队列应清空且不再 HoldMulti，得到 extra=%d hold=%v", extraLeft, hold)
+		t.Fatalf("收竿后多钩队列应清空且不再 HoldMulti, 得到 extra=%d hold=%v", extraLeft, hold)
 	}
 	if batch != 2 {
-		t.Fatalf("收竿后应有 2 条待入护，得到 %d", batch)
+		t.Fatalf("收竿后应有 2 条待入护, 得到 %d", batch)
 	}
 	var logged int
 	if err := db.SQL.QueryRow(`SELECT COUNT(*) FROM catch_log WHERE uid=?`, uid).Scan(&logged); err != nil {
 		t.Fatal(err)
 	}
 	if logged != 3 {
-		t.Fatalf("三条鱼都应写入钓获记录，得到 %d", logged)
+		t.Fatalf("三条鱼都应写入钓获记录, 得到 %d", logged)
 	}
 
 	// 14/5 入护：主鱼的选择带着另外两条一起走。
@@ -257,7 +257,7 @@ func TestReelInSettlesWholeMultiHookCatch(t *testing.T) {
 		t.Fatal(err)
 	}
 	if kept != 3 {
-		t.Fatalf("三条鱼都应入护，得到 %d", kept)
+		t.Fatalf("三条鱼都应入护, 得到 %d", kept)
 	}
 }
 
@@ -286,14 +286,14 @@ func TestReelInWithoutHookDropsExtras(t *testing.T) {
 	extraLeft, batch := len(st.Extra), len(st.Batch)
 	st.mu.Unlock()
 	if extraLeft != 0 || batch != 0 {
-		t.Fatalf("未刺中收竿不应留下额外鱼，得到 extra=%d batch=%d", extraLeft, batch)
+		t.Fatalf("未刺中收竿不应留下额外鱼, 得到 extra=%d batch=%d", extraLeft, batch)
 	}
 	var logged int
 	if err := db.SQL.QueryRow(`SELECT COUNT(*) FROM catch_log WHERE uid=?`, uid).Scan(&logged); err != nil {
 		t.Fatal(err)
 	}
 	if logged != 0 {
-		t.Fatalf("未刺中不应产生钓获记录，得到 %d", logged)
+		t.Fatalf("未刺中不应产生钓获记录, 得到 %d", logged)
 	}
 }
 
@@ -336,20 +336,20 @@ func TestExtrasDeferredUntilStrike(t *testing.T) {
 	held := len(st.Extra)
 	st.mu.Unlock()
 	if held != 1 {
-		t.Fatalf("咬口阶段不该把额外鱼派掉，队列应剩 1 条，得到 %d", held)
+		t.Fatalf("咬口阶段不该把额外鱼派掉, 队列应剩 1 条, 得到 %d", held)
 	}
 
 	// 刺鱼确认后补派：应收到 14/14，且这条鱼要留在队列里等 14/4 结算。
 	s.pushExtrasAtStrike(sess, st, gear, 0, gen)
 	env := awaitPushEnvelope(t, gc)
 	if env.Main != 14 || env.Sub != 14 {
-		t.Fatalf("应补派 14/14，得到 %d/%d", env.Main, env.Sub)
+		t.Fatalf("应补派 14/14, 得到 %d/%d", env.Main, env.Sub)
 	}
 	st.mu.Lock()
 	left := len(st.Extra)
 	st.mu.Unlock()
 	if left != 1 {
-		t.Fatalf("派发成功的额外鱼应留在队列等结算，得到 %d", left)
+		t.Fatalf("派发成功的额外鱼应留在队列等结算, 得到 %d", left)
 	}
 }
 
@@ -372,10 +372,10 @@ func TestRejectedExtraKeepsCatchWhenDeferred(t *testing.T) {
 
 	// 客户端拒收后不再重派实体，但这条鱼必须还留在队列里等 14/4 结算。
 	if got := len(st.Extra); got != 1 {
-		t.Fatalf("拒收应保留队列，得到 %d", got)
+		t.Fatalf("拒收应保留队列, 得到 %d", got)
 	}
 	if !st.Extra[0].NoEntity {
-		t.Fatal("应标记 NoEntity，避免重派死循环")
+		t.Fatal("应标记 NoEntity, 避免重派死循环")
 	}
 }
 
@@ -409,7 +409,7 @@ func TestExtrasNotPushedByDefault(t *testing.T) {
 	}()
 	select {
 	case env := <-got:
-		t.Fatalf("默认不应给客户端推包，收到 %d/%d", env.Main, env.Sub)
+		t.Fatalf("默认不应给客户端推包, 收到 %d/%d", env.Main, env.Sub)
 	case <-time.After(300 * time.Millisecond):
 	}
 
@@ -417,7 +417,7 @@ func TestExtrasNotPushedByDefault(t *testing.T) {
 	left := len(st.Extra)
 	st.mu.Unlock()
 	if left != 1 {
-		t.Fatalf("不派实体也必须把鱼留在队列等 14/4 结算，得到 %d", left)
+		t.Fatalf("不派实体也必须把鱼留在队列等 14/4 结算, 得到 %d", left)
 	}
 }
 
@@ -426,11 +426,11 @@ func TestExtrasNotPushedByDefault(t *testing.T) {
 func TestMultiHookKeepChatText(t *testing.T) {
 	t.Parallel()
 	got := multiHookKeepChat([]*store.KeepnetEntry{{WeightG: 2794}, {WeightG: 2178}, {WeightG: 627}})
-	if !strings.Contains(got, "另入护 3 尾") || !strings.Contains(got, "合计 5.60 kg") {
-		t.Fatalf("播报文案不符，得到 %q", got)
+	if !strings.Contains(got, "ещё 3 рыб") || !strings.Contains(got, "итого 5.60 kg") {
+		t.Fatalf("播报文案不符, 得到 %q", got)
 	}
-	if got := multiHookKeepChat(nil); !strings.Contains(got, "0 尾") || !strings.Contains(got, "0.00 kg") {
-		t.Fatalf("空列表也要给出确定文案，得到 %q", got)
+	if got := multiHookKeepChat(nil); !strings.Contains(got, "ещё 0 рыб") || !strings.Contains(got, "0.00 kg") {
+		t.Fatalf("空列表也要给出确定文案, 得到 %q", got)
 	}
 }
 
@@ -442,15 +442,15 @@ func TestExtraFishCapKgAppliesDecayAndRemainingBudget(t *testing.T) {
 	budget := 5.0 // kg
 	// 第一条：0.6^1 × 0.35 × 5 = 1.05
 	if got, ok := extraFishCapKg(cfg, budget, 1.0, 0, 1); !ok || math.Abs(got-1.05) > 1e-9 {
-		t.Fatalf("第一条上限 = %v ok=%v，期望 1.05", got, ok)
+		t.Fatalf("第一条上限 = %v ok=%v, 期望 1.05", got, ok)
 	}
 	// 第二条：0.6^2 × 0.35 × 5 = 0.63
 	if got, ok := extraFishCapKg(cfg, budget, 1.0, 1.0, 2); !ok || math.Abs(got-0.63) > 1e-9 {
-		t.Fatalf("第二条上限 = %v ok=%v，期望 0.63", got, ok)
+		t.Fatalf("第二条上限 = %v ok=%v, 期望 0.63", got, ok)
 	}
 	// 剩余预算比计算值小：上限被剩余预算压低。
 	if got, ok := extraFishCapKg(cfg, budget, 4.5, 0, 1); !ok || math.Abs(got-0.5) > 1e-9 {
-		t.Fatalf("剩余预算 0.5kg 时上限 = %v ok=%v，期望 0.5", got, ok)
+		t.Fatalf("剩余预算 0.5kg 时上限 = %v ok=%v, 期望 0.5", got, ok)
 	}
 	// 剩余预算不足 0.2kg：不再出下一条。
 	if _, ok := extraFishCapKg(cfg, budget, 4.9, 0, 1); ok {
@@ -461,7 +461,7 @@ func TestExtraFishCapKgAppliesDecayAndRemainingBudget(t *testing.T) {
 	first, _ := extraFishCapKg(flat, 100, 0, 0, 1)
 	second, _ := extraFishCapKg(flat, 100, 0, 0, 2)
 	if math.Abs(first-second) > 1e-9 {
-		t.Fatalf("α=1 时上限应一致，得到 %v / %v", first, second)
+		t.Fatalf("α=1 时上限应一致, 得到 %v / %v", first, second)
 	}
 }
 
@@ -469,7 +469,7 @@ func TestExtraFishCapKgAppliesDecayAndRemainingBudget(t *testing.T) {
 func TestExtraFishCapKgUnlimitedWithoutBudget(t *testing.T) {
 	t.Parallel()
 	if got, ok := extraFishCapKg(multiHookConfig{SizeDecay: 0.6}, 0, 0, 0, 1); !ok || got != 0 {
-		t.Fatalf("无预算信息应返回 (0,true)，得到 (%v,%v)", got, ok)
+		t.Fatalf("无预算信息应返回 (0,true), 得到 (%v,%v)", got, ok)
 	}
 }
 
@@ -484,7 +484,7 @@ func TestMultiHookMaxOneKeepsSingleFish(t *testing.T) {
 		t.Fatal("multi_hook_bite=1 时应启用")
 	}
 	if cfg.MaxTotal != 1 {
-		t.Fatalf("multi_hook_max=1 时最多鱼数应为 1，得到 %d", cfg.MaxTotal)
+		t.Fatalf("multi_hook_max=1 时最多鱼数应为 1, 得到 %d", cfg.MaxTotal)
 	}
 }
 
@@ -497,7 +497,7 @@ func TestRollExtraFishForRigOffByDefault(t *testing.T) {
 	got := s.rollExtraFishForRig(t.Context(), 1000001, rod, "loc12_15", "worm_01",
 		fishingSkillBonus{}, fishRollContext{}, &RolledFish{WeightG: 1000}, s.multiHookConfig())
 	if len(got) != 0 {
-		t.Fatalf("关闭时不应出额外鱼，得到 %d 条", len(got))
+		t.Fatalf("关闭时不应出额外鱼, 得到 %d 条", len(got))
 	}
 }
 
@@ -512,16 +512,16 @@ func TestExtraGift811LinesMergesSameSource(t *testing.T) {
 	}
 	lines := extraGift811Lines(results)
 	if len(lines) != 2 {
-		t.Fatalf("应合并成 2 行（升级 + 稀有鱼），得到 %d 行", len(lines))
+		t.Fatalf("应合并成 2 行 (升级 + 稀有鱼), 得到 %d 行", len(lines))
 	}
 	if lines[0].source != giftSourceNewLevel || lines[0].param != 15 || len(lines[0].items) != 2 {
-		t.Fatalf("升级行 = %+v，期望 param=15 且 2 件", lines[0])
+		t.Fatalf("升级行 = %+v, 期望 param=15 且 2 件", lines[0])
 	}
 	if lines[1].source != giftSourceTrophyCountReached || lines[1].param != 3 {
-		t.Fatalf("稀有鱼行 = %+v，期望 param=3", lines[1])
+		t.Fatalf("稀有鱼行 = %+v, 期望 param=3", lines[1])
 	}
 	if got := extraGift811Lines(nil); len(got) != 0 {
-		t.Fatalf("没有额外鱼时不应有礼物行，得到 %d", len(got))
+		t.Fatalf("没有额外鱼时不应有礼物行, 得到 %d", len(got))
 	}
 }
 
@@ -546,7 +546,7 @@ func TestSettleExtraOnReelInConsumesBait(t *testing.T) {
 		return row.Container == "rig" && row.Qty > 0
 	}
 	if !mountedBait() {
-		t.Fatal("前置条件：饵应挂在钓组上")
+		t.Fatal("前置条件: 饵应挂在钓组上")
 	}
 
 	sess := newProbeSess(s)
@@ -577,6 +577,6 @@ func TestSettleExtraOnReelInConsumesBait(t *testing.T) {
 	settled := len(st.Batch)
 	st.mu.Unlock()
 	if settled != 1 {
-		t.Fatalf("额外鱼应进 Batch，得到 %d", settled)
+		t.Fatalf("额外鱼应进 Batch, 得到 %d", settled)
 	}
 }

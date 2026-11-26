@@ -51,7 +51,7 @@ func TestRodSetSpeedPersists17_15(t *testing.T) {
 		t.Fatal("竿实例 f5 缺失")
 	}
 	if got := u32Of(fields[idx].Val.Field(7).Num); got != 41 {
-		t.Fatalf("f5.f7 收线速度=%d，期望 41", got)
+		t.Fatalf("f5.f7 收线速度=%d, 期望 41", got)
 	}
 
 	st := srv.stateFor(testUID)
@@ -59,7 +59,7 @@ func TestRodSetSpeedPersists17_15(t *testing.T) {
 	speed := st.ReelSetting
 	st.mu.Unlock()
 	if speed != 41 {
-		t.Fatalf("会话收线速度=%d，期望 41", speed)
+		t.Fatalf("会话收线速度=%d, 期望 41", speed)
 	}
 }
 
@@ -85,7 +85,7 @@ func TestRodSetSpeedRejectsForeignRod(t *testing.T) {
 		t.Fatalf("外玩家竿被写入收线速度: got=%q err=%v", got, err)
 	}
 	if field := storedRigField(t, db, rod.GUID, 7); field != 15 {
-		t.Fatalf("外玩家竿 f5.f7 被改成 %d，期望保持默认 15", field)
+		t.Fatalf("外玩家竿 f5.f7 被改成 %d, 期望保持默认 15", field)
 	}
 	st := srv.stateFor(attacker.Userid)
 	st.mu.Lock()
@@ -118,7 +118,7 @@ func TestRodSetDragRejectsForeignRod(t *testing.T) {
 		t.Fatalf("外玩家竿被写入摩擦档位: got=%q err=%v", got, err)
 	}
 	if field := storedRigField(t, db, rod.GUID, 6); field != 15 {
-		t.Fatalf("外玩家竿 f5.f6 被改成 %d，期望保持默认 15", field)
+		t.Fatalf("外玩家竿 f5.f6 被改成 %d, 期望保持默认 15", field)
 	}
 }
 
@@ -142,7 +142,7 @@ func TestCastPrepareDefaultsReelSpeedWithoutSavedSetting(t *testing.T) {
 	speed := st.ReelSetting
 	st.mu.Unlock()
 	if speed != 15 {
-		t.Fatalf("无保存记录时会话速度=%d，期望与新竿默认值一致（15）", speed)
+		t.Fatalf("无保存记录时会话速度=%d, 期望与新竿默认值一致 (15)", speed)
 	}
 }
 
@@ -172,10 +172,10 @@ func TestBuildRig153LikePreservesReelSettings(t *testing.T) {
 
 	got := buildRig153Like(src, "rig_Lure", 5, nil, 0, 0)
 	if drag := u32Of(got.Field(6).Num); drag != 24 {
-		t.Fatalf("重建钓组把摩擦档位冲成 %d，期望 24", drag)
+		t.Fatalf("重建钓组把摩擦档位冲成 %d, 期望 24", drag)
 	}
 	if speed := u32Of(got.Field(7).Num); speed != 41 {
-		t.Fatalf("重建钓组把收线速度冲成 %d，期望 41", speed)
+		t.Fatalf("重建钓组把收线速度冲成 %d, 期望 41", speed)
 	}
 }
 
@@ -198,9 +198,9 @@ func TestDefaultRig153RestoresSavedReelSettings(t *testing.T) {
 	}
 	rig := srv.defaultRig153(ctx, row)
 	if drag := u32Of(rig.Field(6).Num); drag != 24 {
-		t.Fatalf("缺失 f5 时摩擦档位=%d，期望 24", drag)
+		t.Fatalf("缺失 f5 时摩擦档位=%d, 期望 24", drag)
 	}
 	if speed := u32Of(rig.Field(7).Num); speed != 41 {
-		t.Fatalf("缺失 f5 时收线速度=%d，期望 41", speed)
+		t.Fatalf("缺失 f5 时收线速度=%d, 期望 41", speed)
 	}
 }

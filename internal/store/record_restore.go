@@ -114,7 +114,7 @@ func (d *DB) BackupRecords(ctx context.Context) (string, error) {
 			NewBackup(string) (*sqlite.Backup, error)
 		})
 		if !ok {
-			return fmt.Errorf("SQLite 在线备份不可用")
+			return fmt.Errorf("SQLite Онлайн-резервное копирование недоступно")
 		}
 		abs, err := filepath.Abs(path)
 		if err != nil {
@@ -163,7 +163,7 @@ func (d *DB) RestoreFishRecords(ctx context.Context, admin string, uid int64, le
 			return err
 		}
 		if count == 0 || r.Grade < 0 || r.Grade > 4 || (r.Grade > 0 && (r.WeightG <= 0 || r.LengthM <= 0)) {
-			return fmt.Errorf("无效鱼种记录：%s", r.FishKey)
+			return fmt.Errorf("Неверная запись вида рыбы: %s", r.FishKey)
 		}
 		if _, err := tx.ExecContext(ctx, `DELETE FROM catch_log WHERE uid=? AND fish_key=? AND (loc_level=? OR loc=? OR loc=?) AND source IN ('admin_record_restore','official_restore_console')`, uid, r.FishKey, level, level, loc); err != nil {
 			return err

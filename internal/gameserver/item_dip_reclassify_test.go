@@ -51,7 +51,7 @@ func TestReclassifyDipFromFallback(t *testing.T) {
 		t.Skip("静态库缺 dip_hvz_se 定义: ", err)
 	}
 	if def.Category != 58 {
-		t.Fatalf("dip_hvz_se 品类 = %d，期望 58", def.Category)
+		t.Fatalf("dip_hvz_se 品类 = %d, 期望 58", def.Category)
 	}
 
 	guid := "00112233445566778899aabbccddee01"
@@ -76,36 +76,36 @@ func TestReclassifyDipFromFallback(t *testing.T) {
 		t.Fatal("改写后读取失败: ", err)
 	}
 	if fresh.WireClass != "bpmmimcmpof" || fresh.TypeID != 721 {
-		t.Fatalf("改写后 = %s/%d，期望 bpmmimcmpof/721", fresh.WireClass, fresh.TypeID)
+		t.Fatalf("改写后 = %s/%d, 期望 bpmmimcmpof/721", fresh.WireClass, fresh.TypeID)
 	}
 	if fresh.Qty != 100 {
-		t.Fatalf("行数量 = %d，期望 100", fresh.Qty)
+		t.Fatalf("行数量 = %d, 期望 100", fresh.Qty)
 	}
 	fields, err := FieldsFromJSON(fresh.FieldsJSON)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if len(fields) != len(wiregen.ClassOps["bpmmimcmpof"]) {
-		t.Fatalf("字段数 = %d，期望 %d", len(fields), len(wiregen.ClassOps["bpmmimcmpof"]))
+		t.Fatalf("字段数 = %d, 期望 %d", len(fields), len(wiregen.ClassOps["bpmmimcmpof"]))
 	}
 	if got := u64Of(fields[fieldIdxByCS("bpmmimcmpof", "dnmfciolgep")].Num); got != 100 {
-		t.Errorf("f13 dnmfciolgep = %d，期望 100", got)
+		t.Errorf("f13 dnmfciolgep = %d, 期望 100", got)
 	}
 	if got := u64Of(fields[fieldIdxByCS("bpmmimcmpof", csQty)].Num); got != 100 {
-		t.Errorf("f1 ljnnpokapig（UI 计数）= %d，期望 100", got)
+		t.Errorf("f1 ljnnpokapig (UI 计数)= %d, 期望 100", got)
 	}
 	if f := fields[fieldIdxByCS("bpmmimcmpof", "hmfmpbemjkg")]; f.Hex != "" || f.Num != nil {
-		t.Errorf("f0 hmfmpbemjkg（父实例 guid）应为空: %+v", f)
+		t.Errorf("f0 hmfmpbemjkg (父实例 guid)应为空: %+v", f)
 	}
 	if got := u64Of(fields[fieldIdxByCS("bpmmimcmpof", csNumericID)].Num); got != 5136 {
-		t.Errorf("numeric id = %d，期望 5136", got)
+		t.Errorf("numeric id = %d, 期望 5136", got)
 	}
 	if fields[fieldIdxByCS("bpmmimcmpof", csGUID)].Hex != guid {
 		t.Errorf("guid 未保留: %s", fields[fieldIdxByCS("bpmmimcmpof", csGUID)].Hex)
 	}
 	if bits, ok := defAttrU64(def, csStateEnum); ok {
 		if got := u64Of(fields[fieldIdxByCS("bpmmimcmpof", csStateEnum)].Num); got != bits {
-			t.Errorf("状态位 = %d，期望定义值 %d", got, bits)
+			t.Errorf("状态位 = %d, 期望定义值 %d", got, bits)
 		}
 	}
 }
@@ -121,7 +121,7 @@ func TestReclassifyRodPodFromFallback(t *testing.T) {
 		t.Skip("静态库缺 rod_pod_03r 定义: ", err)
 	}
 	if def.Category != 79 {
-		t.Fatalf("rod_pod_03r 品类 = %d，期望 79", def.Category)
+		t.Fatalf("rod_pod_03r 品类 = %d, 期望 79", def.Category)
 	}
 
 	guid := "00112233445566778899aabbccddee02"
@@ -145,7 +145,7 @@ func TestReclassifyRodPodFromFallback(t *testing.T) {
 		t.Fatal("改写后读取失败: ", err)
 	}
 	if fresh.WireClass != "abmokghdbhf" || fresh.TypeID != 11500 {
-		t.Fatalf("改写后 = %s/%d，期望 abmokghdbhf/11500", fresh.WireClass, fresh.TypeID)
+		t.Fatalf("改写后 = %s/%d, 期望 abmokghdbhf/11500", fresh.WireClass, fresh.TypeID)
 	}
 	// 竿架不可堆叠：数量槽保持零值，不得误写。
 	fields, err := FieldsFromJSON(fresh.FieldsJSON)
@@ -153,7 +153,7 @@ func TestReclassifyRodPodFromFallback(t *testing.T) {
 		t.Fatal(err)
 	}
 	if got := u64Of(fields[fieldIdxByCS("abmokghdbhf", "dnmfciolgep")].Num); got != 0 {
-		t.Errorf("不可堆叠竿架 f13 应为 0，实得 %d", got)
+		t.Errorf("不可堆叠竿架 f13 应为 0, 实得 %d", got)
 	}
 }
 
@@ -172,23 +172,23 @@ func TestPrepareNewDipUsesFamilyClass(t *testing.T) {
 		t.Fatal(err)
 	}
 	if it.WireClass != "bpmmimcmpof" || it.TypeID != 721 {
-		t.Fatalf("新购实例 = %s/%d，期望 bpmmimcmpof/721", it.WireClass, it.TypeID)
+		t.Fatalf("新购实例 = %s/%d, 期望 bpmmimcmpof/721", it.WireClass, it.TypeID)
 	}
 	if it.Qty != 100 {
-		t.Fatalf("新购数量 = %d，期望定义份数 100", it.Qty)
+		t.Fatalf("新购数量 = %d, 期望定义份数 100", it.Qty)
 	}
 	fields, err := FieldsFromJSON(it.FieldsJSON)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if got := u64Of(fields[fieldIdxByCS("bpmmimcmpof", "dnmfciolgep")].Num); got != 100 {
-		t.Errorf("f13 dnmfciolgep = %d，期望 100", got)
+		t.Errorf("f13 dnmfciolgep = %d, 期望 100", got)
 	}
 	if got := u64Of(fields[fieldIdxByCS("bpmmimcmpof", csQty)].Num); got != 100 {
-		t.Errorf("f1 ljnnpokapig = %d，期望 100", got)
+		t.Errorf("f1 ljnnpokapig = %d, 期望 100", got)
 	}
 	if f := fields[fieldIdxByCS("bpmmimcmpof", "hmfmpbemjkg")]; f.Hex != "" || f.Num != nil {
-		t.Errorf("f0 hmfmpbemjkg（父实例 guid）应为空: %+v", f)
+		t.Errorf("f0 hmfmpbemjkg (父实例 guid)应为空: %+v", f)
 	}
 }
 
@@ -206,7 +206,7 @@ func TestReclassifyDipFromRodPodVariant(t *testing.T) {
 		t.Skip("静态库缺 dip_hvz_tf 定义: ", err)
 	}
 	if def.Category != 58 {
-		t.Fatalf("dip_hvz_tf 品类 = %d，期望 58", def.Category)
+		t.Fatalf("dip_hvz_tf 品类 = %d, 期望 58", def.Category)
 	}
 
 	guid := "00112233445566778899aabbccddee03"
@@ -248,20 +248,20 @@ func TestReclassifyDipFromRodPodVariant(t *testing.T) {
 		t.Fatal("迁移后读取失败: ", err)
 	}
 	if fresh.WireClass != "bpmmimcmpof" || fresh.TypeID != 721 {
-		t.Fatalf("迁移后 = %s/%d，期望 bpmmimcmpof/721", fresh.WireClass, fresh.TypeID)
+		t.Fatalf("迁移后 = %s/%d, 期望 bpmmimcmpof/721", fresh.WireClass, fresh.TypeID)
 	}
 	if fresh.Qty != 100 {
-		t.Fatalf("迁移后行数量 = %d，期望 100", fresh.Qty)
+		t.Fatalf("迁移后行数量 = %d, 期望 100", fresh.Qty)
 	}
 	mf, err := FieldsFromJSON(fresh.FieldsJSON)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if got := u64Of(mf[fieldIdxByCS("bpmmimcmpof", "dnmfciolgep")].Num); got != 100 {
-		t.Errorf("f13 dnmfciolgep = %d，期望 100", got)
+		t.Errorf("f13 dnmfciolgep = %d, 期望 100", got)
 	}
 	if got := u64Of(mf[fieldIdxByCS("bpmmimcmpof", csQty)].Num); got != 100 {
-		t.Errorf("f1 ljnnpokapig = %d，期望 100", got)
+		t.Errorf("f1 ljnnpokapig = %d, 期望 100", got)
 	}
 }
 
@@ -279,7 +279,7 @@ func TestReclassifyFlavorFromFallback(t *testing.T) {
 		t.Skip("静态库缺 fplt_hvz_bcp8 定义: ", err)
 	}
 	if def.Category != 19 {
-		t.Fatalf("fplt_hvz_bcp8 品类 = %d，期望 19", def.Category)
+		t.Fatalf("fplt_hvz_bcp8 品类 = %d, 期望 19", def.Category)
 	}
 
 	guid := "00112233445566778899aabbccddee04"
@@ -304,37 +304,37 @@ func TestReclassifyFlavorFromFallback(t *testing.T) {
 		t.Fatal("迁移后读取失败: ", err)
 	}
 	if fresh.WireClass != "deckldefiap" || fresh.TypeID != 125 {
-		t.Fatalf("迁移后 = %s/%d，期望 deckldefiap/125", fresh.WireClass, fresh.TypeID)
+		t.Fatalf("迁移后 = %s/%d, 期望 deckldefiap/125", fresh.WireClass, fresh.TypeID)
 	}
 	if fresh.Qty != 50 {
-		t.Fatalf("迁移后行数量 = %d，期望 50", fresh.Qty)
+		t.Fatalf("迁移后行数量 = %d, 期望 50", fresh.Qty)
 	}
 	fields, err := FieldsFromJSON(fresh.FieldsJSON)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if len(fields) != len(wiregen.ClassOps["deckldefiap"]) {
-		t.Fatalf("字段数 = %d，期望 %d", len(fields), len(wiregen.ClassOps["deckldefiap"]))
+		t.Fatalf("字段数 = %d, 期望 %d", len(fields), len(wiregen.ClassOps["deckldefiap"]))
 	}
 	if got := u64Of(fields[fieldIdxByCS("deckldefiap", "dnmfciolgep")].Num); got != 50 {
-		t.Errorf("f14 dnmfciolgep（权威数量）= %d，期望 50", got)
+		t.Errorf("f14 dnmfciolgep (权威数量)= %d, 期望 50", got)
 	}
 	if got := u64Of(fields[fieldIdxByCS("deckldefiap", csQty)].Num); got != 50 {
-		t.Errorf("f2 ljnnpokapig（总数镜像）= %d，期望 50", got)
+		t.Errorf("f2 ljnnpokapig (总数镜像)= %d, 期望 50", got)
 	}
 	if got := u64Of(fields[fieldIdxByCS("deckldefiap", csNumericID)].Num); got != uint64(def.NumericID) {
-		t.Errorf("numeric id = %d，期望 %d", got, def.NumericID)
+		t.Errorf("numeric id = %d, 期望 %d", got, def.NumericID)
 	}
 	if fields[fieldIdxByCS("deckldefiap", csGUID)].Hex != guid {
 		t.Errorf("guid 未保留: %s", fields[fieldIdxByCS("deckldefiap", csGUID)].Hex)
 	}
 	if bits, ok := defAttrU64(def, csStateEnum); ok {
 		if got := u64Of(fields[fieldIdxByCS("deckldefiap", csStateEnum)].Num); got != bits {
-			t.Errorf("状态位 = %d，期望定义值 %d", got, bits)
+			t.Errorf("状态位 = %d, 期望定义值 %d", got, bits)
 		}
 	}
 	if idx := fieldIdxByCS("deckldefiap", "ninlajclahd"); idx >= 0 {
-		t.Errorf("deckldefiap 不应携带 ninlajclahd（该属性在 def 模板上）")
+		t.Errorf("deckldefiap 不应携带 ninlajclahd (该属性在 def 模板上)")
 	}
 }
 
@@ -401,17 +401,17 @@ func TestReclassifyFlavorFromGroundbaitClass(t *testing.T) {
 		t.Fatal("迁移后读取失败: ", err)
 	}
 	if fresh.WireClass != "deckldefiap" || fresh.TypeID != 125 {
-		t.Fatalf("迁移后 = %s/%d，期望 deckldefiap/125", fresh.WireClass, fresh.TypeID)
+		t.Fatalf("迁移后 = %s/%d, 期望 deckldefiap/125", fresh.WireClass, fresh.TypeID)
 	}
 	if fresh.Qty != 1 {
-		t.Fatalf("迁移后行数量 = %d，期望 1", fresh.Qty)
+		t.Fatalf("迁移后行数量 = %d, 期望 1", fresh.Qty)
 	}
 	fields, err := FieldsFromJSON(fresh.FieldsJSON)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if got := u64Of(fields[fieldIdxByCS("deckldefiap", "dnmfciolgep")].Num); got != 1 {
-		t.Errorf("f14 dnmfciolgep = %d，期望 1", got)
+		t.Errorf("f14 dnmfciolgep = %d, 期望 1", got)
 	}
 
 	// 对照：同为 cat 19 的 feedadds_* 条目也必须迁离窝料类。
@@ -440,7 +440,7 @@ func TestReclassifyFlavorFromGroundbaitClass(t *testing.T) {
 		t.Fatal("迁移后读取失败: ", err)
 	}
 	if afresh.WireClass != "deckldefiap" || afresh.TypeID != 125 {
-		t.Fatalf("添加剂迁移后 = %s/%d，期望 deckldefiap/125", afresh.WireClass, afresh.TypeID)
+		t.Fatalf("添加剂迁移后 = %s/%d, 期望 deckldefiap/125", afresh.WireClass, afresh.TypeID)
 	}
 }
 
@@ -460,10 +460,10 @@ func TestPrepareNewFlavorUsesFlavorClass(t *testing.T) {
 		t.Fatal(err)
 	}
 	if it.WireClass != "deckldefiap" || it.TypeID != 125 {
-		t.Fatalf("新购实例 = %s/%d，期望 deckldefiap/125", it.WireClass, it.TypeID)
+		t.Fatalf("新购实例 = %s/%d, 期望 deckldefiap/125", it.WireClass, it.TypeID)
 	}
 	if it.Qty != 1 {
-		t.Fatalf("散买数量 = %d，期望 1", it.Qty)
+		t.Fatalf("散买数量 = %d, 期望 1", it.Qty)
 	}
 	// 礼盒拆包路径：units=50（box_*_50），数量 = 1×50。
 	box, err := srv.prepareNewItem(ctx, 1000004, "fplt_hvz_bcp5", "backpack", 50, "")
@@ -471,20 +471,20 @@ func TestPrepareNewFlavorUsesFlavorClass(t *testing.T) {
 		t.Fatal(err)
 	}
 	if box.Qty != 50 {
-		t.Fatalf("礼盒拆包数量 = %d，期望 50", box.Qty)
+		t.Fatalf("礼盒拆包数量 = %d, 期望 50", box.Qty)
 	}
 	fields, err := FieldsFromJSON(box.FieldsJSON)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if got := u64Of(fields[fieldIdxByCS("deckldefiap", "dnmfciolgep")].Num); got != 50 {
-		t.Errorf("f14 dnmfciolgep = %d，期望 50", got)
+		t.Errorf("f14 dnmfciolgep = %d, 期望 50", got)
 	}
 	if got := u64Of(fields[fieldIdxByCS("deckldefiap", csQty)].Num); got != 50 {
-		t.Errorf("f2 ljnnpokapig = %d，期望 50", got)
+		t.Errorf("f2 ljnnpokapig = %d, 期望 50", got)
 	}
 	if got := u64Of(fields[fieldIdxByCS("deckldefiap", csStateEnum)].Num); got != 21248 {
-		t.Errorf("f11 hgaijieklek = %d，期望定义值 21248", got)
+		t.Errorf("f11 hgaijieklek = %d, 期望定义值 21248", got)
 	}
 	if fields[fieldIdxByCS("deckldefiap", csGUID)].Hex != box.GUID {
 		t.Errorf("guid 未写入实例 guid 槽: %s", fields[fieldIdxByCS("deckldefiap", csGUID)].Hex)
@@ -498,7 +498,7 @@ func TestPrepareNewFlavorUsesFlavorClass(t *testing.T) {
 		t.Fatal(err)
 	}
 	if add.WireClass != "deckldefiap" || add.TypeID != 125 {
-		t.Fatalf("添加剂实例 = %s/%d，期望 deckldefiap/125", add.WireClass, add.TypeID)
+		t.Fatalf("添加剂实例 = %s/%d, 期望 deckldefiap/125", add.WireClass, add.TypeID)
 	}
 }
 
@@ -545,7 +545,7 @@ func TestReclassifyAdditiveFromFlavorClass(t *testing.T) {
 		t.Skip("静态库缺 aroma_mint 定义: ", err)
 	}
 	if def.Category != 20 {
-		t.Fatalf("aroma_mint 品类 = %d，期望 20", def.Category)
+		t.Fatalf("aroma_mint 品类 = %d, 期望 20", def.Category)
 	}
 
 	guid := "00112233445566778899aabbccddee07"
@@ -569,20 +569,20 @@ func TestReclassifyAdditiveFromFlavorClass(t *testing.T) {
 		t.Fatal("迁移后读取失败: ", err)
 	}
 	if fresh.WireClass != "dpghngjmnap" || fresh.TypeID != 126 {
-		t.Fatalf("迁移后 = %s/%d，期望 dpghngjmnap/126", fresh.WireClass, fresh.TypeID)
+		t.Fatalf("迁移后 = %s/%d, 期望 dpghngjmnap/126", fresh.WireClass, fresh.TypeID)
 	}
 	fields, err := FieldsFromJSON(fresh.FieldsJSON)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if len(fields) != len(wiregen.ClassOps["dpghngjmnap"]) {
-		t.Fatalf("字段数 = %d，期望 %d", len(fields), len(wiregen.ClassOps["dpghngjmnap"]))
+		t.Fatalf("字段数 = %d, 期望 %d", len(fields), len(wiregen.ClassOps["dpghngjmnap"]))
 	}
 	if got := u64Of(fields[fieldIdxByCS("dpghngjmnap", "dnmfciolgep")].Num); got != 5 {
-		t.Errorf("f12 dnmfciolgep = %d，期望 5", got)
+		t.Errorf("f12 dnmfciolgep = %d, 期望 5", got)
 	}
 	if got := u64Of(fields[fieldIdxByCS("dpghngjmnap", csQty)].Num); got != 5 {
-		t.Errorf("f0 ljnnpokapig = %d，期望 5", got)
+		t.Errorf("f0 ljnnpokapig = %d, 期望 5", got)
 	}
 	if fields[fieldIdxByCS("dpghngjmnap", csGUID)].Hex != guid {
 		t.Errorf("guid 未保留: %s", fields[fieldIdxByCS("dpghngjmnap", csGUID)].Hex)
@@ -603,21 +603,21 @@ func TestPrepareNewAdditiveUsesAdditiveClass(t *testing.T) {
 		t.Fatal(err)
 	}
 	if it.WireClass != "dpghngjmnap" || it.TypeID != 126 {
-		t.Fatalf("新购实例 = %s/%d，期望 dpghngjmnap/126", it.WireClass, it.TypeID)
+		t.Fatalf("新购实例 = %s/%d, 期望 dpghngjmnap/126", it.WireClass, it.TypeID)
 	}
 	// def ljnnpokapig=5：单件即含 5 份（线上 aroma_mint 行 qty=5 的来源）。
 	if it.Qty != 5 {
-		t.Fatalf("数量 = %d，期望 5", it.Qty)
+		t.Fatalf("数量 = %d, 期望 5", it.Qty)
 	}
 	fields, err := FieldsFromJSON(it.FieldsJSON)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if got := u64Of(fields[fieldIdxByCS("dpghngjmnap", "dnmfciolgep")].Num); got != 5 {
-		t.Errorf("f12 dnmfciolgep = %d，期望 5", got)
+		t.Errorf("f12 dnmfciolgep = %d, 期望 5", got)
 	}
 	if got := u64Of(fields[fieldIdxByCS("dpghngjmnap", csQty)].Num); got != 5 {
-		t.Errorf("f0 ljnnpokapig = %d，期望 5", got)
+		t.Errorf("f0 ljnnpokapig = %d, 期望 5", got)
 	}
 }
 
@@ -634,7 +634,7 @@ func TestReclassifyPVAFromDipClass(t *testing.T) {
 		t.Skip("静态库缺 hvz_pva_material 定义: ", err)
 	}
 	if def.Category != 45 {
-		t.Fatalf("hvz_pva_material 品类 = %d，期望 45", def.Category)
+		t.Fatalf("hvz_pva_material 品类 = %d, 期望 45", def.Category)
 	}
 
 	guid := "00112233445566778899aabbccddee08"
@@ -658,14 +658,14 @@ func TestReclassifyPVAFromDipClass(t *testing.T) {
 		t.Fatal("迁移后读取失败: ", err)
 	}
 	if fresh.WireClass != "pcngolccead" || fresh.TypeID != 144 {
-		t.Fatalf("迁移后 = %s/%d，期望 pcngolccead/144", fresh.WireClass, fresh.TypeID)
+		t.Fatalf("迁移后 = %s/%d, 期望 pcngolccead/144", fresh.WireClass, fresh.TypeID)
 	}
 	fields, err := FieldsFromJSON(fresh.FieldsJSON)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if got := u64Of(fields[fieldIdxByCS("pcngolccead", "dnmfciolgep")].Num); got != 1 {
-		t.Errorf("f12 dnmfciolgep = %d，期望 1", got)
+		t.Errorf("f12 dnmfciolgep = %d, 期望 1", got)
 	}
 	// 对照：cat 58 提取物留在 bpmmimcmpof/721 不动（case 56 就是 nledogicnfe）。
 	dipDef, err := db.GetItemDefByItemID(ctx, "dip_hvz_se")
@@ -686,14 +686,14 @@ func TestReclassifyPVAFromDipClass(t *testing.T) {
 		t.Fatal(err)
 	}
 	if dchanged {
-		t.Errorf("cat 58 提取物不应迁移（721 即正确类）")
+		t.Errorf("cat 58 提取物不应迁移 (721 即正确类)")
 	}
 }
 
 func assertDipQtyFields(t *testing.T, it *store.Item, want int64) {
 	t.Helper()
 	if it == nil {
-		t.Fatal("物品为空")
+		t.Fatal("Предмет пуст")
 	}
 	fields, err := FieldsFromJSON(it.FieldsJSON)
 	if err != nil {
@@ -726,7 +726,7 @@ func TestDipFactoryAndStackKeepQuantityFields(t *testing.T) {
 		t.Fatal(err)
 	}
 	if !merged || stacked.GUID != it.GUID {
-		t.Fatalf("应并入原堆，merged=%v got=%s want=%s", merged, stacked.GUID, it.GUID)
+		t.Fatalf("应并入原堆, merged=%v got=%s want=%s", merged, stacked.GUID, it.GUID)
 	}
 	fresh, err := db.GetItemByGUID(ctx, it.GUID)
 	if err != nil {

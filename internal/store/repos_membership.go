@@ -18,9 +18,9 @@ type MembershipPlan struct {
 
 func MembershipPlans() []MembershipPlan {
 	return []MembershipPlan{
-		{ID: "premium_1d", Name: "高级会员 1 天", Days: 1, PriceGold: 100},
-		{ID: "premium_7d", Name: "高级会员 7 天", Days: 7, PriceGold: 500},
-		{ID: "premium_30d", Name: "高级会员 30 天", Days: 30, PriceGold: 1500},
+		{ID: "premium_1d", Name: "Премиум на 1 день", Days: 1, PriceGold: 100},
+		{ID: "premium_7d", Name: "Премиум на 7 дней", Days: 7, PriceGold: 500},
+		{ID: "premium_30d", Name: "Премиум на 30 дней", Days: 30, PriceGold: 1500},
 	}
 }
 
@@ -75,7 +75,7 @@ func membershipError(code, message string) error {
 func (d *DB) GetMembershipStatus(ctx context.Context, uid, now int64) (*MembershipStatus, error) {
 	profile, err := d.GetProfile(ctx, uid)
 	if errors.Is(err, sql.ErrNoRows) {
-		return nil, membershipError("user_not_found", "本地角色不存在")
+		return nil, membershipError("user_not_found", "Локальный персонаж не существует")
 	}
 	if err != nil {
 		return nil, err
@@ -96,13 +96,13 @@ func (d *DB) PurchaseMembership(ctx context.Context, uid int64, planID, requestI
 		}
 	}
 	if plan.ID == "" {
-		return nil, membershipError("invalid_plan", "会员套餐不存在")
+		return nil, membershipError("invalid_plan", "Тариф премиума не существует")
 	}
 	if !membershipRequestID.MatchString(requestID) {
-		return nil, membershipError("invalid_request_id", "购买请求编号无效")
+		return nil, membershipError("invalid_request_id", "Неверный номер запроса покупки")
 	}
 	if uid <= 0 || now < 0 || now > 253402300799-366*86400 {
-		return nil, membershipError("invalid_request", "本地购买参数无效")
+		return nil, membershipError("invalid_request", "Неверные параметры локальной покупки")
 	}
 	tx, err := d.SQL.BeginTx(ctx, nil)
 	if err != nil {
@@ -119,14 +119,14 @@ func (d *DB) PurchaseMembership(ctx context.Context, uid int64, planID, requestI
 		return nil, err
 	}
 	if count != 1 {
-		return nil, membershipError("user_not_found", "本地角色不存在")
+		return nil, membershipError("user_not_found", "Локальный персонаж не существует")
 	}
 	receipt := &MembershipPurchase{RequestID: requestID, PlanID: planID}
 	err = tx.QueryRowContext(ctx, `SELECT plan_id,charged_gold,expires_at FROM membership_order WHERE uid=? AND request_id=?`, uid, requestID).
 		Scan(&receipt.PlanID, &receipt.ChargedGold, &receipt.ExpiresAt)
 	if err == nil {
 		if receipt.PlanID != planID {
-			return nil, membershipError("request_conflict", "同一请求编号不能购买不同套餐")
+			return nil, membershipError("request_conflict", "С одним номером запроса нельзя купить разные тарифы")
 		}
 		receipt.Replayed = true
 		return receipt, nil
@@ -140,17 +140,17 @@ func (d *DB) PurchaseMembership(ctx context.Context, uid int64, planID, requestI
 		return nil, err
 	}
 	if membership == 2 {
-		return nil, membershipError("already_permanent", "当前角色已是永久会员，无需购买")
+		return nil, membershipError("already_permanent", "У персонажа уже вечный премиум, покупать не нужно")
 	}
 	if gold < plan.PriceGold {
-		return nil, membershipError("insufficient_gold", "本地金币不足")
+		return nil, membershipError("insufficient_gold", "Недостаточно локального золота")
 	}
 	base := now
 	if membership == 1 && expiresAt > base {
 		base = expiresAt
 	}
 	if base > 253402300799-plan.Days*86400 {
-		return nil, membershipError("invalid_expiry", "会员到期时间超出范围")
+		return nil, membershipError("invalid_expiry", "Время окончания премиума вне допустимого диапазона")
 	}
 	receipt.ExpiresAt = base + plan.Days*86400
 	receipt.ChargedGold = plan.PriceGold
@@ -179,7 +179,7 @@ func (d *DB) PurchaseMembership(ctx context.Context, uid int64, planID, requestI
 // SetMembership 保存管理员调整的会员状态、刷新指令和审计。
 func (d *DB) SetMembership(ctx context.Context, uid, kind, expiresAt int64, admin string, now int64) error {
 	if uid <= 0 || kind < 0 || kind > 2 || (kind == 1 && (expiresAt <= now || expiresAt > 253402300799)) || (kind != 1 && expiresAt != 0) {
-		return fmt.Errorf("请选择有效的会员类型和到期时间")
+		return fmt.Errorf("Выберите корректный тип премиума и время окончания")
 	}
 	tx, err := d.SQL.BeginTx(ctx, nil)
 	if err != nil {
@@ -191,7 +191,7 @@ func (d *DB) SetMembership(ctx context.Context, uid, kind, expiresAt int64, admi
 		return err
 	}
 	if n, err := result.RowsAffected(); err != nil || n != 1 {
-		return fmt.Errorf("本地角色不存在")
+		return fmt.Errorf("Локальный персонаж не существует")
 	}
 	if _, err := tx.ExecContext(ctx, "INSERT INTO admin_queue(payload,created_ts) VALUES(?,?)", fmt.Sprintf(`{"op":"refresh_player","uid":%d}`, uid), now); err != nil {
 		return err

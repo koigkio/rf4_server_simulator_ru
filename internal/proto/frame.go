@@ -8,7 +8,7 @@ import (
 
 // Frame 一个完整 realtime 帧。13 字节明文头 + RC4 payload（本包不管加密）。
 type Frame struct {
-	Raw       []byte // 完整原始字节（头+payload）
+	Raw       []byte // 完整原始字节 (头+payload)
 	BodyLen   uint32
 	FrameType uint8
 	WireID    uint64

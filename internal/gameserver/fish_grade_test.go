@@ -136,7 +136,7 @@ func TestFishGradeSourcesStayInSync(t *testing.T) {
 		t.Fatal(err)
 	}
 	if len(recordWeights) != 252 {
-		t.Fatalf("fish_record_weights.json 记录数=%d，期望252", len(recordWeights))
+		t.Fatalf("fish_record_weights.json 记录数=%d, 期望252", len(recordWeights))
 	}
 
 	rows, err := db.SQL.QueryContext(ctx, `
@@ -161,7 +161,7 @@ func TestFishGradeSourcesStayInSync(t *testing.T) {
 		record, ok := recordWeights[key]
 		if !ok {
 			rows.Close()
-			t.Fatalf("迁移有 %s，但 fish_record_weights.json 未收录", key)
+			t.Fatalf("迁移有 %s, 但 fish_record_weights.json 未收录", key)
 		}
 		if record != qualified || qualified != staticQualified {
 			rows.Close()
@@ -180,7 +180,7 @@ func TestFishGradeSourcesStayInSync(t *testing.T) {
 	}
 	rows.Close()
 	if checked != 252 {
-		t.Fatalf("external-thresholds 迁移记录数=%d，期望252", checked)
+		t.Fatalf("external-thresholds 迁移记录数=%d, 期望252", checked)
 	}
 	if len(recordWeights) != 0 {
 		t.Fatalf("fish_record_weights.json 有 %d 个键未被 external-thresholds 迁移覆盖", len(recordWeights))
@@ -189,7 +189,7 @@ func TestFishGradeSourcesStayInSync(t *testing.T) {
 	wantSalmon := [3]int64{13999, 14000, 20000}
 	q, y, b := db.GradeLines(ctx, "bs_salmon")
 	if q == nil || y == nil || b == nil || *q != wantSalmon[0] || *y != wantSalmon[1] || *b != wantSalmon[2] {
-		t.Fatalf("bs_salmon grade_lines=(%v,%v,%v)，期望%v", q, y, b, wantSalmon)
+		t.Fatalf("bs_salmon grade_lines=(%v,%v,%v), 期望%v", q, y, b, wantSalmon)
 	}
 	if got := s.settleStatics(ctx, "bs_salmon"); got != [6]int64{13999, 14000, 20000, 25000, 22000, 24000} {
 		t.Fatalf("bs_salmon settleStatics=%v", got)
@@ -198,7 +198,7 @@ func TestFishGradeSourcesStayInSync(t *testing.T) {
 	settle := s.buildSettle813(ctx, 1000001, f, &settleXpResult{})
 	for i, line := range wantSalmon {
 		if got := u32Of(settle.Field(i).Num); got != uint32(line) {
-			t.Fatalf("bs_salmon 结算 f%d=%d，期望%d", i, got, line)
+			t.Fatalf("bs_salmon 结算 f%d=%d, 期望%d", i, got, line)
 		}
 	}
 	t.Logf("checked %d species across json, grade_lines and species_weight", checked)

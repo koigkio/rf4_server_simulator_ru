@@ -95,14 +95,14 @@ func TestWaterwayTrophyGrantedOnlyWhenAllTrophyFishCollected(t *testing.T) {
 		t.Fatal("集齐后没有发放奖杯")
 	}
 	if it.ItemID != "trophy_level_019_american_pond" {
-		t.Fatalf("奖杯 item_id=%q", it.ItemID)
+		t.Fatalf("Трофей item_id=%q", it.ItemID)
 	}
 	if it.Container != "backpack" {
-		t.Fatalf("奖杯应落在背包，实得容器 %q", it.Container)
+		t.Fatalf("奖杯应落在背包, 实得容器 %q", it.Container)
 	}
 	// 3/16 奖励面板只认 enikeammfen / 2015。
 	if it.WireClass != "enikeammfen" || it.TypeID != 2015 {
-		t.Fatalf("奖杯 wire=%q tid=%d，3/16 面板会看不到", it.WireClass, it.TypeID)
+		t.Fatalf("奖杯 wire=%q tid=%d, 3/16 面板会看不到", it.WireClass, it.TypeID)
 	}
 	// 必须真的写进 item 表：prepareNewItem 只构造对象，漏了 grantPreparedItemTx
 	// 就会出现「日志说发了、背包里没有」。
@@ -112,14 +112,14 @@ func TestWaterwayTrophyGrantedOnlyWhenAllTrophyFishCollected(t *testing.T) {
 		t.Fatal(err)
 	}
 	if count != 1 {
-		t.Fatalf("奖杯没有落库，item 表里 %d 行", count)
+		t.Fatalf("奖杯没有落库, item 表里 %d 行", count)
 	}
 	if err := db.SQL.QueryRowContext(ctx, `SELECT COUNT(*) FROM kv WHERE k=?`,
 		fmt.Sprintf(waterwayTrophyKeyTemplate, uid, water)).Scan(&count); err != nil {
 		t.Fatal(err)
 	}
 	if count != 1 {
-		t.Fatalf("奖杯幂等标记缺失，kv 里 %d 行", count)
+		t.Fatalf("奖杯幂等标记缺失, kv 里 %d 行", count)
 	}
 
 	// 第二次调用不再发。
@@ -186,7 +186,7 @@ func TestEnsureWaterwayTrophiesBackfillsCompletedWater(t *testing.T) {
 	}
 	got := s.ensureWaterwayTrophies(ctx, uid)
 	if len(got) != 1 {
-		t.Fatalf("应补发 1 枚水域奖杯，实得 %d：%+v", len(got), got)
+		t.Fatalf("应补发 1 枚水域奖杯, 实得 %d: %+v", len(got), got)
 	}
 	if got[0].ItemID != "trophy_level_019_american_pond" {
 		t.Fatalf("补发的水域不对: %q", got[0].ItemID)
@@ -197,11 +197,11 @@ func TestEnsureWaterwayTrophiesBackfillsCompletedWater(t *testing.T) {
 		t.Fatal(err)
 	}
 	if rows != 1 {
-		t.Fatalf("巡检补发的奖杯没落库，item 表里 %d 行", rows)
+		t.Fatalf("巡检补发的奖杯没落库, item 表里 %d 行", rows)
 	}
 	// 再跑一次是幂等的。
 	if again := s.ensureWaterwayTrophies(ctx, uid); len(again) != 0 {
-		t.Fatalf("巡检不幂等，又发了 %d 枚", len(again))
+		t.Fatalf("巡检不幂等, 又发了 %d 枚", len(again))
 	}
 }
 
@@ -217,7 +217,7 @@ func TestWaterwayTrophyFallsBackToLocFishWhenNoWhitelist(t *testing.T) {
 	}
 	const water = "level_099_no_panel"
 	if wl := trophyFishWhitelistSet(water); wl != nil {
-		t.Fatalf("%s 不该有面板清单，用例前提被破坏了", water)
+		t.Fatalf("%s 不该有面板清单, 用例前提被破坏了", water)
 	}
 	if _, err := db.SQL.Exec(`INSERT OR REPLACE INTO loc_alias(alias,loc,note)
 		VALUES(?,?,'test')`, water, "无面板湖"); err != nil {
@@ -236,7 +236,7 @@ func TestWaterwayTrophyFallsBackToLocFishWhenNoWhitelist(t *testing.T) {
 		t.Fatal(err)
 	}
 	if p.Total != 3 || p.Done != 2 {
-		t.Fatalf("兜底口径应为 2/3，实得 %d/%d", p.Done, p.Total)
+		t.Fatalf("兜底口径应为 2/3, 实得 %d/%d", p.Done, p.Total)
 	}
 	seedTrophySeen(t, db, uid, water, "zander", 3)
 	p, err = s.waterwayTrophyProgressFor(ctx, uid, water)
@@ -244,7 +244,7 @@ func TestWaterwayTrophyFallsBackToLocFishWhenNoWhitelist(t *testing.T) {
 		t.Fatal(err)
 	}
 	if p.Total != 3 || p.Done != 3 {
-		t.Fatalf("兜底口径集齐后应为 3/3，实得 %d/%d", p.Done, p.Total)
+		t.Fatalf("兜底口径集齐后应为 3/3, 实得 %d/%d", p.Done, p.Total)
 	}
 	// 该水域没有奖杯物品定义：集齐也不发东西，且不该报错。
 	if it, err := s.grantWaterwayTrophy(ctx, uid, water); err != nil {

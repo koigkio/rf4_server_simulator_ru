@@ -34,26 +34,26 @@ var levelGiftTable = map[int64][]levelGift{
 	2:  {{"caddisfly", 30, "毛翅目幼虫"}},
 	3:  {{"porridge_pearl_barley", 30, "大麦粥"}},
 	4:  {{"porridge_semolina", 30, "碎麦米粥"}},
-	5:  {{"clas_20059", 1, "鱼钩 CHK201 S16"}},
+	5:  {{"clas_20059", 1, "Крючки CHK201 S16"}},
 	6:  {{"worm_01", 30, "蚯蚓"}},
-	7:  {{"mono_15094", 1, "鱼线 Indiana 8LB 100M"}},
+	7:  {{"mono_15094", 1, "Леска Indiana 8LB 100M"}},
 	8:  {{"dough_sweet", 30, "甜面团"}},
-	9:  {{"clas_20177", 1, "鱼钩 Happy Hook CL-12 S16"}},
+	9:  {{"clas_20177", 1, "Крючки Happy Hook CL-12 S16"}},
 	10: {{"naiad", 15, "蜉蝣幼虫"}},
 }
 
 // levelGiftFloatSet11 11 级浮子钓法套（官方画面：竿+线+漂+钩）。
 var levelGiftFloatSet11 = []levelGift{
-	{"tele_10112_5", 1, "Comfort Telescopic 5 竿"},
-	{"mono_15212", 1, "Mono Original 11.5LB 鱼线"},
-	{"bob_25164", 1, "Bob Original 4G YR 浮漂"},
-	{"clas_20090", 1, "鱼钩 CHK401 S14"},
+	{"tele_10112_5", 1, "Comfort Telescopic 5 Удилище"},
+	{"mono_15212", 1, "Mono Original 11.5LB Леска"},
+	{"bob_25164", 1, "Bob Original 4G YR Поплавки"},
+	{"clas_20090", 1, "Крючки CHK401 S14"},
 }
 
 // levelGiftSpinSet11 11 级路亚（纺车）套：Arrow S60L + Hydra Smart 2 25S。
 var levelGiftSpinSet11 = []levelGift{
-	{"spin_10003_S60L", 1, "Arrow S60L 路亚竿"},
-	{"spin_5826", 1, "Hydra Smart 2 25S 渔轮"},
+	{"spin_10003_S60L", 1, "Arrow S60L Спиннинговое удилище"},
+	{"spin_5826", 1, "Hydra Smart 2 25S Катушка"},
 }
 
 // levelGiftFor 取某一级的礼物。11 级按升到该级最后一尾鱼的钓法分套：
@@ -100,7 +100,7 @@ func (s *Server) grantLevelUpGifts(ctx context.Context, uid, fromLevel, toLevel,
 	for level := fromLevel + 1; level <= toLevel; level++ {
 		rows, err := s.grantLevelUpGift(ctx, uid, level, skillCat)
 		if err != nil {
-			s.log.Warn("升级礼物发放失败", "uid", uid, "level", level, "err", err)
+			s.log.Warn("Не удалось выдать подарок за уровень", "uid", uid, "level", level, "err", err)
 			continue
 		}
 		if len(rows) == 0 {
@@ -123,7 +123,7 @@ func (s *Server) notifyLevelUpGiftChat(uid, level, skillCat int64) {
 	for _, g := range gifts {
 		parts = append(parts, fmt.Sprintf("%s×%d", g.Name, g.Qty))
 	}
-	text := fmt.Sprintf("升级礼物（%d级）：%s", level, strings.Join(parts, "、"))
+	text := fmt.Sprintf("Подарок за уровень (%d ур.):%s", level, strings.Join(parts, "、"))
 	for _, sess := range s.sessionsForUID(uid) {
 		sess.pushSystemChat(text)
 	}
@@ -256,7 +256,7 @@ func (s *Server) giftRows811(ctx context.Context, lines []gift811Line) (*proto.V
 			0: proto.U32(uint32(line.source)), // ehbdkjmbdee=来源码
 			1: proto.U32(uint32(max64(0, line.param))),
 			2: items,
-			3: proto.Args(proto.S("61")), // 恒空数组（红线：数组不发 null）
+			3: proto.Args(proto.S("61")), // 恒空数组 (红线: 数组不发 null)
 		})
 		if err != nil {
 			return nil, err
@@ -291,7 +291,7 @@ func (s *Server) grantLevelUpGift(ctx context.Context, uid, level, skillCat int6
 	for _, g := range gifts {
 		def, err := s.DB.GetItemDefByItemID(ctx, g.ItemID)
 		if err != nil || def == nil {
-			return nil, fmt.Errorf("礼物物品定义不存在: %s", g.ItemID)
+			return nil, fmt.Errorf("Определение предмета-подарка не существует: %s", g.ItemID)
 		}
 		var it *store.Item
 		if countableCategories[def.Category] {
@@ -300,7 +300,7 @@ func (s *Server) grantLevelUpGift(ctx context.Context, uid, level, skillCat int6
 			it, err = s.prepareNewItem(ctx, uid, g.ItemID, "backpack", 1, "")
 		}
 		if err != nil {
-			return nil, fmt.Errorf("礼物物品构造失败: %s: %w", g.ItemID, err)
+			return nil, fmt.Errorf("Не удалось создать предмет-подарок: %s: %w", g.ItemID, err)
 		}
 		prepared = append(prepared, it)
 	}
@@ -318,19 +318,19 @@ func (s *Server) grantLevelUpGift(ctx context.Context, uid, level, skillCat int6
 	if n, err := res.RowsAffected(); err != nil {
 		return nil, err
 	} else if n == 0 {
-		return nil, nil // 该等级已发放过，静默跳过
+		return nil, nil // 该等级已发放过, 静默跳过
 	}
 	granted := make([]*store.Item, 0, len(prepared))
 	for _, it := range prepared {
 		row, _, err := grantPreparedItemTx(ctx, tx, it, true)
 		if err != nil {
-			return nil, fmt.Errorf("礼物入包失败: %s: %w", it.ItemID, err)
+			return nil, fmt.Errorf("Не удалось положить подарок в инвентарь: %s: %w", it.ItemID, err)
 		}
 		granted = append(granted, row)
 	}
 	if err := tx.Commit(); err != nil {
 		return nil, err
 	}
-	s.log.Info("发放升级礼物", "uid", uid, "level", level, "items", len(granted))
+	s.log.Info("Выдача подарка за уровень", "uid", uid, "level", level, "items", len(granted))
 	return granted, nil
 }

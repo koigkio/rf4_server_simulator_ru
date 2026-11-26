@@ -77,13 +77,13 @@ func TestBaitMountSplitsSingleUnitByDefault(t *testing.T) {
 		t.Fatalf("挂载实例应落 rig 容器: %+v", mounted)
 	}
 	if got := baitQuantity(mounted); got != 1 {
-		t.Fatalf("未选挂饵方式时应一钩一份，实得 %d", got)
+		t.Fatalf("未选挂饵方式时应一钩一份, 实得 %d", got)
 	}
 	if splitSourceGUID(mounted) != src {
 		t.Fatal("拆分子实例应携带来源堆引用")
 	}
 	if baits := s.currentBaits(t.Context(), rod.GUID); len(baits) != 1 || baits[0] != "bread" {
-		t.Fatalf("currentBaits=%v，期望 [bread]", baits)
+		t.Fatalf("currentBaits=%v, 期望 [bread]", baits)
 	}
 }
 
@@ -108,7 +108,7 @@ func TestBaitMountRodBSharesSourceStack(t *testing.T) {
 	}
 	childB := r.MountedGUID
 	if childB == childA {
-		t.Fatal("杆 B 应拆出新子实例，而不是复用杆 A 的挂载")
+		t.Fatal("杆 B 应拆出新子实例, 而不是复用杆 A 的挂载")
 	}
 	srcRow, _ := s.DB.GetItemByGUID(t.Context(), src)
 	if srcRow == nil || baitQuantity(srcRow) != 13 {
@@ -131,7 +131,7 @@ func TestBaitMountCountFollowsMountType(t *testing.T) {
 	}
 	// 蛆组合挂法只属于底蛆钓组（29）：先换钓组再选挂法（钓组↔挂法联动）。
 	if !s.rigSetType(t.Context(), 1000001, rod.GUID, 29) {
-		t.Fatal("rigSetType 失败")
+		t.Fatal("rigSetType Ошибка")
 	}
 	// 玉米浮+蛆15（262144）：蛆一钩 15 份。
 	saveMountTypeForTest(t, s, rod.GUID, 262144)
@@ -162,7 +162,7 @@ func TestBaitMountFullTakeClearsSourceRef(t *testing.T) {
 	}
 	// 玉米浮族属于 pop-up 钓组（26）：先换钓组再选挂法。
 	if !s.rigSetType(t.Context(), 1000001, rod.GUID, 26) {
-		t.Fatal("rigSetType 失败")
+		t.Fatal("rigSetType Ошибка")
 	}
 	// 玉米浮×2（1024），背包恰好 2 颗：整堆上钩，来源堆删除且不携带引用。
 	saveMountTypeForTest(t, s, rod.GUID, 1024)
@@ -187,9 +187,9 @@ func TestBottomSimpleFullMaskPersistsMountSelection(t *testing.T) {
 		t.Fatal(err)
 	}
 	if !s.rigSetType(t.Context(), 1000001, rod.GUID, 12) {
-		t.Fatal("rigSetType 失败")
+		t.Fatal("rigSetType Ошибка")
 	}
-	saveMountTypeForTest(t, s, rod.GUID, 1024) // 玉米浮×2，超出旧 126 掩码
+	saveMountTypeForTest(t, s, rod.GUID, 1024) // 玉米浮×2, 超出旧 126 掩码
 	if got, ok := s.savedBaitMount(t.Context(), rod.GUID); !ok || got != 1024 {
 		t.Fatalf("BottomSimple 全开掩码下挂饵方式未持久化: got=%d ok=%v", got, ok)
 	}
@@ -198,7 +198,7 @@ func TestBottomSimpleFullMaskPersistsMountSelection(t *testing.T) {
 		t.Fatal(err)
 	}
 	if got := s.baitHookCount(t.Context(), rod.GUID, corn); got != 2 {
-		t.Fatalf("玉米浮×2 应按挂饵方式拆 2 份，实得 %d", got)
+		t.Fatalf("玉米浮×2 应按挂饵方式拆 2 份, 实得 %d", got)
 	}
 }
 
@@ -223,7 +223,7 @@ func TestBaitMountBiteConsumesSingleUnitKeepsHookBaited(t *testing.T) {
 		t.Fatal("三次咬口后钩上饵不应消失")
 	}
 	if got := baitQuantity(mounted); got != 7 {
-		t.Fatalf("10 份上钩三次咬口后应剩 7，实得 %d", got)
+		t.Fatalf("10 份上钩三次咬口后应剩 7, 实得 %d", got)
 	}
 	var n int
 	if err := db.SQL.QueryRow(`SELECT COUNT(*) FROM rod_setting WHERE guid=? AND key LIKE 'rebait:%'`,
@@ -231,7 +231,7 @@ func TestBaitMountBiteConsumesSingleUnitKeepsHookBaited(t *testing.T) {
 		t.Fatal(err)
 	}
 	if n != 0 {
-		t.Fatalf("钩上还有饵时不应写补饵记录，实得 %d 条", n)
+		t.Fatalf("钩上还有饵时不应写补饵记录, 实得 %d 条", n)
 	}
 }
 
@@ -244,7 +244,7 @@ func TestBaitMountExhaustWritesRebaitAndAutoRemountsSameCount(t *testing.T) {
 	}
 	// 蛆组合挂法属于底蛆钓组（29）：先换钓组再选挂法。
 	if !s.rigSetType(t.Context(), 1000001, rod.GUID, 29) {
-		t.Fatal("rigSetType 失败")
+		t.Fatal("rigSetType Ошибка")
 	}
 	// 补饵以钓组仍有钩为前提；无钩钓组的补饵请求按无效处理。
 	mountHookForBaitTest(t, s, rod.GUID, 0)
@@ -284,7 +284,7 @@ func TestBaitMountExhaustWritesRebaitAndAutoRemountsSameCount(t *testing.T) {
 		}
 	}
 	if mountedQty != 5 {
-		t.Fatalf("自动补挂应按挂饵方式拆 5 份，实得 %d", mountedQty)
+		t.Fatalf("自动补挂应按挂饵方式拆 5 份, 实得 %d", mountedQty)
 	}
 }
 
@@ -297,7 +297,7 @@ func TestBaitMountUnmountRefundsRemainder(t *testing.T) {
 	}
 	// 蛆组合挂法属于底蛆钓组（29）：先换钓组再选挂法。
 	if !s.rigSetType(t.Context(), 1000001, rod.GUID, 29) {
-		t.Fatal("rigSetType 失败")
+		t.Fatal("rigSetType Ошибка")
 	}
 	saveMountTypeForTest(t, s, rod.GUID, 262144) // 玉米浮+蛆15
 	src, child := mountBaitForCountTest(t, s, rod.GUID, "maggot", 20)
@@ -317,10 +317,10 @@ func TestBaitMountUnmountRefundsRemainder(t *testing.T) {
 	back, _ := s.DB.GetItemByGUID(t.Context(), src)
 	// 拆出 15（源堆剩 5）+ 咬口吃掉 3（钩上剩 12）→ 退回后源堆 5+12=17。
 	if back == nil || back.Container != "backpack" || baitQuantity(back) != 17 {
-		t.Fatalf("拆卸应把钩上剩余 12 份退回来源堆（5+12=17），实得: %+v", back)
+		t.Fatalf("拆卸应把钩上剩余 12 份退回来源堆 (5+12=17), 实得: %+v", back)
 	}
 	if baits := s.currentBaits(t.Context(), rod.GUID); len(baits) != 0 {
-		t.Fatalf("拆卸后钩上饵=%v，期望为空", baits)
+		t.Fatalf("拆卸后钩上饵=%v, 期望为空", baits)
 	}
 }
 
@@ -355,7 +355,7 @@ func TestBaitMountKindOfScopesToBaitCategory(t *testing.T) {
 		t.Fatal(err)
 	}
 	if got := s.baitMountKindOf(ctx, row); got != baitKindOther {
-		t.Fatalf("竿实例不应判成组件族，实得 %d", got)
+		t.Fatalf("竿实例不应判成组件族, 实得 %d", got)
 	}
 	// 泡沫按前缀判别，不受品类限制。
 	foamRow, err := s.CreateItem(ctx, 1000001, "hm_foamr_80black_hq", "backpack", 1)
@@ -363,7 +363,7 @@ func TestBaitMountKindOfScopesToBaitCategory(t *testing.T) {
 		t.Fatal(err)
 	}
 	if got := s.baitMountKindOf(ctx, foamRow); got != baitKindFoam {
-		t.Fatalf("泡沫应判 foam 族，实得 %d", got)
+		t.Fatalf("泡沫应判 foam 族, 实得 %d", got)
 	}
 }
 
@@ -376,7 +376,7 @@ func TestFoamMountX2UsesTwoLureComponents(t *testing.T) {
 	}
 	// 泡沫饵属于 Zig 钓组（34）。
 	if !s.rigSetType(t.Context(), 1000001, rod.GUID, 34) {
-		t.Fatal("rigSetType 失败")
+		t.Fatal("rigSetType Ошибка")
 	}
 	saveMountTypeForTest(t, s, rod.GUID, 1048576) // 泡沫×2
 	hook, err := s.CreateItem(t.Context(), 1000001, "c_hook_20819", "backpack", 1)
@@ -408,7 +408,7 @@ func TestFoamMountX2UsesTwoLureComponents(t *testing.T) {
 	}
 	comps := rigTestCategoryComps(t, rigStoredF5(t, fresh), catLure)
 	if len(comps) != 2 || comps[0].GUID != first.GUID || comps[1].GUID != second.GUID {
-		t.Fatalf("泡沫×2 应保留两个 lure 组件，实得 %+v", comps)
+		t.Fatalf("泡沫×2 应保留两个 lure 组件, 实得 %+v", comps)
 	}
 	sets := s.baitedHookSets(t.Context(), rod.GUID)
 	if len(sets) != 1 || len(sets[0].baits) != 2 {
@@ -424,7 +424,7 @@ func TestFoamSingleMountStillReplaces(t *testing.T) {
 		t.Fatal(err)
 	}
 	if !s.rigSetType(t.Context(), 1000001, rod.GUID, 34) {
-		t.Fatal("rigSetType 失败")
+		t.Fatal("rigSetType Ошибка")
 	}
 	saveMountTypeForTest(t, s, rod.GUID, 524288) // 泡沫×1
 	first, err := s.CreateItem(t.Context(), 1000001, "hm_foamr_80black_hq", "backpack", 1)
@@ -448,7 +448,7 @@ func TestFoamSingleMountStillReplaces(t *testing.T) {
 	}
 	comps := rigTestCategoryComps(t, rigStoredF5(t, fresh), catLure)
 	if len(comps) != 1 || comps[0].GUID != second.GUID {
-		t.Fatalf("泡沫×1 应替换为第二枚，实得 %+v", comps)
+		t.Fatalf("泡沫×1 应替换为第二枚, 实得 %+v", comps)
 	}
 	back, err := db.GetItemByGUID(t.Context(), first.GUID)
 	if err != nil || back == nil || back.Container != "backpack" || back.RigGUID != "" {

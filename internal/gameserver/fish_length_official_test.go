@@ -203,7 +203,7 @@ func TestLengthRepairSpecies(t *testing.T) {
 	for _, a := range lengthRepairSpecies {
 		k, _ := calibratedLengthKP(a.species, defaultSpeciesLengthK, defaultSpeciesLengthP)
 		if k == a.oldK {
-			t.Errorf("%s: k 未修复，仍为旧值 %f", a.species, k)
+			t.Errorf("%s: k 未修复, 仍为旧值 %f", a.species, k)
 		}
 		got := lengthPred(a.species, a.wG)
 		if math.Abs(got-a.lM)/a.lM*100 > a.tolPct {
@@ -229,7 +229,7 @@ func TestLengthLinearUntouched(t *testing.T) {
 	// Linear 种不入新表，标定链路不变。
 	for sp := range speciesLengthLinear {
 		if _, ok := fishLengthOfficialKP[sp]; ok {
-			t.Errorf("%s 在 Linear 表却进了拟合表，Linear 分支会被旁路", sp)
+			t.Errorf("%s 在 Linear 表却进了拟合表, Linear 分支会被旁路", sp)
 		}
 		if _, ok := fishLengthSingleK[sp]; ok {
 			t.Errorf("%s 在 Linear 表却进了单点表", sp)
@@ -254,7 +254,7 @@ func TestLengthCoverage(t *testing.T) {
 			continue
 		}
 		if _, ok := fishLengthGroupAnchor[grp]; !ok {
-			t.Errorf("%s（组 %s）体长无覆盖", sp, grp)
+			t.Errorf("%s (组 %s)体长无覆盖", sp, grp)
 		}
 	}
 }
@@ -280,19 +280,19 @@ func TestLengthAliasInheritsHostMeasured(t *testing.T) {
 		gotK, gotP := calibratedLengthKP(alias, defaultSpeciesLengthK, defaultSpeciesLengthP)
 		wantK, wantP := calibratedLengthKP(host, defaultSpeciesLengthK, defaultSpeciesLengthP)
 		if gotK != wantK || gotP != wantP {
-			t.Errorf("%s 应继承宿主 %s 的官服体长参数：got=(%f,%f) want=(%f,%f)",
+			t.Errorf("%s 应继承宿主 %s 的官服体长参数: got=(%f,%f) want=(%f,%f)",
 				alias, host, gotK, gotP, wantK, wantP)
 		}
 	}
 	if inherited == 0 {
-		t.Fatal("测试前提失效：没有可验证的别名继承用例")
+		t.Fatal("测试前提失效: 没有可验证的别名继承用例")
 	}
 
 	for _, alias := range []string{"common_carp", "m_carp_ghost"} {
 		gotK, gotP := calibratedLengthKP(alias, defaultSpeciesLengthK, defaultSpeciesLengthP)
 		want := fishLengthSingleK[alias]
 		if gotK != want.k || gotP != want.p {
-			t.Errorf("%s 有独立实测锚时必须保留自身参数：got=(%f,%f) want=(%f,%f)",
+			t.Errorf("%s 有独立实测锚时必须保留自身参数: got=(%f,%f) want=(%f,%f)",
 				alias, gotK, gotP, want.k, want.p)
 		}
 	}

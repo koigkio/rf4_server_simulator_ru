@@ -132,7 +132,7 @@ func backupHosts(path string) (hostsBackup, error) {
 func saveHostsStateAfterBackup(path string, st hostsState, backup hostsBackup) error {
 	if err := saveHostsState(path, st); err != nil {
 		if cleanupErr := removeHostsBackup(path, backup); cleanupErr != nil {
-			return fmt.Errorf("保存 hosts 状态失败: %w；删除未登记备份失败: %v", err, cleanupErr)
+			return fmt.Errorf("Не удалось сохранить состояние hosts: %w; не удалось удалить незарегистрированную резервную копию: %v", err, cleanupErr)
 		}
 		return err
 	}
@@ -363,19 +363,19 @@ func hostsRestoreWithWarning(path string, warn func(string)) error {
 	}
 	st.Owned = nil
 	if err := saveHostsState(path, st); err != nil {
-		warn("hosts 已还原，但归属状态保存失败，保留备份: " + err.Error())
+		warn("hosts Восстановлено, но не удалось сохранить состояние владения, резервная копия оставлена: " + err.Error())
 		return nil
 	}
 	remaining := st.Backups[:0]
 	for _, backup := range st.Backups {
 		if err := removeHostsBackup(path, backup); err != nil {
-			warn("hosts 已还原，但备份清理失败: " + err.Error())
+			warn("hosts Восстановлено, но не удалось очистить резервные копии: " + err.Error())
 			remaining = append(remaining, backup)
 		}
 	}
 	st.Backups = remaining
 	if err := saveHostsState(path, st); err != nil {
-		warn("hosts 已还原，但备份清理状态保存失败: " + err.Error())
+		warn("hosts Восстановлено, но не удалось сохранить состояние очистки резервных копий: " + err.Error())
 	}
 	return nil
 }
@@ -385,7 +385,7 @@ func hostsRestoreWithWarning(path string, warn func(string)) error {
 func removeHostsBackup(path string, backup hostsBackup) error {
 	if filepath.Base(backup.Name) != backup.Name || strings.ContainsAny(backup.Name, `/\:`) ||
 		!strings.HasPrefix(backup.Name, filepath.Base(path)+".rf4s-backup-launcher-") {
-		return fmt.Errorf("无法确认备份归属: %q", backup.Name)
+		return fmt.Errorf("Не удалось подтвердить владельца резервной копии: %q", backup.Name)
 	}
 	target := filepath.Join(filepath.Dir(path), backup.Name)
 	info, err := os.Lstat(target)
@@ -396,14 +396,14 @@ func removeHostsBackup(path string, backup hostsBackup) error {
 		return err
 	}
 	if !info.Mode().IsRegular() {
-		return fmt.Errorf("备份不是普通文件: %s", target)
+		return fmt.Errorf("Резервная копия не является обычным файлом: %s", target)
 	}
 	data, err := os.ReadFile(target)
 	if err != nil {
 		return err
 	}
 	if backup.SHA256 != fmt.Sprintf("%x", sha256.Sum256(data)) {
-		return fmt.Errorf("备份内容已改变: %s", target)
+		return fmt.Errorf("Содержимое резервной копии изменилось: %s", target)
 	}
 	return os.Remove(target)
 }

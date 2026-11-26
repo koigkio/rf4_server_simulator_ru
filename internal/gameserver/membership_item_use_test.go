@@ -43,18 +43,18 @@ func TestMembershipItemAddsDaysAndDisappears(t *testing.T) {
 	}
 	after, _ := db.GetProfile(ctx, uid)
 	if after.Membership != 1 {
-		t.Fatalf("会员类型应为 1，实得 %d", after.Membership)
+		t.Fatalf("会员类型应为 1, 实得 %d", after.Membership)
 	}
 	wantMin := time.Now().Unix() + 3*86400 - 5
 	if after.MembershipExp < wantMin {
-		t.Fatalf("会员应至少续期 3 天，exp=%d want>=%d", after.MembershipExp, wantMin)
+		t.Fatalf("会员应至少续期 3 天, exp=%d want>=%d", after.MembershipExp, wantMin)
 	}
 	if before.MembershipExp > 0 && after.MembershipExp < before.MembershipExp {
 		t.Fatalf("续期不应缩短原有到期时间: %d -> %d", before.MembershipExp, after.MembershipExp)
 	}
 	got, err := db.GetItemByGUID(ctx, row.GUID)
 	if err == nil && got != nil && got.Qty > 0 {
-		t.Fatalf("会员物品用后应消失，实得 qty=%d", got.Qty)
+		t.Fatalf("会员物品用后应消失, 实得 qty=%d", got.Qty)
 	}
 }
 

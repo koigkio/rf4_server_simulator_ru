@@ -35,13 +35,13 @@ func TestMarineRodDefaultRigType(t *testing.T) {
 			}
 			f5 := rigStoredF5(t, row)
 			if got := f5.Fields[0].StrOr(); got != tc.wantName {
-				t.Fatalf("默认钓组名 = %q，期望 %q", got, tc.wantName)
+				t.Fatalf("默认钓组名 = %q, 期望 %q", got, tc.wantName)
 			}
 			if got := int64(u64Of(f5.Fields[1].Num)); got != tc.wantType {
-				t.Fatalf("默认钓组类型 = %d，期望 %d", got, tc.wantType)
+				t.Fatalf("默认钓组类型 = %d, 期望 %d", got, tc.wantType)
 			}
 			if got, found, err := db.GetRigType(ctx, rod.GUID); err != nil || !found || got != tc.wantType {
-				t.Fatalf("rig 表类型 = %d found=%v err=%v，期望 %d", got, found, err, tc.wantType)
+				t.Fatalf("rig 表类型 = %d found=%v err=%v, 期望 %d", got, found, err, tc.wantType)
 			}
 		})
 	}
@@ -85,13 +85,13 @@ func TestExistingMarineRodFloatRigIsCorrected(t *testing.T) {
 	}
 	f5 := rigStoredF5(t, row)
 	if got := f5.Fields[0].StrOr(); got != "rig_MarineBottomClassic" {
-		t.Fatalf("矫正后的钓组名 = %q，期望 rig_MarineBottomClassic", got)
+		t.Fatalf("矫正后的钓组名 = %q, 期望 rig_MarineBottomClassic", got)
 	}
 	if got := int64(u64Of(f5.Fields[1].Num)); got != 55 {
-		t.Fatalf("矫正后的钓组类型 = %d，期望 55", got)
+		t.Fatalf("矫正后的钓组类型 = %d, 期望 55", got)
 	}
 	if got, found, err := db.GetRigType(ctx, rod.GUID); err != nil || !found || got != 55 {
-		t.Fatalf("矫正后 rig 表类型 = %d found=%v err=%v，期望 55", got, found, err)
+		t.Fatalf("矫正后 rig 表类型 = %d found=%v err=%v, 期望 55", got, found, err)
 	}
 }
 
@@ -115,7 +115,7 @@ func TestAllRodTypesResolveMappedRigType(t *testing.T) {
 		}
 		var attrs map[string]any
 		if err := json.Unmarshal([]byte(attrsJSON), &attrs); err != nil {
-			t.Fatalf("%s attrs_json 解析失败: %v", itemID, err)
+			t.Fatalf("%s attrs_json Ошибка разбора: %v", itemID, err)
 		}
 		rodType, ok := attrs["fopbhlmkcpe"].(float64)
 		if !ok {
@@ -132,10 +132,10 @@ func TestAllRodTypesResolveMappedRigType(t *testing.T) {
 	for rodType, itemID := range firstByType {
 		got := srv.defaultRigTypeForRod(ctx, itemID)
 		if rigTypeNames[got] == "" {
-			t.Errorf("竿型 %d（%s）默认钓组 %d 没有 rig_* 名称映射", rodType, itemID, got)
+			t.Errorf("竿型 %d (%s)默认钓组 %d 没有 rig_* 名称映射", rodType, itemID, got)
 		}
 		if allowed, ok := rodRigAllowed[rodType]; ok && !allowedContains(allowed, got) {
-			t.Errorf("竿型 %d（%s）默认钓组 %d 不在允许矩阵 %v 内", rodType, itemID, got, allowed)
+			t.Errorf("竿型 %d (%s)默认钓组 %d 不在允许矩阵 %v 内", rodType, itemID, got, allowed)
 		}
 	}
 }

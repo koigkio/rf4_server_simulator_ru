@@ -34,17 +34,17 @@ func (w *stressLog) Write(p []byte) (int, error) {
 	}
 	line := strings.TrimSpace(string(p))
 	switch {
-	case strings.Contains(line, "开启事务失败"):
+	case strings.Contains(line, "Не удалось начать транзакцию"):
 		w.counts["begin_tx"]++
-	case strings.Contains(line, "产出物不可构造"):
+	case strings.Contains(line, "Изделие невозможно создать"):
 		w.counts["prepare_item"]++
-	case strings.Contains(line, "读取材料失败"):
+	case strings.Contains(line, "Не удалось прочитать материалы"):
 		w.counts["list_items"]++
-	case strings.Contains(line, "材料不足"):
+	case strings.Contains(line, "Недостаточно материалов"):
 		w.counts["material_short"]++
-	case strings.Contains(line, "产出物入库失败"):
+	case strings.Contains(line, "Не удалось положить изделие в инвентарь"):
 		w.counts["grant_failed"]++
-	case strings.Contains(line, "事务提交失败"):
+	case strings.Contains(line, "Не удалось зафиксировать транзакцию"):
 		w.counts["commit_failed"]++
 	default:
 		w.counts["other"]++
@@ -154,7 +154,7 @@ func TestCraftStackExtreme(t *testing.T) {
 					} else if v, _, derr := proto.DecodeValue(body, 0, srv.Table()); derr != nil {
 						msg = fmt.Sprintf("%s 响应解码失败: %v", jb.name, derr)
 					} else if !v.IsKind(proto.KindObj) || v.TypeID != 803 || u64Of(v.Fields[0].Num) != 1 {
-						msg = fmt.Sprintf("%s 803 失败: kind=%v type=%d", jb.name, v.Kind, v.TypeID)
+						msg = fmt.Sprintf("%s 803 Ошибка: kind=%v type=%d", jb.name, v.Kind, v.TypeID)
 					}
 					results <- result{d: d, err: msg}
 				}
@@ -235,13 +235,13 @@ func TestCraftStackExtreme(t *testing.T) {
 		for _, e := range expect {
 			got := rows[e.item]
 			if got[0] != e.rows || got[1] != e.qty {
-				t.Errorf("uid=%d %s 期望 rows=%d qty=%d，实得 rows=%d qty=%d",
+				t.Errorf("uid=%d %s 期望 rows=%d qty=%d, 实得 rows=%d qty=%d",
 					acc.uid, e.item, e.rows, e.qty, got[0], got[1])
 			}
 		}
 		for _, m := range []string{"food_egg", "mix_combi", "hvz_pva_string"} {
 			if got := rows[m]; got[0] != 0 || got[1] != 0 {
-				t.Errorf("uid=%d 材料 %s 未耗尽，rows=%d qty=%d", acc.uid, m, got[0], got[1])
+				t.Errorf("uid=%d 材料 %s 未耗尽, rows=%d qty=%d", acc.uid, m, got[0], got[1])
 			}
 		}
 	}
@@ -251,7 +251,7 @@ func TestCraftStackExtreme(t *testing.T) {
 		t.Fatal(err)
 	}
 	if txns != int64(total) {
-		t.Errorf("craft 流水应为 %d 条，实得 %d", total, txns)
+		t.Errorf("craft 流水应为 %d 条, 实得 %d", total, txns)
 	}
 	if err := db.SQL.QueryRow(`SELECT COUNT(*) FROM item WHERE qty<=0`).Scan(&badQty); err != nil {
 		t.Fatal(err)

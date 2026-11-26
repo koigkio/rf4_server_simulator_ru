@@ -168,7 +168,7 @@ func TestBaitShareTailGateRejectsCategoryWildcard(t *testing.T) {
 	setRf4TailCache(s, "salmon", 600, map[string]float64{"rule_livefish": 0.17})
 	keys, weights := s.filterFishBaitSet("rules-test", []string{"rule_livefish"}, []string{"salmon"}, []float64{1}, time.Unix(worldDayEpochUnix+1500, 0), fishRollContext{cache: newFishingRollCache()})
 	if len(keys) != 0 || len(weights) != 0 {
-		t.Fatalf("各类饵鱼只是类别词，0.17%% 饵不得绕过长尾闸: keys=%v weights=%v", keys, weights)
+		t.Fatalf("各类饵鱼只是类别词, 0.17%% 饵不得绕过长尾闸: keys=%v weights=%v", keys, weights)
 	}
 }
 
@@ -220,13 +220,13 @@ func TestBaitShareTailGateRequiresReadyCache(t *testing.T) {
 	now := time.Unix(worldDayEpochUnix+1500, 0)
 	keys, _ := s.filterFishBaitSet("rules-test", []string{"refresh_bait"}, []string{"c.roach"}, []float64{1}, now, fishRollContext{cache: newFishingRollCache()})
 	if len(keys) != 0 {
-		t.Fatalf("缓存已就绪时，低于 min_count 的已知样本仍应触发长尾闸: %v", keys)
+		t.Fatalf("缓存已就绪时, 低于 min_count 的已知样本仍应触发长尾闸: %v", keys)
 	}
 
 	s.rf4ShareMu.Lock()
 	s.rf4ShareAt = time.Now().Add(-31 * time.Minute)
 	s.rf4ShareMu.Unlock()
-	s.rf4ShareLoading.Store(true) // 模拟异步刷新中，此时 share 与 total 都不可用
+	s.rf4ShareLoading.Store(true) // 模拟异步刷新中, 此时 share 与 total 都不可用
 	defer s.rf4ShareLoading.Store(false)
 	keys, weights := s.filterFishBaitSet("rules-test", []string{"refresh_bait"}, []string{"c.roach"}, []float64{1}, now, fishRollContext{cache: newFishingRollCache()})
 	if len(keys) != 1 || len(weights) != 1 || weights[0] <= 0 {

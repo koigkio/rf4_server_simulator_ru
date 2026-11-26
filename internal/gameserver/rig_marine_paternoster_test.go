@@ -35,11 +35,11 @@ func TestPaternosterTemplateHasIndependentBranchSlots(t *testing.T) {
 	for cat, expected := range want {
 		got := slotIndicesFor(57, cat)
 		if len(got) != len(expected) {
-			t.Fatalf("rig57 品类 %d 槽位 = %v，期望 %v", cat, got, expected)
+			t.Fatalf("rig57 品类 %d 槽位 = %v, 期望 %v", cat, got, expected)
 		}
 		for i := range expected {
 			if got[i] != expected[i] {
-				t.Fatalf("rig57 品类 %d 槽位 = %v，期望 %v", cat, got, expected)
+				t.Fatalf("rig57 品类 %d 槽位 = %v, 期望 %v", cat, got, expected)
 			}
 		}
 	}
@@ -49,7 +49,7 @@ func TestPaternosterTemplateHasIndependentBranchSlots(t *testing.T) {
 	}
 	for _, idx := range slotIndicesFor(57, catLure) {
 		if hookIdx[idx] {
-			t.Fatalf("rig57 钩位 %d 仍被拟饵共用：两者会互相顶掉", idx)
+			t.Fatalf("rig57 钩位 %d 仍被拟饵共用: 两者会互相顶掉", idx)
 		}
 	}
 }
@@ -62,7 +62,7 @@ func paternosterTestRod(t *testing.T, s *Server) string {
 		t.Fatal(err)
 	}
 	if !s.rigSetType(context.Background(), 1000001, rod.GUID, 57) {
-		t.Fatal("rigSetType(57) 失败")
+		t.Fatal("rigSetType(57) Ошибка")
 	}
 	return rod.GUID
 }
@@ -124,14 +124,14 @@ func TestPaternosterMountKeepsClientReportedIndices(t *testing.T) {
 	for cat, idxs := range want {
 		for _, idx := range idxs {
 			if n := byIndex[cat][idx]; n != 1 {
-				t.Fatalf("品类 %d 槽位 %d 应有且仅有 1 条组件，实得 %d 条；全部 = %v",
+				t.Fatalf("品类 %d 槽位 %d 应有且仅有 1 条组件, 实得 %d 条; 全部 = %v",
 					cat, idx, n, byIndex[cat])
 			}
 		}
 	}
 	// 装三组海引线后沉子必须仍在（旧模板下会被自动切类型退回背包）。
 	if n := byIndex[29][200]; n != 1 {
-		t.Fatalf("装完海引线后沉子丢了：29 槽位 = %v", byIndex[29])
+		t.Fatalf("装完海引线后沉子丢了: 29 槽位 = %v", byIndex[29])
 	}
 }
 
@@ -155,7 +155,7 @@ func TestPaternosterLureDoesNotEjectAttractant(t *testing.T) {
 					t.Fatalf("槽位 %d 的组件 %s 不在库中", extra, shortGUID(c.GUID))
 				}
 				if row.Container != "rig" || row.RigGUID != rod {
-					t.Fatalf("槽位 %d 的组件 %s 没挂在杆上：container=%s rig=%s",
+					t.Fatalf("槽位 %d 的组件 %s 没挂在杆上: container=%s rig=%s",
 						extra, shortGUID(c.GUID), row.Container, shortGUID(row.RigGUID))
 				}
 				return row.ItemID
@@ -164,10 +164,10 @@ func TestPaternosterLureDoesNotEjectAttractant(t *testing.T) {
 		return ""
 	}
 	if got := itemAt(325); got != "fire_stick_003" {
-		t.Fatalf("吸引成分槽位 325 = %q，期望 fire_stick_003（被拟饵挤掉了）", got)
+		t.Fatalf("吸引成分槽位 325 = %q, 期望 fire_stick_003 (被拟饵挤掉了)", got)
 	}
 	if got := itemAt(300); got != "shr_21107_1" {
-		t.Fatalf("拟饵槽位 300 = %q，期望 shr_21107_1（拟饵没装上）", got)
+		t.Fatalf("拟饵槽位 300 = %q, 期望 shr_21107_1 (拟饵没装上)", got)
 	}
 
 	// 第二、第三个拟饵各就各位，不能互相顶掉。
@@ -176,7 +176,7 @@ func TestPaternosterLureDoesNotEjectAttractant(t *testing.T) {
 	comps = paternosterComps(t, s, rod)
 	for extra, want := range map[int64]string{300: "shr_21107_1", 301: "shr_21108_1", 302: "shr_21109_1", 325: "fire_stick_003"} {
 		if got := itemAt(extra); got != want {
-			t.Fatalf("装完三个拟饵后槽位 %d = %q，期望 %q", extra, got, want)
+			t.Fatalf("装完三个拟饵后槽位 %d = %q, 期望 %q", extra, got, want)
 		}
 	}
 }
@@ -191,7 +191,7 @@ func TestSwitchToPaternosterDropsStaleArmSlots(t *testing.T) {
 		t.Fatal(err)
 	}
 	if !s.rigSetType(ctx, 1000001, rod.GUID, 50) {
-		t.Fatal("rigSetType(50) 失败")
+		t.Fatal("rigSetType(50) Ошибка")
 	}
 
 	// rig50 上展开倒钓臂：主钩 250 + 三个 1000+ 钩位与拟饵子槽。
@@ -204,23 +204,23 @@ func TestSwitchToPaternosterDropsStaleArmSlots(t *testing.T) {
 	}
 	before := paternosterComps(t, s, rod.GUID)
 	if n := len(rigCompKeysOfCategory(before, catHook)); n != 4 {
-		t.Fatalf("切类型前钩组件 = %d，期望 4（主钩 + 三个倒钓臂钩位）", n)
+		t.Fatalf("切类型前钩组件 = %d, 期望 4 (主钩 + 三个倒钓臂钩位)", n)
 	}
 
 	// 切到链斗式，残留必须清干净，250 主钩也随钓组卸下。
 	if !s.rigSetType(ctx, 1000001, rod.GUID, 57) {
-		t.Fatal("rigSetType(57) 失败")
+		t.Fatal("rigSetType(57) Ошибка")
 	}
 	after := paternosterComps(t, s, rod.GUID)
 	for _, c := range after {
 		if hookSlotIndexNamespace(c.Category, c.Extra) {
-			t.Fatalf("切到 rig57 后仍有倒钓臂残留子槽：cat=%d extra=%d guid=%s",
+			t.Fatalf("切到 rig57 后仍有倒钓臂残留子槽: cat=%d extra=%d guid=%s",
 				c.Category, c.Extra, shortGUID(c.GUID))
 		}
 	}
 	hooks := rigCompKeysOfCategory(after, catHook)
 	if len(hooks) != 0 {
-		t.Fatalf("切到 rig57 后钩位应清空，实得 %d 条: %v", len(hooks), after)
+		t.Fatalf("切到 rig57 后钩位应清空, 实得 %d 条: %v", len(hooks), after)
 	}
 	// rig_component 派生表也不能留残留：它与 f5 一起下发给客户端。
 	rows, err := db.SQL.Query(`SELECT slot, extra FROM rig_component WHERE rig_guid=? AND extra>=1000`, rod.GUID)
@@ -233,6 +233,6 @@ func TestSwitchToPaternosterDropsStaleArmSlots(t *testing.T) {
 		if err := rows.Scan(&slot, &extra); err != nil {
 			t.Fatal(err)
 		}
-		t.Fatalf("rig_component 仍有倒钓臂残留：slot=%d extra=%d", slot, extra)
+		t.Fatalf("rig_component 仍有倒钓臂残留: slot=%d extra=%d", slot, extra)
 	}
 }

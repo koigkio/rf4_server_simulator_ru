@@ -194,7 +194,7 @@ func TestBaitHookAssignmentsPairByOrdinal(t *testing.T) {
 	}
 	for i := range baits {
 		if assigned[baits[i]] != hooks[i] {
-			t.Fatalf("第 %d 个饵位应配第 %d 个钩位，得到 %q（钩位 %q）", i, i, assigned[baits[i]], hooks[i])
+			t.Fatalf("第 %d 个饵位应配第 %d 个钩位, 得到 %q (钩位 %q)", i, i, assigned[baits[i]], hooks[i])
 		}
 	}
 }
@@ -237,7 +237,7 @@ func TestBaitHookAssignmentsRepairsStaleSameHookMappings(t *testing.T) {
 		t.Fatal(err)
 	}
 	if assigned[baits[1]] != hooks[1] {
-		t.Fatalf("第二条饵应改配钩 1，得到 %q", assigned[baits[1]])
+		t.Fatalf("第二条饵应改配钩 1, 得到 %q", assigned[baits[1]])
 	}
 	var saved string
 	if err := db.SQL.QueryRow(`SELECT value FROM rod_setting WHERE guid=? AND key=?`,
@@ -245,7 +245,7 @@ func TestBaitHookAssignmentsRepairsStaleSameHookMappings(t *testing.T) {
 		t.Fatal(err)
 	}
 	if saved != hooks[1] {
-		t.Fatalf("纠正结果未回写，库里仍是 %q", saved)
+		t.Fatalf("纠正结果未回写, 库里仍是 %q", saved)
 	}
 }
 
@@ -306,20 +306,20 @@ func TestBaitHookAssignmentsFollowsMarineHookSubSlots(t *testing.T) {
 	}
 	for bait, hook := range want {
 		if assigned[bait] != hook {
-			t.Fatalf("饵 %s 应归钩位 %s，得到 %q（全部结果 %v）", bait[:8], hook[:8], assigned[bait], assigned)
+			t.Fatalf("饵 %s 应归钩位 %s, 得到 %q (全部结果 %v)", bait[:8], hook[:8], assigned[bait], assigned)
 		}
 	}
 	// 主线上的装饰（亮片、发光管）没有子槽归属，不能凭空占一个钩位。
 	for _, bait := range []string{fireStick, fireTube} {
 		if assigned[bait] != "" {
-			t.Fatalf("主线装饰 %s 不该被分配钩位，得到 %q", bait[:8], assigned[bait])
+			t.Fatalf("主线装饰 %s 不该被分配钩位, 得到 %q", bait[:8], assigned[bait])
 		}
 	}
 	if got := len(map[string]bool{
 		assigned[pilker]: true, assigned[arm1Bait]: true,
 		assigned[arm2Bait]: true, assigned[arm3Bait]: true,
 	}); got != 4 {
-		t.Fatalf("4 个钩位应各有一组饵，得到 %d 组", got)
+		t.Fatalf("4 个钩位应各有一组饵, 得到 %d 组", got)
 	}
 }
 
@@ -360,7 +360,7 @@ func TestBaitHookAssignmentsOverridesStaleRecordInSubSlotRig(t *testing.T) {
 		t.Fatal(err)
 	}
 	if assigned[arm2Bait] != arm2 {
-		t.Fatalf("子线饵应改归 %s，得到 %q", arm2[:8], assigned[arm2Bait])
+		t.Fatalf("子线饵应改归 %s, 得到 %q", arm2[:8], assigned[arm2Bait])
 	}
 	var saved string
 	if err := db.SQL.QueryRow(`SELECT value FROM rod_setting WHERE guid=? AND key=?`,
@@ -368,7 +368,7 @@ func TestBaitHookAssignmentsOverridesStaleRecordInSubSlotRig(t *testing.T) {
 		t.Fatal(err)
 	}
 	if saved != arm2 {
-		t.Fatalf("纠正结果未回写，库里仍是 %q", saved)
+		t.Fatalf("纠正结果未回写, 库里仍是 %q", saved)
 	}
 }
 
@@ -429,15 +429,15 @@ func TestBaitHookAssignmentsFallsBackToMainHookForStaleEmbeddedHook(t *testing.T
 		t.Fatal(err)
 	}
 	if assigned[pilker] != mainHook {
-		t.Fatalf("主线拟饵应回落到主线钩 %s，得到 %q", mainHook[:8], assigned[pilker])
+		t.Fatalf("主线拟饵应回落到主线钩 %s, 得到 %q", mainHook[:8], assigned[pilker])
 	}
 	for bait, want := range map[string]string{arm1Bait: arm1, arm2Bait: arm2, arm3Bait: arm3} {
 		if assigned[bait] != want {
-			t.Fatalf("子槽饵应归 %s，得到 %q", want[:8], assigned[bait])
+			t.Fatalf("子槽饵应归 %s, 得到 %q", want[:8], assigned[bait])
 		}
 	}
 	if assigned[spoon] != "" {
-		t.Fatalf("没有记录的主线装饰不该占钩位，得到 %q", assigned[spoon])
+		t.Fatalf("没有记录的主线装饰不该占钩位, 得到 %q", assigned[spoon])
 	}
 
 	var saved string
@@ -446,6 +446,6 @@ func TestBaitHookAssignmentsFallsBackToMainHookForStaleEmbeddedHook(t *testing.T
 		t.Fatal(err)
 	}
 	if saved != mainHook {
-		t.Fatalf("回落结果未回写，库里仍是 %q", saved)
+		t.Fatalf("回落结果未回写, 库里仍是 %q", saved)
 	}
 }

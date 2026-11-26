@@ -30,7 +30,7 @@ func hPlayerRewards2015(ctx *Ctx) ([]byte, bool) {
 	cctx := ctx.Sess.pushCtx()
 	rows, err := srv.DB.ListItemsByContainers(cctx, ctx.Sess.Userid, []string{"house", "backpack", "keepnet"})
 	if err != nil {
-		ctx.Log.Error("3/16 奖赏查询失败", "err", err)
+		ctx.Log.Error("3/16 Ошибка запроса наград", "err", err)
 		return encodeArgsCode(ctx, "185")
 	}
 	items := make([]*proto.Value, 0, len(rows))
@@ -41,14 +41,14 @@ func hPlayerRewards2015(ctx *Ctx) ([]byte, bool) {
 		}
 		obj, merr := makeRewardEntry(it)
 		if merr != nil {
-			ctx.Log.Error("3/16 奖赏条目编码失败", "err", merr, "guid", it.GUID)
+			ctx.Log.Error("3/16 Ошибка кодирования записи награды", "err", merr, "guid", it.GUID)
 			continue
 		}
 		items = append(items, obj)
 	}
 	body, err := proto.EncodeValue(proto.Args(proto.S("185"), items...), ctx.Sess.Table())
 	if err != nil {
-		ctx.Log.Error("3/16 奖赏响应编码失败", "err", err)
+		ctx.Log.Error("3/16 Ошибка кодирования ответа наград", "err", err)
 		return encodeArgsCode(ctx, "185")
 	}
 	return body, true
@@ -63,7 +63,7 @@ func hPlayerRewards2015(ctx *Ctx) ([]byte, bool) {
 func makeRewardEntry(it *store.Item) (*proto.Value, error) {
 	kind := uint32(0) // 0=背包/其它
 	if it.Container == "house" {
-		kind = 10 // 房/家（奖杯陈列位）
+		kind = 10 // 房/家 (奖杯陈列位)
 	}
 	created := netTicksNow()
 	updatedFT := proto.WindowsFiletimeNow()
@@ -85,7 +85,7 @@ func makeRewardEntry(it *store.Item) (*proto.Value, error) {
 	}
 	return wiregen.MakeObj("enikeammfen", map[int]*proto.Value{
 		0:  proto.U32(placeOfItem(it.ItemID)),
-		1:  proto.U32(visibility), // 0=对其他玩家可见、1=隐藏
+		1:  proto.U32(visibility), // 0=对其他玩家可见, 1=隐藏
 		2:  proto.Guid(it.GUID),
 		3:  proto.Guid(""),
 		4:  proto.U32(kind),
@@ -138,7 +138,7 @@ func rewardVisibilityFromFields(fields []proto.Field) uint32 {
 // setRewardVisibility 把 3/40 的可见性参数写入奖赏物品的 enikeammfen.f1。
 func setRewardVisibility(ctx context.Context, db *store.DB, it *store.Item, visibility bool) error {
 	if db == nil || it == nil || it.WireClass != "enikeammfen" || it.TypeID != 2015 {
-		return fmt.Errorf("不是奖赏物品")
+		return fmt.Errorf("Это не предмет-награда")
 	}
 	fields, err := FieldsFromJSON(it.FieldsJSON)
 	if err != nil || len(fields) <= 1 {
@@ -172,12 +172,12 @@ func hAchievements305(ctx *Ctx) ([]byte, bool) {
 	}
 	v, err := ctx.Sess.Srv.buildAchievements305(ctx.Sess.Srv.dbCtx(), ctx.Sess.Userid)
 	if err != nil {
-		ctx.Log.Error("3/3 成就查询失败", "err", err)
+		ctx.Log.Error("3/3 Ошибка запроса достижений", "err", err)
 		return encodeArgsCode(ctx, "114")
 	}
 	body, err := proto.EncodeValue(v, ctx.Sess.Table())
 	if err != nil {
-		ctx.Log.Error("3/3 成就编码失败", "err", err)
+		ctx.Log.Error("3/3 Ошибка кодирования достижений", "err", err)
 		return encodeArgsCode(ctx, "114")
 	}
 	// 纯查询：不判定、不写库、不推送。成就解锁与弹窗只发生在玩法事件后。
@@ -190,7 +190,7 @@ func hFishTrophies323(ctx *Ctx) ([]byte, bool) {
 	}
 	v, err := ctx.Sess.Srv.buildFishTrophies323(ctx.Sess.Srv.dbCtx(), ctx.Sess.Userid)
 	if err != nil {
-		ctx.Log.Error("3/17 鱼种奖杯查询失败", "err", err)
+		ctx.Log.Error("3/17 Ошибка запроса трофеев видов рыб", "err", err)
 		return encodeArgsCode(ctx, "132")
 	}
 	// 面板刚被填满的水域在这里兜底补发奖杯：正常情况下入护时已经发过，
@@ -201,7 +201,7 @@ func hFishTrophies323(ctx *Ctx) ([]byte, bool) {
 	pushRarityMilestoneItems(ctx.Sess, ctx.Sess.Srv.ensureRarityMilestones(ctx.Sess.Srv.dbCtx(), ctx.Sess.Userid))
 	body, err := proto.EncodeValue(v, ctx.Sess.Table())
 	if err != nil {
-		ctx.Log.Error("3/17 鱼种奖杯编码失败", "err", err)
+		ctx.Log.Error("3/17 Ошибка кодирования трофеев видов рыб", "err", err)
 		return encodeArgsCode(ctx, "132")
 	}
 	return body, true
@@ -210,7 +210,7 @@ func hFishTrophies323(ctx *Ctx) ([]byte, bool) {
 func encodeArgsCode(ctx *Ctx, code string) ([]byte, bool) {
 	body, err := proto.EncodeValue(proto.Args(proto.S(code)), ctx.Sess.Table())
 	if err != nil {
-		ctx.Log.Error("空参数列表编码失败", "code", code, "err", err)
+		ctx.Log.Error("Ошибка кодирования пустого списка параметров", "code", code, "err", err)
 		return emptyArgsBody(), true
 	}
 	return body, true

@@ -100,8 +100,8 @@ func TestMailSendRejectsOverCapBundle(t *testing.T) {
 	if code != 400 {
 		t.Fatalf("超上限包数应 400, 实得 %d: %s", code, body)
 	}
-	if !strings.Contains(body, "超过单次领取上限") {
-		t.Fatalf("错误信息应说明超上限，实得: %s", body)
+	if !strings.Contains(body, "превышает предел получения за раз") {
+		t.Fatalf("错误信息应说明超上限, 实得: %s", body)
 	}
 	if queued(srv) {
 		t.Fatal("被拒绝的邮件不应入队")
@@ -117,8 +117,8 @@ func TestMailSendRejectsUnknownItem(t *testing.T) {
 	if code != 400 {
 		t.Fatalf("未知物品应 400, 实得 %d: %s", code, body)
 	}
-	if !strings.Contains(body, "物品不存在") {
-		t.Fatalf("错误信息应说明物品不存在，实得: %s", body)
+	if !strings.Contains(body, "не существует") {
+		t.Fatalf("错误信息应说明物品不存在, 实得: %s", body)
 	}
 	if queued(srv) {
 		t.Fatal("被拒绝的邮件不应入队")
@@ -179,8 +179,8 @@ func TestMailSendRejectsMissingBundleInnerItem(t *testing.T) {
 	if code != 400 {
 		t.Fatalf("内含物不存在应 400, 实得 %d: %s", code, body)
 	}
-	if !strings.Contains(body, "内含物物品不存在") {
-		t.Fatalf("错误信息应指出内含物不存在，实得: %s", body)
+	if !strings.Contains(body, "Предмет содержимого не существует") {
+		t.Fatalf("错误信息应指出内含物不存在, 实得: %s", body)
 	}
 	if queued(srv) {
 		t.Fatal("被拒绝的邮件不应入队")
@@ -198,7 +198,7 @@ func TestMailSendRejectsNestedBundle(t *testing.T) {
 	}
 	code, body := mailSend(t, call,
 		`{"uid":1000001,"text":"测试","items":[{"item_id":"AV_shamp1_pack_6","qty":1}]}`)
-	if code != 400 || !strings.Contains(body, "嵌套") {
+	if code != 400 || !strings.Contains(body, "Вложенные") {
 		t.Fatalf("嵌套组合包应 400: %d %s", code, body)
 	}
 	if queued(srv) {
@@ -220,25 +220,25 @@ func TestMailSendRejectsUnclaimableCountableBundle(t *testing.T) {
 			name:       "unit_conversion_overflow",
 			childAttrs: `{"ljnnpokapig":2147483648}`,
 			bundleArgs: `[{"cemjmlpafmc":"worm_01","ljnnpokapig":2}]`,
-			want:       "单位换算溢出",
+			want:       "Переполнение при пересчёте единиц",
 		},
 		{
 			name:       "absolute_quantity_slot_limit",
 			childAttrs: `{"ljnnpokapig":30}`,
 			bundleArgs: `[{"cemjmlpafmc":"worm_01","ljnnpokapig":4294967296,"mlapkoadfnh":true}]`,
-			want:       "数量槽上限",
+			want:       "предел слота количества",
 		},
 		{
 			name:       "invalid_child_unit_quantity",
 			childAttrs: `{"ljnnpokapig":0}`,
 			bundleArgs: `[{"cemjmlpafmc":"worm_01","ljnnpokapig":1}]`,
-			want:       "单位量非法",
+			want:       "Недопустимая единица количества",
 		},
 		{
 			name:       "same_item_cumulative_overflow",
 			childAttrs: `{"ljnnpokapig":30}`,
 			bundleArgs: `[{"cemjmlpafmc":"worm_01","ljnnpokapig":3000000000,"mlapkoadfnh":true},{"cemjmlpafmc":"worm_01","ljnnpokapig":3000000000,"mlapkoadfnh":true}]`,
-			want:       "总量溢出",
+			want:       "Переполнение общего количества",
 		},
 	}
 	for _, tc := range tests {

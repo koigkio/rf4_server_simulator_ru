@@ -30,6 +30,6 @@ func TestSetSlotUnbindsPreviousOwner(t *testing.T) {
 	_ = db.SQL.QueryRowContext(ctx, `SELECT guid FROM container_slot WHERE uid=1000001 AND container=0 AND slot=77`).Scan(&g)
 	t.Logf("slot77=%s", g)
 	if ra.Slot != 0 {
-		t.Fatalf("A slot=%d，期望0", ra.Slot)
+		t.Fatalf("A slot=%d, 期望0", ra.Slot)
 	}
 }

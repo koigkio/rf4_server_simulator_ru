@@ -37,7 +37,7 @@ func decodeTreeValue(t *testing.T, srv *Server, body []byte) *proto.Value {
 	t.Helper()
 	v, _, err := proto.DecodeValue(body, 0, srv.Table())
 	if err != nil {
-		t.Fatalf("响应解码失败: %v（body=%x…）", err, head(body, 16))
+		t.Fatalf("响应解码失败: %v (body=%x…)", err, head(body, 16))
 	}
 	return v
 }
@@ -46,7 +46,7 @@ func decodeTreeValue(t *testing.T, srv *Server, body []byte) *proto.Value {
 func treeAvailPoints(t *testing.T, v *proto.Value) uint64 {
 	t.Helper()
 	if !v.IsKind(proto.KindObj) || v.TypeID != 311 {
-		t.Fatalf("应为 311 技能树，实得 %v/%d", v.Kind, v.TypeID)
+		t.Fatalf("应为 311 技能树, 实得 %v/%d", v.Kind, v.TypeID)
 	}
 	return u64Of(v.Fields[0].Num)
 }
@@ -64,7 +64,7 @@ func craftObj8(recipe string, materials []craftSlot, qty uint64) *proto.Value {
 	}
 	return proto.Obj("dhkphmjinmj", 8,
 		proto.FStr("STR", proto.S(recipe)),
-		proto.FVal("VAL", proto.Args(proto.S("11"))), // 工具槽（空）
+		proto.FVal("VAL", proto.Args(proto.S("11"))), // 工具槽 (空)
 		proto.FVal("VAL", materialsArg),
 		proto.FOpt(0),
 		proto.FStr("U16STR", nil),
@@ -98,7 +98,7 @@ func TestSkillLearnFlow(t *testing.T) {
 		t.Fatal("5/1 未处理")
 	}
 	if got := treeAvailPoints(t, decodeTreeValue(t, srv, body)); got != 9 {
-		t.Fatalf("初始可用点应 9，实得 %d", got)
+		t.Fatalf("初始可用点应 9, 实得 %d", got)
 	}
 
 	// 5/2 学 1/502：可用点 9→8，节点等级 0→1，树反映
@@ -107,10 +107,10 @@ func TestSkillLearnFlow(t *testing.T) {
 		t.Fatal("5/2 未处理")
 	}
 	if got := treeAvailPoints(t, decodeTreeValue(t, srv, body)); got != 8 {
-		t.Fatalf("学 1 次后可用点应 8，实得 %d", got)
+		t.Fatalf("学 1 次后可用点应 8, 实得 %d", got)
 	}
 	if lv, _ := db.GetSkillNode(ctx, 1000001, 502); lv != 1 {
-		t.Fatalf("节点 502 等级应 1，实得 %d", lv)
+		t.Fatalf("节点 502 等级应 1, 实得 %d", lv)
 	}
 
 	// 再学两次到满级（max=3）：8→7→6；第 4 次 max-level 拒绝，点数不动
@@ -120,7 +120,7 @@ func TestSkillLearnFlow(t *testing.T) {
 			t.Fatalf("5/2 第 %d 次未处理", i+2)
 		}
 		if got := treeAvailPoints(t, decodeTreeValue(t, srv, body)); got != want {
-			t.Fatalf("学 %d 次后可用点应 %d，实得 %d", i+2, want, got)
+			t.Fatalf("学 %d 次后可用点应 %d, 实得 %d", i+2, want, got)
 		}
 	}
 	body, ok = call(5, 2, proto.Args524(proto.U32(1), proto.U32(502)))
@@ -128,10 +128,10 @@ func TestSkillLearnFlow(t *testing.T) {
 		t.Fatal("5/2 满级请求未处理")
 	}
 	if got := treeAvailPoints(t, decodeTreeValue(t, srv, body)); got != 6 {
-		t.Fatalf("满级后再学可用点应保持 6，实得 %d", got)
+		t.Fatalf("满级后再学可用点应保持 6, 实得 %d", got)
 	}
 	if lv, _ := db.GetSkillNode(ctx, 1000001, 502); lv != 3 {
-		t.Fatalf("节点 502 等级应停在 3，实得 %d", lv)
+		t.Fatalf("节点 502 等级应停在 3, 实得 %d", lv)
 	}
 
 	// 熟练度不足（504 unlock=35，prof=0）→ locked：点数/等级不动
@@ -140,10 +140,10 @@ func TestSkillLearnFlow(t *testing.T) {
 		t.Fatal("5/2 锁定请求未处理")
 	}
 	if got := treeAvailPoints(t, decodeTreeValue(t, srv, body)); got != 6 {
-		t.Fatalf("锁定后可用点应保持 6，实得 %d", got)
+		t.Fatalf("锁定后可用点应保持 6, 实得 %d", got)
 	}
 	if lv, _ := db.GetSkillNode(ctx, 1000001, 504); lv != 0 {
-		t.Fatalf("锁定节点 504 等级应 0，实得 %d", lv)
+		t.Fatalf("锁定节点 504 等级应 0, 实得 %d", lv)
 	}
 
 	// 技能点耗尽（level=1 → 0 点）→ no-points：树 f0 归 0（total 0 − 已投 3 → 钳 0），
@@ -159,10 +159,10 @@ func TestSkillLearnFlow(t *testing.T) {
 		t.Fatal("5/2 无点请求未处理")
 	}
 	if got := treeAvailPoints(t, decodeTreeValue(t, srv, body)); got != 0 {
-		t.Fatalf("无点时可用点应 0，实得 %d", got)
+		t.Fatalf("无点时可用点应 0, 实得 %d", got)
 	}
 	if lv, _ := db.GetSkillNode(ctx, 1000001, 514); lv != 0 {
-		t.Fatalf("无点节点 514 等级应 0，实得 %d", lv)
+		t.Fatalf("无点节点 514 等级应 0, 实得 %d", lv)
 	}
 	if _, err := db.SQL.Exec(`UPDATE profile SET level=10 WHERE uid=1000001`); err != nil {
 		t.Fatal(err)
@@ -173,7 +173,7 @@ func TestSkillLearnFlow(t *testing.T) {
 		t.Fatal("5/1 未处理")
 	}
 	if got := treeAvailPoints(t, decodeTreeValue(t, srv, body)); got != 6 {
-		t.Fatalf("恢复等级后可用点应 6，实得 %d", got)
+		t.Fatalf("恢复等级后可用点应 6, 实得 %d", got)
 	}
 
 	// 未知节点：仍回树（handled），点数不动
@@ -182,7 +182,7 @@ func TestSkillLearnFlow(t *testing.T) {
 		t.Fatal("5/2 未知节点未处理")
 	}
 	if got := treeAvailPoints(t, decodeTreeValue(t, srv, body)); got != 6 {
-		t.Fatalf("未知节点后可用点应保持 6，实得 %d", got)
+		t.Fatalf("未知节点后可用点应保持 6, 实得 %d", got)
 	}
 
 	// 参数缺失 → PASS（交给兜底链）
@@ -196,10 +196,10 @@ func TestSkillLearnFlow(t *testing.T) {
 		t.Fatal("5/3 未处理")
 	}
 	if got := treeAvailPoints(t, decodeTreeValue(t, srv, body)); got != 9 {
-		t.Fatalf("重置后可用点应 9，实得 %d", got)
+		t.Fatalf("重置后可用点应 9, 实得 %d", got)
 	}
 	if lv, _ := db.GetSkillNode(ctx, 1000001, 502); lv != 0 {
-		t.Fatalf("重置后节点 502 等级应 0，实得 %d", lv)
+		t.Fatalf("重置后节点 502 等级应 0, 实得 %d", lv)
 	}
 
 	// 再学两次（9→7），5/4 全部重置 → 9、无残留行
@@ -213,12 +213,12 @@ func TestSkillLearnFlow(t *testing.T) {
 		t.Fatal("5/4 未处理")
 	}
 	if got := treeAvailPoints(t, decodeTreeValue(t, srv, body)); got != 9 {
-		t.Fatalf("全部重置后可用点应 9，实得 %d", got)
+		t.Fatalf("全部重置后可用点应 9, 实得 %d", got)
 	}
 	var n int64
 	_ = db.SQL.QueryRow(`SELECT COUNT(*) FROM skill_node WHERE uid=1000001`).Scan(&n)
 	if n != 0 {
-		t.Fatalf("全部重置后 skill_node 应无行，实得 %d", n)
+		t.Fatalf("全部重置后 skill_node 应无行, 实得 %d", n)
 	}
 }
 
@@ -255,37 +255,37 @@ func TestSkillLearnAtLevel5SharedPoints(t *testing.T) {
 	}
 
 	if got := treeAvailPoints(t, decodeTreeValue(t, srv, call(1))); got != 4 {
-		t.Fatalf("5 级初始可用点应 4，实得 %d", got)
+		t.Fatalf("5 级初始可用点应 4, 实得 %d", got)
 	}
 	if got := treeAvailPoints(t, decodeTreeValue(t, srv, call(2, proto.U32(1), proto.U32(514)))); got != 3 {
-		t.Fatalf("学习 514 后可用点应 3，实得 %d", got)
+		t.Fatalf("学习 514 后可用点应 3, 实得 %d", got)
 	}
 	for _, node := range []int64{514, 313, 701, 1002} {
 		if lv, err := db.GetSkillNode(ctx, 1000001, node); err != nil || lv != 1 {
-			t.Fatalf("共享节点 %d 等级应 1，实得 %d err=%v", node, lv, err)
+			t.Fatalf("共享节点 %d 等级应 1, 实得 %d err=%v", node, lv, err)
 		}
 	}
 	if spent, err := db.SkillNodeLevelSum(ctx, 1000001); err != nil || spent != 1 {
-		t.Fatalf("共享组已投点应只算 1，实得 %d err=%v", spent, err)
+		t.Fatalf("共享组已投点应只算 1, 实得 %d err=%v", spent, err)
 	}
 
 	// 从另一个类目的同组节点继续加点，整组同步且仍只扣 1 点。
 	if got := treeAvailPoints(t, decodeTreeValue(t, srv, call(2, proto.U32(2), proto.U32(701)))); got != 2 {
-		t.Fatalf("跨类目学习 701 后可用点应 2，实得 %d", got)
+		t.Fatalf("跨类目学习 701 后可用点应 2, 实得 %d", got)
 	}
 	for _, node := range []int64{514, 313, 701, 1002} {
 		if lv, _ := db.GetSkillNode(ctx, 1000001, node); lv != 2 {
-			t.Fatalf("跨类目加点后共享节点 %d 等级应 2，实得 %d", node, lv)
+			t.Fatalf("跨类目加点后共享节点 %d 等级应 2, 实得 %d", node, lv)
 		}
 	}
 
 	// 重置任一同组节点返还整组点数并归零。
 	if got := treeAvailPoints(t, decodeTreeValue(t, srv, call(3, proto.U32(1), proto.U32(514)))); got != 4 {
-		t.Fatalf("重置后可用点应 4，实得 %d", got)
+		t.Fatalf("重置后可用点应 4, 实得 %d", got)
 	}
 	for _, node := range []int64{514, 313, 701, 1002} {
 		if lv, _ := db.GetSkillNode(ctx, 1000001, node); lv != 0 {
-			t.Fatalf("重置后共享节点 %d 等级应 0，实得 %d", node, lv)
+			t.Fatalf("重置后共享节点 %d 等级应 0, 实得 %d", node, lv)
 		}
 	}
 }
@@ -334,7 +334,7 @@ func TestSkillLearnEveryCategoryWithAdminPoints(t *testing.T) {
 
 	wantAvail := uint64(skillPointsTotal(50) + 500)
 	if got := avail(); got != wantAvail {
-		t.Fatalf("50 级加 500 点后可用点应 %d，实得 %d", wantAvail, got)
+		t.Fatalf("50 级加 500 点后可用点应 %d, 实得 %d", wantAvail, got)
 	}
 
 	type openNode struct{ cat, node, maxLevel int64 }
@@ -364,11 +364,11 @@ func TestSkillLearnEveryCategoryWithAdminPoints(t *testing.T) {
 	rows.Close()
 	wantCats := []int64{1, 2, 3, 4, 5, 7, 8, 10, 11}
 	if len(open) != len(wantCats) {
-		t.Fatalf("可加点大类应 %v，实得 %+v", wantCats, open)
+		t.Fatalf("可加点大类应 %v, 实得 %+v", wantCats, open)
 	}
 	for i, cat := range wantCats {
 		if open[i].cat != cat {
-			t.Fatalf("第 %d 个可加点大类应 %d，实得 %+v", i+1, cat, open)
+			t.Fatalf("第 %d 个可加点大类应 %d, 实得 %+v", i+1, cat, open)
 		}
 	}
 
@@ -376,19 +376,19 @@ func TestSkillLearnEveryCategoryWithAdminPoints(t *testing.T) {
 		for level := int64(1); level <= item.maxLevel; level++ {
 			wantAvail--
 			if got := learn(item.cat, item.node); got != wantAvail {
-				t.Fatalf("大类 %d 节点 %d 加到 %d 级后可用点应 %d，实得 %d",
+				t.Fatalf("大类 %d 节点 %d 加到 %d 级后可用点应 %d, 实得 %d",
 					item.cat, item.node, level, wantAvail, got)
 			}
 			if rank, err := db.GetSkillNode(ctx, uid, item.node); err != nil || rank != level {
-				t.Fatalf("大类 %d 节点 %d 等级应 %d，实得 %d err=%v",
+				t.Fatalf("大类 %d 节点 %d 等级应 %d, 实得 %d err=%v",
 					item.cat, item.node, level, rank, err)
 			}
 		}
 		if got := learn(item.cat, item.node); got != wantAvail {
-			t.Fatalf("大类 %d 满级后再点不应扣点，期望 %d 实得 %d", item.cat, wantAvail, got)
+			t.Fatalf("大类 %d 满级后再点不应扣点, 期望 %d 实得 %d", item.cat, wantAvail, got)
 		}
 		if rank, _ := db.GetSkillNode(ctx, uid, item.node); rank != item.maxLevel {
-			t.Fatalf("大类 %d 节点 %d 应保持满级 %d，实得 %d", item.cat, item.node, item.maxLevel, rank)
+			t.Fatalf("大类 %d 节点 %d 应保持满级 %d, 实得 %d", item.cat, item.node, item.maxLevel, rank)
 		}
 	}
 
@@ -398,10 +398,10 @@ func TestSkillLearnEveryCategoryWithAdminPoints(t *testing.T) {
 		t.Fatal(err)
 	}
 	if ok, reason := srv.skillLearn(ctx, uid, 6, cat6Node); ok || reason != "not-learnable" {
-		t.Fatalf("6 类应拒绝 not-learnable，实得 ok=%v reason=%s", ok, reason)
+		t.Fatalf("6 类应拒绝 not-learnable, 实得 ok=%v reason=%s", ok, reason)
 	}
 	if got := learn(6, cat6Node); got != wantAvail {
-		t.Fatalf("6 类加点不应扣点，期望 %d 实得 %d", wantAvail, got)
+		t.Fatalf("6 类加点不应扣点, 期望 %d 实得 %d", wantAvail, got)
 	}
 
 	// 9 类：首个节点需要 10% 熟练度；补到 10% 后即可加点。
@@ -411,10 +411,10 @@ func TestSkillLearnEveryCategoryWithAdminPoints(t *testing.T) {
 		t.Fatal(err)
 	}
 	if ok, reason := srv.skillLearn(ctx, uid, 9, cat9Node); ok || reason != "locked" {
-		t.Fatalf("9 类熟练度 0 时应拒绝 locked，实得 ok=%v reason=%s", ok, reason)
+		t.Fatalf("9 类熟练度 0 时应拒绝 locked, 实得 ok=%v reason=%s", ok, reason)
 	}
 	if got := learn(9, cat9Node); got != wantAvail {
-		t.Fatalf("9 类锁定加点不应扣点，期望 %d 实得 %d", wantAvail, got)
+		t.Fatalf("9 类锁定加点不应扣点, 期望 %d 实得 %d", wantAvail, got)
 	}
 	if _, err := db.SQL.Exec(`INSERT INTO skill(uid,skill_id,points) VALUES(?,9,10)
 		ON CONFLICT(uid,skill_id) DO UPDATE SET points=excluded.points`, uid); err != nil {
@@ -422,10 +422,10 @@ func TestSkillLearnEveryCategoryWithAdminPoints(t *testing.T) {
 	}
 	wantAvail--
 	if got := learn(9, cat9Node); got != wantAvail {
-		t.Fatalf("9 类熟练度 10%% 后加点可用点应 %d，实得 %d", wantAvail, got)
+		t.Fatalf("9 类熟练度 10%% 后加点可用点应 %d, 实得 %d", wantAvail, got)
 	}
 	if rank, err := db.GetSkillNode(ctx, uid, cat9Node); err != nil || rank != 1 {
-		t.Fatalf("9 类节点 %d 等级应 1，实得 %d err=%v", cat9Node, rank, err)
+		t.Fatalf("9 类节点 %d 等级应 1, 实得 %d err=%v", cat9Node, rank, err)
 	}
 }
 
@@ -493,15 +493,15 @@ func TestSkillLearnAllNodesAtFullProficiency(t *testing.T) {
 		}, 100, 0)
 		if wantOK {
 			if !ok || reason != "ok" {
-				t.Fatalf("大类 %d 节点 %d 在熟练度 100%% 下应可加点，实得 ok=%v reason=%s",
+				t.Fatalf("大类 %d 节点 %d 在熟练度 100%% 下应可加点, 实得 ok=%v reason=%s",
 					item.cat, item.node, ok, reason)
 			}
 			if rank, err := db.GetSkillNode(ctx, uid, item.node); err != nil || rank != 1 {
-				t.Fatalf("大类 %d 节点 %d 等级应 1，实得 %d err=%v",
+				t.Fatalf("大类 %d 节点 %d 等级应 1, 实得 %d err=%v",
 					item.cat, item.node, rank, err)
 			}
 			if spent, err := db.SkillNodeLevelSum(ctx, uid); err != nil || spent != 1 {
-				t.Fatalf("大类 %d 节点 %d 投入应 1 点，实得 %d err=%v",
+				t.Fatalf("大类 %d 节点 %d 投入应 1 点, 实得 %d err=%v",
 					item.cat, item.node, spent, err)
 			}
 			seenCats[item.cat] = true
@@ -509,12 +509,12 @@ func TestSkillLearnAllNodesAtFullProficiency(t *testing.T) {
 			continue
 		}
 		if ok || reason != "locked" {
-			t.Fatalf("大类 %d 节点 %d（要求 %.0f%%）应保持锁定，实得 ok=%v reason=%s",
+			t.Fatalf("大类 %d 节点 %d (要求 %.0f%%)应保持锁定, 实得 ok=%v reason=%s",
 				item.cat, item.node, item.unlock, ok, reason)
 		}
 		var n int
 		if err := db.SQL.QueryRow(`SELECT COUNT(*) FROM skill_node WHERE uid=?`, uid).Scan(&n); err != nil || n != 0 {
-			t.Fatalf("锁定节点 %d 不应写入等级，实得 %d err=%v", item.node, n, err)
+			t.Fatalf("锁定节点 %d 不应写入等级, 实得 %d err=%v", item.node, n, err)
 		}
 		if !nodeUnlocked(skillNodeDef{
 			NodeID: item.node, CatID: item.cat, MaxLevel: item.maxLevel,
@@ -532,14 +532,14 @@ func TestSkillLearnAllNodesAtFullProficiency(t *testing.T) {
 		t.Fatal(err)
 	}
 	if cat6Learnable != 0 {
-		t.Fatalf("6 类出现可升级节点，期望测试与实际数据不一致: %d", cat6Learnable)
+		t.Fatalf("6 类出现可升级节点, 期望测试与实际数据不一致: %d", cat6Learnable)
 	}
 	var cat6Node int64
 	if err := db.SQL.QueryRow(`SELECT node_id FROM skill_def WHERE cat_id=6 ORDER BY node_id LIMIT 1`).Scan(&cat6Node); err != nil {
 		t.Fatal(err)
 	}
 	if ok, reason := srv.skillLearn(ctx, uid, 6, cat6Node); ok || reason != "not-learnable" {
-		t.Fatalf("6 类熟练度 100%% 仍应返回 not-learnable，实得 ok=%v reason=%s", ok, reason)
+		t.Fatalf("6 类熟练度 100%% 仍应返回 not-learnable, 实得 ok=%v reason=%s", ok, reason)
 	}
 
 	for _, item := range cases {
@@ -548,7 +548,7 @@ func TestSkillLearnAllNodesAtFullProficiency(t *testing.T) {
 		}
 	}
 	if len(seenCats) != 10 || okCount != 116 || lockedCount != 5 {
-		t.Fatalf("熟练度 100%% 下应 10 个大类共 116 个节点可加点、5 个 110%% 节点锁定，实得 cats=%d ok=%d locked=%d",
+		t.Fatalf("熟练度 100%% 下应 10 个大类共 116 个节点可加点, 5 个 110%% 节点锁定, 实得 cats=%d ok=%d locked=%d",
 			len(seenCats), okCount, lockedCount)
 	}
 }
@@ -590,7 +590,7 @@ func TestCraftFlow(t *testing.T) {
 	}
 	srv.alignItemRowQty(ctx, loaf)
 	if got := countOf("loaf_01"); got != 4 {
-		t.Fatalf("loaf_01 应有 4 份，实得 %d", got)
+		t.Fatalf("loaf_01 应有 4 份, 实得 %d", got)
 	}
 
 	// 9/1 craft_bait_bread（loaf_01×4 → bread）：803 成功 + 消耗 + 产出
@@ -601,32 +601,32 @@ func TestCraftFlow(t *testing.T) {
 	}
 	v := decodeTreeValue(t, srv, body)
 	if !v.IsKind(proto.KindObj) || v.TypeID != 803 {
-		t.Fatalf("9/1 响应应为 803，实得 %v/%d", v.Kind, v.TypeID)
+		t.Fatalf("9/1 响应应为 803, 实得 %v/%d", v.Kind, v.TypeID)
 	}
 	if got := u64Of(v.Fields[0].Num); got != 1 {
-		t.Fatalf("803.f0 成功标志应 1，实得 %d", got)
+		t.Fatalf("803.f0 成功标志应 1, 实得 %d", got)
 	}
 	f1 := v.Fields[1].Val
 	if f1 == nil || f1.Kind != proto.KindArgs || len(f1.Items) != 1 {
-		t.Fatalf("803.f1 应为 1 件产出，实得 %+v", f1)
+		t.Fatalf("803.f1 应为 1 件产出, 实得 %+v", f1)
 	}
 	if v.Fields[7].Val == nil || v.Fields[7].Val.Kind != proto.KindNull {
-		t.Fatalf("803.f7 不应发送，实得 %+v", v.Fields[7].Val)
+		t.Fatalf("803.f7 不应发送, 实得 %+v", v.Fields[7].Val)
 	}
 	if f8 := v.Fields[8].Val; f8 == nil || f8.Kind != proto.KindGuidArr || len(f8.Items) != 1 {
-		t.Fatalf("803.f8 应移除耗尽的材料，实得 %+v", f8)
+		t.Fatalf("803.f8 应移除耗尽的材料, 实得 %+v", f8)
 	}
 	if got := countOf("loaf_01"); got != 0 {
-		t.Fatalf("loaf_01 应被扣空，实得 %d", got)
+		t.Fatalf("loaf_01 应被扣空, 实得 %d", got)
 	}
 	if got := countOf("bread"); got != 30 { // bread 定义单位量 30
-		t.Fatalf("bread 应入库 30 份，实得 %d", got)
+		t.Fatalf("bread 应入库 30 份, 实得 %d", got)
 	}
 	if f2 := v.Fields[2].Val; f2 == nil || f2.Kind != proto.KindObj || f2.TypeID != 310 {
-		t.Fatalf("制作鱼饵 803.f2 应带 310 熟练度块，实得 %+v", f2)
+		t.Fatalf("制作鱼饵 803.f2 应带 310 熟练度块, 实得 %+v", f2)
 	}
 	if pts, err := db.GetSkillPoints(ctx, uid, captureBaitSkillID); err != nil || pts != 0.1 {
-		t.Fatalf("制作后捕获鱼饵熟练度应 0.1，实得 %.3f err=%v", pts, err)
+		t.Fatalf("制作后捕获鱼饵熟练度应 0.1, 实得 %.3f err=%v", pts, err)
 	}
 	var txnNote string
 	if err := db.SQL.QueryRow(
@@ -645,10 +645,10 @@ func TestCraftFlow(t *testing.T) {
 	}
 	v = decodeTreeValue(t, srv, body)
 	if got := u64Of(v.Fields[0].Num); got != 0 {
-		t.Fatalf("缺料 803.f0 应 0，实得 %d", got)
+		t.Fatalf("缺料 803.f0 应 0, 实得 %d", got)
 	}
 	if got := countOf("bread"); got != 30 {
-		t.Fatalf("缺料不应再产出 bread，实得 %d", got)
+		t.Fatalf("缺料不应再产出 bread, 实得 %d", got)
 	}
 
 	// 未知配方 → 803(false)
@@ -659,7 +659,7 @@ func TestCraftFlow(t *testing.T) {
 	}
 	v = decodeTreeValue(t, srv, body)
 	if got := u64Of(v.Fields[0].Num); got != 0 {
-		t.Fatalf("未知配方 803.f0 应 0，实得 %d", got)
+		t.Fatalf("未知配方 803.f0 应 0, 实得 %d", got)
 	}
 
 	// 9/4 询价：501{配方,0,0,qty}
@@ -671,16 +671,16 @@ func TestCraftFlow(t *testing.T) {
 	}
 	v = decodeTreeValue(t, srv, body)
 	if !v.IsKind(proto.KindObj) || v.TypeID != 501 {
-		t.Fatalf("9/4 响应应为 501，实得 %v/%d", v.Kind, v.TypeID)
+		t.Fatalf("9/4 响应应为 501, 实得 %v/%d", v.Kind, v.TypeID)
 	}
 	if s := v.Fields[0].StrOr(); s != "craft_bait_bread" {
-		t.Fatalf("501.f0 应回请求配方 id，实得 %q", s)
+		t.Fatalf("501.f0 应回请求配方 id, 实得 %q", s)
 	}
 	if u64Of(v.Fields[1].Num) != 0 || u64Of(v.Fields[2].Num) != 0 {
-		t.Fatalf("501 价格应 0/0，实得 %d/%d", u64Of(v.Fields[1].Num), u64Of(v.Fields[2].Num))
+		t.Fatalf("501 价格应 0/0, 实得 %d/%d", u64Of(v.Fields[1].Num), u64Of(v.Fields[2].Num))
 	}
 	if u64Of(v.Fields[3].Num) != 3 {
-		t.Fatalf("501.f3 数量应 3，实得 %d", u64Of(v.Fields[3].Num))
+		t.Fatalf("501.f3 数量应 3, 实得 %d", u64Of(v.Fields[3].Num))
 	}
 
 	// 9/6 保存模板：请求体就是一整个 171（实抓 2026-11-11 14:29:20），
@@ -693,16 +693,16 @@ func TestCraftFlow(t *testing.T) {
 	}
 	v = decodeTreeValue(t, srv, body)
 	if !v.IsKind(proto.KindObj) || v.TypeID != 171 {
-		t.Fatalf("9/6 响应应为 171，实得 %v/%d", v.Kind, v.TypeID)
+		t.Fatalf("9/6 响应应为 171, 实得 %v/%d", v.Kind, v.TypeID)
 	}
 	if s := v.Fields[2].StrOr(); s != "craft_bait_bread" {
-		t.Fatalf("9/6.f2 应回配方键 craft_bait_bread，实得 %q", s)
+		t.Fatalf("9/6.f2 应回配方键 craft_bait_bread, 实得 %q", s)
 	}
 	if f3 := v.Fields[3].Val; f3 == nil || f3.Kind != proto.KindArgs || f3.ArgCodeStr() != "96" {
-		t.Fatalf("9/6.f3 应 args(96)，实得 %+v", f3)
+		t.Fatalf("9/6.f3 应 args(96), 实得 %+v", f3)
 	}
 	if f4 := v.Fields[4].Val; f4 == nil || f4.Kind != proto.KindArgs || f4.ArgCodeStr() != "96" {
-		t.Fatalf("9/6.f4 应 args(96)，实得 %+v", f4)
+		t.Fatalf("9/6.f4 应 args(96), 实得 %+v", f4)
 	}
 
 	// 客户端材料槽路径：craft_feed_universal 只约束类别 18/20 与标签。
@@ -723,14 +723,14 @@ func TestCraftFlow(t *testing.T) {
 	}
 	v = decodeTreeValue(t, srv, body)
 	if got := u64Of(v.Fields[0].Num); got != 1 {
-		t.Fatalf("路径2 803.f0 应 1，实得 %d（body=%x…）", got, head(body, 16))
+		t.Fatalf("路径2 803.f0 应 1, 实得 %d (body=%x…)", got, head(body, 16))
 	}
 	if got := countOf("feedcompleted"); got != 60 {
-		t.Fatalf("feedcompleted 一套应入库 60 份，实得 %d", got)
+		t.Fatalf("feedcompleted 一套应入库 60 份, 实得 %d", got)
 	}
 	after := countOf("mix_combi")
 	if after != before-1 {
-		t.Fatalf("mix_combi 应被扣 1 份（%d → %d）", before, after)
+		t.Fatalf("mix_combi 应被扣 1 份 (%d → %d)", before, after)
 	}
 
 	// 9/3 分解：扣 2 件 → 803(true)
@@ -744,7 +744,7 @@ func TestCraftFlow(t *testing.T) {
 		t.Fatalf("bread 创建失败: %v", err)
 	}
 	srv.alignItemRowQty(ctx, g2)
-	breadsBefore := countOf("bread") // 30（首个）+ 30 + 30 = 90 份
+	breadsBefore := countOf("bread") // 30 (首个)+ 30 + 30 = 90 份
 	box.main, box.sub = 9, 3
 	box.tree = proto.Args524(proto.Guid(g1.GUID), proto.Guid(g2.GUID))
 	body, ok = box.invoke(t)
@@ -753,11 +753,11 @@ func TestCraftFlow(t *testing.T) {
 	}
 	v = decodeTreeValue(t, srv, body)
 	if got := u64Of(v.Fields[0].Num); got != 1 {
-		t.Fatalf("9/3 803.f0 应 1，实得 %d", got)
+		t.Fatalf("9/3 803.f0 应 1, 实得 %d", got)
 	}
 	// 整件移除 2 行 bread = 60 份
 	if got := countOf("bread"); got != breadsBefore-60 {
-		t.Fatalf("9/3 应整件移除 2 件 bread（30×2 份），%d → %d", breadsBefore, got)
+		t.Fatalf("9/3 应整件移除 2 件 bread (30×2 份), %d → %d", breadsBefore, got)
 	}
 }
 
@@ -793,10 +793,10 @@ func TestBaitCraftStacksAndMastery(t *testing.T) {
 		t.Fatal(err)
 	}
 	if rows != 1 || qty != 60 {
-		t.Fatalf("两次制作应合并成 1 堆 60 个，实得 rows=%d qty=%d", rows, qty)
+		t.Fatalf("两次制作应合并成 1 堆 60 个, 实得 rows=%d qty=%d", rows, qty)
 	}
 	if pts, err := db.GetSkillPoints(ctx, uid, captureBaitSkillID); err != nil || pts != 0.2 {
-		t.Fatalf("两次制作后熟练度应 0.2，实得 %.3f err=%v", pts, err)
+		t.Fatalf("两次制作后熟练度应 0.2, 实得 %.3f err=%v", pts, err)
 	}
 }
 
@@ -839,17 +839,17 @@ func TestBaitDigFlow(t *testing.T) {
 	}
 	v := decodeTreeValue(t, srv, body)
 	if !v.IsKind(proto.KindObj) || v.TypeID != 803 || u64Of(v.Fields[0].Num) != 1 {
-		t.Fatalf("挖饵应返回成功的 803，实得 %+v", v)
+		t.Fatalf("挖饵应返回成功的 803, 实得 %+v", v)
 	}
 	if got := baitCount(); got < 1 {
-		t.Fatalf("挖饵后应至少新增 1 个鱼饵，实得 %d", got)
+		t.Fatalf("挖饵后应至少新增 1 个鱼饵, 实得 %d", got)
 	}
 	if pts, err := db.GetSkillPoints(ctx, uid, captureBaitSkillID); err != nil || pts != 0.1 {
-		t.Fatalf("挖饵后捕获鱼饵熟练度应 0.1，实得 %.3f err=%v", pts, err)
+		t.Fatalf("挖饵后捕获鱼饵熟练度应 0.1, 实得 %.3f err=%v", pts, err)
 	}
 	f2 := v.Fields[2].Val
 	if f2 == nil || f2.Kind != proto.KindObj || f2.TypeID != 310 {
-		t.Fatalf("挖饵 803.f2 应带 310 熟练度块，实得 %+v", f2)
+		t.Fatalf("挖饵 803.f2 应带 310 熟练度块, 实得 %+v", f2)
 	}
 
 	before := baitCount()
@@ -859,10 +859,10 @@ func TestBaitDigFlow(t *testing.T) {
 		t.Fatal("第二次挖饵失败")
 	}
 	if got := baitCount(); got <= before {
-		t.Fatalf("第二次挖饵后鱼饵数量应增加，前=%d 后=%d", before, got)
+		t.Fatalf("第二次挖饵后鱼饵数量应增加, 前=%d 后=%d", before, got)
 	}
 	if pts, err := db.GetSkillPoints(ctx, uid, captureBaitSkillID); err != nil || pts != 0.2 {
-		t.Fatalf("第二次挖饵后熟练度应 0.2，实得 %.3f err=%v", pts, err)
+		t.Fatalf("第二次挖饵后熟练度应 0.2, 实得 %.3f err=%v", pts, err)
 	}
 }
 
@@ -947,11 +947,11 @@ func TestCraftTemplatePersistence(t *testing.T) {
 	}
 	saved := decodeTreeValue(t, srv, body)
 	if !saved.IsKind(proto.KindObj) || saved.TypeID != 171 {
-		t.Fatalf("9/6 应回 171，实得 %v/%d", saved.Kind, saved.TypeID)
+		t.Fatalf("9/6 应回 171, 实得 %v/%d", saved.Kind, saved.TypeID)
 	}
 	guid := saved.Fields[0].GuidHex()
 	if len(guid) != 32 || guid == zeroGUIDHex {
-		t.Fatalf("9/6 应补出稳定 GUID，实得 %q", guid)
+		t.Fatalf("9/6 应补出稳定 GUID, 实得 %q", guid)
 	}
 
 	// 9/5 必须列出这条模板，容器 code 是 97。
@@ -965,16 +965,16 @@ func TestCraftTemplatePersistence(t *testing.T) {
 		}
 		v := decodeTreeValue(t, srv, b)
 		if v.Kind != proto.KindArgs || v.ArgCodeStr() != "97" {
-			t.Fatalf("9/5 应为 args(97)，实得 %+v", v)
+			t.Fatalf("9/5 应为 args(97), 实得 %+v", v)
 		}
 		return v.Items
 	}
 	items := listTemplates()
 	if len(items) != 1 {
-		t.Fatalf("9/5 应列出 1 条模板，实得 %d", len(items))
+		t.Fatalf("9/5 应列出 1 条模板, 实得 %d", len(items))
 	}
 	if items[0].TypeID != 171 {
-		t.Fatalf("9/5 元素应为 171，实得 %d", items[0].TypeID)
+		t.Fatalf("9/5 元素应为 171, 实得 %d", items[0].TypeID)
 	}
 	if items[0].Fields[0].GuidHex() != guid || items[0].Fields[1].StrOr() != "奶油1" {
 		t.Fatalf("9/5 内容不符: guid=%s name=%q", items[0].Fields[0].GuidHex(), items[0].Fields[1].StrOr())
@@ -982,17 +982,17 @@ func TestCraftTemplatePersistence(t *testing.T) {
 	// 材料必须原样带回来（真实物品 id，不是需求类别）。
 	mats := items[0].Fields[4].Val
 	if mats == nil || mats.Kind != proto.KindArgs || len(mats.Items) != 2 {
-		t.Fatalf("9/5 材料应 2 条，实得 %+v", mats)
+		t.Fatalf("9/5 材料应 2 条, 实得 %+v", mats)
 	}
 	if got := mats.Items[0].Fields[2].StrOr(); got != "mix_cornflour" {
-		t.Fatalf("材料 itemID 应 mix_cornflour，实得 %q", got)
+		t.Fatalf("材料 itemID 应 mix_cornflour, 实得 %q", got)
 	}
 
 	// 重登：新 Session、同 uid，模板仍在。
 	sess2 := &Session{ID: 2, Userid: uid, Srv: srv, log: logging.Discard()}
 	box.sess = sess2
 	if n := len(listTemplates()); n != 1 {
-		t.Fatalf("重登后应仍有 1 条模板，实得 %d", n)
+		t.Fatalf("重登后应仍有 1 条模板, 实得 %d", n)
 	}
 
 	// 同名再保存一次：覆盖，不新增。
@@ -1005,10 +1005,10 @@ func TestCraftTemplatePersistence(t *testing.T) {
 	}
 	items = listTemplates()
 	if len(items) != 1 {
-		t.Fatalf("同名保存应覆盖，仍应 1 条，实得 %d", len(items))
+		t.Fatalf("同名保存应覆盖, 仍应 1 条, 实得 %d", len(items))
 	}
 	if got := items[0].Fields[4].Val.Items[0].Fields[2].StrOr(); got != "mix_groundpeas" {
-		t.Fatalf("同名保存应更新材料，实得 %q", got)
+		t.Fatalf("同名保存应更新材料, 实得 %q", got)
 	}
 
 	// 9/7 删除：列表变空。
@@ -1018,7 +1018,7 @@ func TestCraftTemplatePersistence(t *testing.T) {
 		t.Fatal("9/7 未处理")
 	}
 	if n := len(listTemplates()); n != 0 {
-		t.Fatalf("9/7 后列表应为空，实得 %d", n)
+		t.Fatalf("9/7 后列表应为空, 实得 %d", n)
 	}
 
 	// 别人的模板不会出现在我的列表里。
@@ -1034,7 +1034,7 @@ func TestCraftTemplatePersistence(t *testing.T) {
 	}
 	box.sess = sess
 	if n := len(listTemplates()); n != 0 {
-		t.Fatalf("跨玩家隔离失效：我的列表出现 %d 条", n)
+		t.Fatalf("跨玩家隔离失效: 我的列表出现 %d 条", n)
 	}
 }
 
@@ -1090,10 +1090,10 @@ func TestCraftTemplateMalformedRequest(t *testing.T) {
 		}
 		v := decodeTreeValue(t, srv, body)
 		if !v.IsKind(proto.KindNull) {
-			t.Fatalf("%s: 应回 null 拒绝，实得 %v/%d", c.name, v.Kind, v.TypeID)
+			t.Fatalf("%s: 应回 null 拒绝, 实得 %v/%d", c.name, v.Kind, v.TypeID)
 		}
 		if n := count(); n != 0 {
-			t.Fatalf("%s: 畸形请求不应落库，实得 %d 行", c.name, n)
+			t.Fatalf("%s: 畸形请求不应落库, 实得 %d 行", c.name, n)
 		}
 	}
 
@@ -1105,7 +1105,7 @@ func TestCraftTemplateMalformedRequest(t *testing.T) {
 		t.Fatal("9/6 正常请求未处理")
 	}
 	if n := count(); n != 1 {
-		t.Fatalf("正常请求应落库 1 行，实得 %d", n)
+		t.Fatalf("正常请求应落库 1 行, 实得 %d", n)
 	}
 }
 
@@ -1152,13 +1152,13 @@ func TestCraftTemplatesSkipMissingRecipe(t *testing.T) {
 	}
 	v := decodeTreeValue(t, srv, body)
 	if v.Kind != proto.KindArgs || v.ArgCodeStr() != "97" {
-		t.Fatalf("9/5 应为 args(97)，实得 %+v", v)
+		t.Fatalf("9/5 应为 args(97), 实得 %+v", v)
 	}
 	if len(v.Items) != 1 {
-		t.Fatalf("应只下发 1 条有效模板（跳过失效配方），实得 %d", len(v.Items))
+		t.Fatalf("应只下发 1 条有效模板 (跳过失效配方), 实得 %d", len(v.Items))
 	}
 	if name := v.Items[0].Fields[1].StrOr(); name != "好的" {
-		t.Fatalf("下发的应是有效模板，实得 %q", name)
+		t.Fatalf("下发的应是有效模板, 实得 %q", name)
 	}
 }
 
@@ -1221,7 +1221,7 @@ func TestCraftDeleteTemplateShapeContract(t *testing.T) {
 			t.Fatalf("%s: 9/7 未处理", c.name)
 		}
 		if n := remain(); n != 1 {
-			t.Fatalf("%s: 形状不合契约应失败关闭，模板不应被删，实得剩余 %d", c.name, n)
+			t.Fatalf("%s: 形状不合契约应失败关闭, 模板不应被删, 实得剩余 %d", c.name, n)
 		}
 	}
 
@@ -1231,7 +1231,7 @@ func TestCraftDeleteTemplateShapeContract(t *testing.T) {
 		t.Fatal("9/7 未处理")
 	}
 	if n := remain(); n != 0 {
-		t.Fatalf("实抓形状应删除成功，实得剩余 %d", n)
+		t.Fatalf("实抓形状应删除成功, 实得剩余 %d", n)
 	}
 }
 
@@ -1278,28 +1278,28 @@ func TestListCodeForObjsMatrix(t *testing.T) {
 		want   string
 		note   string
 	}{
-		{13001, "61", "标本 override（合成段 471 有断线证据）"},
-		{140, "61", "ohciikgjghe，by_elem=61"},
-		{120, "49", "cat46 成品窝料，by_type_id 既有"},
-		{145, "74", "cat30 干饵，by_type_id 既有"},
-		{125, "54", "cat19 香精，by_type_id 既有"},
-		{3103, "193", "cat61，by_type_id 既有"},
-		{17, "18", "9/6 需求对象 kdpbhdffjaf，by_type_id 既有"},
+		{13001, "61", "标本 override (合成段 471 有断线证据)"},
+		{140, "61", "ohciikgjghe, by_elem=61"},
+		{120, "49", "cat46 成品窝料, by_type_id 既有"},
+		{145, "74", "cat30 干饵, by_type_id 既有"},
+		{125, "54", "cat19 香精, by_type_id 既有"},
+		{3103, "193", "cat61, by_type_id 既有"},
+		{17, "18", "9/6 需求对象 kdpbhdffjaf, by_type_id 既有"},
 	}
 	for _, c := range cases {
 		v := &proto.Value{Kind: proto.KindObj, TypeID: c.typeID}
 		if got := listCodeForObjs([]*proto.Value{v}); got != c.want {
-			t.Fatalf("tid %d 应 %s（%s），实得 %q", c.typeID, c.want, c.note, got)
+			t.Fatalf("tid %d 应 %s (%s), 实得 %q", c.typeID, c.want, c.note, got)
 		}
 	}
 	if got := listCodeForObjs([]*proto.Value{nil, &proto.Value{Kind: proto.KindObj, TypeID: 13001}}); got != "61" {
-		t.Fatalf("非对象元素应跳过，实得 %q", got)
+		t.Fatalf("非对象元素应跳过, 实得 %q", got)
 	}
 	if got := listCodeForObjs([]*proto.Value{&proto.Value{Kind: proto.KindObj, TypeID: 999999}}); got != "61" {
-		t.Fatalf("未知 tid 应回落 61，实得 %q", got)
+		t.Fatalf("未知 tid 应回落 61, 实得 %q", got)
 	}
 	if got := listCodeForObjs(nil); got != "61" {
-		t.Fatalf("空列表应回落 61，实得 %q", got)
+		t.Fatalf("空列表应回落 61, 实得 %q", got)
 	}
 }
 
@@ -1324,32 +1324,32 @@ func TestMountedFishTreeTx(t *testing.T) {
 	mf, note, merr := srv.mountedFishTreeTx(ctx, tx, uid,
 		[]craftSlot{{ItemID: "bait_fishForCut", GUID: entry.EchoGUID, Species: "asp"}}, boardGUID)
 	if merr != nil || mf == nil {
-		t.Fatalf("应定位到渔获，mf=%v err=%v note=%q", mf, merr, note)
+		t.Fatalf("应定位到渔获, mf=%v err=%v note=%q", mf, merr, note)
 	}
 	if mf.Species != "asp" || mf.EchoGUID != entry.EchoGUID {
 		t.Fatalf("返回渔获不符: %+v", mf)
 	}
 	fish := mf.Tree
 	if fish.Class != "ecknbkpeeji" || fish.TypeID != 25 {
-		t.Fatalf("应 25/ecknbkpeeji，实得 %d/%s", fish.TypeID, fish.Class)
+		t.Fatalf("应 25/ecknbkpeeji, 实得 %d/%s", fish.TypeID, fish.Class)
 	}
 	if s := fish.Fields[0].StrOr(); s != "asp" {
-		t.Fatalf("f0 鱼种应 asp，实得 %q", s)
+		t.Fatalf("f0 鱼种应 asp, 实得 %q", s)
 	}
 	if mounted := fish.Fields[16].Hex; mounted == "" || mounted == entry.EchoGUID {
-		t.Fatalf("嵌鱼 guid 应派生新值，实得 %q", mounted)
+		t.Fatalf("嵌鱼 guid 应派生新值, 实得 %q", mounted)
 	}
 	if mf2, bad, err2 := srv.mountedFishTreeTx(ctx, tx, uid,
 		[]craftSlot{{GUID: entry.EchoGUID, Species: "perch"}}, boardGUID); mf2 != nil || bad == "" || err2 != nil {
-		t.Fatalf("鱼种不符应拒绝，got=%v note=%q err=%v", mf2, bad, err2)
+		t.Fatalf("鱼种不符应拒绝, got=%v note=%q err=%v", mf2, bad, err2)
 	}
 	if mf3, note3, err3 := srv.mountedFishTreeTx(ctx, tx, uid,
 		[]craftSlot{{GUID: "ffffffffffffffffffffffffffffffff"}}, boardGUID); mf3 != nil || note3 == "" || err3 != nil {
-		t.Fatalf("未知 guid 应返回 nil+原因，got=%v note=%q err=%v", mf3, note3, err3)
+		t.Fatalf("未知 guid 应返回 nil+原因, got=%v note=%q err=%v", mf3, note3, err3)
 	}
 	if mf4, note4, err4 := srv.mountedFishTreeTx(ctx, tx, uid,
 		[]craftSlot{{ItemID: "worm_01", GUID: ""}}, boardGUID); mf4 != nil || note4 == "" || err4 != nil {
-		t.Fatalf("无鱼护引用应返回 nil+原因，got=%v note=%q err=%v", mf4, note4, err4)
+		t.Fatalf("无鱼护引用应返回 nil+原因, got=%v note=%q err=%v", mf4, note4, err4)
 	}
 }
 
@@ -1377,27 +1377,27 @@ func TestCraftFishBoardConsumesKeepnet(t *testing.T) {
 	}
 	v := decodeTreeValue(t, srv, body)
 	if !v.IsKind(proto.KindObj) || v.TypeID != 803 {
-		t.Fatalf("应 803，实得 %v/%d", v.Kind, v.TypeID)
+		t.Fatalf("应 803, 实得 %v/%d", v.Kind, v.TypeID)
 	}
 	if got := u64Of(v.Fields[0].Num); got != 1 {
-		t.Fatalf("803.f0 应 1，实得 %d", got)
+		t.Fatalf("803.f0 应 1, 实得 %d", got)
 	}
 
 	// f1 产出：13001 板，f1 peipahjmida 嵌 25 类鱼
 	f1 := v.Fields[1].Val
 	if f1 == nil || f1.Kind != proto.KindArgs || len(f1.Items) != 1 {
-		t.Fatalf("803.f1 应 1 件产出，实得 %+v", f1)
+		t.Fatalf("803.f1 应 1 件产出, 实得 %+v", f1)
 	}
 	board := f1.Items[0]
 	if board.TypeID != 13001 {
-		t.Fatalf("产出应 13001 标本，实得 %d", board.TypeID)
+		t.Fatalf("产出应 13001 标本, 实得 %d", board.TypeID)
 	}
 	mounted := board.Fields[1].Val
 	if mounted == nil || mounted.Kind != proto.KindObj || mounted.TypeID != 25 {
-		t.Fatalf("板 f1 应嵌 25 类鱼，实得 %+v", mounted)
+		t.Fatalf("板 f1 应嵌 25 类鱼, 实得 %+v", mounted)
 	}
 	if s := mounted.Fields[0].StrOr(); s != "asp" {
-		t.Fatalf("嵌鱼鱼种应 asp，实得 %q", s)
+		t.Fatalf("嵌鱼鱼种应 asp, 实得 %q", s)
 	}
 	if mounted.Fields[16].Hex == entry.EchoGUID {
 		t.Fatal("嵌鱼 guid 应派生新值")
@@ -1415,12 +1415,12 @@ func TestCraftFishBoardConsumesKeepnet(t *testing.T) {
 		}
 	}
 	if !found {
-		t.Fatalf("f8 应含鱼护 guid %s，实得 %+v", entry.EchoGUID, f8)
+		t.Fatalf("f8 应含鱼护 guid %s, 实得 %+v", entry.EchoGUID, f8)
 	}
 
 	// 鱼护条目已删除（KeepnetGet 对不存在返回 err=ErrNoRows）
 	if got, gerr := srv.DB.KeepnetGet(ctx, uid, entry.EchoGUID); gerr == nil && got != nil {
-		t.Fatalf("鱼护条目应已删除，got=%v", got)
+		t.Fatalf("鱼护条目应已删除, got=%v", got)
 	}
 }
 
@@ -1457,14 +1457,14 @@ func TestCraftFishBoardWithoutFishFails(t *testing.T) {
 	}
 	v := decodeTreeValue(t, srv, body)
 	if !v.IsKind(proto.KindObj) || v.TypeID != 803 {
-		t.Fatalf("应 803，实得 %v/%d", v.Kind, v.TypeID)
+		t.Fatalf("应 803, 实得 %v/%d", v.Kind, v.TypeID)
 	}
 	if got := u64Of(v.Fields[0].Num); got != 0 {
-		t.Fatalf("803.f0 应 0（拒绝空白标本），实得 %d", got)
+		t.Fatalf("803.f0 应 0 (拒绝空白标本), 实得 %d", got)
 	}
 	// 无产出
 	if f1 := v.Fields[1].Val; f1 != nil && len(f1.Items) != 0 {
-		t.Fatalf("失败回包不应携带产出，实得 %+v", f1)
+		t.Fatalf("失败回包不应携带产出, 实得 %+v", f1)
 	}
 	// 标本券未被扣
 	var n int
@@ -1473,11 +1473,11 @@ func TestCraftFishBoardWithoutFishFails(t *testing.T) {
 		t.Fatal(err)
 	}
 	if n != 1 {
-		t.Fatalf("标本券不应被消耗，剩余 %d", n)
+		t.Fatalf("标本券不应被消耗, 剩余 %d", n)
 	}
 	// 鱼护无关鱼完好
 	if got, gerr := db.KeepnetGet(ctx, uid, other.EchoGUID); gerr != nil || got == nil {
-		t.Fatalf("无关渔获不应被误删，got=%v err=%v", got, gerr)
+		t.Fatalf("无关渔获不应被误删, got=%v err=%v", got, gerr)
 	}
 	// 背包没有板子
 	var n2 int
@@ -1486,7 +1486,7 @@ func TestCraftFishBoardWithoutFishFails(t *testing.T) {
 		t.Fatal(err)
 	}
 	if n2 != 0 {
-		t.Fatalf("不应产出板子，背包有 %d", n2)
+		t.Fatalf("不应产出板子, 背包有 %d", n2)
 	}
 }
 
@@ -1504,37 +1504,37 @@ func TestCraftProficiencyByRecipeFamily(t *testing.T) {
 	srv.randFloat = fixedRolls(0.1, 0.9)
 	for _, cat := range []int64{craftCookSkillID, craftFeedSkillID, craftLureSkillID} {
 		if gain := srv.awardCraftProficiency(ctx, uid, cat, 1); math.Abs(gain-0.1) > 1e-9 {
-			t.Fatalf("技能 %d 单件制作应加 0.1，实得 %.3f", cat, gain)
+			t.Fatalf("技能 %d 单件制作应加 0.1, 实得 %.3f", cat, gain)
 		}
 		if pts, err := db.GetSkillPoints(ctx, uid, cat); err != nil || pts != 0.1 {
-			t.Fatalf("技能 %d 应写入 0.1，实得 %.3f err=%v", cat, pts, err)
+			t.Fatalf("技能 %d 应写入 0.1, 实得 %.3f err=%v", cat, pts, err)
 		}
 	}
 
 	// 无对应技能的配方不写库。
 	if gain := srv.awardCraftProficiency(ctx, uid, 0, 1); gain != 0 {
-		t.Fatalf("无对应技能的配方不应加分，实得 %.3f", gain)
+		t.Fatalf("无对应技能的配方不应加分, 实得 %.3f", gain)
 	}
 	if pts, _ := db.GetSkillPoints(ctx, uid, 0); pts != 0 {
-		t.Fatalf("技能 0 不应写入，实得 %.3f", pts)
+		t.Fatalf("技能 0 不应写入, 实得 %.3f", pts)
 	}
 
 	// 未命中概率时熟练度不变。
 	srv.randFloat = fixedRolls(0.95, 0.9)
 	if gain := srv.awardCraftProficiency(ctx, uid, craftCookSkillID, 1); gain != 0 {
-		t.Fatalf("未命中时不应加分，实得 %.3f", gain)
+		t.Fatalf("未命中时不应加分, 实得 %.3f", gain)
 	}
 	if pts, _ := db.GetSkillPoints(ctx, uid, craftCookSkillID); pts != 0.1 {
-		t.Fatalf("未命中后应保持 0.1，实得 %.3f", pts)
+		t.Fatalf("未命中后应保持 0.1, 实得 %.3f", pts)
 	}
 
 	// 按件累计：5 件全中 = 0.5。
 	srv.randFloat = fixedRolls(0.1, 0.9)
 	if gain := srv.awardCraftProficiency(ctx, uid, craftCookSkillID, 5); math.Abs(gain-0.5) > 1e-9 {
-		t.Fatalf("5 件应加 0.5，实得 %.3f", gain)
+		t.Fatalf("5 件应加 0.5, 实得 %.3f", gain)
 	}
 	if pts, _ := db.GetSkillPoints(ctx, uid, craftCookSkillID); math.Abs(pts-0.6) > 1e-9 {
-		t.Fatalf("累计后应为 0.6，实得 %.3f", pts)
+		t.Fatalf("累计后应为 0.6, 实得 %.3f", pts)
 	}
 
 	// 接近上限：最多补到 100。
@@ -1543,10 +1543,10 @@ func TestCraftProficiencyByRecipeFamily(t *testing.T) {
 	}
 	srv.randFloat = fixedRolls(0.1, 0.0)
 	if gain := srv.awardCraftProficiency(ctx, uid, craftLureSkillID, 1); math.Abs(gain-0.1) > 1e-9 {
-		t.Fatalf("接近上限时应只加 0.1，实得 %.3f", gain)
+		t.Fatalf("接近上限时应只加 0.1, 实得 %.3f", gain)
 	}
 	if pts, _ := db.GetSkillPoints(ctx, uid, craftLureSkillID); math.Abs(pts-100) > 1e-9 {
-		t.Fatalf("应到上限 100，实得 %.3f", pts)
+		t.Fatalf("应到上限 100, 实得 %.3f", pts)
 	}
 }
 
@@ -1575,30 +1575,30 @@ func TestCraftCookReplyCarriesSkillTree(t *testing.T) {
 	}
 	v := decodeTreeValue(t, srv, body)
 	if !v.IsKind(proto.KindObj) || v.TypeID != 803 || u64Of(v.Fields[0].Num) != 1 {
-		t.Fatalf("烹调制作应成功返回 803，实得 %v/%d", v.Kind, v.TypeID)
+		t.Fatalf("烹调制作应成功返回 803, 实得 %v/%d", v.Kind, v.TypeID)
 	}
 	p := v.Fields[2].Val
 	if p == nil || p.Kind != proto.KindObj || p.TypeID != 310 {
-		t.Fatalf("803.f2 应带 310 熟练度块，实得 %+v", p)
+		t.Fatalf("803.f2 应带 310 熟练度块, 实得 %+v", p)
 	}
 	if got := u64Of(p.Fields[2].Num); got != uint64(craftCookSkillID) {
-		t.Fatalf("310 技能应为 %d，实得 %d", craftCookSkillID, got)
+		t.Fatalf("310 技能应为 %d, 实得 %d", craftCookSkillID, got)
 	}
 	if got := float32(math.Float32frombits(uint32(u64Of(p.Fields[3].Num)))); math.Abs(float64(got)-0.1) > 1e-6 {
-		t.Fatalf("310 增量应 0.1，实得 %.3f", got)
+		t.Fatalf("310 增量应 0.1, 实得 %.3f", got)
 	}
 	st := v.Fields[3].Val
 	if st == nil || st.Kind != proto.KindObj || st.TypeID != 312 {
-		t.Fatalf("803.f3 应带 312 技能树，实得 %+v", st)
+		t.Fatalf("803.f3 应带 312 技能树, 实得 %+v", st)
 	}
 	if got := u64Of(st.Fields[0].Num); got != uint64(craftCookSkillID) {
-		t.Fatalf("312 技能应为 %d，实得 %d", craftCookSkillID, got)
+		t.Fatalf("312 技能应为 %d, 实得 %d", craftCookSkillID, got)
 	}
 	if got := float32(math.Float32frombits(uint32(u64Of(st.Fields[1].Num)))); math.Abs(float64(got)-0.1) > 1e-6 {
-		t.Fatalf("312 熟练度应 0.1，实得 %.3f", got)
+		t.Fatalf("312 熟练度应 0.1, 实得 %.3f", got)
 	}
 	if pts, err := db.GetSkillPoints(ctx, uid, craftCookSkillID); err != nil || pts != 0.1 {
-		t.Fatalf("烹调术熟练度应 0.1，实得 %.3f err=%v", pts, err)
+		t.Fatalf("烹调术熟练度应 0.1, 实得 %.3f err=%v", pts, err)
 	}
 }
 
@@ -1609,7 +1609,7 @@ func TestCraftCountableProductsStack(t *testing.T) {
 	db := openRecipeTestDB(t)
 	ctx := context.Background()
 	srv := newSkillsCraftServer(t, db)
-	srv.randFloat = fixedRolls(0.9) // 固定不涨熟练度，避免干扰数量断言
+	srv.randFloat = fixedRolls(0.9) // 固定不涨熟练度, 避免干扰数量断言
 	uid := int64(2000007)
 	if _, err := db.EnsureProfile(ctx, uid); err != nil {
 		t.Fatal(err)
@@ -1626,7 +1626,7 @@ func TestCraftCountableProductsStack(t *testing.T) {
 		}
 		v := decodeTreeValue(t, srv, body)
 		if !v.IsKind(proto.KindObj) || v.TypeID != 803 || u64Of(v.Fields[0].Num) != 1 {
-			t.Fatalf("%s 制作应成功，实得 %v/%d", recipe, v.Kind, v.TypeID)
+			t.Fatalf("%s 制作应成功, 实得 %v/%d", recipe, v.Kind, v.TypeID)
 		}
 		return v
 	}
@@ -1649,14 +1649,14 @@ func TestCraftCountableProductsStack(t *testing.T) {
 		v := craftOnce("craft_cook_boiled_egg", nil)
 		// 结果卡只显示本次产出 1；背包快照必须是合并后的整堆。
 		if got := craftResultQty(t, v); got != 1 {
-			t.Fatalf("第 %d 次烹调 803.f1 数量应为本产出 1，实得 %d", i+1, got)
+			t.Fatalf("第 %d 次烹调 803.f1 数量应为本产出 1, 实得 %d", i+1, got)
 		}
 		if got := craftInventoryQty(t, v); got != int64(i+1) {
-			t.Fatalf("第 %d 次烹调 803.f6 数量应为整堆 %d，实得 %d", i+1, i+1, got)
+			t.Fatalf("第 %d 次烹调 803.f6 数量应为整堆 %d, 实得 %d", i+1, i+1, got)
 		}
 	}
 	if rows, qty := stackRows("boiled_egg"); rows != 1 || qty != 2 {
-		t.Fatalf("两次烹调应合并成 1 堆 2 个，实得 rows=%d qty=%d", rows, qty)
+		t.Fatalf("两次烹调应合并成 1 堆 2 个, 实得 rows=%d qty=%d", rows, qty)
 	}
 
 	// 饲料：mix_combi → feedcompleted（类别 46），一套 60 个；每组独立占一格，两次为 2 堆共 120。
@@ -1673,7 +1673,7 @@ func TestCraftCountableProductsStack(t *testing.T) {
 		craftOnce("craft_feed_universal", feedSlot)
 	}
 	if rows, qty := stackRows("feedcompleted"); rows != 2 || qty != 120 {
-		t.Fatalf("两次饲料制作应各占一格、共 120 个，实得 rows=%d qty=%d", rows, qty)
+		t.Fatalf("两次饲料制作应各占一格, 共 120 个, 实得 rows=%d qty=%d", rows, qty)
 	}
 
 	// PVA 饵料板：hvz_pva_string → pvas_b10（类别 61，非计件），两次应保持 2 个独立实例。
@@ -1686,7 +1686,7 @@ func TestCraftCountableProductsStack(t *testing.T) {
 		craftOnce("craft_pva_stinger_boil_10", nil)
 	}
 	if rows, qty := stackRows("pvas_b10"); rows != 2 || qty != 2 {
-		t.Fatalf("两次 PVA 制作应保持 2 个独立实例，实得 rows=%d qty=%d", rows, qty)
+		t.Fatalf("两次 PVA 制作应保持 2 个独立实例, 实得 rows=%d qty=%d", rows, qty)
 	}
 }
 
@@ -1697,7 +1697,7 @@ func TestCraftResultCardUsesProducedQuantity(t *testing.T) {
 	db := openRecipeTestDB(t)
 	ctx := context.Background()
 	srv := newSkillsCraftServer(t, db)
-	srv.randFloat = fixedRolls(0.9) // 不涨熟练度，避免干扰数量断言
+	srv.randFloat = fixedRolls(0.9) // 不涨熟练度, 避免干扰数量断言
 	uid := int64(2000008)
 	if _, err := db.EnsureProfile(ctx, uid); err != nil {
 		t.Fatal(err)
@@ -1722,33 +1722,33 @@ func TestCraftResultCardUsesProducedQuantity(t *testing.T) {
 		}
 		v := decodeTreeValue(t, srv, body)
 		if !v.IsKind(proto.KindObj) || v.TypeID != 803 || u64Of(v.Fields[0].Num) != 1 {
-			t.Fatalf("bread 制作应成功，实得 %v/%d", v.Kind, v.TypeID)
+			t.Fatalf("bread 制作应成功, 实得 %v/%d", v.Kind, v.TypeID)
 		}
 		return v
 	}
 
 	first := craft(1)
 	if got := craftResultQty(t, first); got != 30 {
-		t.Fatalf("首份 803.f1 数量应为本次产出 30，实得 %d", got)
+		t.Fatalf("首份 803.f1 数量应为本次产出 30, 实得 %d", got)
 	}
 	if got := craftInventoryQty(t, first); got != 30 {
-		t.Fatalf("首份 803.f6 数量应为整堆 30，实得 %d", got)
+		t.Fatalf("首份 803.f6 数量应为整堆 30, 实得 %d", got)
 	}
 
 	second := craft(1)
 	if got := craftResultQty(t, second); got != 30 {
-		t.Fatalf("第二份 803.f1 数量应为本次产出 30（不是整堆 60），实得 %d", got)
+		t.Fatalf("第二份 803.f1 数量应为本次产出 30 (不是整堆 60), 实得 %d", got)
 	}
 	if got := craftInventoryQty(t, second); got != 60 {
-		t.Fatalf("第二份 803.f6 数量应为整堆 60，实得 %d", got)
+		t.Fatalf("第二份 803.f6 数量应为整堆 60, 实得 %d", got)
 	}
 
 	third := craft(2)
 	if got := craftResultQty(t, third); got != 60 {
-		t.Fatalf("制作 2 份的 803.f1 数量应为本次产出 60，实得 %d", got)
+		t.Fatalf("制作 2 份的 803.f1 数量应为本次产出 60, 实得 %d", got)
 	}
 	if got := craftInventoryQty(t, third); got != 120 {
-		t.Fatalf("制作 2 份的 803.f6 数量应为整堆 120，实得 %d", got)
+		t.Fatalf("制作 2 份的 803.f6 数量应为整堆 120, 实得 %d", got)
 	}
 }
 
@@ -1772,7 +1772,7 @@ func craftItemListQty(t *testing.T, v *proto.Value, field int, label string) int
 	}
 	list := v.Fields[field].Val
 	if list == nil || list.Kind != proto.KindArgs || list.ArgCount() < 1 {
-		t.Fatalf("%s 应至少带 1 件物品，实得 %+v", label, list)
+		t.Fatalf("%s 应至少带 1 件物品, 实得 %+v", label, list)
 	}
 	item := list.ArgItem(0)
 	idx := fieldIdxByCS(item.Class, csQty)

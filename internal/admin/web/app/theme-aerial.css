@@ -4262,3 +4262,6 @@ body{--side-page-width:clamp(26rem,40vw,44rem);
   .tselect.theme-inline .tb-lab{font-size:11.2px;padding-right:7px}
   .theme-menu{min-width:148px}
 }
+
+/* Русская локализация: длинные слова в таблицах переносятся, чтобы узкий экран не прокручивался вбок. */
+.tbl td,.tbl th{overflow-wrap:anywhere}

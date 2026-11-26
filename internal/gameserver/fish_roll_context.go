@@ -91,11 +91,11 @@ type fishRollRuntime struct {
 func (r *fishRollRuntime) chartZoneLabel() string {
 	switch {
 	case r == nil:
-		return "未知"
+		return "Неизвестно"
 	case !r.chartKnown:
-		return "无海图"
+		return "Нет морской карты"
 	case !r.zoneKnown:
-		return "未知"
+		return "Неизвестно"
 	default:
 		return strconv.Itoa(r.zone)
 	}
@@ -103,10 +103,10 @@ func (r *fishRollRuntime) chartZoneLabel() string {
 
 func (r *fishRollRuntime) guideSpotLabel() string {
 	if r == nil || !r.guideKnown {
-		return "未知"
+		return "Неизвестно"
 	}
 	if r.guideSpot == 0 {
-		return "标注范围外"
+		return "Вне размеченной области"
 	}
 	return strconv.Itoa(r.guideSpot)
 }

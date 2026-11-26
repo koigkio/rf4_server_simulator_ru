@@ -30,40 +30,40 @@ async function fixture(t){
 }
 test('admin gate can return home or retry; one interrupted poll preserves its live document',async t=>{
   const f=await fixture(t),{page,st}=f;await page.goto(origin+'/#admin');
-  const gate=page.locator('#adminGate');await gate.getByText('存档初始化完成后会自动打开。').waitFor();
-  await gate.getByRole('button',{name:'重试'}).click();assert.deepEqual(f.posts,[]);
-  await gate.getByRole('button',{name:'返回首页'}).click();assert.equal(new URL(page.url()).hash,'#control');
-  st.admin_error='fixture init failure';await page.getByRole('tab',{name:'管理后台'}).click();await gate.getByText(st.admin_error).waitFor();
-  await gate.getByRole('button',{name:'重试'}).click();const draft=page.frameLocator('#adminFrame').getByRole('textbox');await draft.fill('未保存的草稿');
-  f.failNext=true;await page.locator('#frameNotice').waitFor();assert.equal(await draft.inputValue(),'未保存的草稿');
-  await page.locator('#frameNotice').waitFor({state:'hidden'});assert.equal(await draft.inputValue(),'未保存的草稿');
+  const gate=page.locator('#adminGate');await gate.getByText('Откроется автоматически после инициализации сохранений.').waitFor();
+  await gate.getByRole('button',{name:'Повторить'}).click();assert.deepEqual(f.posts,[]);
+  await gate.getByRole('button',{name:'На главную'}).click();assert.equal(new URL(page.url()).hash,'#control');
+  st.admin_error='fixture init failure';await page.getByRole('tab',{name:'Админ-панель'}).click();await gate.getByText(st.admin_error).waitFor();
+  await gate.getByRole('button',{name:'Повторить'}).click();const draft=page.frameLocator('#adminFrame').getByRole('textbox');await draft.fill('несохранённый черновик');
+  f.failNext=true;await page.locator('#frameNotice').waitFor();assert.equal(await draft.inputValue(),'несохранённый черновик');
+  await page.locator('#frameNotice').waitFor({state:'hidden'});assert.equal(await draft.inputValue(),'несохранённый черновик');
   assert.equal(f.loads,1);assert.deepEqual(f.posts,['/api/admin/retry']);
 });
 test('component and fault controls show stdout; log scroll, copy, build warning and keyboard focus survive polling',async t=>{
   const f=await fixture(t),{page,st}=f;await page.setViewportSize({width:390,height:800});await page.goto(origin+'/');
-  const table=page.locator('#wkBody');await table.getByText('磁盘程序已替换，重启后生效').waitFor();
-  assert.match(await table.innerText(),/v17 · 来源：custom\/test-src/);await table.getByText('可调参数',{exact:true}).waitFor();
-  assert.doesNotMatch(await table.innerText(),/已加载|failed/);assert.match(await table.getByRole('row').filter({hasText:'管理后台'}).innerText(),/未就绪/);
-  const log=table.getByRole('row').filter({hasText:'gameserver'}).getByRole('button',{name:'日志'});await log.focus();st.procs[0].running_build.version='v18';
+  const table=page.locator('#wkBody');await table.getByText(/Файл программы на диске заменён/).waitFor();
+  assert.match(await table.innerText(),/v17 · источник: custom\/test-src/);await table.getByText('Настраиваемые параметры',{exact:true}).waitFor();
+  assert.doesNotMatch(await table.innerText(),/Загружено|failed/);assert.match(await table.getByRole('row').filter({hasText:'Админ-панель'}).innerText(),/Не готова/);
+  const log=table.getByRole('row').filter({hasText:'gameserver'}).getByRole('button',{name:'Журнал'});await log.focus();st.procs[0].running_build.version='v18';
   await table.getByText(/v18/).waitFor();assert.equal(await log.evaluate(el=>document.activeElement===el),true);
   assert.equal(await page.locator('.workbench').evaluate(el=>el.clientWidth<el.scrollWidth&&el.getBoundingClientRect().right<=innerWidth),true);
   await log.press('Enter');await page.locator('#logs').getByText('logic-only').waitFor();
-  await page.getByRole('button',{name:'查看日志'}).click();const logs=page.locator('#logs');await logs.getByText('gateway-0',{exact:true}).waitFor();
+  await page.locator('#serverMenuBtn').click();await page.getByRole('button',{name:'Открыть журнал'}).click();const logs=page.locator('#logs');await logs.getByText('gateway-0',{exact:true}).waitFor();
   assert.equal(await page.locator('#logTabGateway').getAttribute('aria-selected'),'true');assert.equal(await page.locator('#view-admin').isVisible(),false);
   await logs.hover();await page.mouse.wheel(0,-100000);await page.waitForFunction(()=>document.getElementById('logs').scrollTop===0);
   f.logs.gateway.push('level=INFO msg=newest');await logs.getByText('newest').waitFor();assert.equal(await logs.evaluate(el=>el.scrollTop),0);
-  await page.getByLabel('只看警告和错误').check();assert.equal(await logs.getByText('newest').count(),0);
-  await page.getByRole('button',{name:'复制筛选结果'}).click();assert.equal(await page.evaluate(()=>window.copied),'level=ERROR msg=fixture-error');
-  await page.getByRole('button',{name:'复制全部'}).click();assert.equal(await page.evaluate(()=>window.copied),f.logs.gateway.join('\n'));
-  await page.evaluate(()=>window.denyCopy=true);await page.getByRole('button',{name:'复制全部'}).click();await page.getByText(/复制失败/).waitFor();
+  await page.getByLabel('Только предупреждения и ошибки').check();assert.equal(await logs.getByText('newest').count(),0);
+  await page.getByRole('button',{name:'Копировать отфильтрованное'}).click();assert.equal(await page.evaluate(()=>window.copied),'level=ERROR msg=fixture-error');
+  await page.getByRole('button',{name:'Копировать всё'}).click();assert.equal(await page.evaluate(()=>window.copied),f.logs.gateway.join('\n'));
+  await page.evaluate(()=>window.denyCopy=true);await page.getByRole('button',{name:'Копировать всё'}).click();await page.getByText(/Не удалось скопировать/).waitFor();
 });
 test('restart and stop warn before acting; client-only action does not start a service',async t=>{
   const f=await fixture(t),{page}=f;await page.goto(origin+'/');
   const proc=page.locator('#wkBody tr').filter({hasText:'gameserver'}),warnings=[];
   page.on('dialog',async dialog=>{warnings.push(dialog.message());await dialog.dismiss();});
-  for(const name of ['重启','停止'])await proc.getByRole('button',{name,exact:true}).click();
-  assert.equal(warnings.length,2);assert.ok(warnings.every(text=>text.includes('掉线')));assert.deepEqual(f.posts,[]);
-  await page.locator('#serverMenuBtn').click();await page.getByRole('button',{name:'只启动游戏客户端'}).click();await page.getByText(/游戏已启动/).waitFor();
+  for(const name of ['Перезапустить','Остановить'])await proc.getByRole('button',{name,exact:true}).click();
+  assert.equal(warnings.length,2);assert.ok(warnings.every(text=>text.includes('отключены')));assert.deepEqual(f.posts,[]);
+  await page.locator('#serverMenuBtn').click();await page.getByRole('button',{name:'Запустить только игру'}).click();await page.getByText(/Игра запущена/).waitFor();
   assert.deepEqual(f.posts,['/api/game/launch']);
 });
 test('slow logs keep one request per component; only a component switch drops a stale response',async t=>{

@@ -66,7 +66,7 @@ func scanRequestReceipt(scanner requestReceiptScanner) (*RequestReceipt, error) 
 		return nil, err
 	}
 	if main < 0 || main > 255 || sub < 0 || sub > 255 || callID < 0 || callID > 0xffffffff {
-		return nil, fmt.Errorf("request receipt: 非法命令键 main=%d sub=%d call_id=%d", main, sub, callID)
+		return nil, fmt.Errorf("request receipt: Недопустимый ключ команды main=%d sub=%d call_id=%d", main, sub, callID)
 	}
 	r.Main = uint8(main)
 	r.Sub = uint8(sub)
@@ -180,7 +180,7 @@ func (d *DB) CompleteRequestReceipt(
 	errorText string,
 ) (bool, error) {
 	if status != RequestReceiptCompleted && status != RequestReceiptFailed {
-		return false, fmt.Errorf("request receipt: 非法完成状态 %q", status)
+		return false, fmt.Errorf("request receipt: Недопустимое состояние завершения %q", status)
 	}
 	hasResp := 0
 	if hasResponse {

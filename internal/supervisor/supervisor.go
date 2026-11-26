@@ -28,7 +28,7 @@ const (
 	StateStopped  ProcState = "stopped"
 	StateStarting ProcState = "starting"
 	StateRunning  ProcState = "running"
-	StateBackoff  ProcState = "backoff" // 意外退出，等待重启
+	StateBackoff  ProcState = "backoff" // 意外退出, 等待重启
 	StateFailed   ProcState = "failed"  // 连续失败放弃
 )
 
@@ -42,11 +42,11 @@ const (
 // Spec 一个受管进程的定义。
 type Spec struct {
 	Name     string // gameserver / gateway
-	ExeName  string // 可执行文件名（相对 launcher 同目录）
+	ExeName  string // 可执行文件名 (相对 launcher 同目录)
 	Args     []string
-	ObsPort  string // 观测端口（":9502" 形式；健康检查用，空=不检查）
+	ObsPort  string // 观测端口 (":9502" 形式; 健康检查用, 空=不检查)
 	LogFile  string
-	Critical bool // true：该进程退出则全组停机
+	Critical bool // true: 该进程退出则全组停机
 }
 
 // BuildInfo 是子进程自报的构建身份（从观测端口的 rf4_build_info 读到）。
@@ -84,8 +84,8 @@ type proc struct {
 	fails     int
 
 	ringMu  sync.Mutex
-	ring    []string // 环形日志（含时间戳前缀）
-	ringSeq int64    // 已写入总行数（增量拉取游标）
+	ring    []string // 环形日志 (含时间戳前缀)
+	ringSeq int64    // 已写入总行数 (增量拉取游标)
 
 	stopReq bool // 用户显式停止
 	logFile *os.File
@@ -111,12 +111,12 @@ type Supervisor struct {
 	order    []string // 启动顺序
 	stopping bool
 	logDir   string
-	onState  func() // 状态变化回调（托盘图标刷新），可为 nil
+	onState  func() // 状态变化回调 (托盘图标刷新), 可为 nil
 
 	lgMu    sync.Mutex
-	lg      []string // launcher 级进度日志（StartAll 每步）
+	lg      []string // launcher 级进度日志 (StartAll 每步)
 	lgSeq   int64
-	LastErr string // StartAll/StartOne 的最近错误（面板展示）
+	LastErr string // StartAll/StartOne 的最近错误 (面板展示)
 }
 
 // New 构建监督器。binDir 为子进程可执行目录；configPath 透传 -config；
@@ -183,24 +183,24 @@ func (s *Supervisor) StartAll() error {
 	s.stopping = false
 	s.mu.Unlock()
 	for _, name := range s.order {
-		s.slogf("启动 %s …", name)
+		s.slogf("Запуск %s …", name)
 		if err := s.StartOne(name); err != nil {
 			s.LastErr = err.Error()
-			s.slogf("启动 %s 失败: %v", name, err)
+			s.slogf("Не удалось запустить %s: %v", name, err)
 			return fmt.Errorf("%s: %w", name, err)
 		}
 		p := s.procs[name]
 		if p.spec.ObsPort != "" {
 			if err := waitHealthy(p.spec.ObsPort, healthWait); err != nil {
 				s.LastErr = err.Error()
-				s.slogf("%s 健康检查超时: %v", name, err)
-				return fmt.Errorf("%s 健康检查超时: %w", name, err)
+				s.slogf("%s Истекло время проверки работоспособности: %v", name, err)
+				return fmt.Errorf("%s Истекло время проверки работоспособности: %w", name, err)
 			}
 		}
-		s.slogf("%s 就绪", name)
+		s.slogf("%s Готово", name)
 	}
 	s.LastErr = ""
-	s.slogf("全部进程就绪")
+	s.slogf("Все процессы готовы")
 	return nil
 }
 
@@ -209,12 +209,12 @@ func (s *Supervisor) StartOne(name string) error {
 	s.mu.Lock()
 	if s.stopping {
 		s.mu.Unlock()
-		return errors.New("正在停止，拒绝启动")
+		return errors.New("Идёт остановка, запуск отклонён")
 	}
 	p := s.procs[name]
 	if p == nil {
 		s.mu.Unlock()
-		return fmt.Errorf("未知进程 %s", name)
+		return fmt.Errorf("Неизвестный процесс %s", name)
 	}
 	if p.state == StateRunning || p.state == StateStarting {
 		s.mu.Unlock()
@@ -226,7 +226,7 @@ func (s *Supervisor) StartOne(name string) error {
 
 	if err := s.launch(p); err != nil {
 		p.state = StateFailed
-		s.slogf("launch %s 失败: %v", name, err)
+		s.slogf("launch %s Ошибка: %v", name, err)
 		s.notify()
 		return err
 	}
@@ -240,7 +240,7 @@ func (s *Supervisor) launch(p *proc) error {
 	exe := filepath.Join(s.dir, p.spec.ExeName)
 	fi, err := os.Stat(exe)
 	if err != nil {
-		return fmt.Errorf("找不到 %s（请确认与 launcher 同目录）", p.spec.ExeName)
+		return fmt.Errorf("Не найден %s (проверьте, что он в одной папке с launcher)", p.spec.ExeName)
 	}
 	if s.logDir != "" && p.logFile == nil {
 		_ = os.MkdirAll(s.logDir, 0o755)
@@ -268,10 +268,10 @@ func (s *Supervisor) launch(p *proc) error {
 	p.exeSize = fi.Size()
 	p.exeMod = fi.ModTime()
 	p.buildMu.Lock()
-	p.build = nil // 新进程，旧的身份作废
+	p.build = nil // 新进程, 旧的身份作废
 	p.buildRead = time.Time{}
 	p.buildMu.Unlock()
-	p.logf("[%s] 已启动 pid=%d", p.spec.Name, p.pid)
+	p.logf("[%s] Запущен pid=%d", p.spec.Name, p.pid)
 
 	go func() {
 		sc := bufio.NewScanner(stdout)
@@ -294,7 +294,7 @@ func (s *Supervisor) supervise(p *proc) {
 			p.pid = 0
 			s.clearBuild(p)
 			s.mu.Unlock()
-			p.logf("[%s] 已停止", p.spec.Name)
+			p.logf("[%s] Остановлен", p.spec.Name)
 			s.notify()
 			return
 		}
@@ -305,7 +305,7 @@ func (s *Supervisor) supervise(p *proc) {
 			p.state = StateFailed
 			s.clearBuild(p)
 			s.mu.Unlock()
-			p.logf("[%s] 意外退出（%v）；连续失败超过 %d 次，放弃重启",
+			p.logf("[%s] неожиданно завершился (%v); подряд неудачных запусков больше %d, перезапуск прекращён",
 				p.spec.Name, err, maxConsecFails)
 			s.notify()
 			return
@@ -313,7 +313,7 @@ func (s *Supervisor) supervise(p *proc) {
 		p.state = StateBackoff
 		s.clearBuild(p)
 		s.mu.Unlock()
-		p.logf("[%s] 意外退出（%v），第 %d 次重启（连续失败 %d）",
+		p.logf("[%s] неожиданно завершился (%v), перезапуск №%d (неудач подряд: %d)",
 			p.spec.Name, err, p.restarts, consec)
 		s.notify()
 
@@ -331,7 +331,7 @@ func (s *Supervisor) supervise(p *proc) {
 		}
 		s.mu.Unlock()
 		if err := s.launch(p); err != nil {
-			p.logf("[%s] 重启失败: %v", p.spec.Name, err)
+			p.logf("[%s] Не удалось перезапустить: %v", p.spec.Name, err)
 			continue
 		}
 		s.mu.Lock()
@@ -350,11 +350,11 @@ func (s *Supervisor) StopOne(name string) {
 		return
 	}
 	p.stopReq = true
-	s.clearBuild(p) // 停止指令已下达，不再对外报旧身份
+	s.clearBuild(p) // 停止指令已下达, 不再对外报旧身份
 	s.mu.Unlock()
 	if p.cmd != nil && p.cmd.Process != nil {
-		p.logf("[%s] 收到停止指令", name)
-		_ = p.cmd.Process.Kill() // SQLite WAL 下安全；硬杀避免 Windows 信号复杂性
+		p.logf("[%s] Получена команда остановки", name)
+		_ = p.cmd.Process.Kill() // SQLite WAL 下安全; 硬杀避免 Windows 信号复杂性
 	}
 }
 

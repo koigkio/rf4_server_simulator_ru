@@ -20,11 +20,11 @@ type fishPersistMeta struct {
 	sync.Mutex
 	server           *Server
 	uid              int64
-	rodGUID          string // 不可变快照键；装备失效清GearGuid时仍更新原行
+	rodGUID          string // 不可变快照键; 装备失效清GearGuid时仍更新原行
 	lastSnapshot     string
-	sessionID        uint64 // 仅进程内：检测重连/会话接管
-	recoverPending   bool   // 仅进程内：重连后重推同一尾 pending，不重新 roll
-	recoverCompleted bool   // 仅登录恢复时自动入护，不改变在线收鱼选择
+	sessionID        uint64 // 仅进程内: 检测重连/会话接管
+	recoverPending   bool   // 仅进程内: 重连后重推同一尾 pending, 不重新 roll
+	recoverCompleted bool   // 仅登录恢复时自动入护, 不改变在线收鱼选择
 }
 
 func (m *fishStateMutex) Unlock() {
@@ -42,7 +42,7 @@ func (m *fishStateMutex) Unlock() {
 
 	if !same && err == nil && meta.server != nil && meta.server.DB != nil {
 		if saveErr := meta.server.DB.SaveFishingState(meta.server.dbCtx(), snapshot); saveErr != nil {
-			meta.server.log.Warn("钓鱼状态持久化失败", "uid", meta.uid, "err", saveErr)
+			meta.server.log.Warn("Не удалось сохранить состояние ловли", "uid", meta.uid, "err", saveErr)
 		} else {
 			meta.lastSnapshot = string(raw)
 		}

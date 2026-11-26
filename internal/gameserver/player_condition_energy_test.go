@@ -52,7 +52,7 @@ func digOnce(t *testing.T, srv *Server, toolGUID string) (uint64, int) {
 	}
 	result := decodeTreeValue(t, srv, body)
 	if result.TypeID != 803 {
-		t.Fatalf("9/3 应回 803，实得 %d", result.TypeID)
+		t.Fatalf("9/3 应回 803, 实得 %d", result.TypeID)
 	}
 	return u64Of(result.Field(0).Num), len(body)
 }
@@ -75,10 +75,10 @@ func TestBaitDigSpendsEnergy(t *testing.T) {
 	seedConditionPrimary(t, srv, uid, 0.80)
 
 	if status, _ := digOnce(t, srv, tool.GUID); status != 1 {
-		t.Fatalf("体力充足时挖饵应成功，实得 f0=%d", status)
+		t.Fatalf("体力充足时挖饵应成功, 实得 f0=%d", status)
 	}
 	if got := readConditionPrimary(t, srv, uid); got < 0.64 || got > 0.66 {
-		t.Fatalf("挖饵后体力=%.4f，期望约 0.65（0.80-0.15）", got)
+		t.Fatalf("挖饵后体力=%.4f, 期望约 0.65 (0.80-0.15)", got)
 	}
 }
 
@@ -96,7 +96,7 @@ func TestBaitDigRejectedWhenEnergyTooLow(t *testing.T) {
 	before := countBackpackRows(t, srv, uid)
 
 	if status, _ := digOnce(t, srv, tool.GUID); status != 0 {
-		t.Fatalf("体力不足时挖饵应失败，实得 f0=%d", status)
+		t.Fatalf("体力不足时挖饵应失败, 实得 f0=%d", status)
 	}
 	if after := countBackpackRows(t, srv, uid); after != before {
 		t.Fatalf("被拒的挖饵不应产出物品: before=%d after=%d", before, after)
@@ -119,7 +119,7 @@ func TestBaitDigEnergyCostZeroIsNoop(t *testing.T) {
 	seedConditionPrimary(t, srv, uid, 0.01)
 
 	if status, _ := digOnce(t, srv, tool.GUID); status != 1 {
-		t.Fatalf("消耗为 0 时挖饵应照常成功，实得 f0=%d", status)
+		t.Fatalf("消耗为 0 时挖饵应照常成功, 实得 f0=%d", status)
 	}
 	if got := readConditionPrimary(t, srv, uid); got < 0.0 || got > 0.02 {
 		t.Fatalf("消耗为 0 时不应扣体力: 体力=%.4f", got)
@@ -163,7 +163,7 @@ func TestSpendEnergyTxRollsBackWithCaller(t *testing.T) {
 		t.Fatal(err)
 	}
 	if got := readConditionPrimary(t, srv, uid); got < 0.79 || got > 0.81 {
-		t.Fatalf("回滚后体力应复原为 0.80，实得 %.4f", got)
+		t.Fatalf("回滚后体力应复原为 0.80, 实得 %.4f", got)
 	}
 }
 
@@ -189,7 +189,7 @@ func TestSpendEnergyTxBoundary(t *testing.T) {
 		t.Fatal(err)
 	}
 	if got := readConditionPrimary(t, srv, uid); got > 0.001 {
-		t.Fatalf("刚好够时体力应落到 0，实得 %.4f", got)
+		t.Fatalf("刚好够时体力应落到 0, 实得 %.4f", got)
 	}
 
 	seedConditionPrimary(t, srv, uid, 0.1499)
@@ -199,7 +199,7 @@ func TestSpendEnergyTxBoundary(t *testing.T) {
 	}
 	defer func() { _ = tx2.Rollback() }()
 	if _, err := spendEnergyTx(t.Context(), tx2, uid, params, conditionEnv{}, 0.15); !errors.Is(err, errEnergyNotEnough) {
-		t.Fatalf("差一点点应返回 errEnergyNotEnough，实得 %v", err)
+		t.Fatalf("差一点点应返回 errEnergyNotEnough, 实得 %v", err)
 	}
 }
 

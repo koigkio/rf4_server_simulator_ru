@@ -50,7 +50,7 @@ func backpackDownloadDetails(t *testing.T, srv *Server, uid int64) []*proto.Valu
 	for _, item := range details.Items {
 		idx := fieldIdxByCS(item.Class, csGUID)
 		if idx < 0 || idx >= len(item.Fields) || !remaining[item.Fields[idx].Hex] {
-			t.Fatalf("背包详情缺少、重复或返回了未知 GUID: %+v", item)
+			t.Fatalf("背包详情缺少, 重复或返回了未知 GUID: %+v", item)
 		}
 		delete(remaining, item.Fields[idx].Hex)
 	}

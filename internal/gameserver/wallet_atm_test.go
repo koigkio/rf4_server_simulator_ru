@@ -34,7 +34,7 @@ func TestWalletAtmDirectCredit(t *testing.T) {
 	var cnt int
 	db.SQL.QueryRow(`SELECT COUNT(*) FROM item WHERE uid=? AND item_id='wallet_100'`, uid).Scan(&cnt)
 	if cnt != 0 {
-		t.Fatalf("背包不应留 wallet_100 实例，实得 %d 行", cnt)
+		t.Fatalf("背包不应留 wallet_100 实例, 实得 %d 行", cnt)
 	}
 	decoded, _, err := proto.DecodeValue(result.body, 0, srv.Table())
 	if err != nil {
@@ -52,7 +52,7 @@ func TestWalletAtmDirectCredit(t *testing.T) {
 		}
 	}
 	if len(request.afterResponse) != 1 {
-		t.Fatalf("应登记一次响应后 2/1 刷新，实得 %d", len(request.afterResponse))
+		t.Fatalf("应登记一次响应后 2/1 刷新, 实得 %d", len(request.afterResponse))
 	}
 }
 
@@ -77,11 +77,11 @@ func TestWalletAtmInsufficient(t *testing.T) {
 	var silver, gold int64
 	db.SQL.QueryRow(`SELECT silver,gold FROM profile WHERE uid=?`, uid).Scan(&silver, &gold)
 	if silver != 0 || gold != 0 {
-		t.Fatalf("余额不足时钱包应整体不变，silver=%d gold=%d", silver, gold)
+		t.Fatalf("余额不足时钱包应整体不变, silver=%d gold=%d", silver, gold)
 	}
 	var txns int
 	db.SQL.QueryRow(`SELECT COUNT(*) FROM txn WHERE uid=? AND item_id='wallet_100'`, uid).Scan(&txns)
 	if txns != 0 {
-		t.Fatalf("余额不足时不应写购买流水，实得 %d 行", txns)
+		t.Fatalf("余额不足时不应写购买流水, 实得 %d 行", txns)
 	}
 }

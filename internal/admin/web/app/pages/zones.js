@@ -11,7 +11,7 @@ const COLORS = ['#37e2b0', '#42b8ff', '#ff9f6e', '#ffd166', '#b28dff', '#7bdff2'
 const NEW_COLOR = '#ffbb55';
 const color = (z) => COLORS[(z.id || 0) % COLORS.length];
 const tint = (hex, a) => { const n = parseInt(hex.slice(1), 16); return `rgba(${n >> 16},${(n >> 8) & 255},${n & 255},${a})`; };
-const KIND_NAME = { grid_rect: '矩形', grid_cells: '自由形状', circle: '圆形', sea_zone: '海图区号' };
+const KIND_NAME = { grid_rect: 'Прямоугольник', grid_cells: 'Произвольная форма', circle: 'Круг', sea_zone: 'Номер зоны морской карты' };
 const SVG = {
   rect: '<rect x="4" y="5" width="16" height="14" rx="1.5"/>',
   brush: '<path d="M18.4 2.6a2 2 0 0 1 3 3L12 15l-4-4Z"/><path d="M7 14c-2 0-3.5 1.5-3.5 3.5 0 1.4-.5 2.5-1.5 3 3 .5 7-1 7-4.5"/>',
@@ -22,10 +22,10 @@ const SVG = {
   fit: '<path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/>',
 };
 const TOOLS = [
-  ['rect', '矩形', 'R', '在地图上拖出一块矩形区域。点已有的区域可以编辑它。'],
-  ['brush', '自由涂抹', 'B', '按住拖动，把格子涂进区域；按住 Alt 可以擦除。'],
-  ['circle', '圆形', 'C', '从圆心往外拖出半径。适合小坑、窄口这类小地方。'],
-  ['pan', '移动地图', 'H', '拖动地图。滚轮随时可以缩放。'],
+  ['rect', 'Прямоугольник', 'R', 'Выделите на карте прямоугольную область. Щёлкните по существующей зоне, чтобы её изменить.'],
+  ['brush', 'Свободная кисть', 'B', 'Удерживайте и ведите, чтобы закрасить клетки; с Alt — стирание.'],
+  ['circle', 'Круг', 'C', 'Тяните от центра, чтобы задать радиус. Подходит для маленьких мест: ям, узких проходов.'],
+  ['pan', 'Перемещение карты', 'H', 'Перетаскивайте карту. Колесо мыши масштабирует в любой момент.'],
 ];
 
 export function zonesEditor({ area, zones, roster }, scope) {
@@ -64,22 +64,22 @@ export function zonesEditor({ area, zones, roster }, scope) {
   const r0 = (v) => String(Math.round(v));
   const hudRange = (gx0, gz0, gx1, gz1) => {
     const [a, b] = hud(gx0 * CELL, gz0 * CELL), [c, d] = hud((gx1 + 1) * CELL, (gz1 + 1) * CELL);
-    return `${r0(a)}:${r0(b)} 到 ${r0(c)}:${r0(d)}`;
+    return `${r0(a)}:${r0(b)} до ${r0(c)}:${r0(d)}`;
   };
   function rangeText(z) {
-    if (z.kind === 'sea_zone') { const s = z.sea_zones && z.sea_zones.length ? z.sea_zones : [z.sea_zone]; return `海图 ${s.join('、')} 号区`; }
-    if (z.kind === 'circle') return cal ? `圆形，半径 ${Math.round(z.radius)} 米，圆心在 ${hud(z.cx, z.cz).map(r0).join(':')}` : `圆形，半径 ${Math.round(z.radius)} 米`;
+    if (z.kind === 'sea_zone') { const s = z.sea_zones && z.sea_zones.length ? z.sea_zones : [z.sea_zone]; return `Морская карта ${s.join(', ')} зона №`; }
+    if (z.kind === 'circle') return cal ? `Круг, радиус ${Math.round(z.radius)} м, центр в ${hud(z.cx, z.cz).map(r0).join(':')}` : `Круг, радиус ${Math.round(z.radius)} м`;
     const cells = cellsOf(z);
-    if (!cells.length) return '还没有画范围';
+    if (!cells.length) return 'Область ещё не нарисована';
     let x0 = 1e9, z0 = 1e9, x1 = -1e9, z1 = -1e9;
     cells.forEach(([x, zz]) => { x0 = Math.min(x0, x); z0 = Math.min(z0, zz); x1 = Math.max(x1, x); z1 = Math.max(z1, zz); });
-    const size = z.kind === 'grid_cells' ? `${cells.length} 个格子` : `${(x1 - x0 + 1) * CELL}×${(z1 - z0 + 1) * CELL} 米`;
-    return cal ? `${size}，游戏坐标 ${hudRange(x0, z0, x1, z1)}` : `${size}，网格 ${x0}:${z0} 到 ${x1}:${z1}`;
+    const size = z.kind === 'grid_cells' ? `${cells.length} клеток` : `${(x1 - x0 + 1) * CELL}×${(z1 - z0 + 1) * CELL} м`;
+    return cal ? `${size}, игровые координаты ${hudRange(x0, z0, x1, z1)}` : `${size}, сетка ${x0}:${z0} до ${x1}:${z1}`;
   }
   function fishSummary(z) {
     const on = (z.fish || []).filter((f) => f.enabled);
-    if (!on.length) return z.mode === 'exclusive' ? '没有指定鱼种：区内钓不到鱼' : '没有指定鱼种';
-    return on.slice(0, 6).map((f) => fishName.get(f.fish_key) || f.fish_key).join('、') + (on.length > 6 ? ` 等 ${on.length} 种` : '');
+    if (!on.length) return z.mode === 'exclusive' ? 'Виды рыб не указаны: в зоне ничего не ловится' : 'Виды рыб не указаны';
+    return on.slice(0, 6).map((f) => fishName.get(f.fish_key) || f.fish_key).join(', ') + (on.length > 6 ? ` и др. ${on.length} видов` : '');
   }
 
   // ---------- 地图 DOM ----------
@@ -87,21 +87,21 @@ export function zonesEditor({ area, zones, roster }, scope) {
   const img = h('img', { alt: '', draggable: 'false' });
   const cvGrid = canvas(), cvZones = canvas(), cvTop = canvas();
   const inner = h('div', { class: 'zmap-inner' }, img, cvGrid, cvZones, cvTop);
-  const guide = h('div', { class: 'zmap-guide' }, h('b', { text: '在地图上拖出一块矩形，就能创建第一个鱼群区域' }), h('span', { text: '也可以用左边的「自由涂抹」或「圆形」工具。' }));
+  const guide = h('div', { class: 'zmap-guide' }, h('b', { text: 'Выделите на карте прямоугольник, чтобы создать первую зону рыбы' }), h('span', { text: 'Можно также использовать инструменты «Свободная кисть» или «Круг» слева.' }));
   const stage = h('div', { class: 'zmap-stage' }, inner, guide);
   const readout = h('span', { class: 'grow' });
   const overlapNote = h('span', { style: { color: '#f3a0a0' } });
   const toolButtons = {};
   const toolbar = h('div', { class: 'zmap-tools' },
-    TOOLS.map(([t, label, key, help]) => (toolButtons[t] = h('button', { type: 'button', title: `${label}（${key}）\n${help}`, 'aria-label': label, 'aria-pressed': 'false', onclick: () => setTool(t) }, svg(SVG[t], 18)))),
+    TOOLS.map(([t, label, key, help]) => (toolButtons[t] = h('button', { type: 'button', title: `${label} (${key})\n${help}`, 'aria-label': label, 'aria-pressed': 'false', onclick: () => setTool(t) }, svg(SVG[t], 18)))),
     h('hr'),
-    h('button', { type: 'button', title: '放大', 'aria-label': '放大', onclick: () => zoomBy(1.35) }, svg(SVG.plus, 18)),
-    h('button', { type: 'button', title: '缩小', 'aria-label': '缩小', onclick: () => zoomBy(1 / 1.35) }, svg(SVG.minus, 18)),
-    h('button', { type: 'button', title: '看全图', 'aria-label': '看全图', onclick: fit }, svg(SVG.fit, 18)));
-  const pinInput = h('input', { class: 'input', style: { width: '120px', height: '28px', fontSize: '12px' }, placeholder: '如 81:61', onchange: (e) => setPin(e.target.value) });
+    h('button', { type: 'button', title: 'Приблизить', 'aria-label': 'Приблизить', onclick: () => zoomBy(1.35) }, svg(SVG.plus, 18)),
+    h('button', { type: 'button', title: 'Отдалить', 'aria-label': 'Отдалить', onclick: () => zoomBy(1 / 1.35) }, svg(SVG.minus, 18)),
+    h('button', { type: 'button', title: 'Вся карта', 'aria-label': 'Вся карта', onclick: fit }, svg(SVG.fit, 18)));
+  const pinInput = h('input', { class: 'input', style: { width: '120px', height: '28px', fontSize: '12px' }, placeholder: 'например 81:61', onchange: (e) => setPin(e.target.value) });
   const status = h('div', { class: 'zmap-status' },
     readout, overlapNote,
-    h('label', { class: 'row', style: { gap: '6px' }, title: '填入游戏里看到的坐标，地图上会标出位置，用来核对区域画得准不准' }, '定位', pinInput));
+    h('label', { class: 'row', style: { gap: '6px' }, title: 'Введите координаты из игры — место отметится на карте, чтобы проверить точность нарисованной зоны' }, 'Показать', pinInput));
   const mapBox = h('div', { class: 'zmap-canvas' }, stage, toolbar, status);
 
   // ---------- 视图 ----------
@@ -172,7 +172,7 @@ export function zonesEditor({ area, zones, roster }, scope) {
       const fillA = dim ? 0.08 : (sel || hov || isNew) ? 0.32 : 0.18;
       const lw = sel || isNew ? 4 : hov ? 3 : 2;
       const dash = dim || isNew ? [12, 6] : [];
-      const text = z.name || (isNew ? '新区域' : '#' + z.id);
+      const text = z.name || (isNew ? 'Новая зона' : '#' + z.id);
       const fg = isNew ? '#ffe3b0' : dim ? '#c3ccd6' : '#eafffa';
       if (z.kind === 'circle') {
         drawCircle(g, z.cx, z.cz, z.radius || 2, col, fillA, lw, dash);
@@ -209,7 +209,7 @@ export function zonesEditor({ area, zones, roster }, scope) {
       const [gx, gz] = k.split(',').map(Number), [x, y, w, hh] = rectPx(gx, gz, gx, gz);
       g.beginPath(); g.moveTo(x, y + hh); g.lineTo(x + w, y); g.stroke();
     }
-    overlapNote.textContent = overlaps ? `${overlaps} 个格子被多个区域覆盖（红色斜线），会同时生效` : '';
+    overlapNote.textContent = overlaps ? `${overlaps} клеток покрыто несколькими зонами (красная штриховка) — все они действуют одновременно` : '';
     guide.hidden = !!(S.zones.length || S.edit);
   }
   function drawTop() {
@@ -235,8 +235,8 @@ export function zonesEditor({ area, zones, roster }, scope) {
   function setPin(v) {
     v = (v || '').trim();
     if (!v) { S.pin = null; drawTop(); return; }
-    const m = v.match(/(-?[\d.]+)\s*[:：,/ ]\s*(-?[\d.]+)/);
-    if (!m) { toast('请按游戏里的格式填写，例如 81:61', 'bad'); return; }
+    const m = v.match(/(-?[\d.]+)\s*[:: ,/ ]\s*(-?[\d.]+)/);
+    if (!m) { toast('Введите в формате игры, например 81:61', 'bad'); return; }
     S.pin = fromHud(parseFloat(m[1]), parseFloat(m[2]));
     drawTop();
     const [px, py] = toImg(S.pin[0], S.pin[1]);
@@ -264,12 +264,12 @@ export function zonesEditor({ area, zones, roster }, scope) {
     else return;
     S.dirty = true;
     drawZones();
-    if (refs.cellCount) refs.cellCount.textContent = z.cells.length + ' 个格子';
+    if (refs.cellCount) refs.cellCount.textContent = z.cells.length + ' клеток';
   }
   function hoverText(pos) {
     const [gx, gz] = gridAt(pos[0], pos[1]);
     const [hx, hz] = hud(gx * CELL, gz * CELL);
-    return `游戏坐标 ${r0(hx)}~${r0(hx + 8)} : ${r0(hz)}~${r0(hz + 8)}（一格 40 米）`;
+    return `Игровые координаты ${r0(hx)}~${r0(hx + 8)} : ${r0(hz)}~${r0(hz + 8)}(одна клетка — 40 м)`;
   }
   function toolHint() { return (TOOLS.find(([t]) => t === S.tool) || [])[3] || ''; }
 
@@ -278,7 +278,7 @@ export function zonesEditor({ area, zones, roster }, scope) {
     stage.addEventListener('pointerdown', (e) => {
       if (!S.imgOk) return;
       e.preventDefault();
-      try { stage.setPointerCapture(e.pointerId); } catch (err) { /* 指针已失效时不影响后续绘制 */ }
+      try { stage.setPointerCapture(e.pointerId); } catch (err) { /* Потерянный указатель не мешает дальнейшему рисованию */ }
       const pos = stagePos(e);
       if (S.tool === 'pan' || e.button === 1) { S.stroke = { pan: true, sx: e.clientX, sy: e.clientY, tx: S.view.tx, ty: S.view.ty }; return; }
       if (S.tool === 'brush') { S.stroke = { paint: true, erase: e.altKey || S.erase }; paintAt(pos, S.stroke.erase); return; }
@@ -294,24 +294,24 @@ export function zonesEditor({ area, zones, roster }, scope) {
       const pos = stagePos(e);
       const st = S.stroke;
       if (st && st.pan) { S.view.tx = st.tx + (e.clientX - st.sx); S.view.ty = st.ty + (e.clientY - st.sy); applyView(); return; }
-      if (st && st.paint) { paintAt(pos, st.erase); readout.textContent = `涂抹中：${(S.edit.cells || []).length} 个格子${st.erase ? '（擦除）' : ''}`; return; }
+      if (st && st.paint) { paintAt(pos, st.erase); readout.textContent = `Закрашивание: ${(S.edit.cells || []).length} клеток${st.erase ? '(стирание)' : ''}`; return; }
       if (st && st.circle) {
         const [wx, wz] = toWorld(pos[0], pos[1]); st.r = Math.hypot(wx - st.cx, wz - st.cz); drawTop();
-        readout.textContent = `半径 ${Math.round(st.r)} 米，圆心在 ${hud(st.cx, st.cz).map(r0).join(':')} · 松开完成`;
+        readout.textContent = `Радиус ${Math.round(st.r)} м, центр в ${hud(st.cx, st.cz).map(r0).join(':')} · Отпустите, чтобы завершить`;
         return;
       }
       if (S.draft) {
         const [gx, gz] = gridAt(pos[0], pos[1]), d = S.draft;
         d.gx0 = Math.min(d.ax, gx); d.gx1 = Math.max(d.ax, gx); d.gz0 = Math.min(d.az, gz); d.gz1 = Math.max(d.az, gz);
         drawTop();
-        readout.textContent = `${(d.gx1 - d.gx0 + 1) * CELL}×${(d.gz1 - d.gz0 + 1) * CELL} 米，游戏坐标 ${hudRange(d.gx0, d.gz0, d.gx1, d.gz1)} · 松开完成`;
+        readout.textContent = `${(d.gx1 - d.gx0 + 1) * CELL}×${(d.gz1 - d.gz0 + 1) * CELL} м, игровые координаты ${hudRange(d.gx0, d.gz0, d.gx1, d.gz1)} · Отпустите, чтобы завершить`;
         return;
       }
       const hit = S.tool === 'rect' || S.tool === 'circle' ? hitTest(pos) : null;
       const id = hit ? hit.id : 0;
       if (id !== S.hover) { S.hover = id; drawZones(); }
       stage.style.cursor = S.tool === 'pan' ? 'grab' : S.tool === 'brush' ? 'cell' : hit ? 'pointer' : 'crosshair';
-      readout.textContent = hit ? `「${hit.name || '#' + hit.id}」· 点击编辑` : hoverText(pos);
+      readout.textContent = hit ? `«${hit.name || '#' + hit.id}» · щёлкните, чтобы изменить` : hoverText(pos);
     });
     const finish = (e) => {
       const st = S.stroke; S.stroke = null;
@@ -341,7 +341,7 @@ export function zonesEditor({ area, zones, roster }, scope) {
     };
     document.addEventListener('keydown', onKey);
     img.onload = () => { S.imgOk = true; drawAll(); readout.textContent = toolHint(); };
-    img.onerror = () => { S.imgOk = false; mapBox.replaceChildren(callout('warn', '读不到这张地图的图片。地图图片从游戏目录加载，请确认启动器里设置的游戏路径正确。')); };
+    img.onerror = () => { S.imgOk = false; mapBox.replaceChildren(callout('warn', 'Не удалось загрузить изображение карты. Карты берутся из папки игры — проверьте, что в лаунчере указан правильный путь к игре.')); };
     img.src = webURL('/' + area.texture);
   }
 
@@ -367,7 +367,7 @@ export function zonesEditor({ area, zones, roster }, scope) {
   // ---------- 状态切换 ----------
   async function canLeaveEdit() {
     if (!S.dirty) return true;
-    const ok = await confirmDialog({ title: '这个区域还没保存', desc: '继续操作会放弃刚才的修改。', confirm: '放弃修改' });
+    const ok = await confirmDialog({ title: 'Эта зона ещё не сохранена', desc: 'Если продолжить, внесённые изменения будут потеряны.', confirm: 'Отменить изменения' });
     if (ok) S.dirty = false;
     return ok;
   }
@@ -414,58 +414,58 @@ export function zonesEditor({ area, zones, roster }, scope) {
         onmouseenter: () => { S.hover = z.id; drawZones(); }, onmouseleave: () => { S.hover = 0; drawZones(); },
       },
       h('div', { class: 'row', style: { flexWrap: 'nowrap' } }, sw, h('b', { class: 'grow', style: { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }, text: z.name || '#' + z.id }),
-        z.mode === 'exclusive' ? badge('独占') : badge('增益 ×' + z.boost, 'accent'), tg),
+        z.mode === 'exclusive' ? badge('Исключительная') : badge('Усиление ×' + z.boost, 'accent'), tg),
       h('div', { class: 'sub', text: rangeText(z) }),
       h('div', { class: 'sub', style: { color: 'var(--text-2)' }, text: fishSummary(z) }));
     });
-    const stats = zs.length ? `独占 ${zs.filter((z) => z.mode === 'exclusive').length} · 增益 ${zs.filter((z) => z.mode === 'boost').length}` + (zs.some((z) => !z.enabled) ? ` · 停用 ${zs.filter((z) => !z.enabled).length}` : '') : '';
+    const stats = zs.length ? `Исключительная ${zs.filter((z) => z.mode === 'exclusive').length} · Усиление ${zs.filter((z) => z.mode === 'boost').length}` + (zs.some((z) => !z.enabled) ? ` · Отключено ${zs.filter((z) => !z.enabled).length}` : '') : '';
     return h('div', { class: 'zside-body' },
-      h('div', { class: 'row', style: { marginBottom: '4px' } }, h('b', { class: 'grow', text: `区域（${zs.length}）` }),
-        kind !== 'sea' ? btn(canDraw ? '手动输入' : '新建区域', () => startNew({ kind: 'grid_rect' }), canDraw ? 'ghost sm' : 'primary sm', { icon: canDraw ? null : 'plus', title: '按网格数字新建矩形区域' }) : null),
+      h('div', { class: 'row', style: { marginBottom: '4px' } }, h('b', { class: 'grow', text: `Зоны (${zs.length})` }),
+        kind !== 'sea' ? btn(canDraw ? 'Ввести вручную' : 'Создать зону', () => startNew({ kind: 'grid_rect' }), canDraw ? 'ghost sm' : 'primary sm', { icon: canDraw ? null : 'plus', title: 'Создать прямоугольную зону по координатам сетки' }) : null),
       stats ? h('div', { class: 'muted small', style: { marginBottom: '10px' }, text: stats }) : null,
       zs.length ? h('div', { class: 'stack', style: { gap: '8px' } }, cards)
-        : empty('还没有鱼群区域', kind === 'sea' ? '挪威海不划分区域，按全图鱼种出鱼。' : canDraw ? '在左边地图上画一块区域，规定那里出哪些鱼。' : '这张地图没有可用的纸地图，可以按网格数字新建。'),
-      h('p', { class: 'muted small', style: { marginTop: '14px' }, text: '独占：区内只钓得到名单里的鱼。增益：名单里的鱼在区内更常见。区域保存后约 30 秒生效，不受其他玩法开关影响。' }));
+        : empty('Зон рыбы пока нет', kind === 'sea' ? 'Норвежское море не делится на зоны, рыба выдаётся по видам всей карты.' : canDraw ? 'Нарисуйте зону на карте слева и укажите, какая рыба там ловится.' : 'Для этой карты нет бумажной карты, можно создать зону по координатам сетки.'),
+      h('p', { class: 'muted small', style: { marginTop: '14px' }, text: 'Исключительная: в зоне ловится только рыба из списка. Усиление: рыба из списка встречается в зоне чаще. Применяется примерно через 30 секунд после сохранения и не зависит от других переключателей.' }));
   }
 
   function editPanel() {
     const z = S.edit, isNew = !z.id;
     const touch = () => { S.dirty = true; drawZones(); };
-    refs.name = h('input', { class: 'input', value: z.name || '', placeholder: '例如 湾口鲤鱼区', oninput: (e) => { z.name = e.target.value; touch(); } });
+    refs.name = h('input', { class: 'input', value: z.name || '', placeholder: 'например, карповая зона у залива', oninput: (e) => { z.name = e.target.value; touch(); } });
 
     // 范围
     let range;
     const num = (val, onInput, extra = {}) => h('input', { class: 'input num', value: val, oninput: (e) => onInput(e.target.value), ...extra });
     if (z.kind === 'grid_cells') {
-      refs.cellCount = h('span', { class: 'muted small', text: (z.cells || []).length + ' 个格子' });
+      refs.cellCount = h('span', { class: 'muted small', text: (z.cells || []).length + ' клеток' });
       range = h('div', { class: 'stack', style: { gap: '8px' } },
-        h('div', { class: 'row' }, segmented([['paint', '涂'], ['erase', '擦']], S.erase ? 'erase' : 'paint', (v) => { S.erase = v === 'erase'; }),
-          btn('清空', () => { z.cells = []; refs.cellCount.textContent = '0 个格子'; touch(); }, 'ghost sm'), h('span', { class: 'spacer' }), refs.cellCount),
-        h('div', { class: 'muted small', text: S.tool === 'brush' ? '在地图上按住拖动来涂格子，按住 Alt 临时擦除。' : '选左边的「自由涂抹」工具（B）继续涂。' }));
+        h('div', { class: 'row' }, segmented([['paint', 'Кисть'], ['erase', 'Ластик']], S.erase ? 'erase' : 'paint', (v) => { S.erase = v === 'erase'; }),
+          btn('Очистить', () => { z.cells = []; refs.cellCount.textContent = '0 клеток'; touch(); }, 'ghost sm'), h('span', { class: 'spacer' }), refs.cellCount),
+        h('div', { class: 'muted small', text: S.tool === 'brush' ? 'Удерживайте и ведите по карте, чтобы закрасить клетки; Alt — временный ластик.' : 'Выберите слева «Свободную кисть» (B), чтобы продолжить.' }));
     } else if (z.kind === 'circle') {
       range = h('div', { class: 'form-grid' },
-        h('div', { class: 'field' }, h('label', { text: '半径（米）' }), num(Math.round(z.radius) || 10, (v) => { z.radius = Math.min(500, Math.max(2, Math.round(Number(v) || 2))); touch(); })),
-        h('div', { class: 'field' }, h('span', { class: 'label', text: '圆心' }), h('div', { class: 'muted small', style: { paddingTop: '9px' }, text: cal ? '游戏坐标 ' + hud(z.cx, z.cz).map(r0).join(':') : '—' })));
+        h('div', { class: 'field' }, h('label', { text: 'Радиус (м)' }), num(Math.round(z.radius) || 10, (v) => { z.radius = Math.min(500, Math.max(2, Math.round(Number(v) || 2))); touch(); })),
+        h('div', { class: 'field' }, h('span', { class: 'label', text: 'Центр' }), h('div', { class: 'muted small', style: { paddingTop: '9px' }, text: cal ? 'Игровые координаты ' + hud(z.cx, z.cz).map(r0).join(':') : '—' })));
     } else if (z.kind === 'sea_zone') {
       range = h('div', { class: 'muted small', text: rangeText(z) });
     } else {
       const coords = h('div', { class: 'form-grid', style: { gridTemplateColumns: 'repeat(4,minmax(0,1fr))' } },
-        [['gx0', '起点 X'], ['gz0', '起点 Z'], ['gx1', '终点 X'], ['gz1', '终点 Z']].map(([k, l]) => h('div', { class: 'field' }, h('label', { text: l }),
+        [['gx0', 'Начало X'], ['gz0', 'Начало Z'], ['gx1', 'Конец X'], ['gz1', 'Конец Z']].map(([k, l]) => h('div', { class: 'field' }, h('label', { text: l }),
           num(z[k], (v) => { z[k] = Math.round(Number(v) || 0); rangeLine.textContent = rangeText(z); touch(); }))));
       const rangeLine = h('div', { class: 'muted small', text: rangeText(z) });
       range = h('div', { class: 'stack', style: { gap: '8px' } }, rangeLine,
-        canDraw ? h('details', { class: 'advanced', style: { marginTop: 0 } }, h('summary', {}, '按网格数字调整'), h('div', { style: { paddingTop: '10px' } }, coords, h('div', { class: 'help small muted', style: { marginTop: '6px' }, text: '网格数字，一格 40 米。' })))
-          : h('div', {}, coords, h('div', { class: 'muted small', style: { marginTop: '6px' }, text: '网格数字，一格 40 米。' })));
+        canDraw ? h('details', { class: 'advanced', style: { marginTop: 0 } }, h('summary', {}, 'Настроить по координатам сетки'), h('div', { style: { paddingTop: '10px' } }, coords, h('div', { class: 'help small muted', style: { marginTop: '6px' }, text: 'Координаты сетки, одна клетка — 40 м.' })))
+          : h('div', {}, coords, h('div', { class: 'muted small', style: { marginTop: '6px' }, text: 'Координаты сетки, одна клетка — 40 м.' })));
     }
 
     // 出鱼方式
     const modeHelp = h('div', { class: 'muted small' });
     const modeParams = h('div');
     const drawMode = () => {
-      modeHelp.textContent = z.mode === 'exclusive' ? '玩家在区内钓鱼时，只会钓到下面名单里的鱼。名单为空表示区内钓不到鱼。' : '名单里的鱼在区内更常见，其他鱼照样会出现，只是少一些。';
+      modeHelp.textContent = z.mode === 'exclusive' ? 'В этой зоне игроки поймают только рыбу из списка ниже. Пустой список — в зоне ничего не ловится.' : 'Рыба из списка встречается в зоне чаще, остальная тоже попадается, но реже.';
       modeParams.replaceChildren(z.mode === 'boost' ? h('div', { class: 'form-grid', style: { marginTop: '10px' } },
-        h('div', { class: 'field' }, h('label', { text: '名单里的鱼多几倍' }), num(z.boost, (v) => { z.boost = v.trim() === '' ? 3 : Number(v); touch(); }), h('div', { class: 'help', text: '默认 3' })),
-        h('div', { class: 'field' }, h('label', { text: '其他鱼保留多少' }), num(z.keep_others, (v) => { z.keep_others = v.trim() === '' ? 0.35 : Number(v); touch(); }), h('div', { class: 'help', text: '0–1，默认 0.35' }))) : '');
+        h('div', { class: 'field' }, h('label', { text: 'Во сколько раз больше рыбы из списка' }), num(z.boost, (v) => { z.boost = v.trim() === '' ? 3 : Number(v); touch(); }), h('div', { class: 'help', text: 'По умолчанию 3' })),
+        h('div', { class: 'field' }, h('label', { text: 'Сколько оставить остальной рыбы' }), num(z.keep_others, (v) => { z.keep_others = v.trim() === '' ? 0.35 : Number(v); touch(); }), h('div', { class: 'help', text: '0–1, по умолчанию 0.35' }))) : '');
     };
     drawMode();
 
@@ -473,15 +473,15 @@ export function zonesEditor({ area, zones, roster }, scope) {
     const chosen = h('div');
     const drawChosen = () => {
       chosen.replaceChildren(z.fish.length ? h('div', { class: 'card' }, h('div', { class: 'list' }, z.fish.map((f, i) => {
-        const on = h('input', { type: 'checkbox', 'aria-label': '启用', onchange: (e) => { f.enabled = e.target.checked; touch(); } });
+        const on = h('input', { type: 'checkbox', 'aria-label': 'Включено', onchange: (e) => { f.enabled = e.target.checked; touch(); } });
         on.checked = !!f.enabled;
         return h('div', { class: 'list-item', style: { padding: '7px 10px', gap: '8px' } },
           h('label', { class: 'toggle' }, on, h('span', { class: 'track' })),
           h('div', { class: 'grow', style: { minWidth: 0 } }, h('div', { class: 'title', style: { fontSize: '13px' }, text: fishName.get(f.fish_key) || f.fish_key }),
-            fishName.has(f.fish_key) ? null : h('div', { class: 'sub', text: '不在这张图的鱼种里' })),
-          h('input', { class: 'input num', style: { width: '64px', height: '28px' }, title: '权重：在名单内的相对多少', value: f.weight, oninput: (e) => { f.weight = Number(e.target.value) || 1; touch(); } }),
-          h('button', { type: 'button', class: 'btn ghost icon sm', 'aria-label': '移除', onclick: () => { z.fish.splice(i, 1); touch(); drawChosen(); drawResults(); } }, svg('<path d="M18 6 6 18M6 6l12 12"/>', 14)));
-      }))) : h('div', { class: 'muted small', style: { padding: '4px 0 8px' }, text: z.mode === 'exclusive' ? '还没有加鱼：保存后这个区域里钓不到鱼。' : '还没有加鱼。' }));
+            fishName.has(f.fish_key) ? null : h('div', { class: 'sub', text: 'Нет среди видов этой карты' })),
+          h('input', { class: 'input num', style: { width: '64px', height: '28px' }, title: 'Вес: относительная доля внутри списка', value: f.weight, oninput: (e) => { f.weight = Number(e.target.value) || 1; touch(); } }),
+          h('button', { type: 'button', class: 'btn ghost icon sm', 'aria-label': 'Убрать', onclick: () => { z.fish.splice(i, 1); touch(); drawChosen(); drawResults(); } }, svg('<path d="M18 6 6 18M6 6l12 12"/>', 14)));
+      }))) : h('div', { class: 'muted small', style: { padding: '4px 0 8px' }, text: z.mode === 'exclusive' ? 'Рыба не добавлена: после сохранения в зоне ничего не будет ловиться.' : 'Рыба не добавлена.' }));
     };
     let q = '', allPool = false, seq = 0;
     const results = h('div', { class: 'list' });
@@ -489,7 +489,7 @@ export function zonesEditor({ area, zones, roster }, scope) {
       const my = ++seq;
       let items;
       if (allPool) {
-        if (!q.trim()) { results.replaceChildren(h('div', { class: 'muted small', style: { padding: '6px 0' }, text: '输入鱼名，搜索全部鱼种。' })); return; }
+        if (!q.trim()) { results.replaceChildren(h('div', { class: 'muted small', style: { padding: '6px 0' }, text: 'Введите название рыбы для поиска по всем видам.' })); return; }
         const list = await apiList('/api/fish/pool?limit=30&q=' + encodeURIComponent(q.trim())).catch(() => []);
         if (my !== seq) return;
         items = list.map((x) => ({ key: x.fish_key, name: x.name_zh || x.fish_key, w: 1 }));
@@ -501,31 +501,31 @@ export function zonesEditor({ area, zones, roster }, scope) {
       results.replaceChildren(...(items.length ? items.slice(0, 40).map((x) => h('div', {
         class: 'list-item clickable', style: { padding: '6px 10px' },
         onclick: () => { fishName.set(x.key, x.name); z.fish.push({ fish_key: x.key, weight: x.w, enabled: true }); touch(); drawChosen(); drawResults(); },
-      }, h('span', { class: 'grow small', text: x.name }), h('span', { class: 'muted small', text: '添加' }))) : [h('div', { class: 'muted small', style: { padding: '6px 0' }, text: allPool ? '没有找到' : '这张图的鱼都已经加进来了' })]));
+      }, h('span', { class: 'grow small', text: x.name }), h('span', { class: 'muted small', text: 'Добавить' }))) : [h('div', { class: 'muted small', style: { padding: '6px 0' }, text: allPool ? 'Ничего не найдено' : 'Вся рыба этой карты уже добавлена' })]));
     }
     drawChosen(); drawResults();
     const picker = h('div', { class: 'stack', style: { gap: '8px' } },
-      h('input', { class: 'input', placeholder: '筛选鱼名', oninput: (e) => { q = e.target.value; drawResults(); } }),
+      h('input', { class: 'input', placeholder: 'Фильтр по названию рыбы', oninput: (e) => { q = e.target.value; drawResults(); } }),
       h('div', { class: 'card', style: { maxHeight: '200px', overflow: 'auto' } }, results),
-      toggleEl({ checked: false, label: '也搜索其他水域的鱼', onChange: (v) => { allPool = v; drawResults(); } }));
+      toggleEl({ checked: false, label: 'Искать также рыбу с других водоёмов', onChange: (v) => { allPool = v; drawResults(); } }));
 
-    const save = btn('保存', saveZone, 'primary');
+    const save = btn('Сохранить', saveZone, 'primary');
     const sec = (title, ...body) => h('div', { class: 'zsec' }, h('div', { class: 'zsec-title', text: title }), ...body);
     return h('div', { class: 'zside-edit' },
       h('div', { class: 'zside-head' },
-        h('button', { type: 'button', class: 'btn ghost icon sm', 'aria-label': '返回列表', title: '返回列表', onclick: async () => { if (await canLeaveEdit()) closeEdit(); } }, svg('<path d="m15 6-6 6 6 6"/>', 16)),
-        h('b', { class: 'grow', text: isNew ? '新区域' : '编辑区域' }),
+        h('button', { type: 'button', class: 'btn ghost icon sm', 'aria-label': 'К списку', title: 'К списку', onclick: async () => { if (await canLeaveEdit()) closeEdit(); } }, svg('<path d="m15 6-6 6 6 6"/>', 16)),
+        h('b', { class: 'grow', text: isNew ? 'Новая зона' : 'Изменение зоны' }),
         badge(KIND_NAME[z.kind] || z.kind),
-        isNew ? null : h('span', { onclick: (e) => e.stopPropagation() }, toggleEl({ checked: z.enabled, label: z.enabled ? '启用' : '停用', onChange: (v) => { z.enabled = v; touch(); } }))),
+        isNew ? null : h('span', { onclick: (e) => e.stopPropagation() }, toggleEl({ checked: z.enabled, label: z.enabled ? 'Включено' : 'Отключено', onChange: (v) => { z.enabled = v; touch(); } }))),
       h('div', { class: 'zside-body' },
-        sec('名称', refs.name),
-        sec('范围', range),
-        sec('出鱼方式', segmented([['exclusive', '独占'], ['boost', '增益']], z.mode, (v) => { z.mode = v; touch(); drawMode(); drawChosen(); }), modeHelp, modeParams),
-        sec('区内的鱼', chosen, picker), h('p', {class:'hint', text:'区域保存后最多 30 秒生效。'})),
+        sec('Название', refs.name),
+        sec('Диапазон', range),
+        sec('Режим выдачи рыбы', segmented([['exclusive', 'Исключительная'], ['boost', 'Усиление']], z.mode, (v) => { z.mode = v; touch(); drawMode(); drawChosen(); }), modeHelp, modeParams),
+        sec('Рыба в зоне', chosen, picker), h('p', {class:'hint', text:'Применяется не позже чем через 30 секунд после сохранения.'})),
       h('div', { class: 'zside-foot' },
-        isNew ? null : btn('删除', () => removeZone(z), 'danger sm', { icon: 'trash' }),
+        isNew ? null : btn('Удалить', () => removeZone(z), 'danger sm', { icon: 'trash' }),
         h('span', { class: 'spacer' }),
-        btn('取消', async () => { if (await canLeaveEdit()) closeEdit(); }, 'ghost'),
+        btn('Отмена', async () => { if (await canLeaveEdit()) closeEdit(); }, 'ghost'),
         save));
   }
 
@@ -536,7 +536,7 @@ export function zonesEditor({ area, zones, roster }, scope) {
     if (body.kind === 'grid_cells') {
       const seen = new Set();
       body.cells = (body.cells || []).filter(([a, b]) => { const k = a + ',' + b; if (seen.has(k)) return false; seen.add(k); return true; });
-      if (!body.cells.length) { toast('还没有涂任何格子。选左边的「自由涂抹」工具，在地图上按住拖动。', 'bad'); return; }
+      if (!body.cells.length) { toast('Ни одна клетка не закрашена. Выберите слева «Свободную кисть» и ведите по карте с зажатой кнопкой.', 'bad'); return; }
     } else if (body.kind === 'circle') {
       body.radius = Math.min(500, Math.max(2, Math.round(body.radius || 2)));
     } else if (body.kind === 'grid_rect') {
@@ -544,12 +544,12 @@ export function zonesEditor({ area, zones, roster }, scope) {
       [body.gz0, body.gz1] = [Math.min(body.gz0, body.gz1), Math.max(body.gz0, body.gz1)];
     }
     if (body.mode === 'exclusive' && !body.fish.some((f) => f.enabled)) {
-      const ok = await confirmDialog({ title: '名单是空的', desc: '独占区的名单为空，保存后这块区域里钓不到任何鱼。确定吗？', confirm: '仍然保存' });
+      const ok = await confirmDialog({ title: 'Список пуст', desc: 'Список исключительной зоны пуст: после сохранения в ней ничего не будет ловиться. Продолжить?', confirm: 'Всё равно сохранить' });
       if (!ok) return;
     }
     try {
       const res = await post('/api/fish/zones', body);
-      toast('已保存，约 30 秒内生效');
+      toast('Сохранено, вступит в силу примерно через 30 секунд');
       S.dirty = false;
       await reload();
       const saved = S.zones.find((x) => x.id === res.id);
@@ -559,11 +559,11 @@ export function zonesEditor({ area, zones, roster }, scope) {
     } catch (e) { toast(errText(e), 'bad'); }
   }
   async function removeZone(z) {
-    const ok = await confirmDialog({ title: `删除「${z.name || '#' + z.id}」？`, desc: '这块区域恢复按地图的鱼种出鱼。不能撤销。', confirm: '删除', danger: true });
+    const ok = await confirmDialog({ title: `Удалить «${z.name || '#' + z.id}»? `, desc: 'В этой области снова будет выдаваться рыба по видам карты. Отменить нельзя.', confirm: 'Удалить', danger: true });
     if (!ok) return;
     try {
       await post('/api/fish/zones/delete', { id: z.id });
-      toast('已删除，约 30 秒内生效');
+      toast('Удалено, вступит в силу примерно через 30 секунд');
       S.dirty = false; S.edit = null; S.sel = 0;
       await reload();
       renderSide(); drawZones();
@@ -572,7 +572,7 @@ export function zonesEditor({ area, zones, roster }, scope) {
   async function toggleEnabled(z, on) {
     try {
       await post('/api/fish/zones', { ...z, fish: z.fish || [], enabled: on });
-      toast(on ? '已启用，约 30 秒内生效' : '已停用，约 30 秒内生效');
+      toast(on ? 'Включено, вступит в силу примерно через 30 секунд' : 'Отключено, вступит в силу примерно через 30 секунд');
       await reload();
       renderSide(); drawZones();
     } catch (e) { toast(errText(e), 'bad'); renderSide(); }
@@ -582,7 +582,7 @@ export function zonesEditor({ area, zones, roster }, scope) {
   applyTool('rect');
   let mapArea;
   if (canDraw) mapArea = mapBox;
-  else if (kind === 'sea') mapArea = h('div', {}, callout('info', '挪威海不划分鱼群区域，按整张图的鱼种出鱼。'));
-  else mapArea = h('div', {}, callout('info', '这张地图没有可用的纸地图，无法在图上画。可以在右边按网格数字新建矩形区域。'));
+  else if (kind === 'sea') mapArea = h('div', {}, callout('info', 'Норвежское море не делится на зоны рыбы, рыба выдаётся по видам всей карты.'));
+  else mapArea = h('div', {}, callout('info', 'Для этой карты нет бумажной карты, рисовать на ней нельзя. Справа можно создать прямоугольную зону по координатам сетки.'));
   return h('div', { class: 'zmap' + (canDraw ? '' : ' no-map') }, mapArea, side);
 }

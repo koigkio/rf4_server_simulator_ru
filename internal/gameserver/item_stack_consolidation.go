@@ -35,7 +35,7 @@ func clearStackStoreReceipt(class string, fields []proto.Field) bool {
 // 全部修改在一个玩家库事务内完成；任一组无法无损合并时整笔回滚。
 func (s *Server) ConsolidateNonReturnableItemStacks(ctx context.Context) (int, error) {
 	if s.DB == nil || s.DB.SQL == nil {
-		return 0, errors.New("整理计件物品：数据库未连接")
+		return 0, errors.New("Упорядочивание штучных предметов: база не подключена")
 	}
 	tx, err := beginEconomyTx(ctx, s.DB)
 	if err != nil {
@@ -108,25 +108,25 @@ func (s *Server) ConsolidateNonReturnableItemStacks(ctx context.Context) (int, e
 		}
 		keepFields, err := FieldsFromJSON(keep.FieldsJSON)
 		if err != nil {
-			return 0, fmt.Errorf("整理 %s：解析保留堆 %s: %w", key.itemID, keep.GUID, err)
+			return 0, fmt.Errorf("Упорядочивание %s: разбор сохраняемой стопки %s: %w", key.itemID, keep.GUID, err)
 		}
 		limit := bundleQuantityLimit(keep.WireClass)
 		total := int64(0)
 		for _, row := range group {
 			fields, err := FieldsFromJSON(row.FieldsJSON)
 			if err != nil {
-				return 0, fmt.Errorf("整理 %s：解析堆 %s: %w", key.itemID, row.GUID, err)
+				return 0, fmt.Errorf("Упорядочивание %s: разбор стопки %s: %w", key.itemID, row.GUID, err)
 			}
 			qty, ok := itemQtyValue(row.WireClass, fields)
 			if !ok || row.Qty < 0 || qty != uint64(row.Qty) {
-				return 0, fmt.Errorf("整理 %s：堆 %s 数量字段不一致", key.itemID, row.GUID)
+				return 0, fmt.Errorf("Упорядочивание %s: в стопке %s не совпадает поле количества", key.itemID, row.GUID)
 			}
 			if row.WireClass != keep.WireClass || row.NumericID != keep.NumericID || row.TypeID != keep.TypeID ||
 				row.Durability != keep.Durability || row.Workmanship != keep.Workmanship {
-				return 0, fmt.Errorf("整理 %s：堆 %s 实例属性不一致", key.itemID, row.GUID)
+				return 0, fmt.Errorf("Упорядочивание %s: в стопке %s не совпадают атрибуты экземпляра", key.itemID, row.GUID)
 			}
 			if row.Qty > limit-total {
-				return 0, fmt.Errorf("整理 %s：合并数量溢出", key.itemID)
+				return 0, fmt.Errorf("Упорядочивание %s: переполнение при объединении количества", key.itemID)
 			}
 			total += row.Qty
 		}
@@ -134,7 +134,7 @@ func (s *Server) ConsolidateNonReturnableItemStacks(ctx context.Context) (int, e
 		changed := clearStackStoreReceipt(keep.WireClass, keepFields) || keep.BuyPrice != 0
 		if len(group) > 1 {
 			if !setItemQty(keep.WireClass, keepFields, uint64(total)) {
-				return 0, fmt.Errorf("整理 %s：实例类 %s 没有数量字段", key.itemID, keep.WireClass)
+				return 0, fmt.Errorf("Упорядочивание %s: у класса экземпляра %s нет поля количества", key.itemID, keep.WireClass)
 			}
 			bumpCreatedTicks(keepFields, keep.WireClass)
 			changed = true
@@ -142,7 +142,7 @@ func (s *Server) ConsolidateNonReturnableItemStacks(ctx context.Context) (int, e
 		if changed {
 			fieldsJSON, err := FieldsToJSON(keepFields)
 			if err != nil {
-				return 0, fmt.Errorf("整理 %s：编码保留堆: %w", key.itemID, err)
+				return 0, fmt.Errorf("Упорядочивание %s: кодирование сохраняемой стопки: %w", key.itemID, err)
 			}
 			if _, err := tx.ExecContext(ctx, `UPDATE item SET fields_json=?,qty=?,buy_price=0 WHERE guid=? AND uid=?`,
 				fieldsJSON, total, keep.GUID, keep.UID); err != nil {
@@ -201,7 +201,7 @@ func (s *Server) ConsolidateNonReturnableItemStacks(ctx context.Context) (int, e
 			}
 			n, err := result.RowsAffected()
 			if err != nil || n != 1 {
-				return 0, fmt.Errorf("整理 %s：删除重复堆 %s 影响 %d 行: %w", key.itemID, drop.GUID, n, err)
+				return 0, fmt.Errorf("Упорядочивание %s: удаление дублирующей стопки %s затронуло %d строк: %w", key.itemID, drop.GUID, n, err)
 			}
 			removed++
 		}

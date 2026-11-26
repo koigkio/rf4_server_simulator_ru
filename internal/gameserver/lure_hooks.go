@@ -251,12 +251,12 @@ type lureHookMountPlan struct {
 	lureGUID     string
 	hookGUID     string
 	extra        int64
-	lureDefSlots int         // 拟饵定义出厂钩槽数（静态值，追加封顶用）
-	oldGUID      string      // 预检数组中将被替换槽的钩 GUID（"" = 追加）
-	oldRowGUID   string      // 旧钩有物品行实例时的行 GUID（事务内重读复核）
-	oldRow       *store.Item // 预检读到的旧实例行（仅响应树构建用，归属以事务内重读为准）
+	lureDefSlots int         // 拟饵定义出厂钩槽数 (静态值, 追加封顶用)
+	oldGUID      string      // 预检数组中将被替换槽的钩 GUID ("" = 追加)
+	oldRowGUID   string      // 旧钩有物品行实例时的行 GUID (事务内重读复核)
+	oldRow       *store.Item // 预检读到的旧实例行 (仅响应树构建用, 归属以事务内重读为准)
 	ordinal      int         // 事务内复验后的目标槽下标
-	refundPrep   *store.Item // 原装出厂钩退包实例（事务内 grantPreparedItemTx 入库）
+	refundPrep   *store.Item // 原装出厂钩退包实例 (事务内 grantPreparedItemTx 入库)
 }
 
 // lureHookMount 把背包里的钩装到拟饵的某个钩位上（15/1）。
@@ -276,20 +276,20 @@ func (s *Server) lureHookMount(ctx context.Context, uid int64, lureGUID, hookGUI
 func (s *Server) lureHookMountPrepare(ctx context.Context, uid int64, lureGUID, hookGUID string, extra int64) *lureHookMountPlan {
 	lureRow, err := s.DB.GetItemByGUID(ctx, lureGUID)
 	if err != nil || !isLureRow(lureRow) || lureRow.UID != uid {
-		s.log.Warn("拟饵换钩被拒：拟饵不属于当前玩家", "lure", shortGUID(lureGUID), "uid", uid)
+		s.log.Warn("Замена крючка приманки отклонена: приманка не принадлежит текущему игроку", "lure", shortGUID(lureGUID), "uid", uid)
 		return nil
 	}
 	hookRow, err := s.DB.GetItemByGUID(ctx, hookGUID)
 	if err != nil || hookRow == nil || hookRow.UID != uid || hookRow.Container != "backpack" || hookRow.RigGUID != "" {
-		s.log.Warn("拟饵换钩被拒：鱼钩不属于当前玩家或不在背包", "hook", shortGUID(hookGUID), "uid", uid)
+		s.log.Warn("Замена крючка приманки отклонена: крючок не принадлежит игроку или не в инвентаре", "hook", shortGUID(hookGUID), "uid", uid)
 		return nil
 	}
 	if cat, ok := s.itemCategoryOf(ctx, hookRow); !ok || cat != catHook {
-		s.log.Warn("拟饵换钩被拒：不是鱼钩", "item", shortGUID(hookGUID), "cat", cat)
+		s.log.Warn("Замена крючка приманки отклонена: это не крючок", "item", shortGUID(hookGUID), "cat", cat)
 		return nil
 	}
 	if s.itemBrokenForMount(ctx, hookRow) {
-		s.log.Warn("拟饵换钩被拒：钩已损坏", "item", shortGUID(hookGUID))
+		s.log.Warn("Замена крючка приманки отклонена: крючок сломан", "item", shortGUID(hookGUID))
 		return nil
 	}
 
@@ -325,7 +325,7 @@ func (s *Server) lureHookMountPrepare(ctx context.Context, uid int64, lureGUID, 
 		}
 		cfgs, _ := defAttrs(def)["gpoaffnjbdo"].([]any)
 		if len(items) >= len(cfgs) {
-			s.log.Warn("拟饵装钩被拒：钩槽已满", "lure", shortGUID(lureGUID), "slots", len(cfgs))
+			s.log.Warn("Установка крючка на приманку отклонена: слоты крючков заполнены", "lure", shortGUID(lureGUID), "slots", len(cfgs))
 			return nil
 		}
 		lureDefSlots = len(cfgs)
@@ -354,7 +354,7 @@ func (s *Server) lureHookMountPrepare(ctx context.Context, uid int64, lureGUID, 
 			if ferr != nil || prepared == nil {
 				// PR#339 评审 P2：识别为原装出厂钩但退包准备失败 → 整体
 				// 拒绝，钩不得从数组消失而无退包。
-				s.log.Warn("拟饵换钩被拒：出厂钩退包准备失败", "lure", shortGUID(lureGUID), "hook", shortGUID(plan.oldGUID))
+				s.log.Warn("Замена крючка приманки отклонена: не удалось подготовить возврат заводского крючка", "lure", shortGUID(lureGUID), "hook", shortGUID(plan.oldGUID))
 				return nil
 			}
 			plan.refundPrep = prepared
@@ -375,27 +375,27 @@ func (s *Server) lureHookMountCommit(ctx context.Context, plan *lureHookMountPla
 	}
 	defer tx.Rollback()
 	reject := func(reason string) *rigSetResult {
-		s.log.Warn("拟饵换钩被拒", "lure", shortGUID(plan.lureGUID), "hook", shortGUID(plan.hookGUID), "reason", reason)
+		s.log.Warn("Замена крючка приманки отклонена", "lure", shortGUID(plan.lureGUID), "hook", shortGUID(plan.hookGUID), "reason", reason)
 		res.Rejected = true
 		return res
 	}
 	rejectErr := func(stage string, err error) *rigSetResult {
-		s.log.Warn("拟饵换钩被拒：事务失败", "lure", shortGUID(plan.lureGUID), "stage", stage, "err", err)
+		s.log.Warn("Замена крючка приманки отклонена: ошибка транзакции", "lure", shortGUID(plan.lureGUID), "stage", stage, "err", err)
 		res.Rejected = true
 		return res
 	}
 
 	lureRow, err := s.DB.GetItemByGUIDTx(ctx, tx, plan.lureGUID)
 	if err != nil || !isLureRow(lureRow) || lureRow.UID != plan.uid {
-		return reject("拟饵状态已变化")
+		return reject("Состояние приманки изменилось")
 	}
 	fields, err := FieldsFromJSON(lureRow.FieldsJSON)
 	if err != nil {
-		return rejectErr("解析拟饵字段", err)
+		return rejectErr("Разбор полей приманки", err)
 	}
 	idx := lureHookFieldIndex(lureRow.WireClass)
 	if idx < 0 || idx >= len(fields) {
-		return reject("拟饵字段结构已变化")
+		return reject("Структура полей приманки изменилась")
 	}
 	list := fields[idx].Val
 	if list == nil || list.Kind != proto.KindArgs {
@@ -404,25 +404,25 @@ func (s *Server) lureHookMountCommit(ctx context.Context, plan *lureHookMountPla
 	items := append([]*proto.Value(nil), list.Items...)
 	positions, err := loadLureHookPositionsTx(ctx, tx, lureRow, items)
 	if err != nil {
-		return rejectErr("读取钩位置", err)
+		return rejectErr("Чтение позиции крючка", err)
 	}
 	ordinal := lureHookStorageOrdinal(plan.extra, positions, items)
 	if ordinal < 0 {
-		return reject("钩槽下标无效")
+		return reject("Неверный индекс слота крючка")
 	}
 	if ordinal >= len(items) && (plan.lureDefSlots <= 0 || len(items) >= plan.lureDefSlots) {
-		return reject("钩槽已满")
+		return reject("Слоты крючков заполнены")
 	}
 	hookRow, err := s.DB.GetItemByGUIDTx(ctx, tx, plan.hookGUID)
 	if err != nil || hookRow == nil || hookRow.UID != plan.uid {
-		return reject("新钩归属已变化")
+		return reject("Владелец нового крючка изменился")
 	}
 	if hookRow.Durability <= 0 {
-		return reject("新钩已损坏")
+		return reject("Новый крючок сломан")
 	}
 	hookTree, err := s.attachLureHookTx(ctx, tx, plan.uid, plan.lureGUID, hookRow)
 	if err != nil {
-		return rejectErr("新钩装配", err)
+		return rejectErr("Установка нового крючка", err)
 	}
 
 	// 旧钩槽一致性：预检与提交必须看到同一颗被替换钩（不同 call_id 的
@@ -432,7 +432,7 @@ func (s *Server) lureHookMountCommit(ctx context.Context, plan *lureHookMountPla
 		oldGUID = lureHookItemGUID(items, ordinal)
 	}
 	if oldGUID != plan.oldGUID {
-		return reject("钓组已被其他操作修改，请重试")
+		return reject("Оснастка изменена другим действием, попробуйте ещё раз")
 	}
 	plan.ordinal = ordinal
 	if ordinal < len(items) {
@@ -444,13 +444,13 @@ func (s *Server) lureHookMountCommit(ctx context.Context, plan *lureHookMountPla
 	fields[idx] = proto.Field{Op: "VAL", Val: list}
 
 	if err := updateItemFieldsTx(ctx, s.DB, tx, lureRow, fields); err != nil {
-		return rejectErr("拟饵写回", err)
+		return rejectErr("Запись приманки", err)
 	}
 	if err := replaceLureHookPosition(positions, oldGUID, plan.hookGUID, plan.extra); err != nil {
-		return rejectErr("更新钩位置", err)
+		return rejectErr("Обновление позиции крючка", err)
 	}
 	if err := saveLureHookPositionsTx(ctx, tx, plan.lureGUID, positions); err != nil {
-		return rejectErr("保存钩位置", err)
+		return rejectErr("Сохранение позиции крючка", err)
 	}
 	// 旧钩返还：带物品行的实例退回背包（行 + 字段清理）；原装出厂钩
 	// 物化退包入库（新 guid → f0 新增段）。恢复/幻影命名空间不退。
@@ -460,24 +460,24 @@ func (s *Server) lureHookMountCommit(ctx context.Context, plan *lureHookMountPla
 		if plan.oldRowGUID != "" {
 			oldRow, oerr := s.DB.GetItemByGUIDTx(ctx, tx, oldGUID)
 			if oerr != nil || oldRow == nil || oldRow.UID != plan.uid {
-				return reject("旧钩实例已被其他操作处理")
+				return reject("Старый экземпляр крючка уже обработан другим действием")
 			}
 			if err := s.DB.DetachReturnToBackpackTx(ctx, tx, oldGUID); err != nil {
-				return rejectErr("旧钩退回背包", err)
+				return rejectErr("Возврат старого крючка в инвентарь", err)
 			}
 			oldRow.RigGUID = ""
 			oldFields, ofErr := FieldsFromJSON(oldRow.FieldsJSON)
 			if ofErr != nil {
-				return rejectErr("解析旧钩字段", ofErr)
+				return rejectErr("Разбор полей старого крючка", ofErr)
 			}
 			clearRigFieldsForBackpack(oldFields, oldRow.WireClass)
 			if err := updateItemFieldsTx(ctx, s.DB, tx, oldRow, oldFields); err != nil {
-				return rejectErr("旧钩字段写回", err)
+				return rejectErr("Запись полей старого крючка", err)
 			}
 		} else if plan.refundPrep != nil {
 			granted, _, err := grantPreparedItemTx(ctx, tx, plan.refundPrep, true)
 			if err != nil {
-				return rejectErr("出厂钩退包入库", err)
+				return rejectErr("Возврат заводского крючка в инвентарь", err)
 			}
 			refundGranted = granted
 		}
@@ -485,17 +485,17 @@ func (s *Server) lureHookMountCommit(ctx context.Context, plan *lureHookMountPla
 	// 幽灵组件行与 bait_hook 关联同事务清理。
 	if _, err := tx.ExecContext(ctx,
 		`DELETE FROM rig_component WHERE rig_guid=? AND slot=?`, plan.lureGUID, catHook); err != nil {
-		return rejectErr("幽灵组件行清理", err)
+		return rejectErr("Очистка строк-призраков компонентов", err)
 	}
 	// bait_hook 关联必须跟随最新活动钩，而不是本次装上的槽。装到非活动槽
 	// 时保持原关联；替换活动槽时才改为新钩。关联行由竿侧流程创建，这里只
 	// 更新已有行，不建行。
 	activeGUID := lureHookItemGUID(items, lureActiveOrdinal(fields, len(items)))
 	if err := syncLureBaitHookTx(ctx, tx, plan.lureGUID, activeGUID); err != nil {
-		return rejectErr("bait_hook 关联更新", err)
+		return rejectErr("bait_hook Обновление связей", err)
 	}
 	if err := tx.Commit(); err != nil {
-		return rejectErr("提交", err)
+		return rejectErr("Фиксация", err)
 	}
 
 	// 提交后读 fresh 构建响应树：新装钩树进 f0 新增段（与 17/2 同构）。
@@ -522,7 +522,7 @@ func (s *Server) lureHookMountCommit(ctx context.Context, plan *lureHookMountPla
 		}
 	}
 	res.MountedGUID = plan.hookGUID
-	s.log.Info("拟饵换钩", "lure", shortGUID(plan.lureGUID), "hook", shortGUID(plan.hookGUID), "ordinal", plan.ordinal)
+	s.log.Info("Замена крючка приманки", "lure", shortGUID(plan.lureGUID), "hook", shortGUID(plan.hookGUID), "ordinal", plan.ordinal)
 	return res
 }
 
@@ -534,9 +534,9 @@ type lureHookRemovePlan struct {
 	hookGUID    string
 	extra       int64
 	removedGUID string       // 预检时该槽的钩 GUID
-	removedTree *proto.Value // 预检时该槽的树（出厂钩退包物化用）
-	removedRow  *store.Item  // 预检读到的实例行（归属以事务内重读为准）
-	refundPrep  *store.Item  // 原装出厂钩退包实例（事务内 grantPreparedItemTx 入库）
+	removedTree *proto.Value // 预检时该槽的树 (出厂钩退包物化用)
+	removedRow  *store.Item  // 预检读到的实例行 (归属以事务内重读为准)
+	refundPrep  *store.Item  // 原装出厂钩退包实例 (事务内 grantPreparedItemTx 入库)
 }
 
 // lureHookRemove 从拟饵钩位移除一颗钩（15/2）。
@@ -554,7 +554,7 @@ func (s *Server) lureHookRemove(ctx context.Context, uid int64, lureGUID, hookGU
 func (s *Server) lureHookRemovePrepare(ctx context.Context, uid int64, lureGUID, hookGUID string, extra int64) *lureHookRemovePlan {
 	lureRow, err := s.DB.GetItemByGUID(ctx, lureGUID)
 	if err != nil || !isLureRow(lureRow) || lureRow.UID != uid {
-		s.log.Warn("拟饵拆钩被拒：拟饵不属于当前玩家", "lure", shortGUID(lureGUID), "uid", uid)
+		s.log.Warn("Снятие крючка с приманки отклонено: приманка не принадлежит текущему игроку", "lure", shortGUID(lureGUID), "uid", uid)
 		return nil
 	}
 	fields, err := FieldsFromJSON(lureRow.FieldsJSON)
@@ -581,7 +581,7 @@ func (s *Server) lureHookRemovePrepare(ctx context.Context, uid int64, lureGUID,
 		if ordinal < 0 {
 			// 钩不在拟饵上（客户端陈旧行控件最常见）：拒绝，绝不兜底
 			// 拆第一颗（2026-11-09 14:31 实测「卸载总是第一个槽」）。
-			s.log.Warn("拟饵拆钩被拒：钩不在该拟饵上", "lure", shortGUID(lureGUID), "hook", shortGUID(hookGUID))
+			s.log.Warn("Снятие крючка с приманки отклонено: крючка нет на этой приманке", "lure", shortGUID(lureGUID), "hook", shortGUID(hookGUID))
 			return nil
 		}
 	}
@@ -611,7 +611,7 @@ func (s *Server) lureHookRemovePrepare(ctx context.Context, uid int64, lureGUID,
 			if ferr != nil || prepared == nil {
 				// PR#339 评审 P2：识别为原装出厂钩但退包准备失败 → 整体
 				// 拒绝，钩不得从数组消失而无退包。
-				s.log.Warn("拟饵拆钩被拒：出厂钩退包准备失败", "lure", shortGUID(lureGUID), "hook", shortGUID(plan.removedGUID))
+				s.log.Warn("Снятие крючка с приманки отклонено: не удалось подготовить возврат заводского крючка", "lure", shortGUID(lureGUID), "hook", shortGUID(plan.removedGUID))
 				return nil
 			}
 			plan.refundPrep = prepared
@@ -629,33 +629,33 @@ func (s *Server) lureHookRemoveCommit(ctx context.Context, plan *lureHookRemoveP
 	}
 	defer tx.Rollback()
 	abort := func(reason string) *rigDetachResult {
-		s.log.Warn("拟饵拆钩被拒", "lure", shortGUID(plan.lureGUID), "hook", shortGUID(plan.removedGUID), "reason", reason)
+		s.log.Warn("Снятие крючка с приманки отклонено", "lure", shortGUID(plan.lureGUID), "hook", shortGUID(plan.removedGUID), "reason", reason)
 		return nil
 	}
 	abortErr := func(stage string, err error) *rigDetachResult {
-		s.log.Warn("拟饵拆钩失败：事务失败", "lure", shortGUID(plan.lureGUID), "stage", stage, "err", err)
+		s.log.Warn("Снятие крючка с приманки не удалось: ошибка транзакции", "lure", shortGUID(plan.lureGUID), "stage", stage, "err", err)
 		return nil
 	}
 	lureRow, err := s.DB.GetItemByGUIDTx(ctx, tx, plan.lureGUID)
 	if err != nil || !isLureRow(lureRow) || lureRow.UID != plan.uid {
-		return abort("拟饵状态已变化")
+		return abort("Состояние приманки изменилось")
 	}
 	fields, err := FieldsFromJSON(lureRow.FieldsJSON)
 	if err != nil {
-		return abortErr("解析拟饵字段", err)
+		return abortErr("Разбор полей приманки", err)
 	}
 	idx := lureHookFieldIndex(lureRow.WireClass)
 	if idx < 0 || idx >= len(fields) {
-		return abort("拟饵字段结构已变化")
+		return abort("Структура полей приманки изменилась")
 	}
 	list := fields[idx].Val
 	if list == nil || list.Kind != proto.KindArgs || len(list.Items) == 0 {
-		return abort("钩槽数组已变化")
+		return abort("Массив слотов крючков изменился")
 	}
 	items := append([]*proto.Value(nil), list.Items...)
 	positions, err := loadLureHookPositionsTx(ctx, tx, lureRow, items)
 	if err != nil {
-		return abortErr("读取钩位置", err)
+		return abortErr("Чтение позиции крючка", err)
 	}
 	// 用与预检同一定位规则在最新数组上复定位；槽内容不一致即并发改动。
 	ordinal := -1
@@ -671,14 +671,14 @@ func (s *Server) lureHookRemoveCommit(ctx context.Context, plan *lureHookRemoveP
 		ordinal = lureHookStorageOrdinal(plan.extra, positions, items)
 	}
 	if ordinal < 0 || ordinal >= len(items) || lureHookItemGUID(items, ordinal) != plan.removedGUID {
-		return abort("钓组已被其他操作修改，请重试")
+		return abort("Оснастка изменена другим действием, попробуйте ещё раз")
 	}
 
 	if err := replaceLureHookPosition(positions, plan.removedGUID, "", 0); err != nil {
-		return abortErr("清除钩位置", err)
+		return abortErr("Очистка позиции крючка", err)
 	}
 	if err := saveLureHookPositionsTx(ctx, tx, plan.lureGUID, positions); err != nil {
-		return abortErr("保存钩位置", err)
+		return abortErr("Сохранение позиции крючка", err)
 	}
 	// Storage stays compact; ItemToTree restores empty positions on the wire.
 	activeBefore := lureActiveOrdinal(fields, len(items))
@@ -695,31 +695,31 @@ func (s *Server) lureHookRemoveCommit(ctx context.Context, plan *lureHookRemoveP
 	applyLureActiveOrdinal(lureRow.WireClass, fields, newActive)
 
 	if err := updateItemFieldsTx(ctx, s.DB, tx, lureRow, fields); err != nil {
-		return abortErr("拟饵写回", err)
+		return abortErr("Запись приманки", err)
 	}
 	var refundGranted *store.Item
 	if plan.removedGUID != "" {
 		if plan.removedRow != nil {
 			removedRow, rerr := s.DB.GetItemByGUIDTx(ctx, tx, plan.removedGUID)
 			if rerr != nil || removedRow == nil || removedRow.UID != plan.uid {
-				return abort("卸下钩实例已被其他操作处理")
+				return abort("Снятый экземпляр крючка уже обработан другим действием")
 			}
 			if err := s.DB.DetachReturnToBackpackTx(ctx, tx, plan.removedGUID); err != nil {
-				return abortErr("卸下钩退回背包", err)
+				return abortErr("Возврат снятого крючка в инвентарь", err)
 			}
 			removedRow.RigGUID = ""
 			removedFields, rfErr := FieldsFromJSON(removedRow.FieldsJSON)
 			if rfErr != nil {
-				return abortErr("解析卸下钩字段", rfErr)
+				return abortErr("Разбор полей снятого крючка", rfErr)
 			}
 			clearRigFieldsForBackpack(removedFields, removedRow.WireClass)
 			if err := updateItemFieldsTx(ctx, s.DB, tx, removedRow, removedFields); err != nil {
-				return abortErr("卸下钩字段写回", err)
+				return abortErr("Запись полей снятого крючка", err)
 			}
 		} else if plan.refundPrep != nil {
 			granted, _, err := grantPreparedItemTx(ctx, tx, plan.refundPrep, true)
 			if err != nil {
-				return abortErr("出厂钩退包入库", err)
+				return abortErr("Возврат заводского крючка в инвентарь", err)
 			}
 			refundGranted = granted
 		}
@@ -728,16 +728,16 @@ func (s *Server) lureHookRemoveCommit(ctx context.Context, plan *lureHookRemoveP
 	// baitHookAssignments 按新活动钩重建）。
 	if _, err := tx.ExecContext(ctx,
 		`DELETE FROM rig_component WHERE rig_guid=? AND slot=?`, plan.lureGUID, catHook); err != nil {
-		return abortErr("幽灵组件行清理", err)
+		return abortErr("Очистка строк-призраков компонентов", err)
 	}
 	// 拆非活动钩不能清掉活动钩关联；活动钩变化时才改为新活动钩，
 	// 数组清空则删除关联。
 	activeGUID := lureHookItemGUID(items, newActive)
 	if err := syncLureBaitHookTx(ctx, tx, plan.lureGUID, activeGUID); err != nil {
-		return abortErr("bait_hook 关联更新", err)
+		return abortErr("bait_hook Обновление связей", err)
 	}
 	if err := tx.Commit(); err != nil {
-		return abortErr("提交", err)
+		return abortErr("Фиксация", err)
 	}
 
 	res := &rigDetachResult{CompGUID: plan.removedGUID}
@@ -753,7 +753,7 @@ func (s *Server) lureHookRemoveCommit(ctx context.Context, plan *lureHookRemoveP
 			res.RefundTree = t
 		}
 	}
-	s.log.Info("拟饵拆钩", "lure", shortGUID(plan.lureGUID), "hook", shortGUID(plan.removedGUID), "ordinal", ordinal, "active", newActive)
+	s.log.Info("Снятие крючка с приманки", "lure", shortGUID(plan.lureGUID), "hook", shortGUID(plan.removedGUID), "ordinal", ordinal, "active", newActive)
 	return res
 }
 
@@ -775,25 +775,25 @@ func syncLureBaitHookTx(ctx context.Context, tx *sql.Tx, lureGUID, activeGUID st
 // 整体拒绝——钩不得从数组消失而无退包（PR#339 评审 P2）。
 func (s *Server) prepareLureFactoryRefund(ctx context.Context, uid int64, hookTree *proto.Value) (*store.Item, error) {
 	if hookTree == nil || hookTree.Kind != proto.KindObj {
-		return nil, fmt.Errorf("出厂钩退包：子对象为空")
+		return nil, fmt.Errorf("Возврат заводского крючка: пустой дочерний объект")
 	}
 	var numID int64
 	if i := fieldIdxByCS(hookTree.Class, csNumericID); i >= 0 && i < len(hookTree.Fields) && hookTree.Fields[i].Num != nil {
 		numID = int64(u64Of(hookTree.Fields[i].Num))
 	}
 	if numID <= 0 {
-		return nil, fmt.Errorf("出厂钩退包：子对象缺 NumericID class=%s", hookTree.Class)
+		return nil, fmt.Errorf("Возврат заводского крючка: в дочернем объекте нет NumericID class=%s", hookTree.Class)
 	}
 	def, err := s.DB.GetItemDef(ctx, numID)
 	if err != nil {
-		return nil, fmt.Errorf("出厂钩退包：物品定义查询失败 numeric=%d: %w", numID, err)
+		return nil, fmt.Errorf("Возврат заводского крючка: ошибка запроса определения предмета numeric=%d: %w", numID, err)
 	}
 	if def == nil {
-		return nil, fmt.Errorf("出厂钩退包：物品定义不存在 numeric=%d", numID)
+		return nil, fmt.Errorf("Возврат заводского крючка: определение предмета не существует numeric=%d", numID)
 	}
 	prepared, err := s.prepareNewItem(ctx, uid, def.ItemID, "backpack", 1, "")
 	if err != nil {
-		return nil, fmt.Errorf("出厂钩退包：构造背包实例失败 item=%s: %w", def.ItemID, err)
+		return nil, fmt.Errorf("Возврат заводского крючка: не удалось создать экземпляр для инвентаря item=%s: %w", def.ItemID, err)
 	}
 	return prepared, nil
 }

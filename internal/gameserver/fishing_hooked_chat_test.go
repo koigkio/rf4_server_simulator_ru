@@ -99,9 +99,9 @@ func TestHookedChatUsesEachRodsShortcutAndFishOnce(t *testing.T) {
 		hFishingHooked(ctx)
 	}
 	want := []string{
-		"[上钩] 快捷栏3号竿：鲈鱼 1.234kg",
-		"[上钩] 快捷栏1号竿：狗鱼 0.567kg",
-		"[上钩] 快捷栏2号竿：鲤鱼 23.456kg",
+		"[Засечка] Удилище в слоте 3: 鲈鱼 1.234kg",
+		"[Засечка] Удилище в слоте 1: 狗鱼 0.567kg",
+		"[Засечка] Удилище в слоте 2: 鲤鱼 23.456kg",
 	}
 	if got := finishHookedChat(t, sess, ch); !slices.Equal(got, want) {
 		t.Fatalf("chat = %q, want %q", got, want)
@@ -136,7 +136,7 @@ func TestHookedChatMarinePullAndOrdinaryPull(t *testing.T) {
 	hFishingPull(ctx)
 	hFishingPull(ctx)
 	hFishingHooked(ctx)
-	want := "[上钩] 海竿（" + rod.GUID[:8] + "）：unknown-fish 90.123kg"
+	want := "[Засечка] 海竿 (" + rod.GUID[:8] + "): unknown-fish 90.123kg"
 	if got := finishHookedChat(t, sess, ch); !slices.Equal(got, []string{want}) {
 		t.Fatalf("marine hook chat = %q, want %q", got, want)
 	}
@@ -149,7 +149,7 @@ func TestHookedChatMarinePullAndOrdinaryPull(t *testing.T) {
 		t.Fatalf("ordinary pull is not a hook confirmation: %q", got)
 	}
 	hFishingHooked(ctx)
-	want = "[上钩] 海竿（" + rod.GUID[:8] + "）：unknown-fish 1.000kg"
+	want = "[Засечка] 海竿 (" + rod.GUID[:8] + "): unknown-fish 1.000kg"
 	if got := finishHookedChat(t, sess, ch); !slices.Equal(got, []string{want}) {
 		t.Fatalf("next fish chat = %q, want %q", got, want)
 	}
@@ -232,7 +232,7 @@ func TestHookedChatRejectedFishRepushOnce(t *testing.T) {
 				}
 				hook()
 				hFishingHooked(miscCtx(sess, 14, 11, rigRequestTree(t, proto.Guid(rod))))
-				want := "[上钩] 鱼竿（11111111）：perch 1.234kg"
+				want := "[Засечка] Удилище (11111111): perch 1.234kg"
 				if got := finishHookedChat(t, sess, ch); !slices.Equal(got, []string{want}) {
 					t.Fatalf("repushed fish chat = %q, want one %q", got, want)
 				}
@@ -283,7 +283,7 @@ func TestHookedChatEarlyConfirmation(t *testing.T) {
 			} else {
 				hFishingHooked(ctx)
 			}
-			want := "[上钩] 鱼竿（11111111）：perch 1.234kg"
+			want := "[Засечка] Удилище (11111111): perch 1.234kg"
 			if got := finishHookedChat(t, sess, ch); !slices.Equal(got, []string{want}) {
 				t.Fatalf("early hook fish chat = %q, want one %q", got, want)
 			}
@@ -323,7 +323,7 @@ func TestHookedChatRestoredPendingFish(t *testing.T) {
 	ctx := miscCtx(sess, 14, 11, rigRequestTree(t, proto.Guid(rod), proto.Guid(fish.FishGUID)))
 	hFishingHooked(ctx)
 	hFishingHooked(ctx)
-	want := "[上钩] 鱼竿（11111111）：perch 1.234kg"
+	want := "[Засечка] Удилище (11111111): perch 1.234kg"
 	if got := finishHookedChat(t, sess, ch); !slices.Equal(got, []string{want}) {
 		t.Fatalf("restored fish chat = %q, want one %q", got, want)
 	}

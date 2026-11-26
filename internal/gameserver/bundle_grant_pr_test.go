@@ -33,10 +33,10 @@ func TestGrantPremiumBundleGrantsItemsWithUniqueSlots(t *testing.T) {
 		t.Fatal(err)
 	}
 	if total <= 1 {
-		t.Fatalf("捆绑包未发放任何物品，背包物品数=%d", total)
+		t.Fatalf("捆绑包未发放任何物品, 背包物品数=%d", total)
 	}
 	if total != distinct {
-		t.Fatalf("槽位有重复：物品 %d 件，不同槽位只有 %d 个", total, distinct)
+		t.Fatalf("槽位有重复: 物品 %d 件, 不同槽位只有 %d 个", total, distinct)
 	}
 }
 
@@ -57,6 +57,6 @@ func TestGrantPremiumBundleIgnoresUnknownPriceOrPlace(t *testing.T) {
 		t.Fatal(err)
 	}
 	if n != 0 {
-		t.Fatalf("非捆绑包价位或地图不匹配时不应发放物品，实得 %d 件", n)
+		t.Fatalf("非捆绑包价位或地图不匹配时不应发放物品, 实得 %d 件", n)
 	}
 }

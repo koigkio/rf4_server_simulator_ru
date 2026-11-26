@@ -28,7 +28,7 @@ func TestOwnershipHandover(t *testing.T) {
 	// 新会话 2 接管。
 	s.claimOwnership(token, 2)
 	if s.ownsToken(token, 1) {
-		t.Fatal("被接管的旧会话不应再被认为持有：它会继续写落后的快照")
+		t.Fatal("被接管的旧会话不应再被认为持有: 它会继续写落后的快照")
 	}
 	if !s.ownsToken(token, 2) {
 		t.Fatal("新会话应当持有所有权")
@@ -37,7 +37,7 @@ func TestOwnershipHandover(t *testing.T) {
 	// 旧会话 1 收尾：不得抹掉 2 的所有权。
 	s.releaseOwnership(token, 1)
 	if !s.ownsToken(token, 2) {
-		t.Fatal("旧会话收尾抹掉了新会话的所有权：更早的旧写者会重新获得保存资格")
+		t.Fatal("旧会话收尾抹掉了新会话的所有权: 更早的旧写者会重新获得保存资格")
 	}
 
 	// 新会话 2 收尾：正常释放。
@@ -103,7 +103,7 @@ func TestOwnershipCheckIsAtomicWithSave(t *testing.T) {
 	select {
 	case <-store.entered:
 	case <-time.After(5 * time.Second):
-		t.Fatal("旧写者没有进入落库，测试前提不成立")
+		t.Fatal("旧写者没有进入落库, 测试前提不成立")
 	}
 
 	// 窗口里发起接管，它必须等旧写者落库完成才能拿到所有权。
@@ -111,7 +111,7 @@ func TestOwnershipCheckIsAtomicWithSave(t *testing.T) {
 	go func() { srv.claimOwnership(token, 2); close(claimed) }()
 	select {
 	case <-claimed:
-		t.Fatal("接管在旧写者落库途中就完成了：所有权校验与落库不是原子的，" +
+		t.Fatal("接管在旧写者落库途中就完成了: 所有权校验与落库不是原子的, " +
 			"旧写者随后会把更旧的快照写进库里覆盖新会话的进度")
 	case <-time.After(500 * time.Millisecond):
 	}
@@ -127,6 +127,6 @@ func TestOwnershipCheckIsAtomicWithSave(t *testing.T) {
 	// 接管生效后，旧写者再存必须被丢弃（这正是审查者复现的第 3 步）。
 	old.saveHandoff(3)
 	if h, err := inner.LoadHandoff(context.Background(), token); err == nil && h != nil && h.NextWireID == 3 {
-		t.Fatal("接管之后旧写者仍把更旧的快照写进库里：next_wire_id 回退到 3")
+		t.Fatal("接管之后旧写者仍把更旧的快照写进库里: next_wire_id 回退到 3")
 	}
 }

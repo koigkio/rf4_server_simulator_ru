@@ -31,14 +31,14 @@ var (
 )
 
 func initRealtimeMetrics(reg *prometheus.Registry) {
-	rtConnsActive = metrics.NewGauge(reg, "gateway_realtime_active", "当前 realtime 连接数")
-	rtFramesIn = metrics.NewLabeledCounter(reg, "gateway_realtime_frames_in_total", "客户端入帧数", "kind")
-	rtFramesOut = metrics.NewCounter(reg, "gateway_realtime_frames_out_total", "服务端出帧数")
-	rtAcksSent = metrics.NewCounter(reg, "gateway_realtime_acks_total", "ACK 帧数")
-	rtAuthFailures = metrics.NewCounter(reg, "gateway_realtime_auth_failures_total", "认证失败数")
-	rtHandoffSaved = metrics.NewCounter(reg, "gateway_realtime_handoff_saved_total", "重连状态保存数")
-	rtHandoffUsed = metrics.NewCounter(reg, "gateway_realtime_handoff_used_total", "重连状态恢复数")
-	rtHandoffMissing = metrics.NewCounter(reg, "gateway_realtime_handoff_missing_total", "重连请求但无状态可承接数")
+	rtConnsActive = metrics.NewGauge(reg, "gateway_realtime_active", "Текущих realtime-соединений")
+	rtFramesIn = metrics.NewLabeledCounter(reg, "gateway_realtime_frames_in_total", "Входящих кадров от клиента", "kind")
+	rtFramesOut = metrics.NewCounter(reg, "gateway_realtime_frames_out_total", "Исходящих кадров от сервера")
+	rtAcksSent = metrics.NewCounter(reg, "gateway_realtime_acks_total", "ACK Кадров")
+	rtAuthFailures = metrics.NewCounter(reg, "gateway_realtime_auth_failures_total", "Ошибок аутентификации")
+	rtHandoffSaved = metrics.NewCounter(reg, "gateway_realtime_handoff_saved_total", "Сохранений состояния переподключения")
+	rtHandoffUsed = metrics.NewCounter(reg, "gateway_realtime_handoff_used_total", "Восстановлений состояния переподключения")
+	rtHandoffMissing = metrics.NewCounter(reg, "gateway_realtime_handoff_missing_total", "Переподключений без состояния для продолжения")
 }
 
 // obsRegistry 观测端口缺省时用本地一次性注册表（测试场景），保证指标永不 nil。
@@ -105,10 +105,10 @@ func NewRealtimeServer(cfg config.Gateway, store Store, log *slog.Logger, tm *Tu
 func (s *RealtimeServer) Listen() error {
 	ln, err := net.Listen("tcp", s.cfg.RealtimeAddr)
 	if err != nil {
-		return fmt.Errorf("realtime 监听 %s: %w", s.cfg.RealtimeAddr, err)
+		return fmt.Errorf("realtime Прослушивание %s: %w", s.cfg.RealtimeAddr, err)
 	}
 	s.ln = ln
-	s.log.Info("realtime TCP 监听", "addr", s.cfg.RealtimeAddr)
+	s.log.Info("realtime TCP Прослушивание", "addr", s.cfg.RealtimeAddr)
 	return nil
 }
 
@@ -209,8 +209,8 @@ type clientSession struct {
 	srv        *RealtimeServer
 	log        *slog.Logger
 
-	rc4Mu          sync.Mutex   // 保护 Export（读/写协程之外的周期性快照）
-	framesSent     atomic.Int64 // 已发 S→C 数据帧数（防污染守卫）
+	rc4Mu          sync.Mutex   // 保护 Export (读/写协程之外的周期性快照)
+	framesSent     atomic.Int64 // 已发 S→C 数据帧数 (防污染守卫)
 	framesParsedOK atomic.Int64 // 已成功解析的 C→S 信封数
 }
 
@@ -229,7 +229,7 @@ func (s *RealtimeServer) handleConn(nc net.Conn) {
 		chunk := make([]byte, 4096)
 		n, err := nc.Read(chunk)
 		if err != nil {
-			log.Info("认证阶段连接关闭", "buffered", len(buf))
+			log.Info("Соединение закрыто на этапе аутентификации", "buffered", len(buf))
 			return
 		}
 		buf = append(buf, chunk[:n]...)
@@ -238,7 +238,7 @@ func (s *RealtimeServer) handleConn(nc net.Conn) {
 			break
 		}
 		if len(buf) > 1<<20 {
-			log.Warn("认证包超长，拒绝", "len", len(buf))
+			log.Warn("Пакет аутентификации слишком длинный, отклонено", "len", len(buf))
 			rtAuthFailures.Inc()
 			return
 		}
@@ -249,7 +249,7 @@ func (s *RealtimeServer) handleConn(nc net.Conn) {
 	info, found, err := s.store.LookupToken(context.Background(), token)
 	if err != nil {
 		rtAuthFailures.Inc()
-		log.Warn("token 校验查询异常，拒绝", "err", err, "reconnect", reconnect)
+		log.Warn("token Ошибка проверочного запроса, отклонено", "err", err, "reconnect", reconnect)
 		return
 	}
 	if !found {
@@ -258,18 +258,18 @@ func (s *RealtimeServer) handleConn(nc net.Conn) {
 		uid := useridFromTokenStr(token)
 		if uid <= 0 {
 			rtAuthFailures.Inc()
-			log.Warn("token 无法解析 uid，拒绝", "reconnect", reconnect)
+			log.Warn("token Не удалось разобрать uid, отклонено", "reconnect", reconnect)
 			return
 		}
 		info = TokenInfo{Userid: uid, IssuedAt: time.Now().Unix()}
-		log.Warn("token 未登记，按解析 uid 放行", "uid", uid, "reconnect", reconnect)
+		log.Warn("token Не зарегистрирован, пропущен по разобранному uid", "uid", uid, "reconnect", reconnect)
 	}
 	log = log.With("userid", info.Userid)
-	log.Info("认证通过",
+	log.Info("Аутентификация пройдена",
 		"token_len", len(token), "reconnect", reconnect)
 
 	if _, err := nc.Write([]byte(GreetingUUID)); err != nil {
-		log.Info("写问候失败", "err", err)
+		log.Info("Не удалось записать приветствие", "err", err)
 		return
 	}
 
@@ -282,7 +282,7 @@ func (s *RealtimeServer) handleConn(nc net.Conn) {
 	for !hermesSeen {
 		frames, consumedBytes, err := proto.TakeCompleteFrames(buf)
 		if err != nil {
-			log.Warn("hermes 阶段帧解析失败", "err", err)
+			log.Warn("hermes Ошибка разбора кадра этапа", "err", err)
 			return
 		}
 		keep := len(frames)
@@ -307,12 +307,12 @@ func (s *RealtimeServer) handleConn(nc net.Conn) {
 		chunk := make([]byte, 8192)
 		n, err := nc.Read(chunk)
 		if err != nil {
-			log.Info("hermes 阶段连接关闭", "err", err)
+			log.Info("hermes Соединение этапа закрыто", "err", err)
 			return
 		}
 		buf = append(buf, chunk[:n]...)
 	}
-	log.Info("Hermes 握手完成")
+	log.Info("Hermes Рукопожатие завершено")
 
 	// ---- RC4 初始化（重连接管优先）----
 	sess := &clientSession{
@@ -338,7 +338,7 @@ func (s *RealtimeServer) handleConn(nc net.Conn) {
 			}
 			sess.resumed = true
 			rtHandoffUsed.Inc()
-			log.Info("realtime 重连成功：承接既有 RC4 密码流", "next_wire_id", sess.nextWireID)
+			log.Info("realtime Переподключение успешно: продолжается существующий поток шифра RC4", "next_wire_id", sess.nextWireID)
 		case err != nil:
 			// 读承接状态本身失败（数据库故障等）。这和「确实没有状态」是两码事：
 			// 此时按「没有状态」继续，会重新 KSA 出全新密码流，而客户端的流还在
@@ -346,7 +346,7 @@ func (s *RealtimeServer) handleConn(nc net.Conn) {
 			// 永远没人再读的孤儿。正确做法是中止本次重连、把状态留着，让客户端
 			// 重试或人工介入。
 			rtHandoffMissing.Inc()
-			log.Error("读取承接状态失败，中止本次重连并保留承接状态", "err", err)
+			log.Error("Не удалось прочитать состояние продолжения, переподключение прервано, состояние сохранено", "err", err)
 			return
 		default:
 			// 客户端按「延续旧流」重连，但服务端确实没有可承接的状态。这里必须
@@ -354,7 +354,7 @@ func (s *RealtimeServer) handleConn(nc net.Conn) {
 			// 客户端的流早就走远了——除了客户端整条连接重建，没有别的救法。
 			// 不区分这两种情形，日志里只剩一片「信封解析失败」，无法定位。
 			rtHandoffMissing.Inc()
-			log.Warn("realtime 重连但无 handoff 可承接，将新建密码流（客户端大概率解不开下行）",
+			log.Warn("realtime Переподключение без handoff, будет создан новый поток шифра (клиент, скорее всего, не расшифрует исходящие данные)",
 				"reconnect", reconnect)
 		}
 	}
@@ -362,7 +362,7 @@ func (s *RealtimeServer) handleConn(nc net.Conn) {
 		var err error
 		sess.rc4In, err = proto.NewRC4(key)
 		if err != nil {
-			log.Error("RC4 初始化失败", "err", err)
+			log.Error("RC4 Ошибка инициализации", "err", err)
 			return
 		}
 		sess.rc4Out, _ = proto.NewRC4(key)
@@ -373,7 +373,7 @@ func (s *RealtimeServer) handleConn(nc net.Conn) {
 
 	// 通知主服开新会话
 	if err := s.tm.sendOpen(sess.id, token, sess.userid, reconnect, remoteIP(remote)); err != nil {
-		log.Error("隧道 OPEN 失败，断开客户端", "err", err)
+		log.Error("Ошибка OPEN туннеля, клиент отключён", "err", err)
 		return
 	}
 
@@ -418,7 +418,7 @@ func (s *RealtimeServer) handleConn(nc net.Conn) {
 	for {
 		frames, consumed, err := proto.TakeCompleteFrames(readBuf)
 		if err != nil {
-			log.Warn("帧解析失败，断开", "err", err)
+			log.Warn("Ошибка разбора кадра, отключено", "err", err)
 			break
 		}
 		readBuf = readBuf[consumed:]
@@ -435,12 +435,12 @@ func (s *RealtimeServer) handleConn(nc net.Conn) {
 		chunk := make([]byte, 65536)
 		n, err := nc.Read(chunk)
 		if err != nil {
-			log.Info("客户端断开", "err", err)
+			log.Info("Клиент отключился", "err", err)
 			break
 		}
 		readBuf = append(readBuf, chunk[:n]...)
 		if len(readBuf) > 64<<20 {
-			log.Warn("读缓冲超限，断开")
+			log.Warn("Превышен буфер чтения, отключено")
 			break
 		}
 		_ = nc.SetReadDeadline(time.Now().Add(120 * time.Second))
@@ -448,9 +448,9 @@ func (s *RealtimeServer) handleConn(nc net.Conn) {
 
 	sess.closed.Store(true)
 	close(sess.outCh)
-	<-writerDone // 写者收尾（含 handoff 保存）
+	<-writerDone // 写者收尾 (含 handoff 保存)
 	_ = s.tm.sendClose(sess.id, "session_end")
-	s.log.Info("会话结束", "sid", sess.id, "resumed", sess.resumed)
+	s.log.Info("Сессия завершена", "sid", sess.id, "resumed", sess.resumed)
 }
 
 // useridFromTokenStr 从 4 段 token 第三段解析 uid（解析失败回 0）。
@@ -489,14 +489,14 @@ func (s *clientSession) handleFrame(f *proto.Frame) bool {
 		}
 		plain := s.rc4In.Crypt(f.Payload)
 		if err := s.srv.tm.sendData(s.id, plain); err != nil {
-			s.log.Warn("隧道转发失败，断开", "err", err)
+			s.log.Warn("Ошибка пересылки через туннель, отключено", "err", err)
 			return true
 		}
 		s.framesParsedOK.Add(1)
 		return false
 	default:
 		rtFramesIn.WithLabelValues("unknown_type").Inc()
-		s.log.Warn("未知帧类型", "type", f.FrameType)
+		s.log.Warn("Неизвестный тип кадра", "type", f.FrameType)
 		return false
 	}
 }
@@ -535,7 +535,7 @@ drain:
 			switch task.kind {
 			case outAck:
 				if _, err := s.conn.Write(proto.BuildAckFrame(task.wireID)); err != nil {
-					s.log.Info("写 ACK 失败", "err", err)
+					s.log.Info("Не удалось записать ACK", "err", err)
 					s.closed.Store(true)
 					continue
 				}
@@ -546,7 +546,7 @@ drain:
 				frame := proto.BuildFrame(0, nextWireID, enc)
 				nextWireID++
 				if _, err := s.conn.Write(frame); err != nil {
-					s.log.Info("写数据帧失败", "err", err)
+					s.log.Info("Не удалось записать кадр данных", "err", err)
 					s.closed.Store(true)
 					continue
 				}
@@ -638,10 +638,10 @@ func (s *clientSession) saveHandoff(nextWireID uint64) {
 	unlock := s.srv.lockTokenSlot(s.token)
 	defer unlock()
 	if !s.srv.ownsToken(s.token, s.id) {
-		return // 已被新会话接管：旧快照写不得
+		return // 已被新会话接管: 旧快照写不得
 	}
 	if !s.resumed && s.framesSent.Load() == 0 && s.framesParsedOK.Load() == 0 {
-		return // 防污染：失步 fresh 会话的状态不落库（见上注）
+		return // 防污染: 失步 fresh 会话的状态不落库 (见上注)
 	}
 	s.rc4Mu.Lock()
 	h := Handoff{
@@ -654,9 +654,9 @@ func (s *clientSession) saveHandoff(nextWireID uint64) {
 	defer cancel()
 	if err := s.srv.store.SaveHandoff(ctx, s.token, h, handoffTTL); err == nil {
 		rtHandoffSaved.Inc()
-		s.log.Debug("handoff 已保存", "next_wire_id", nextWireID)
+		s.log.Debug("handoff Сохранено", "next_wire_id", nextWireID)
 	} else {
-		s.log.Warn("handoff 保存失败", "err", err)
+		s.log.Warn("handoff Ошибка сохранения", "err", err)
 	}
 }
 
@@ -669,7 +669,7 @@ func (s *clientSession) EnqueueData(payload []byte) bool {
 	case s.outCh <- outbound{kind: outData, payload: payload}:
 		return true
 	default:
-		s.log.Warn("下行队列满（慢客户端），断开")
+		s.log.Warn("Очередь исходящих данных заполнена (медленный клиент), отключено")
 		s.closed.Store(true)
 		return false
 	}
@@ -678,7 +678,7 @@ func (s *clientSession) EnqueueData(payload []byte) bool {
 // Close 主动断开（主服 CLOSE 指令）。
 func (s *clientSession) Close(reason string) {
 	if s.closed.CompareAndSwap(false, true) {
-		s.log.Info("主服要求断开", "reason", reason)
+		s.log.Info("Основной сервер требует отключения", "reason", reason)
 		_ = s.conn.Close()
 	}
 }

@@ -181,7 +181,7 @@ func (s *Server) build813(ctx context.Context, uid int64, f *RolledFish, prevBes
 	silverCents := int64(math.Round(silverRate * math.Max(1, float64(f.WeightG))))
 
 	obj310 := wiregen.MustMakeObj("kegeppimjbm", map[int]*proto.Value{
-		0: proto.U64(uint64(f.XP)), // 单鱼经验（不是累计）
+		0: proto.U64(uint64(f.XP)), // 单鱼经验 (不是累计)
 		1: proto.U32(uint32(max64(0, levelsGained))),
 		2: proto.U32(uint32(stLastSkill(s, uid))),
 		3: proto.F32(float32(skillGain)),
@@ -264,7 +264,7 @@ func (s *Server) fishingKeep(ctx *Ctx) ([]byte, bool) {
 	if pending != nil {
 		if want != "" && !strings.EqualFold(want, pending.FishGUID) {
 			st.mu.Unlock()
-			ctx.ReplyFailure("System.ArgumentException", "入护的鱼与本次钓获不一致")
+			ctx.ReplyFailure("System.ArgumentException", "Рыба для садка не совпадает с текущим уловом")
 			return nil, true
 		}
 		echo := pending.FishGUID
@@ -279,7 +279,7 @@ func (s *Server) fishingKeep(ctx *Ctx) ([]byte, bool) {
 		capacity, err := s.keepnetCapacity(cctx, uid)
 		if err != nil {
 			st.mu.Unlock()
-			ctx.ReplyFailure("System.IO.IOException", "护网容量未能读取，请重试")
+			ctx.ReplyFailure("System.IO.IOException", "Не удалось прочитать вместимость садка, попробуйте ещё раз")
 			return nil, true
 		}
 		// 落库
@@ -292,11 +292,11 @@ func (s *Server) fishingKeep(ctx *Ctx) ([]byte, bool) {
 		}, kept.XP, kept.Silver, capacity)
 		if err != nil {
 			st.mu.Unlock()
-			ctx.Log.Warn("入护保存失败", "err", err)
+			ctx.Log.Warn("Не удалось сохранить рыбу в садок", "err", err)
 			if errors.Is(err, store.ErrKeepnetFull) {
-				ctx.ReplyFailure("System.InvalidOperationException", "护网已满，请先腾出位置")
+				ctx.ReplyFailure("System.InvalidOperationException", "Садок полон, сначала освободите место")
 			} else {
-				ctx.ReplyFailure("System.IO.IOException", "入护未能保存，请重试")
+				ctx.ReplyFailure("System.IO.IOException", "Рыба не сохранена в садок, попробуйте ещё раз")
 			}
 			return nil, true
 		}
@@ -322,7 +322,7 @@ func (s *Server) fishingKeep(ctx *Ctx) ([]byte, bool) {
 		// 发 14/5 时已离开搏鱼态。与 14/12/14/6/14/4 共享 FishGUID 幂等键。
 		if pending != nil && hooked {
 			if err := s.consumeHookedBait(ctx.Sess, pending, rodGUID); err != nil {
-				ctx.Log.Warn("入护鱼饵扣减失败", "fish", pending.FishGUID, "err", err)
+				ctx.Log.Warn("Не удалось списать наживку при помещении в садок", "fish", pending.FishGUID, "err", err)
 			}
 		}
 		if extraKept := s.keepBatchCatches(cctx, uid, batch, keepLoc, keepSpot,
@@ -333,8 +333,8 @@ func (s *Server) fishingKeep(ctx *Ctx) ([]byte, bool) {
 					sess.Push(4, 22, proto.Args(proto.S("61"), s.keepnetItemTree(sess.pushCtx(), e, e.KeepLevel)))
 				}
 			})
-			ctx.Log.Info("14/5 多钩一并入护", "rod", shortGUID(rodGUID),
-				"条数", len(extraKept), "明细", keepnetEntryDetail(extraKept))
+			ctx.Log.Info("14/5 Рыба с нескольких крючков помещена в садок", "rod", shortGUID(rodGUID),
+				"Количество", len(extraKept), "Подробности", keepnetEntryDetail(extraKept))
 			// 结算卡（801）只画得下一尾，杆上又只有一个鱼模型，另几尾进护这件事
 			// 玩家在其他地方看不到，这里用一行汇总播报交代清楚：几尾、合计多重。
 			ctx.Sess.pushSystemChat(multiHookKeepChat(extraKept))
@@ -360,14 +360,14 @@ func (s *Server) fishingKeep(ctx *Ctx) ([]byte, bool) {
 			// （物品定义读不到、DB 抖动），入护时再试一次；幂等键保证不会重复发。
 			// 真在这里补发时已经没有结算界面了，所以改走背包增量 + 系统播报。
 			if trophy, terr := s.grantWaterwayTrophy(cctx, uid, keepLevel); terr != nil {
-				ctx.Log.Warn("水域奖杯发放失败", "water", keepLevel, "err", terr)
+				ctx.Log.Warn("Не удалось выдать трофей водоёма", "water", keepLevel, "err", terr)
 			} else if trophy != nil {
 				ctx.Sess.pushWaterwayTrophies([]*store.Item{trophy})
 				name := s.lootItemName(cctx, trophy.ItemID)
 				if name == "" {
 					name = trophy.ItemID
 				}
-				ctx.Sess.pushSystemChat(fmt.Sprintf("集齐该水域全部稀有鱼：%s", name))
+				ctx.Sess.pushSystemChat(fmt.Sprintf("Собраны все редкие рыбы этого водоёма: %s", name))
 			}
 		}
 		out := proto.Args(proto.S("61"))
@@ -447,10 +447,10 @@ func (s *Server) keepBatchCatches(ctx context.Context, uid int64, batch []*Rolle
 		kept, err := s.DB.KeepFishingCatchWithCapacity(ctx, e, f.XP, f.Silver, capacity)
 		if err != nil {
 			if errors.Is(err, store.ErrKeepnetFull) {
-				s.log.Warn("多钩额外鱼未入护：护网已满", "fish", shortGUID(f.FishGUID), "鱼种", f.Species)
+				s.log.Warn("Доп. рыба с нескольких крючков не помещена: садок полон", "fish", shortGUID(f.FishGUID), "Вид рыбы", f.Species)
 				break
 			}
-			s.log.Warn("多钩额外鱼入护失败", "fish", shortGUID(f.FishGUID), "err", err)
+			s.log.Warn("Не удалось поместить в садок доп. рыбу с нескольких крючков", "fish", shortGUID(f.FishGUID), "err", err)
 			continue
 		}
 		if kept {
@@ -487,7 +487,7 @@ func (s *Server) fishingRelease(ctx *Ctx) ([]byte, bool) {
 	hooked := st.Hooked
 	if pending != nil && len(guids) > 0 && !strings.EqualFold(guids[len(guids)-1], pending.FishGUID) {
 		st.mu.Unlock()
-		ctx.ReplyFailure("System.ArgumentException", "放生的鱼与本次钓获不一致")
+		ctx.ReplyFailure("System.ArgumentException", "Отпускаемая рыба не совпадает с текущим уловом")
 		return nil, true
 	}
 	loc := st.Loc
@@ -498,7 +498,7 @@ func (s *Server) fishingRelease(ctx *Ctx) ([]byte, bool) {
 	// 14/12/14/5/14/4 共享 FishGUID 幂等键，先到先扣。
 	if pending != nil && hooked {
 		if err := s.consumeHookedBait(ctx.Sess, pending, rodGUID); err != nil {
-			ctx.Log.Warn("放生鱼饵扣减失败", "fish", pending.FishGUID, "err", err)
+			ctx.Log.Warn("Не удалось списать наживку при отпускании", "fish", pending.FishGUID, "err", err)
 		}
 	}
 
@@ -519,12 +519,12 @@ func (s *Server) fishingRelease(ctx *Ctx) ([]byte, bool) {
 					pending.Name = strings.TrimSpace(name)
 					pending.NamedID = fid
 					st.mu.Unlock()
-					ctx.Log.Info("蓝冠命名成功", "鱼种", pending.Species, "重量", pending.WeightG, "名字", pending.Name)
+					ctx.Log.Info("Рыба с синей короной названа", "Вид рыбы", pending.Species, "Вес", pending.WeightG, "Имя", pending.Name)
 				} else {
-					ctx.Log.Warn("蓝冠命名被拒", "原因", why2, "鱼种", pending.Species, "名字", name)
+					ctx.Log.Warn("Имя рыбы с синей короной отклонено", "Причина", why2, "Вид рыбы", pending.Species, "Имя", name)
 				}
 			} else {
-				ctx.Log.Warn("蓝冠命名被拒", "原因", why, "鱼种", pending.Species, "名字", name)
+				ctx.Log.Warn("Имя рыбы с синей короной отклонено", "Причина", why, "Вид рыбы", pending.Species, "Имя", name)
 			}
 		}
 		// 放生奖励：base × release_xp_ratio（默认 0.5）
@@ -537,8 +537,8 @@ func (s *Server) fishingRelease(ctx *Ctx) ([]byte, bool) {
 		bonus := int64(math.Round(float64(base) * ratio))
 		result, gifts, replayed, err := s.releaseCatchOnce(cctx, uid, pending.FishGUID, bonus, rigType)
 		if err != nil {
-			ctx.Log.Warn("放生保存失败", "err", err)
-			ctx.ReplyFailure("System.IO.IOException", "放生未能保存，请重试")
+			ctx.Log.Warn("Не удалось сохранить отпускание", "err", err)
+			ctx.ReplyFailure("System.IO.IOException", "Отпускание не сохранено, попробуйте ещё раз")
 			return nil, true
 		}
 		st.mu.Lock()
@@ -568,7 +568,7 @@ func (s *Server) fishingRelease(ctx *Ctx) ([]byte, bool) {
 			extraReleaseBonus := int64(math.Round(float64(base) * ratio))
 			res, extraGifts, replayedExtra, err := s.releaseCatchOnce(cctx, uid, f.FishGUID, extraReleaseBonus, rigType)
 			if err != nil {
-				ctx.Log.Warn("14/6 多钩额外鱼放生失败", "fish", shortGUID(f.FishGUID), "err", err)
+				ctx.Log.Warn("14/6 Не удалось отпустить доп. рыбу с нескольких крючков", "fish", shortGUID(f.FishGUID), "err", err)
 				continue
 			}
 			if replayedExtra {
@@ -587,7 +587,7 @@ func (s *Server) fishingRelease(ctx *Ctx) ([]byte, bool) {
 			}
 		}
 		if len(released) > 0 {
-			ctx.Log.Info("14/6 多钩一并放生", "rod", shortGUID(rodGUID), "条数", len(released))
+			ctx.Log.Info("14/6 Рыба с нескольких крючков отпущена", "rod", shortGUID(rodGUID), "Количество", len(released))
 		}
 		if extraBonus > 0 {
 			ctx.Sess.Push2_9(100, uint64(extraBonus))
@@ -619,7 +619,7 @@ func (s *Server) fishingRelease(ctx *Ctx) ([]byte, bool) {
 		}
 		if len(gifts) > 0 {
 			if rows, rerr := s.giftRows811Arg(cctx, result.Level, gifts); rerr != nil {
-				ctx.Log.Warn("升级礼物行构造失败（807.f1 置空）", "err", rerr)
+				ctx.Log.Warn("Ошибка создания строки подарка за уровень (807.f1 пусто)", "err", rerr)
 			} else {
 				giftRows = rows
 			}

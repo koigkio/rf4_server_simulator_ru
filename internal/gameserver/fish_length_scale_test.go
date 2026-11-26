@@ -230,7 +230,7 @@ func TestCalibratedLengthKP(t *testing.T) {
 		for _, a := range c.want {
 			got := speciesLengthM(c.key, gotK, gotP, float64(a.weight))
 			if math.Abs(got-a.want) > c.tol {
-				t.Fatalf("%s 在 %.3fkg 时体长 %.3fm，官服实测 %.2fm（容差 %.2f）",
+				t.Fatalf("%s 在 %.3fkg 时体长 %.3fm, 官服实测 %.2fm (容差 %.2f)",
 					c.key, float64(a.weight)/1000, got, a.want, c.tol)
 			}
 		}
@@ -277,7 +277,7 @@ func TestCalibratedLengthKP(t *testing.T) {
 		}
 		for _, a := range c.want {
 			if got := speciesLengthM(c.key, gotK, gotP, float64(a.weight)); math.Abs(got-a.want) > 0.05 {
-				t.Fatalf("%s 在 %.3fkg 时体长 %.3fm，官服实测 %.2fm",
+				t.Fatalf("%s 在 %.3fkg 时体长 %.3fm, 官服实测 %.2fm",
 					c.key, float64(a.weight)/1000, got, a.want)
 			}
 		}
@@ -329,7 +329,7 @@ func TestCalibratedLengthKP(t *testing.T) {
 	}
 	// 上限内仍严格等于 a+b·W，确认上界守卫没把区间内的点也一起延拓。
 	if got := speciesLengthM("ch_beluga", 0.003821, 0.5371, 521104); math.Abs(got-4.583) > 0.002 {
-		t.Fatalf("黑海欧洲鳇 521.104kg（实测上限）应给 4.583m: got=%.3fm", got)
+		t.Fatalf("黑海欧洲鳇 521.104kg (实测上限)应给 4.583m: got=%.3fm", got)
 	}
 	// 区间内必须严格等于 a+b·W，用来抓「守卫失效、悄悄回退到幂律」这类回归。
 	// 期望值与幂律回退相差 1~35mm，容差 1e-3 足以区分。
@@ -435,9 +435,9 @@ func TestFishLengthCommonSenseOutliers(t *testing.T) {
 		{"gc_smelt", 18000, 1.05, 1.30},
 		{"midori_g", 25000, 1.00, 1.40},
 		{"m_scorpius", 3000, 0.40, 0.60},
-		{"b_gill", 1200, 0.39, 0.47}, // 官服拟合（1200g≈0.43m）
+		{"b_gill", 1200, 0.39, 0.47}, // 官服拟合 (1200g≈0.43m)
 		{"fwdrum", 13500, 0.70, 0.90},
-		{"s_freaks", 30000, 0.90, 1.25}, // 官服单点（30kg≈1.21m）
+		{"s_freaks", 30000, 0.90, 1.25}, // 官服单点 (30kg≈1.21m)
 		{"l_minnow", 100, 0.15, 0.22},
 		{"syb_vendace", 800, 0.30, 0.42},
 		{"b_omul", 6000, 0.50, 0.70},

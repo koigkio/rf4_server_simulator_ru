@@ -230,7 +230,7 @@ func TestConsumableRestoreMedicineClassification(t *testing.T) {
 	}
 	for _, itemID := range []string{"aroma_garlic", "dough_garlic", "ff_garlic", "boils_hvz_dg12"} {
 		if _, ok := consumableRestoreForItem(itemID); ok {
-			t.Fatalf("%s 是饵料香料/面团，不应进消耗品恢复表", itemID)
+			t.Fatalf("%s 是饵料香料/面团, 不应进消耗品恢复表", itemID)
 		}
 	}
 }

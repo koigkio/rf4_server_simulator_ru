@@ -35,7 +35,7 @@ func testIconZip(t *testing.T, entries []zipEntry) []byte {
 		}
 	}
 	if err := zw.Close(); err != nil {
-		t.Fatalf("关闭 zip: %v", err)
+		t.Fatalf("выключено zip: %v", err)
 	}
 	return buf.Bytes()
 }
@@ -78,7 +78,7 @@ func TestReadIconArchiveFiltersUnsafeEntries(t *testing.T) {
 		t.Fatalf("读取图标包: %v", err)
 	}
 	if len(files) != 2 {
-		t.Fatalf("只应保留安全图标条目，实得 %d: %#v", len(files), files)
+		t.Fatalf("只应保留安全图标条目, 实得 %d: %#v", len(files), files)
 	}
 	for _, key := range []string{"item_icons/bait.webp", "fish_icons/cod.png"} {
 		if files[key] == nil {
@@ -136,7 +136,7 @@ func TestHandleIconsServesArchiveEntry(t *testing.T) {
 	rec := httptest.NewRecorder()
 	s.handleIcons(rec, httptest.NewRequest(http.MethodGet, "/icons/items/bait.webp", nil))
 	if rec.Code != http.StatusOK {
-		t.Fatalf("图标应返回 200，实得 %d: %s", rec.Code, rec.Body.String())
+		t.Fatalf("图标应返回 200, 实得 %d: %s", rec.Code, rec.Body.String())
 	}
 	if got := rec.Header().Get("Content-Type"); got != "image/webp" {
 		t.Fatalf("Content-Type = %q", got)
@@ -167,13 +167,13 @@ func TestHandleIconsRejectsInvalidNamesAndMissingArchive(t *testing.T) {
 		rec := httptest.NewRecorder()
 		s.handleIcons(rec, httptest.NewRequest(http.MethodGet, requestPath, nil))
 		if rec.Code != http.StatusNotFound {
-			t.Fatalf("非法路径 %q 应返回 404，实得 %d", requestPath, rec.Code)
+			t.Fatalf("非法路径 %q 应返回 404, 实得 %d", requestPath, rec.Code)
 		}
 	}
 	rec := httptest.NewRecorder()
 	s.handleIcons(rec, httptest.NewRequest(http.MethodGet, "/icons/items/bait.webp", nil))
 	if rec.Code != http.StatusNotFound {
-		t.Fatalf("缺包应返回 404，实得 %d", rec.Code)
+		t.Fatalf("缺包应返回 404, 实得 %d", rec.Code)
 	}
 }
 

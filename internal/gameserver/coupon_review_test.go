@@ -24,7 +24,7 @@ func seedCat58Row(t *testing.T, db *store.DB, uid int64, guid string, remaining 
 		t.Skipf("静态库无 dip_op_c: %v", err)
 	}
 	if def.Category != 58 {
-		t.Skipf("dip_op_c 类别 = %d，期望 58", def.Category)
+		t.Skipf("dip_op_c 类别 = %d, 期望 58", def.Category)
 	}
 	cls, ok := resolveWireClass(def)
 	if !ok {
@@ -80,16 +80,16 @@ func TestCat58StackCountUsesCsQty(t *testing.T) {
 	row := seedCat58Row(t, db, uid, fmt.Sprintf("%032x", uid), 95)
 
 	if got := srv.stackCountOf(ctx, row); got != 95 {
-		t.Fatalf("stackCountOf = %d，期望 95（csQty），dnmfciolgep 常量 100 不能当剩余量", got)
+		t.Fatalf("stackCountOf = %d, 期望 95 (csQty), dnmfciolgep 常量 100 不能当剩余量", got)
 	}
 
 	srv.alignItemRowQty(ctx, row)
 	if row.Qty != 95 {
-		t.Fatalf("alignItemRowQty 后 item.qty = %d，期望按 csQty 收敛到 95", row.Qty)
+		t.Fatalf("alignItemRowQty 后 item.qty = %d, 期望按 csQty 收敛到 95", row.Qty)
 	}
 
 	if got := srv.consumeItemQty(ctx, row, 1); got != 1 {
-		t.Fatalf("consumeItemQty 返回 %d，期望 1", got)
+		t.Fatalf("consumeItemQty 返回 %d, 期望 1", got)
 	}
 	after, err := db.GetItemByGUID(ctx, row.GUID)
 	if err != nil {
@@ -101,7 +101,7 @@ func TestCat58StackCountUsesCsQty(t *testing.T) {
 	}
 	idx := fieldIdxByCS(after.WireClass, csQty)
 	if idx < 0 || idx >= len(af) || af[idx].Num == nil || u64Of(af[idx].Num) != 94 {
-		t.Fatalf("扣减后 csQty 应为 94，实得字段 %+v", af)
+		t.Fatalf("扣减后 csQty 应为 94, 实得字段 %+v", af)
 	}
 }
 
@@ -126,7 +126,7 @@ func TestCouponQtyStillUsesMetaSlot(t *testing.T) {
 		t.Fatalf("解析券字段: %v", err)
 	}
 	if n, ok := itemQtyValue(fresh.WireClass, fields); !ok || n != 1 {
-		t.Fatalf("券 itemQtyValue = %d ok=%v，期望 1（dnmfciolgep）", n, ok)
+		t.Fatalf("券 itemQtyValue = %d ok=%v, 期望 1 (dnmfciolgep)", n, ok)
 	}
 	if fieldIdxByCS(fresh.WireClass, csQty) >= 0 {
 		t.Fatal("券实例类不应有 csQty 槽")
@@ -164,10 +164,10 @@ func TestCouponGrantRepairFailsClosedOnTxnReadError(t *testing.T) {
 
 	fixed, err := srv.repairCouponGrantQuantities(ctx)
 	if err == nil {
-		t.Fatal("txn 读取失败时补偿必须返回 error（fail closed）")
+		t.Fatal("txn 读取失败时补偿必须返回 error (fail closed)")
 	}
 	if fixed != 0 {
-		t.Fatalf("txn 读取失败时 fixed = %d，期望 0", fixed)
+		t.Fatalf("txn 读取失败时 fixed = %d, 期望 0", fixed)
 	}
 	if _, done, _ := db.KVGet(ctx, couponGrantRepairKey); done {
 		t.Fatal("txn 读取失败时不得写完成标记")
@@ -181,7 +181,7 @@ func TestCouponGrantRepairFailsClosedOnTxnReadError(t *testing.T) {
 		t.Fatalf("解析券字段: %v", err)
 	}
 	if n, ok := itemQtyValue(fresh.WireClass, fields); !ok || n != 999 {
-		t.Fatalf("补偿失败后券数量被改动 = %d ok=%v，期望保持 999", n, ok)
+		t.Fatalf("补偿失败后券数量被改动 = %d ok=%v, 期望保持 999", n, ok)
 	}
 }
 
@@ -204,10 +204,10 @@ func TestCat58AddToStackAddsOnePiece(t *testing.T) {
 		t.Fatalf("并堆: %v", err)
 	}
 	if !merged {
-		t.Fatal("应并入已有堆，而不是新建一行")
+		t.Fatal("应并入已有堆, 而不是新建一行")
 	}
 	if row.Qty != 96 {
-		t.Fatalf("并堆后 row.qty = %d，期望 96（95+1 件）", row.Qty)
+		t.Fatalf("并堆后 row.qty = %d, 期望 96 (95+1 件)", row.Qty)
 	}
 	fresh, err := db.GetItemByGUID(ctx, row.GUID)
 	if err != nil {
@@ -218,10 +218,10 @@ func TestCat58AddToStackAddsOnePiece(t *testing.T) {
 		t.Fatalf("解析字段: %v", err)
 	}
 	if idx := fieldIdxByCS(fresh.WireClass, csQty); idx < 0 || ff[idx].Num == nil || u64Of(ff[idx].Num) != 96 {
-		t.Fatalf("csQty 应为 96，实得字段 %+v", ff)
+		t.Fatalf("csQty 应为 96, 实得字段 %+v", ff)
 	}
 	if got := srv.stackCountOf(ctx, fresh); got != 96 {
-		t.Fatalf("stackCountOf = %d，期望 96", got)
+		t.Fatalf("stackCountOf = %d, 期望 96", got)
 	}
 }
 
@@ -254,10 +254,10 @@ func TestCouponGrantRepairFailsClosedOnCorruptAudit(t *testing.T) {
 
 	fixed, err := srv.repairCouponGrantQuantities(ctx)
 	if err == nil {
-		t.Fatal("发放记录损坏时补偿必须返回 error（fail closed）")
+		t.Fatal("发放记录损坏时补偿必须返回 error (fail closed)")
 	}
 	if fixed != 0 {
-		t.Fatalf("发放记录损坏时 fixed = %d，期望 0", fixed)
+		t.Fatalf("发放记录损坏时 fixed = %d, 期望 0", fixed)
 	}
 	if _, done, _ := db.KVGet(ctx, couponGrantRepairKey); done {
 		t.Fatal("发放记录损坏时不得写完成标记")
@@ -271,7 +271,7 @@ func TestCouponGrantRepairFailsClosedOnCorruptAudit(t *testing.T) {
 		t.Fatalf("解析券字段: %v", ferr)
 	}
 	if n, ok := itemQtyValue(fresh.WireClass, fields); !ok || n != 999 {
-		t.Fatalf("补偿失败后券数量被改动 = %d ok=%v，期望保持 999", n, ok)
+		t.Fatalf("补偿失败后券数量被改动 = %d ok=%v, 期望保持 999", n, ok)
 	}
 }
 
@@ -288,7 +288,7 @@ func TestCouponConstructorsRejectWrongUnits(t *testing.T) {
 	}
 
 	if _, err := srv.prepareCouponRows(ctx, uid, couponChucheloItemID, "backpack", 0); err == nil {
-		t.Fatal("prepareCouponRows 收到 0 张必须报错，不能夹成 1 张")
+		t.Fatal("prepareCouponRows 收到 0 张必须报错, 不能夹成 1 张")
 	}
 	if _, err := srv.prepareCouponRows(ctx, uid, couponChucheloItemID, "backpack", -3); err == nil {
 		t.Fatal("prepareCouponRows 收到负数必须报错")
@@ -306,14 +306,14 @@ func TestCouponConstructorsRejectWrongUnits(t *testing.T) {
 		t.Fatalf("prepareCouponRows 发 2 张应成功: %v", err)
 	}
 	if len(rows) != 2 {
-		t.Fatalf("prepareCouponRows 发 2 张应得到 2 行，实得 %d", len(rows))
+		t.Fatalf("prepareCouponRows 发 2 张应得到 2 行, 实得 %d", len(rows))
 	}
 	one, err := srv.prepareNewItem(ctx, uid, couponChucheloItemID, "backpack", 1, "")
 	if err != nil {
 		t.Fatalf("prepareNewItem units=1 应成功: %v", err)
 	}
 	if one.WireClass != couponWireClass {
-		t.Fatalf("券实例类 = %s，期望 %s", one.WireClass, couponWireClass)
+		t.Fatalf("券实例类 = %s, 期望 %s", one.WireClass, couponWireClass)
 	}
 }
 
@@ -333,7 +333,7 @@ func TestCat58TxPathStackCountUsesCsQty(t *testing.T) {
 	row := seedCat58Row(t, db, uid, fmt.Sprintf("%032x", uid), 95)
 
 	if got := srv.stackCountOf(ctx, row); got != 95 {
-		t.Fatalf("stackCountOf = %d，期望 95（csQty）", got)
+		t.Fatalf("stackCountOf = %d, 期望 95 (csQty)", got)
 	}
 	tx, err := beginEconomyTx(ctx, srv.DB)
 	if err != nil {
@@ -341,7 +341,7 @@ func TestCat58TxPathStackCountUsesCsQty(t *testing.T) {
 	}
 	defer func() { _ = tx.Rollback() }()
 	if got := stackCountTx(ctx, tx, row); got != 95 {
-		t.Fatalf("stackCountTx = %d，期望 95（csQty，不能读 dnmfciolgep 的 100）", got)
+		t.Fatalf("stackCountTx = %d, 期望 95 (csQty, 不能读 dnmfciolgep 的 100)", got)
 	}
 }
 
@@ -370,7 +370,7 @@ func TestCat58GrantPreparedMergesIntoCsQtyStack(t *testing.T) {
 		t.Fatalf("构造一条满量行: %v", perr)
 	}
 	if prepared.Qty != 100 {
-		t.Fatalf("一条新建满量行应为 100 件，实得 %d", prepared.Qty)
+		t.Fatalf("一条新建满量行应为 100 件, 实得 %d", prepared.Qty)
 	}
 	tx, err := beginEconomyTx(ctx, srv.DB)
 	if err != nil {
@@ -382,10 +382,10 @@ func TestCat58GrantPreparedMergesIntoCsQtyStack(t *testing.T) {
 		t.Fatalf("并入已有堆: %v", gerr)
 	}
 	if !ok {
-		t.Fatal("应并入已有堆，而不是新建一行")
+		t.Fatal("应并入已有堆, 而不是新建一行")
 	}
 	if merged.Qty != 195 {
-		t.Fatalf("并堆后 qty = %d，期望 195（csQty 95 + 一条满量 100；修复前是 200）", merged.Qty)
+		t.Fatalf("并堆后 qty = %d, 期望 195 (csQty 95 + 一条满量 100; 修复前是 200)", merged.Qty)
 	}
 }
 
@@ -401,7 +401,7 @@ func TestFamilyQtyWriteSyncsBothSlots(t *testing.T) {
 		t.Skipf("静态库无 dip_op_c: %v", err)
 	}
 	if def.Category != 58 {
-		t.Skipf("dip_op_c 类别 = %d，期望 58", def.Category)
+		t.Skipf("dip_op_c 类别 = %d, 期望 58", def.Category)
 	}
 	cls, ok := resolveWireClass(def)
 	if !ok {
@@ -417,7 +417,7 @@ func TestFamilyQtyWriteSyncsBothSlots(t *testing.T) {
 	cs := fieldIdxByCS(cls.Class, csQty)
 	meta := fieldIdxByCS(cls.Class, "dnmfciolgep")
 	if cs < 0 || meta < 0 {
-		t.Fatalf("cat58 应同时具备 csQty 与 dnmfciolgep 槽：cs=%d meta=%d", cs, meta)
+		t.Fatalf("cat58 应同时具备 csQty 与 dnmfciolgep 槽: cs=%d meta=%d", cs, meta)
 	}
 	if obj.Fields[cs].Num == nil || u64Of(obj.Fields[cs].Num) != 42 {
 		t.Fatalf("csQty 未同步为 42: %+v", obj.Fields[cs])
@@ -450,7 +450,7 @@ func TestFamilyStackCountWritesBothSlots(t *testing.T) {
 	csIdx := fieldIdxByCS(cls.Class, csQty)
 	metaIdx := fieldIdxByCS(cls.Class, "dnmfciolgep")
 	if csIdx < 0 || metaIdx < 0 {
-		t.Fatalf("cat58 应同时具备两槽：cs=%d meta=%d", csIdx, metaIdx)
+		t.Fatalf("cat58 应同时具备两槽: cs=%d meta=%d", csIdx, metaIdx)
 	}
 	guid := fmt.Sprintf("%032x", uid)
 	obj, merr := wiregen.MakeObj(cls.Class, nil)
@@ -490,17 +490,17 @@ func TestFamilyStackCountWritesBothSlots(t *testing.T) {
 		t.Fatalf("解析字段: %v", err)
 	}
 	if n := u64Of(got[csIdx].Num); n != 96 {
-		t.Fatalf("setStackCount 后 csQty = %d，期望 96", n)
+		t.Fatalf("setStackCount 后 csQty = %d, 期望 96", n)
 	}
 	if n := u64Of(got[metaIdx].Num); n != 96 {
-		t.Fatalf("setStackCount 后 dnmfciolgep = %d，期望同步为 96", n)
+		t.Fatalf("setStackCount 后 dnmfciolgep = %d, 期望同步为 96", n)
 	}
 	if fresh.Qty != 96 {
-		t.Fatalf("setStackCount 后 item.qty = %d，期望 96", fresh.Qty)
+		t.Fatalf("setStackCount 后 item.qty = %d, 期望 96", fresh.Qty)
 	}
 	// 堆叠整理的一致性断言：itemQtyValue（families 读 dnmfciolgep）必须等于 item.qty。
 	if v, okv := itemQtyValue(fresh.WireClass, got); !okv || int64(v) != fresh.Qty {
-		t.Fatalf("itemQtyValue = %d ok=%v，与 item.qty %d 不一致（堆叠整理会判为脏数据）", v, okv, fresh.Qty)
+		t.Fatalf("itemQtyValue = %d ok=%v, 与 item.qty %d 不一致 (堆叠整理会判为脏数据)", v, okv, fresh.Qty)
 	}
 }
 
@@ -512,7 +512,7 @@ func TestValidateMailAttachmentRejectsOversizedCoupon(t *testing.T) {
 	ctx := context.Background()
 	var over int64 = maxBundlePreparedItems + 1
 	if err := ValidateMailAttachment(ctx, db, store.MailItem{ItemID: couponChucheloItemID, Qty: over}); err == nil {
-		t.Fatalf("发件校验接受了 %d 张券，领取侧必然失败", over)
+		t.Fatalf("发件校验接受了 %d 张券, 领取侧必然失败", over)
 	}
 	if err := ValidateMailAttachment(ctx, db, store.MailItem{ItemID: couponChucheloItemID, Qty: maxBundlePreparedItems}); err != nil {
 		t.Fatalf("%d 张券应放行: %v", maxBundlePreparedItems, err)
@@ -556,7 +556,7 @@ func TestCouponGrantRepairFailsClosedWhenTrophyDefsMissing(t *testing.T) {
 		t.Fatal("缺少 cat71 产物定义时补偿必须 fail closed")
 	}
 	if fixed != 0 {
-		t.Fatalf("fail closed 时 fixed=%d，期望 0", fixed)
+		t.Fatalf("fail closed 时 fixed=%d, 期望 0", fixed)
 	}
 	if _, done, _ := db.KVGet(ctx, couponGrantRepairKey); done {
 		t.Fatal("fail closed 时不得写完成标记")
@@ -570,6 +570,6 @@ func TestCouponGrantRepairFailsClosedWhenTrophyDefsMissing(t *testing.T) {
 		t.Fatalf("解析券字段: %v", err)
 	}
 	if n, ok := itemQtyValue(fresh.WireClass, fields); !ok || n != 1 {
-		t.Fatalf("fail closed 后券数被改成 %d ok=%v，期望保持 1", n, ok)
+		t.Fatalf("fail closed 后券数被改成 %d ok=%v, 期望保持 1", n, ok)
 	}
 }

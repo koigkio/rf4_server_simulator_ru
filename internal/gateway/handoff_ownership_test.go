@@ -39,7 +39,7 @@ func TestOldWriterDoesNotOverwriteNewHandoff(t *testing.T) {
 		c.WaitResponse(3 * time.Second)
 	}
 	if waitHandoff(t, gw.Store, token) == nil {
-		t.Fatal("旧会话没有落库，测试前提不成立")
+		t.Fatal("旧会话没有落库, 测试前提不成立")
 	}
 
 	// 新会话：同 token 重连，进度明显领先。
@@ -60,7 +60,7 @@ func TestOldWriterDoesNotOverwriteNewHandoff(t *testing.T) {
 		time.Sleep(20 * time.Millisecond)
 	}
 	if newWire < 4 {
-		t.Fatalf("新会话进度没有落库（next_wire_id=%d），测试前提不成立", newWire)
+		t.Fatalf("新会话进度没有落库 (next_wire_id=%d), 测试前提不成立", newWire)
 	}
 	c.Close()
 
@@ -76,7 +76,7 @@ func TestOldWriterDoesNotOverwriteNewHandoff(t *testing.T) {
 		t.Fatal("承接状态被删空了")
 	}
 	if h.NextWireID < newWire {
-		t.Fatalf("旧写者用落后的快照覆盖了新会话的进度：next_wire_id %d → %d，客户端下次重连会从更早的位置续流，下行解不开",
+		t.Fatalf("旧写者用落后的快照覆盖了新会话的进度: next_wire_id %d → %d, 客户端下次重连会从更早的位置续流, 下行解不开",
 			newWire, h.NextWireID)
 	}
 }
@@ -94,7 +94,7 @@ type blockingSaveStore struct {
 	armed   bool
 	entered chan struct{} // 旧写者进入 SaveHandoff 时关闭
 	release chan struct{} // 测试侧放行
-	writes  []uint64      // 每次真正落库时的 next_wire_id，按完成顺序
+	writes  []uint64      // 每次真正落库时的 next_wire_id, 按完成顺序
 }
 
 func newBlockingSaveStore(inner gateway.Store) *blockingSaveStore {

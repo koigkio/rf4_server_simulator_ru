@@ -77,7 +77,7 @@ func TestFishStaminaMatchesOfficialAnchors(t *testing.T) {
 		got := srv.fishStaminaForProfile(f, profile)
 		tol := a.f5 * a.tolPct / 100
 		if math.Abs(got-a.f5) > tol {
-			t.Errorf("%s %dg f5=%.1f，官服=%.1f（±%v%%）", a.species, a.weightG, got, a.f5, a.tolPct)
+			t.Errorf("%s %dg f5=%.1f, 官服=%.1f (±%v%%)", a.species, a.weightG, got, a.f5, a.tolPct)
 		}
 	}
 }
@@ -97,22 +97,22 @@ func TestFishF6MatchesOfficialTable(t *testing.T) {
 	}{
 		{"perch", 342, 0.70},
 		{"perch", 359, 0.70},
-		{"perch", 360, 0.80}, // v2.2：中点 358g 取整到 360g
-		{"perch", 374, 0.80}, // v2.2：374g 实测 0.80
+		{"perch", 360, 0.80}, // v2.2: 中点 358g 取整到 360g
+		{"perch", 374, 0.80}, // v2.2: 374g 实测 0.80
 		{"perch", 642, 0.80},
 		{"crucian", 293, 0.55},
 		{"crucian", 449, 0.55},
 		{"crucian", 450, 0.60},
 		{"crucian", 743, 0.60},
-		{"carp", 2434, 0.65}, // v2.2：carp 台阶（1063~2434g 0.65 / 4137~5710g 0.75）
+		{"carp", 2434, 0.65}, // v2.2: carp 台阶 (1063~2434g 0.65 / 4137~5710g 0.75)
 		{"carp", 3299, 0.65},
 		{"carp", 3300, 0.75}, // 中点 3285.5g 取整到 3300g
 		{"carp", 4137, 0.75},
-		{"m_carp", 3494, 0.65}, // v2.2：m_carp 入表（2312~3494g 0.65 / 4756~5370g 0.75）
+		{"m_carp", 3494, 0.65}, // v2.2: m_carp 入表 (2312~3494g 0.65 / 4756~5370g 0.75)
 		{"m_carp", 4099, 0.65},
 		{"m_carp", 4100, 0.75}, // 中点 4125g 取整到 4100g
 		{"m_carp", 4756, 0.75},
-		{"a_char", 415, 0.50}, // v2.2：鲑科实测种入表，不再吃鲑科组 0.60
+		{"a_char", 415, 0.50}, // v2.2: 鲑科实测种入表, 不再吃鲑科组 0.60
 		{"gc_smelt", 772, 0.50},
 		{"c.roach", 680, 0.50},
 		{"s.bream", 359, 0.30},
@@ -123,7 +123,7 @@ func TestFishF6MatchesOfficialTable(t *testing.T) {
 	for _, c := range cases {
 		f := &RolledFish{Species: c.species, WeightG: c.weightG}
 		if got := srv2.fishF6For(f); math.Abs(got-c.want) > 1e-9 {
-			t.Errorf("%s %dg f6=%f，期望 %f", c.species, c.weightG, got, c.want)
+			t.Errorf("%s %dg f6=%f, 期望 %f", c.species, c.weightG, got, c.want)
 		}
 	}
 }
@@ -148,7 +148,7 @@ func TestFightCurvesSpeciesPoolsLoaded(t *testing.T) {
 	for _, c := range cases {
 		curves := srv.buildFightCurves(c.species, 10)
 		if curves == nil || len(curves.Items) != c.rows {
-			t.Fatalf("%s 池行数=%d，期望直配官方 %d 行", c.species, len(curves.Items), c.rows)
+			t.Fatalf("%s 池行数=%d, 期望直配官方 %d 行", c.species, len(curves.Items), c.rows)
 		}
 	}
 	// 未入库种仍走 archetype 借池兜底。
@@ -166,19 +166,19 @@ func TestFightCurvesSpeciesPoolsLoaded(t *testing.T) {
 // 同 pull 同池 uniform 缩放，全部 19 列应逐行一致。
 func TestFightCurvesMarineFallbackUsesOfficialMerlang(t *testing.T) {
 	if pool := fishFightArchetypes["marine"].CurvePool; pool != "merlang" {
-		t.Fatalf("marine 组曲线池=%q，应为官方 merlang 池", pool)
+		t.Fatalf("marine 组曲线池=%q, 应为官方 merlang 池", pool)
 	}
 	srv, _ := newRigTestServer(t)
 	const pull = 100.0
 	menek := srv.buildFightCurves("menek", pull)
 	merlang := srv.buildFightCurves("merlang", pull)
 	if len(menek.Items) == 0 || len(menek.Items) != len(merlang.Items) {
-		t.Fatalf("menek 借池行数=%d，merlang 池=%d", len(menek.Items), len(merlang.Items))
+		t.Fatalf("menek 借池行数=%d, merlang 池=%d", len(menek.Items), len(merlang.Items))
 	}
 	for i, row := range menek.Items {
 		for col := 0; col < 19; col++ {
 			if got, want := protoF32Field(row, col), protoF32Field(merlang.Items[i], col); got != want {
-				t.Fatalf("menek 行 %d 列 %d=%f，merlang 池=%f（借池应为官方 merlang 真池）", i, col, got, want)
+				t.Fatalf("menek 行 %d 列 %d=%f, merlang 池=%f (借池应为官方 merlang 真池)", i, col, got, want)
 			}
 		}
 	}
@@ -195,7 +195,7 @@ func TestFightCurvesEveryPoolHasPhase100Base(t *testing.T) {
 		} `json:"pools"`
 	}
 	if err := json.Unmarshal(fightCurvesJSON, &parsed); err != nil {
-		t.Fatalf("解析 fight_curves_sets.json: %v", err)
+		t.Fatalf("Разбор fight_curves_sets.json: %v", err)
 	}
 	if len(parsed.Pools) == 0 {
 		t.Fatal("fight_curves_sets.json 没有任何池")
@@ -216,7 +216,7 @@ func TestFightCurvesEveryPoolHasPhase100Base(t *testing.T) {
 			}
 		}
 		if base != 1 {
-			t.Errorf("%s 池 f0=100 基准行数=%d，期望恰 1 条", sp, base)
+			t.Errorf("%s 池 f0=100 基准行数=%d, 期望恰 1 条", sp, base)
 			continue
 		}
 		srv.curveMu.Lock()
@@ -227,7 +227,7 @@ func TestFightCurvesEveryPoolHasPhase100Base(t *testing.T) {
 			continue
 		}
 		if int(loaded[0][0]) != 100 {
-			t.Errorf("%s 池加载后首位 f0=%v，期望 100（缩放锚必须是基准行）", sp, loaded[0][0])
+			t.Errorf("%s 池加载后首位 f0=%v, 期望 100 (缩放锚必须是基准行)", sp, loaded[0][0])
 		}
 	}
 }

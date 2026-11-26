@@ -27,15 +27,15 @@ func TestBuildInfoMetricIdentityNotUnknownAfterInjection(t *testing.T) {
 	body := rec.Body.String()
 	version, buildts, commit, source, ok := buildinfo.ParseMetric(body)
 	if !ok {
-		t.Fatalf("/metrics 里没有 rf4_build_info：\n%s", firstLines(body, 20))
+		t.Fatalf("/metrics 里没有 rf4_build_info: \n%s", firstLines(body, 20))
 	}
 	if version == "" || version == "unknown" || buildts == "" || buildts == "0" {
-		t.Fatalf("注入后 version/buildts 仍是占位符：version=%q buildts=%q", version, buildts)
+		t.Fatalf("注入后 version/buildts 仍是占位符: version=%q buildts=%q", version, buildts)
 	}
 	if commit == "" || commit == "unknown" {
-		t.Fatalf("注入后 commit 仍是 %q，期望非 unknown 的提交短码", commit)
+		t.Fatalf("注入后 commit 仍是 %q, 期望非 unknown 的提交短码", commit)
 	}
 	if source == "" || source == "unknown" {
-		t.Fatalf("注入后 source 仍是 %q，期望真实检出目录", source)
+		t.Fatalf("注入后 source 仍是 %q, 期望真实检出目录", source)
 	}
 }

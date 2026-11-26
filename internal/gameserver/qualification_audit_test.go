@@ -55,7 +55,7 @@ func TestQualificationCarpNineBottomHairRigs(t *testing.T) {
 			Species: "carp", RigType: rig, Grade: 3,
 		})
 	}
-	catch(30) // 浮钓发丝不在任务的九种底部钓组中。
+	catch(30) // 浮钓发丝不在任务的九种底部钓组中.
 	for i, rig := range []int64{24, 25, 26, 27, 28, 29, 16, 32, 34} {
 		catch(rig)
 		catch(rig)

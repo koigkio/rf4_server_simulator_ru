@@ -32,7 +32,7 @@ func firstRequestUID(ctx *Ctx) int64 {
 func encodeSocialTree(ctx *Ctx, v *proto.Value) ([]byte, bool) {
 	body, err := proto.EncodeValue(v, ctx.Sess.Table())
 	if err != nil {
-		ctx.Log.Error("24/x 响应编码失败", "cmd", ctx.Key(), "err", err)
+		ctx.Log.Error("24/x Ошибка кодирования ответа", "cmd", ctx.Key(), "err", err)
 		return nil, false
 	}
 	return body, true
@@ -53,7 +53,7 @@ func hSocialUserProfile(ctx *Ctx) ([]byte, bool) {
 		var err error
 		decks, err = s.playerTradingDecks(ctx.Sess.pushCtx(), uid)
 		if err != nil {
-			ctx.ReplyFailure("System.IO.IOException", "卡册记录读取失败")
+			ctx.ReplyFailure("System.IO.IOException", "Не удалось прочитать записи альбома карточек")
 			return nil, true
 		}
 	}
@@ -63,7 +63,7 @@ func hSocialUserProfile(ctx *Ctx) ([]byte, bool) {
 	})
 	outer, err := bytesWrappedObject(inner, ctx.Sess.Table())
 	if err != nil {
-		ctx.Log.Error("24/18 档案编码失败", "uid", uid, "err", err)
+		ctx.Log.Error("24/18 Ошибка кодирования профиля", "uid", uid, "err", err)
 		return []byte{0x00}, true
 	}
 	return encodeSocialTree(ctx, outer)
@@ -92,7 +92,7 @@ func hSocialUserCard(ctx *Ctx) ([]byte, bool) {
 		var err error
 		p, err = ctx.Sess.Srv.DB.GetProfile(ctx.Sess.Srv.dbCtx(), uid)
 		if err != nil && err != sql.ErrNoRows {
-			ctx.Log.Error("24/19 档案查询失败", "uid", uid, "err", err)
+			ctx.Log.Error("24/19 Ошибка запроса профиля", "uid", uid, "err", err)
 		}
 		if p != nil {
 			names = p.Name
@@ -119,7 +119,7 @@ func hSocialUserCard(ctx *Ctx) ([]byte, bool) {
 	})
 	outer, err := bytesWrappedObject(inner, ctx.Sess.Table())
 	if err != nil {
-		ctx.Log.Error("24/19 资料卡编码失败", "uid", uid, "err", err)
+		ctx.Log.Error("24/19 Ошибка кодирования карточки профиля", "uid", uid, "err", err)
 		return []byte{0x00}, true
 	}
 	return encodeSocialTree(ctx, outer)
@@ -174,7 +174,7 @@ func hSocialAbsoluteRecords(ctx *Ctx) ([]byte, bool) {
 	}
 	raw, err := json.Marshal(payload)
 	if err != nil {
-		ctx.Log.Error("24/21 JSON 编码失败", "err", err)
+		ctx.Log.Error("24/21 JSON Ошибка кодирования", "err", err)
 		return []byte{0x00}, true
 	}
 	return encodeSocialTree(ctx, proto.BytesOf(raw))
@@ -187,7 +187,7 @@ func hSocialRecordFish(ctx *Ctx) ([]byte, bool) {
 	}
 	row, err := ctx.Sess.Srv.DB.BestCatchByWater(ctx.Sess.Srv.dbCtx(), ctx.Sess.Userid, water)
 	if err != nil {
-		ctx.Log.Error("24/22 纪录鱼查询失败", "water", water, "err", err)
+		ctx.Log.Error("24/22 Ошибка запроса рекордной рыбы", "water", water, "err", err)
 		return encodeSocialTree(ctx, proto.Null())
 	}
 	if row == nil {
@@ -232,7 +232,7 @@ func hSocialNamedFish(ctx *Ctx) ([]byte, bool) {
 	}{Success: true, PlaceID: key, NamedFish: []json.RawMessage{}}
 	raw, err := json.Marshal(payload)
 	if err != nil {
-		ctx.Log.Error("24/24 JSON 编码失败", "err", err)
+		ctx.Log.Error("24/24 JSON Ошибка кодирования", "err", err)
 		return []byte{0x00}, true
 	}
 	return encodeSocialTree(ctx, proto.BytesOf(raw))

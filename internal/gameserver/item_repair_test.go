@@ -98,7 +98,7 @@ func TestRepairItemPhysics(t *testing.T) {
 		t.Fatalf("修复后线强度仍为 %f", lineStrength)
 	}
 	if got := u64Of(lineFields[fieldIdxByCS(line.WireClass, csSlotEnum)].Num); got != 0 {
-		t.Fatalf("修复后根线容器枚举=%d，期望 0（嵌套子件才是 rig(4)）", got)
+		t.Fatalf("修复后根线容器枚举=%d, 期望 0 (嵌套子件才是 rig(4))", got)
 	}
 
 	reelRow, _ := db.GetItemByGUID(ctx, reel.GUID)
@@ -129,11 +129,11 @@ func TestRepairItemPhysics(t *testing.T) {
 	rodRow, _ = db.GetItemByGUID(ctx, rod.GUID)
 	rigType, found, err := db.GetRigType(ctx, rod.GUID)
 	if err != nil || !found || rigType != 12 {
-		t.Fatalf("修复必须尊重显式/现有合法类型，实得 %d found=%v err=%v", rigType, found, err)
+		t.Fatalf("修复必须尊重显式/现有合法类型, 实得 %d found=%v err=%v", rigType, found, err)
 	}
 	f5 := rigStoredF5(t, rodRow)
 	if name := f5.Fields[0].StrOr(); name != "rig_BottomSimple" {
-		t.Fatalf("修复后 f5.f0=%q，期望保持 rig_BottomSimple", name)
+		t.Fatalf("修复后 f5.f0=%q, 期望保持 rig_BottomSimple", name)
 	}
 	if v, found, err := db.KVGet(ctx, itemPhysicsRepairKey); err != nil || !found || !strings.Contains(v, "version="+itemPhysicsRepairVersion) {
 		t.Fatalf("修复完成标记=%q found=%v err=%v", v, found, err)

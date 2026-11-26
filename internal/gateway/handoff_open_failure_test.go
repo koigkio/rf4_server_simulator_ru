@@ -60,7 +60,7 @@ func TestReconnectOpenFailureKeepsHandoff(t *testing.T) {
 	c.Close()
 	saved := waitHandoff(t, gw.Store, token)
 	if saved == nil {
-		t.Fatal("断开后没有承接状态，测试前提不成立")
+		t.Fatal("断开后没有承接状态, 测试前提不成立")
 	}
 
 	// 隧道整体断开：重连时 sendOpen 必然失败。
@@ -77,7 +77,7 @@ func TestReconnectOpenFailureKeepsHandoff(t *testing.T) {
 		t.Fatalf("读取承接状态出错: %v", err)
 	}
 	if h == nil {
-		t.Fatal("重连 OPEN 失败后承接状态被删除了：客户端再次重连只能拿到全新密码流，钓鱼进度永久丢失")
+		t.Fatal("重连 OPEN 失败后承接状态被删除了: 客户端再次重连只能拿到全新密码流, 钓鱼进度永久丢失")
 	}
 	if h.NextWireID != saved.NextWireID {
 		t.Fatalf("承接状态被改写: next_wire_id %d → %d", saved.NextWireID, h.NextWireID)
@@ -106,7 +106,7 @@ func TestLoadHandoffErrorAbortsReconnect(t *testing.T) {
 	c.Close()
 
 	if waitHandoff(t, store.Store, token) == nil {
-		t.Fatal("断开后没有承接状态，测试前提不成立")
+		t.Fatal("断开后没有承接状态, 测试前提不成立")
 	}
 
 	openedBefore, _, _ := stub.Stats()
@@ -119,12 +119,12 @@ func TestLoadHandoffErrorAbortsReconnect(t *testing.T) {
 
 	openedAfter, _, _ := stub.Stats()
 	if len(openedAfter) != len(openedBefore) {
-		t.Fatalf("读承接状态失败却仍然开了新会话（OPEN %d → %d）：客户端流在旧位置，下行会全部解不开",
+		t.Fatalf("读承接状态失败却仍然开了新会话 (OPEN %d → %d): 客户端流在旧位置, 下行会全部解不开",
 			len(openedBefore), len(openedAfter))
 	}
 
 	store.fail = false
 	if h, err := store.Store.LoadHandoff(context.Background(), token); err != nil || h == nil {
-		t.Fatalf("读库失败后承接状态必须保留，实际 err=%v h=%v", err, h)
+		t.Fatalf("读库失败后承接状态必须保留, 实际 err=%v h=%v", err, h)
 	}
 }

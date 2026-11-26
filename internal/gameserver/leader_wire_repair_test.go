@@ -28,7 +28,7 @@ func TestLeaderWireDefForLineMapping(t *testing.T) {
 			t.Fatalf("%s 映射失败: %v", source, err)
 		}
 		if got.ItemID != want {
-			t.Fatalf("%s 映射=%s，期望 %s", source, got.ItemID, want)
+			t.Fatalf("%s 映射=%s, 期望 %s", source, got.ItemID, want)
 		}
 	}
 
@@ -43,13 +43,13 @@ func TestLeaderWireDefForLineMapping(t *testing.T) {
 		t.Fatalf("mono_15065 必须映射到最接近的前导线: %v", err)
 	}
 	if got.ItemID != "wrl_sim_fluoro7lb" {
-		t.Fatalf("mono_15065 映射=%s，期望最接近的 wrl_sim_fluoro7lb", got.ItemID)
+		t.Fatalf("mono_15065 映射=%s, 期望最接近的 wrl_sim_fluoro7lb", got.ItemID)
 	}
 	if got.Category != gearCatLeaderWire {
-		t.Fatalf("映射结果 %s 品类=%d，期望前导线 %d", got.ItemID, got.Category, gearCatLeaderWire)
+		t.Fatalf("映射结果 %s 品类=%d, 期望前导线 %d", got.ItemID, got.Category, gearCatLeaderWire)
 	}
 	if want, have := itemDefF32(nearest, gearAttrMaxLoad), itemDefF32(got, gearAttrMaxLoad); have != want {
-		t.Fatalf("最近候选 %s 拉力=%f，应贴近真实线材 %f", got.ItemID, have, want)
+		t.Fatalf("最近候选 %s 拉力=%f, 应贴近真实线材 %f", got.ItemID, have, want)
 	}
 
 	// 非线材不能被当成内线，鱼竿仍然要拒绝。
@@ -96,7 +96,7 @@ func TestRepairCraftedLeaderWireMapsNearestAndRestoresQuarantine(t *testing.T) {
 		t.Fatal(err)
 	}
 	if restored.Container != "backpack" {
-		t.Fatalf("隔离区里的引线解除隔离后容器=%s，期望 backpack", restored.Container)
+		t.Fatalf("隔离区里的引线解除隔离后容器=%s, 期望 backpack", restored.Container)
 	}
 	others, err := db.ListItemsByContainers(ctx, uid, []string{"backpack"})
 	if err != nil {
@@ -118,7 +118,7 @@ func TestRepairCraftedLeaderWireMapsNearestAndRestoresQuarantine(t *testing.T) {
 		t.Fatal(err)
 	}
 	if hidden.Container != craftedLeaderQuarantineContainer {
-		t.Fatalf("没有内嵌线材的引线容器=%s，期望 %s", hidden.Container, craftedLeaderQuarantineContainer)
+		t.Fatalf("没有内嵌线材的引线容器=%s, 期望 %s", hidden.Container, craftedLeaderQuarantineContainer)
 	}
 }
 
@@ -132,7 +132,7 @@ func assertRepairedInnerWire(t *testing.T, db *store.DB, guid string, wantNumeri
 		t.Fatal(err)
 	}
 	if fixed.Container != "backpack" {
-		t.Fatalf("可修复引线容器=%s，期望 backpack", fixed.Container)
+		t.Fatalf("可修复引线容器=%s, 期望 backpack", fixed.Container)
 	}
 	fields, err := FieldsFromJSON(fixed.FieldsJSON)
 	if err != nil {
@@ -143,17 +143,17 @@ func assertRepairedInnerWire(t *testing.T, db *store.DB, guid string, wantNumeri
 		t.Fatalf("修复后缺少内嵌线材: %+v", line)
 	}
 	if got := u64Of(line.Fields[fieldIdxByCS(line.Class, csNumericID)].Num); got != wantNumericID {
-		t.Fatalf("修复后内线 numeric_id=%d，期望 %d", got, wantNumericID)
+		t.Fatalf("修复后内线 numeric_id=%d, 期望 %d", got, wantNumericID)
 	}
 	if got := wireFloatForTest(t, line, csStrength); got < wantStrength-0.01 || got > wantStrength+0.01 {
-		t.Fatalf("修复后内线强度=%f，期望 %fkg", got, wantStrength)
+		t.Fatalf("修复后内线强度=%f, 期望 %fkg", got, wantStrength)
 	}
 	lineDef, err := db.GetItemDef(ctx, int64(wantNumericID))
 	if err != nil || lineDef == nil {
 		t.Fatalf("修复后的内线定义不存在: %d", wantNumericID)
 	}
 	if lineDef.Category != gearCatLeaderWire {
-		t.Fatalf("修复后的内线 %s 品类=%d，期望前导线 %d", lineDef.ItemID, lineDef.Category, gearCatLeaderWire)
+		t.Fatalf("修复后的内线 %s 品类=%d, 期望前导线 %d", lineDef.ItemID, lineDef.Category, gearCatLeaderWire)
 	}
 }
 

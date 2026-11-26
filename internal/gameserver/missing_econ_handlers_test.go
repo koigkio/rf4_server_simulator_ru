@@ -22,7 +22,7 @@ func TestMissingEconomyContainers(t *testing.T) {
 			t.Fatal(err)
 		}
 		if v.Kind != proto.KindArgs || v.ArgCodeStr() != "145" || len(v.Items) != 0 {
-			t.Fatalf("21/5=%s/%q/%d，期望 args145 空数组", v.Kind, v.ArgCodeStr(), len(v.Items))
+			t.Fatalf("21/5=%s/%q/%d, 期望 args145 空数组", v.Kind, v.ArgCodeStr(), len(v.Items))
 		}
 	})
 
@@ -36,12 +36,12 @@ func TestMissingEconomyContainers(t *testing.T) {
 			t.Fatal(err)
 		}
 		if v.Kind != proto.KindArgs || v.ArgCodeStr() != "149" || len(v.Items) != len(loadShopBoats()) {
-			t.Fatalf("22/5=%s/%q/%d，期望 args149 共 %d 项",
+			t.Fatalf("22/5=%s/%q/%d, 期望 args149 共 %d 项",
 				v.Kind, v.ArgCodeStr(), len(v.Items), len(loadShopBoats()))
 		}
 		for i, item := range v.Items {
 			if item.Class != "efdgfpfbjai" || item.TypeID != 560 {
-				t.Fatalf("22/5[%d]=%s/%d，期望 efdgfpfbjai/560", i, item.Class, item.TypeID)
+				t.Fatalf("22/5[%d]=%s/%d, 期望 efdgfpfbjai/560", i, item.Class, item.TypeID)
 			}
 		}
 	})

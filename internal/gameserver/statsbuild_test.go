@@ -36,42 +36,42 @@ func TestFishStats321FromCatchLog(t *testing.T) {
 		t.Fatalf("3/2 响应不可解码: %v", err)
 	}
 	if dec.Class != "jahbacemfof" {
-		t.Fatalf("3/2 应为 jahbacemfof，实得 %s", dec.Class)
+		t.Fatalf("3/2 应为 jahbacemfof, 实得 %s", dec.Class)
 	}
 	f0 := dec.Field(0)
 	if got := f0.U32(); got != 4 {
-		t.Fatalf("f0 总钓获=%d，期望4", got)
+		t.Fatalf("f0 总钓获=%d, 期望4", got)
 	}
 	f1 := dec.Field(1)
 	if got := f1.U32(); got != 2 {
-		t.Fatalf("f1 稀有=%d，期望2（grade>=3）", got)
+		t.Fatalf("f1 稀有=%d, 期望2 (grade>=3)", got)
 	}
 	f2 := dec.Field(2)
 	if got := f2.U32(); got != 1 {
-		t.Fatalf("f2 蓝冠=%d，期望1（grade>=4）", got)
+		t.Fatalf("f2 蓝冠=%d, 期望1 (grade>=4)", got)
 	}
 	f4 := dec.Field(4)
 	if got := f4.U32(); got != 4 {
-		t.Fatalf("f4 单日数量纪录=%d，期望4", got)
+		t.Fatalf("f4 单日数量纪录=%d, 期望4", got)
 	}
 	// f5 客户端 DTO cpenllldpnk 是 float（kg），必须按 F32 位型解码。
 	f5 := dec.Field(5)
 	if got := float64(proto.F32FromBits(f5.U32())); got < 2.2859 || got > 2.2861 {
-		t.Fatalf("f5 单日重量纪录=%f kg，期望2.286", got)
+		t.Fatalf("f5 单日重量纪录=%f kg, 期望2.286", got)
 	}
 	// f6 鱼列表：每鱼种最重一张 320 卡，按重量降序（bream 900 / perch 700 / c.roach 500）。
 	fishList := dec.Field(6).Val
 	if got := fishList.ArgCount(); got != 3 {
-		t.Fatalf("f6 鱼列表条数=%d，期望3（每鱼种一张卡）", got)
+		t.Fatalf("f6 鱼列表条数=%d, 期望3 (每鱼种一张卡)", got)
 	}
 	if got := fishList.Items[0].Field(0).Str; got == nil || *got != "bream" {
-		t.Fatalf("f6 首卡鱼种=%v，期望 bream（900g 最重）", got)
+		t.Fatalf("f6 首卡鱼种=%v, 期望 bream (900g 最重)", got)
 	}
 	if got := fishList.Items[0].Field(2).Num; got == nil || *got != 900 {
-		t.Fatalf("f6 首卡重量=%v，期望900", got)
+		t.Fatalf("f6 首卡重量=%v, 期望900", got)
 	}
 	if got := fishList.Items[2].Field(0).Str; got == nil || *got != "c.roach" {
-		t.Fatalf("f6 末卡鱼种=%v，期望 c.roach（500g 最轻）", got)
+		t.Fatalf("f6 末卡鱼种=%v, 期望 c.roach (500g 最轻)", got)
 	}
 	counts := []struct {
 		name                       string
@@ -85,19 +85,19 @@ func TestFishStats321FromCatchLog(t *testing.T) {
 		card := fishList.Items[i]
 		nameField := card.Field(0)
 		if got := nameField.StrOr(); got != want.name {
-			t.Fatalf("f6[%d] 鱼种=%q，期望 %q", i, got, want.name)
+			t.Fatalf("f6[%d] 鱼种=%q, 期望 %q", i, got, want.name)
 		}
 		totalField := card.Field(9)
 		if got := int64(totalField.U32()); got != want.total {
-			t.Fatalf("f6[%d] %s 总钓获=%d，期望 %d", i, want.name, got, want.total)
+			t.Fatalf("f6[%d] %s 总钓获=%d, 期望 %d", i, want.name, got, want.total)
 		}
 		trophyField := card.Field(10)
 		if got := int64(trophyField.U32()); got != want.trophy {
-			t.Fatalf("f6[%d] %s 奖杯数=%d，期望 %d", i, want.name, got, want.trophy)
+			t.Fatalf("f6[%d] %s 奖杯数=%d, 期望 %d", i, want.name, got, want.trophy)
 		}
 		superTrophyField := card.Field(11)
 		if got := int64(superTrophyField.U32()); got != want.superTrophy {
-			t.Fatalf("f6[%d] %s 超稀有数=%d，期望 %d", i, want.name, got, want.superTrophy)
+			t.Fatalf("f6[%d] %s 超稀有数=%d, 期望 %d", i, want.name, got, want.superTrophy)
 		}
 	}
 	card := dec.Field(7).Val
@@ -106,19 +106,19 @@ func TestFishStats321FromCatchLog(t *testing.T) {
 	}
 	cardFish := card.Field(0)
 	if got := cardFish.StrOr(); got != "bream" {
-		t.Fatalf("记录卡鱼种=%q，期望 bream", got)
+		t.Fatalf("记录卡鱼种=%q, 期望 bream", got)
 	}
 	cardWeight := card.Field(2)
 	if got := cardWeight.U32(); got != 900 {
-		t.Fatalf("记录卡重量=%d，期望900g", got)
+		t.Fatalf("记录卡重量=%d, 期望900g", got)
 	}
 	f14 := dec.Field(14).Val.Field(2)
 	if got := f14.U32(); got != 900 {
-		t.Fatalf("f14 非拟饵最大=%d，期望900g", got)
+		t.Fatalf("f14 非拟饵最大=%d, 期望900g", got)
 	}
 	f15 := dec.Field(15).Val.Field(2)
 	if got := f15.U32(); got != 500 {
-		t.Fatalf("f15 路亚最大=%d，期望500g", got)
+		t.Fatalf("f15 路亚最大=%d, 期望500g", got)
 	}
 	// f8 最优竞争力：按搏鱼拉力维度（鱼种曲线×重量），不再与最重同卡。
 	pullOf := func(key string, weight int64) float64 {
@@ -139,42 +139,42 @@ func TestFishStats321FromCatchLog(t *testing.T) {
 	f8 := dec.Field(8).Val
 	f8Fish, f8Weight := f8.Field(0), f8.Field(2)
 	if got := f8Fish.StrOr(); got != wantStrongest.key || f8Weight.U32() != uint32(wantStrongest.weight) {
-		t.Fatalf("f8 最优竞争力=%v %d，期望按拉力维度 %v %d",
+		t.Fatalf("f8 最优竞争力=%v %d, 期望按拉力维度 %v %d",
 			f8Fish.StrOr(), f8Weight.U32(), wantStrongest.key, wantStrongest.weight)
 	}
 	// f9=冒险鱼；f16=底钓最大鱼，现在按钓法快照取底钓族，本夹具无底钓渔获 → 空卡。
 	f9, f16 := dec.Field(9).Val, dec.Field(16).Val
 	if f9 == nil || f9.Kind != proto.KindNull {
-		t.Fatalf("f9 应保持 null，实得 %#v", f9)
+		t.Fatalf("f9 应保持 null, 实得 %#v", f9)
 	}
 	if f16 != nil && f16.Kind != proto.KindNull {
-		t.Fatalf("无底钓渔获时 f16 应为 null，实得 %#v", f16)
+		t.Fatalf("无底钓渔获时 f16 应为 null, 实得 %#v", f16)
 	}
 	if got := dec.Field(17).Val.ArgCount(); got != 2 {
-		t.Fatalf("f17 竿类统计项=%d，期望2（浮钓/纺车）", got)
+		t.Fatalf("f17 竿类统计项=%d, 期望2 (浮钓/纺车)", got)
 	}
 	// f19 饵料统计（天然饵，318 gconafdfchk）与 f21 拟饵统计（319 keoejejkenf）
 	// 是两个不同字段，不能像过去那样把全部钓饵都塞进 f21。
 	// 夹具 4 条：worm_01×3、plug_m_1833×1 → 天然饵 2 个（worm_01 计 3）、拟饵 1 个。
 	if got := dec.Field(19).Val.ArgCount(); got != 1 {
-		t.Fatalf("f19 饵料统计项=%d，期望1（只有 worm_01）", got)
+		t.Fatalf("f19 饵料统计项=%d, 期望1 (只有 worm_01)", got)
 	}
 	if got := dec.Field(19).Val.Items[0].Field(0); got.StrOr() != "worm_01" {
-		t.Fatalf("f19 饵料 systemID=%q，期望 worm_01", got.StrOr())
+		t.Fatalf("f19 饵料 systemID=%q, 期望 worm_01", got.StrOr())
 	}
 	if got := dec.Field(21).Val.ArgCount(); got != 1 {
-		t.Fatalf("f21 拟饵统计项=%d，期望1（只有 plug_m_1833）", got)
+		t.Fatalf("f21 拟饵统计项=%d, 期望1 (只有 plug_m_1833)", got)
 	}
 	if got := dec.Field(21).Val.Items[0].Field(1); got.StrOr() != "plug_m_1833" {
-		t.Fatalf("f21 拟饵 systemID=%q，期望 plug_m_1833", got.StrOr())
+		t.Fatalf("f21 拟饵 systemID=%q, 期望 plug_m_1833", got.StrOr())
 	}
 	// f11/f13 语义未定，服务端恒发 0。
 	f11, f13 := dec.Field(11), dec.Field(13)
 	if got := f11.U64(); got != 0 {
-		t.Fatalf("f11=%d，期望恒 0（语义未定）", got)
+		t.Fatalf("f11=%d, 期望恒 0 (语义未定)", got)
 	}
 	if got := f13.U64(); got != 0 {
-		t.Fatalf("f13=%d，期望恒 0（语义未定）", got)
+		t.Fatalf("f13=%d, 期望恒 0 (语义未定)", got)
 	}
 }
 
@@ -217,17 +217,17 @@ func TestFishStats321TackleFamily(t *testing.T) {
 		return nameField.StrOr(), int64(weightField.U32())
 	}
 	if fish, w := cardFishAndWeight(14); fish != "wa_bream" || w != 1044 {
-		t.Fatalf("f14 浮钓纪录=%s/%dg，期望 wa_bream/1044g（海钓绿青鳕不得进入）", fish, w)
+		t.Fatalf("f14 浮钓纪录=%s/%dg, 期望 wa_bream/1044g (海钓绿青鳕不得进入)", fish, w)
 	}
 	if fish, w := cardFishAndWeight(15); fish != "a_salmon" || w != 32807 {
-		t.Fatalf("f15 路亚纪录=%s/%dg，期望 a_salmon/32807g", fish, w)
+		t.Fatalf("f15 路亚纪录=%s/%dg, 期望 a_salmon/32807g", fish, w)
 	}
 	if fish, w := cardFishAndWeight(16); fish != "carp" || w != 6500 {
-		t.Fatalf("f16 底钓纪录=%s/%dg，期望 carp/6500g", fish, w)
+		t.Fatalf("f16 底钓纪录=%s/%dg, 期望 carp/6500g", fish, w)
 	}
 	// 全场最重仍是海钓那条（f7 不按钓法过滤）。
 	if fish, w := cardFishAndWeight(7); fish != "a_salmon" || w != 32807 {
-		t.Fatalf("f7 最大渔获=%s/%dg，期望 a_salmon/32807g", fish, w)
+		t.Fatalf("f7 最大渔获=%s/%dg, 期望 a_salmon/32807g", fish, w)
 	}
 }
 
@@ -259,10 +259,10 @@ func TestFishStats321LegacyFamilyFallback(t *testing.T) {
 	}
 	f14Name, f15Name := dec.Field(14).Val.Field(0), dec.Field(15).Val.Field(0)
 	if got := f14Name.StrOr(); got != "bream" {
-		t.Fatalf("旧档 f14 浮钓纪录=%q，期望 bream（非拟饵回退浮钓）", got)
+		t.Fatalf("旧档 f14 浮钓纪录=%q, 期望 bream (非拟饵回退浮钓)", got)
 	}
 	if got := f15Name.StrOr(); got != "c.roach" {
-		t.Fatalf("旧档 f15 路亚纪录=%q，期望 c.roach（拟饵回退路亚）", got)
+		t.Fatalf("旧档 f15 路亚纪录=%q, 期望 c.roach (拟饵回退路亚)", got)
 	}
 }
 
@@ -272,7 +272,7 @@ func TestRecordCardDefaultsAndCategory81(t *testing.T) {
 	// dfjpnambjcj 声明的类型是 odlknjlbooh，对应 wire 类 kbpmmclfipg/1470；
 	// 原来的 dbjjakbbbfc/12601 会让客户端解出未知类型，电机槽无法使用。
 	if got := categoryWireClass[81]; got.Class != "kbpmmclfipg" || got.TypeID != 1470 {
-		t.Fatalf("category 81 映射=%+v，期望 kbpmmclfipg/1470", got)
+		t.Fatalf("category 81 映射=%+v, 期望 kbpmmclfipg/1470", got)
 	}
 	card := (&Server{}).recordCard320(catchStatRow{
 		TS: 1.25, FishKey: "roach", Grade: 0, WeightG: 100,
@@ -283,11 +283,11 @@ func TestRecordCardDefaultsAndCategory81(t *testing.T) {
 	}
 	gradeField := card.Field(1)
 	if got := gradeField.U32(); got != 1 {
-		t.Fatalf("grade=0 时 f1=%d，期望默认值 1", got)
+		t.Fatalf("grade=0 时 f1=%d, 期望默认值 1", got)
 	}
 	categoryField := card.Field(12)
 	if got := categoryField.U32(); got != 1 {
-		t.Fatalf("grade=0 时 f12=%d，期望默认值 1", got)
+		t.Fatalf("grade=0 时 f12=%d, 期望默认值 1", got)
 	}
 }
 
@@ -314,12 +314,12 @@ func TestTackleCatForRig(t *testing.T) {
 	}
 	for _, c := range cases {
 		if got := tackleCatForRig(c.rig); got != c.want {
-			t.Fatalf("%s rigType=%d → %d，期望 %d", c.name, c.rig, got, c.want)
+			t.Fatalf("%s rigType=%d → %d, 期望 %d", c.name, c.rig, got, c.want)
 		}
 	}
 	// 与技能大类的差异必须有意识：技能页把未知正数归浮钓，统计快照归未知。
 	if got := fishingSkillCatForRig(999); got != tackleCatFloat {
-		t.Skipf("技能大类对未知钓组的默认值已变（%d），需复查 tackleCatForRig 的注释", got)
+		t.Skipf("技能大类对未知钓组的默认值已变 (%d), 需复查 tackleCatForRig 的注释", got)
 	}
 }
 
@@ -375,11 +375,11 @@ func TestFishStats321RodRigAggregate(t *testing.T) {
 	wantRod := map[int64]int64{3: 2, 1: 3, 10: 1, 15: 4}
 	gotRod := collect(17)
 	if len(gotRod) != len(wantRod) {
-		t.Fatalf("f17 竿类项数=%d，期望 %d（%v）", len(gotRod), len(wantRod), gotRod)
+		t.Fatalf("f17 竿类项数=%d, 期望 %d (%v)", len(gotRod), len(wantRod), gotRod)
 	}
 	for cat, want := range wantRod {
 		if gotRod[cat] != want {
-			t.Fatalf("f17 竿型 %d 计数=%d，期望 %d（族级代表值）", cat, gotRod[cat], want)
+			t.Fatalf("f17 竿型 %d 计数=%d, 期望 %d (族级代表值)", cat, gotRod[cat], want)
 		}
 	}
 	// 钓组代表值：浮钓→1、路亚→5、底钓→12、海钓→50。
@@ -387,7 +387,7 @@ func TestFishStats321RodRigAggregate(t *testing.T) {
 	gotRig := collect(18)
 	for cat, want := range wantRig {
 		if gotRig[cat] != want {
-			t.Fatalf("f18 钓组 %d 计数=%d，期望 %d（族级代表值）", cat, gotRig[cat], want)
+			t.Fatalf("f18 钓组 %d 计数=%d, 期望 %d (族级代表值)", cat, gotRig[cat], want)
 		}
 	}
 }

@@ -51,7 +51,7 @@ func TestStaticDatabaseIsReadOnlyShadowAndWriteGuarded(t *testing.T) {
 		t.Fatalf("读取 main 副本: %v", err)
 	}
 	if mainCopy != 1 {
-		t.Fatalf("主库副本应保留 1 条测试标记行，得到 %d", mainCopy)
+		t.Fatalf("主库副本应保留 1 条测试标记行, 得到 %d", mainCopy)
 	}
 
 	for _, tc := range []struct {
@@ -99,8 +99,8 @@ func TestOpenCreatesDatabaseParentDirectory(t *testing.T) {
 
 func TestOpenWithStaticRejectsMissingSource(t *testing.T) {
 	_, err := OpenWithStatic(filepath.Join(t.TempDir(), "main.db"), filepath.Join(t.TempDir(), "missing.db"))
-	if err == nil || !strings.Contains(err.Error(), "静态配置库不可用") {
-		t.Fatalf("缺失静态库应明确失败，得到 %v", err)
+	if err == nil || !strings.Contains(err.Error(), "Статическая база недоступна") {
+		t.Fatalf("缺失静态库应明确失败, 得到 %v", err)
 	}
 }
 
@@ -119,10 +119,10 @@ func assertStaticShadowCounts(t *testing.T, db *DB, mainPath string) {
 		}
 		var staticRows, viewRows int64
 		if err := db.SQL.QueryRowContext(ctx, `SELECT COUNT(*) FROM static.`+quoted).Scan(&staticRows); err != nil {
-			t.Fatalf("读取 static.%s: %v", table, err)
+			t.Fatalf("Чтение static.%s: %v", table, err)
 		}
 		if err := db.SQL.QueryRowContext(ctx, `SELECT COUNT(*) FROM temp.`+quoted).Scan(&viewRows); err != nil {
-			t.Fatalf("读取 temp.%s: %v", table, err)
+			t.Fatalf("Чтение temp.%s: %v", table, err)
 		}
 		if viewRows != staticRows {
 			t.Fatalf("%s 视图行数=%d static 行数=%d", table, viewRows, staticRows)

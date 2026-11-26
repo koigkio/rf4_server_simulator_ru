@@ -54,7 +54,7 @@ type FishingFish struct {
 // mutex/timer 是进程内对象，均不在这里序列化。
 type FishingState struct {
 	UID            int64
-	RodGUID        string // 稳定的竿键，GearGUID清空后仍覆盖原竿快照
+	RodGUID        string // 稳定的竿键, GearGUID清空后仍覆盖原竿快照
 	GearGUID       string
 	RigType        int64
 	Loc            string
@@ -162,12 +162,12 @@ func scanFishingState(row interface{ Scan(...any) error }) (*FishingState, error
 	st.BiteAt = fishingTimeFromNS(biteNS)
 	if pending.Valid && pending.String != "" {
 		if st.Pending, err = decodeFishingFish(pending.String); err != nil {
-			return nil, fmt.Errorf("解析 fishing_state.pending_json: %w", err)
+			return nil, fmt.Errorf("Разбор fishing_state.pending_json: %w", err)
 		}
 	}
 	if armed.Valid && armed.String != "" {
 		if st.Armed, err = decodeFishingFish(armed.String); err != nil {
-			return nil, fmt.Errorf("解析 fishing_state.armed_json: %w", err)
+			return nil, fmt.Errorf("Разбор fishing_state.armed_json: %w", err)
 		}
 	}
 	return &st, nil
@@ -176,15 +176,15 @@ func scanFishingState(row interface{ Scan(...any) error }) (*FishingState, error
 // SaveFishingState 原子覆盖该玩家该竿的快照。
 func (d *DB) SaveFishingState(ctx context.Context, st *FishingState) error {
 	if st == nil || st.UID == 0 {
-		return fmt.Errorf("fishing_state: uid 不能为空")
+		return fmt.Errorf("fishing_state: uid не может быть пустым")
 	}
 	pending, err := encodeFishingFish(st.Pending)
 	if err != nil {
-		return fmt.Errorf("编码 pending_json: %w", err)
+		return fmt.Errorf("Кодирование pending_json: %w", err)
 	}
 	armed, err := encodeFishingFish(st.Armed)
 	if err != nil {
-		return fmt.Errorf("编码 armed_json: %w", err)
+		return fmt.Errorf("Кодирование armed_json: %w", err)
 	}
 	rodGUID := st.RodGUID
 	if rodGUID == "" {

@@ -33,7 +33,7 @@ func hStoreList(ctx *Ctx) ([]byte, bool) {
 	out := proto.Args(proto.S("140"))
 	items, err := srv.DB.ShopItems(cctx, storeID)
 	if err != nil {
-		ctx.Log.Warn("读取商店货架失败", "store", storeID, "err", err)
+		ctx.Log.Warn("Не удалось прочитать полки магазина", "store", storeID, "err", err)
 		items = nil
 	}
 	// 房产货架行必须保留：实测缺失时客户端点击房屋直接转圈（房屋 UI 的
@@ -55,10 +55,10 @@ func hStoreList(ctx *Ctx) ([]byte, bool) {
 
 // storePrice 只接受该店生效货架上的价格，避免使用全局价格绕过店内库存。
 func (s *Server) storePrice(ctx context.Context, storeID, itemID string, clientOffer uint64, goldCol bool) (uint64, error) {
-	_ = clientOffer // 客户端报价只用于诊断，绝不作为服务端成交价。
+	_ = clientOffer // 客户端报价只用于诊断, 绝不作为服务端成交价.
 	pick := func(p *store.ShopPrice) (uint64, error) {
 		if p == nil {
-			return 0, fmt.Errorf("无价目: %s@%s", storeID, itemID)
+			return 0, fmt.Errorf("Нет цены: %s@%s", storeID, itemID)
 		}
 		price := p.Silver
 		cur := "silver"
@@ -67,13 +67,13 @@ func (s *Server) storePrice(ctx context.Context, storeID, itemID string, clientO
 			cur = "gold"
 		}
 		if price <= 0 {
-			return 0, fmt.Errorf("商品没有 %s 价格: %s@%s", cur, storeID, itemID)
+			return 0, fmt.Errorf("У товара нет цены %s: %s@%s", cur, storeID, itemID)
 		}
 		return uint64(price), nil
 	}
 	p, err := s.DB.ShopItemGet(ctx, storeID, itemID)
 	if err != nil {
-		return 0, fmt.Errorf("商品不在该店生效货架: %s@%s: %w", storeID, itemID, err)
+		return 0, fmt.Errorf("Товара нет на действующей полке этого магазина: %s@%s: %w", storeID, itemID, err)
 	}
 	return pick(p)
 }
@@ -86,7 +86,7 @@ func (s *Server) storePrice(ctx context.Context, storeID, itemID string, clientO
 func (s *Server) prepareStoreGoods(ctx context.Context, uid int64, itemID string) (items []*store.Item, isBundle bool, err error) {
 	def, err := s.DB.GetItemDefByItemID(ctx, itemID)
 	if err != nil || def == nil {
-		return nil, false, fmt.Errorf("无定义 %s", itemID)
+		return nil, false, fmt.Errorf("Нет определения %s", itemID)
 	}
 	if def.Category == bundleCategory {
 		if bundleOpenable(def) {
@@ -110,7 +110,7 @@ func (s *Server) storeGoodsReturnable(ctx context.Context, items []*store.Item) 
 	seen := make(map[string]bool, len(items))
 	for _, it := range items {
 		if it == nil || it.ItemID == "" {
-			return false, errors.New("商店产出物品不完整")
+			return false, errors.New("Предмет из магазина создан не полностью")
 		}
 		if seen[it.ItemID] {
 			continue
@@ -118,7 +118,7 @@ func (s *Server) storeGoodsReturnable(ctx context.Context, items []*store.Item) 
 		seen[it.ItemID] = true
 		def, err := s.DB.GetItemDefByItemID(ctx, it.ItemID)
 		if err != nil || def == nil {
-			return false, fmt.Errorf("读取商店产出定义 %s: %w", it.ItemID, err)
+			return false, fmt.Errorf("Чтение определения товара магазина %s: %w", it.ItemID, err)
 		}
 		if storeReturnCategoryAllowed(def.Category) {
 			return true, nil
@@ -143,7 +143,7 @@ func hStoreBuy(goldCol bool) Handler {
 		strs := treeStrs(ctx.Tree)
 		ints := treeInts(ctx.Tree)
 		if len(strs) < 2 {
-			return fail("购买参数无效")
+			return fail("Неверные параметры покупки")
 		}
 		storeID, itemID := strs[0], strs[1]
 		var offer uint64
@@ -156,18 +156,18 @@ func hStoreBuy(goldCol bool) Handler {
 		cctx := ctx.Sess.pushCtx()
 		price, err := srv.storePrice(cctx, storeID, itemID, offer, goldCol)
 		if err != nil {
-			ctx.Log.Warn("商店拒绝购买", "store", storeID, "item", itemID, "gold", goldCol, "err", err)
-			return fail("购买未完成，请刷新商店后重试")
+			ctx.Log.Warn("Магазин отказал в покупке", "store", storeID, "item", itemID, "gold", goldCol, "err", err)
+			return fail("Покупка не завершена, обновите магазин и попробуйте ещё раз")
 		}
 		prepared, isBundle, err := srv.prepareStoreGoods(cctx, uid, itemID)
 		if err != nil {
-			ctx.Log.Warn("商店商品不可构造", "item", itemID, "err", err)
-			return fail("购买未完成，请刷新商店后重试")
+			ctx.Log.Warn("Товар магазина невозможно создать", "item", itemID, "err", err)
+			return fail("Покупка не завершена, обновите магазин и попробуйте ещё раз")
 		}
 		returnable, err := srv.storeGoodsReturnable(cctx, prepared)
 		if err != nil {
-			ctx.Log.Warn("商店商品退货属性不可判定", "item", itemID, "err", err)
-			return fail("购买未完成，请刷新商店后重试")
+			ctx.Log.Warn("Нельзя определить возможность возврата товара", "item", itemID, "err", err)
+			return fail("Покупка не завершена, обновите магазин и попробуйте ещё раз")
 		}
 		// 定义查询必须在写事务前完成，避免单连接 SQLite 等待自身事务。
 		mergeable := make(map[string]bool, len(prepared))
@@ -178,7 +178,7 @@ func hStoreBuy(goldCol bool) Handler {
 				}
 				def, err := srv.DB.GetItemDefByItemID(cctx, it.ItemID)
 				if err != nil || def == nil {
-					return fail("购买未完成，请刷新商店后重试")
+					return fail("Покупка не завершена, обновите магазин и попробуйте ещё раз")
 				}
 				mergeable[it.ItemID] = craftOutputMerges(def)
 			}
@@ -186,19 +186,19 @@ func hStoreBuy(goldCol bool) Handler {
 		// 预演最终合并行；回滚释放连接后再执行需要普通 DB 查询的投影。
 		previewTx, err := beginEconomyTx(cctx, srv.DB)
 		if err != nil {
-			return fail("购买未完成，请刷新商店后重试")
+			return fail("Покупка не завершена, обновите магазин и попробуйте ещё раз")
 		}
 		planned := make([]*store.Item, 0, len(prepared))
 		for _, it := range prepared {
 			row, _, grantErr := grantPreparedItemTx(cctx, previewTx, it, mergeable[it.ItemID])
 			if grantErr != nil {
 				_ = previewTx.Rollback()
-				return fail("购买未完成，请刷新商店后重试")
+				return fail("Покупка не завершена, обновите магазин и попробуйте ещё раз")
 			}
 			planned = append(planned, row)
 		}
 		if err := previewTx.Rollback(); err != nil {
-			return fail("购买未完成，请刷新商店后重试")
+			return fail("Покупка не завершена, обновите магазин и попробуйте ещё раз")
 		}
 		trees := make([]*proto.Value, 0, len(planned))
 		for _, it := range planned {
@@ -207,16 +207,16 @@ func hStoreBuy(goldCol bool) Handler {
 				_, err = proto.EncodeValue(tree, ctx.Sess.Table())
 			}
 			if err != nil {
-				ctx.Log.Warn("商店商品不可下发", "item", it.ItemID, "err", err)
-				return fail("购买未完成，请刷新商店后重试")
+				ctx.Log.Warn("Товар магазина невозможно выдать", "item", it.ItemID, "err", err)
+				return fail("Покупка не завершена, обновите магазин и попробуйте ещё раз")
 			}
 			trees = append(trees, tree)
 		}
 
 		tx, err := beginEconomyTx(cctx, srv.DB)
 		if err != nil {
-			ctx.Log.Warn("商店开启事务失败", "err", err)
-			return fail("购买未完成，请刷新商店后重试")
+			ctx.Log.Warn("Магазин: не удалось начать транзакцию", "err", err)
+			return fail("Покупка не завершена, обновите магазин и попробуйте ещё раз")
 		}
 		defer func() { _ = tx.Rollback() }()
 
@@ -229,11 +229,11 @@ func hStoreBuy(goldCol bool) Handler {
 		note := fmt.Sprintf("store=%s currency=%s", storeID, currency)
 		if err := applyWalletTx(cctx, tx, uid, silverDelta, goldDelta,
 			"buy", itemID, "", note); err != nil {
-			ctx.Log.Warn("商店扣款失败", "item", itemID, "err", err)
+			ctx.Log.Warn("Магазин: не удалось списать оплату", "item", itemID, "err", err)
 			if errors.Is(err, errInsufficientFunds) {
-				return fail("余额不足，未购买商品")
+				return fail("Недостаточно средств, товар не куплен")
 			}
-			return fail("购买未完成，请刷新商店后重试")
+			return fail("Покупка не завершена, обновите магазин и попробуйте ещё раз")
 		}
 
 		granted := make([]*store.Item, 0, len(prepared))
@@ -241,15 +241,15 @@ func hStoreBuy(goldCol bool) Handler {
 			// 可退批次与逐实例配方产出独立存放，其余计件产出按 item_id 合并。
 			row, _, gerr := grantPreparedItemTx(cctx, tx, it, mergeable[it.ItemID])
 			if gerr != nil {
-				ctx.Log.Warn("商店入库失败", "item", it.ItemID, "err", gerr)
-				return fail("购买未完成，请刷新商店后重试")
+				ctx.Log.Warn("Магазин: не удалось положить товар в инвентарь", "item", it.ItemID, "err", gerr)
+				return fail("Покупка не завершена, обновите магазин и попробуйте ещё раз")
 			}
 			// 库存并发变化则拒购回滚；仅版本戳允许不同并同步到投影树。
 			actual := *row
 			fields, ferr := FieldsFromJSON(row.FieldsJSON)
 			plannedFields, perr := FieldsFromJSON(planned[i].FieldsJSON)
 			if ferr != nil || perr != nil {
-				return fail("购买未完成，请刷新商店后重试")
+				return fail("Покупка не завершена, обновите магазин и попробуйте ещё раз")
 			}
 			idx := fieldIdxByCS(row.WireClass, csCreated)
 			if idx >= 0 && idx < len(fields) && idx < len(plannedFields) && idx < len(trees[i].Fields) {
@@ -258,19 +258,19 @@ func hStoreBuy(goldCol bool) Handler {
 			}
 			actual.FieldsJSON, ferr = FieldsToJSON(fields)
 			if ferr != nil || !reflect.DeepEqual(actual, *planned[i]) {
-				return fail("购买未完成，请刷新商店后重试")
+				return fail("Покупка не завершена, обновите магазин и попробуйте ещё раз")
 			}
 			granted = append(granted, row)
 		}
 		if returnable {
 			if err := srv.saveStorePurchaseTx(cctx, tx, uid, storeID, itemID, price, goldCol, granted); err != nil {
-				ctx.Log.Warn("商店购买凭据保存失败", "err", err)
-				return fail("购买未完成，请刷新商店后重试")
+				ctx.Log.Warn("Магазин: не удалось сохранить квитанцию покупки", "err", err)
+				return fail("Покупка не завершена, обновите магазин и попробуйте ещё раз")
 			}
 			for i, row := range granted {
 				fields, err := FieldsFromJSON(row.FieldsJSON)
 				if err != nil {
-					return fail("购买未完成，请刷新商店后重试")
+					return fail("Покупка не завершена, обновите магазин и попробуйте ещё раз")
 				}
 				idx := fieldIdxByCS(row.WireClass, csOrigin)
 				if idx >= 0 && idx < len(fields) && idx < len(trees[i].Fields) {
@@ -294,18 +294,18 @@ func hStoreBuy(goldCol bool) Handler {
 			3: proto.Null(),
 		})
 		if err != nil {
-			return fail("购买未完成，请刷新商店后重试")
+			return fail("Покупка не завершена, обновите магазин и попробуйте ещё раз")
 		}
 		body, err := proto.EncodeValue(obj804, ctx.Sess.Table())
 		if err != nil {
-			return fail("购买未完成，请刷新商店后重试")
+			return fail("Покупка не завершена, обновите магазин и попробуйте ещё раз")
 		}
 		if reason := srv.dispatch.checkRegisteredResponse(uint8(ctx.Main), uint8(ctx.Sub), body, ctx.Sess.Table()); reason != "" {
-			return fail("购买未完成，请刷新商店后重试")
+			return fail("Покупка не завершена, обновите магазин и попробуйте ещё раз")
 		}
 		if err := tx.Commit(); err != nil {
-			ctx.Log.Warn("商店事务提交失败", "item", itemID, "err", err)
-			return fail("购买未完成，请刷新商店后重试")
+			ctx.Log.Warn("Магазин: не удалось зафиксировать транзакцию", "item", itemID, "err", err)
+			return fail("Покупка не завершена, обновите магазин и попробуйте ещё раз")
 		}
 		ctx.Sess.Push2_1()
 		return body, true

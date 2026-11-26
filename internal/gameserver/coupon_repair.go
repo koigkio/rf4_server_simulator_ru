@@ -29,7 +29,7 @@ type couponGrantRecord struct {
 // couponGrant 单个玩家的发放快照。
 type couponGrant struct {
 	Total   int64   // 累计发放张数
-	FirstTS float64 // 最早一次发放时间，用于只统计之后的制作
+	FirstTS float64 // 最早一次发放时间, 用于只统计之后的制作
 }
 
 // repairCouponGrantQuantities 依据发放审计与制作流水修复存量券数量。
@@ -48,7 +48,7 @@ func (s *Server) repairCouponGrantQuantities(ctx context.Context) (int, error) {
 	if _, done, err := s.DB.KVGet(ctx, couponGrantRepairKey); err == nil && done {
 		return 0, nil
 	} else if err != nil && !errors.Is(err, sql.ErrNoRows) {
-		return 0, fmt.Errorf("读取梦鱼券补偿标记: %w", err)
+		return 0, fmt.Errorf("Чтение отметки компенсации купонов на чучело: %w", err)
 	}
 
 	grants, err := s.couponGrants(ctx)
@@ -57,7 +57,7 @@ func (s *Server) repairCouponGrantQuantities(ctx context.Context) (int, error) {
 	}
 	if len(grants) == 0 {
 		if err := s.DB.KVSet(ctx, couponGrantRepairKey, "done;grants=0"); err != nil {
-			return 0, fmt.Errorf("写入梦鱼券补偿标记: %w", err)
+			return 0, fmt.Errorf("Запись отметки компенсации купонов на чучело: %w", err)
 		}
 		return 0, nil
 	}
@@ -71,7 +71,7 @@ func (s *Server) repairCouponGrantQuantities(ctx context.Context) (int, error) {
 	if len(trophyOutputs) == 0 {
 		// 没有 cat71 产物定义就无法把制作流水映射成已用券数。此时若继续，
 		// trophyCraftCountSince 会把 used 当成 0，按全部发放量补券并永久写 marker。
-		return 0, fmt.Errorf("梦鱼券补偿：找不到标本产物定义(category=%d)", trophyMountCategory)
+		return 0, fmt.Errorf("Компенсация купонов на чучело: не найдено определение изделия (category=%d)", trophyMountCategory)
 	}
 
 	fixed, skippedMulti := 0, 0
@@ -95,7 +95,7 @@ func (s *Server) repairCouponGrantQuantities(ctx context.Context) (int, error) {
 			continue // 券已被消耗干净或从未落库
 		case len(guids) > 1:
 			skippedMulti++
-			s.log.Warn("梦鱼券补偿跳过：同一玩家多行券，无法映射发放量",
+			s.log.Warn("Компенсация купонов на чучело пропущена: у игрока несколько строк купонов, нельзя сопоставить количество",
 				"uid", uid, "rows", len(guids), "granted", grant.Total, "want", want)
 			continue
 		}
@@ -104,26 +104,26 @@ func (s *Server) repairCouponGrantQuantities(ctx context.Context) (int, error) {
 			return fixed, cerr
 		}
 		if cur >= want {
-			continue // 已正常：修复后扣过，或本来就在合理范围
+			continue // 已正常: 修复后扣过, 或本来就在合理范围
 		}
 		if err := s.setCouponRowQuantity(ctx, guids[0], want); err != nil {
 			return fixed, err
 		}
 		fixed++
-		s.log.Info("梦鱼券存量补偿", "uid", uid, "guid", guids[0],
+		s.log.Info("Компенсация остатков купонов на чучело", "uid", uid, "guid", guids[0],
 			"granted", grant.Total, "crafted", used, "from", cur, "to", want)
 	}
 
 	if skippedMulti > 0 {
 		// 多行券玩家无法把发放量映射到具体行：本轮跳过且绝不写完成标记，
 		// 让偏差保持可见、下次启动继续重试，而不是用一个全局 marker 永久隐藏。
-		s.log.Warn("梦鱼券补偿存在多行玩家，保留标记待重试",
+		s.log.Warn("В компенсации купонов на чучело есть игроки с несколькими строками, отметка оставлена для повтора",
 			"skipped", skippedMulti, "fixed", fixed)
 		return fixed, nil
 	}
 	marker := fmt.Sprintf("done;fixed=%d;skip_multi=%d", fixed, skippedMulti)
 	if err := s.DB.KVSet(ctx, couponGrantRepairKey, marker); err != nil {
-		return fixed, fmt.Errorf("写入梦鱼券补偿标记: %w", err)
+		return fixed, fmt.Errorf("Запись отметки компенсации купонов на чучело: %w", err)
 	}
 	return fixed, nil
 }
@@ -151,7 +151,7 @@ func (s *Server) repairCouponRowLayout(ctx context.Context) (int, error) {
 	if _, done, err := s.DB.KVGet(ctx, couponRowRepairKey); err == nil && done {
 		return 0, nil
 	} else if err != nil && !errors.Is(err, sql.ErrNoRows) {
-		return 0, fmt.Errorf("读取梦鱼券展开标记: %w", err)
+		return 0, fmt.Errorf("Чтение отметки разворачивания купонов на чучело: %w", err)
 	}
 
 	groups, err := s.couponLayoutRows(ctx)
@@ -160,7 +160,7 @@ func (s *Server) repairCouponRowLayout(ctx context.Context) (int, error) {
 	}
 	if len(groups) == 0 {
 		if err := s.DB.KVSet(ctx, couponRowRepairKey, "done;rows=0"); err != nil {
-			return 0, fmt.Errorf("写入梦鱼券展开标记: %w", err)
+			return 0, fmt.Errorf("Запись отметки разворачивания купонов на чучело: %w", err)
 		}
 		return 0, nil
 	}
@@ -169,25 +169,25 @@ func (s *Server) repairCouponRowLayout(ctx context.Context) (int, error) {
 	for uid, rows := range groups {
 		changed, eerr := s.expandCouponRowsForUID(ctx, uid, rows)
 		if eerr != nil {
-			s.log.Warn("梦鱼券展开失败", "uid", uid, "err", eerr)
+			s.log.Warn("Не удалось развернуть купоны на чучело", "uid", uid, "err", eerr)
 			failed++
 			continue
 		}
 		fixed += changed
 		if changed > 0 {
-			s.log.Info("梦鱼券展开为一券一实例", "uid", uid, "expanded_rows", changed)
+			s.log.Info("Купоны на чучело развёрнуты: один купон — один экземпляр", "uid", uid, "expanded_rows", changed)
 		}
 	}
 
 	if failed > 0 {
 		// 有玩家没展开成功：不写完成标记，下次启动重试；已是一券一行的玩家
 		// 会被快速跳过，重试成本只是一次扫表。
-		s.log.Warn("梦鱼券展开存在未完成玩家，下次启动重试", "failed", failed, "fixed", fixed)
+		s.log.Warn("Разворачивание купонов на чучело не завершено для части игроков, повтор при следующем запуске", "failed", failed, "fixed", fixed)
 		return fixed, nil
 	}
 	marker := fmt.Sprintf("done;fixed=%d", fixed)
 	if err := s.DB.KVSet(ctx, couponRowRepairKey, marker); err != nil {
-		return fixed, fmt.Errorf("写入梦鱼券展开标记: %w", err)
+		return fixed, fmt.Errorf("Запись отметки разворачивания купонов на чучело: %w", err)
 	}
 	return fixed, nil
 }
@@ -198,7 +198,7 @@ func (s *Server) couponLayoutRows(ctx context.Context) (map[int64][]couponLayout
 		SELECT guid, uid FROM item WHERE item_id=? ORDER BY uid, created_ts, guid`,
 		couponChucheloItemID)
 	if err != nil {
-		return nil, fmt.Errorf("读取梦鱼券行: %w", err)
+		return nil, fmt.Errorf("Чтение строк купонов на чучело: %w", err)
 	}
 	defer rows.Close()
 	type raw struct {
@@ -249,7 +249,7 @@ func (s *Server) expandCouponRowsForUID(ctx context.Context, uid int64, rows []c
 		}
 	}
 	if total > maxBundlePreparedItems {
-		return 0, fmt.Errorf("梦鱼券总张数 %d 超过上限 %d", total, maxBundlePreparedItems)
+		return 0, fmt.Errorf("Общее число купонов на чучело %d превышает предел %d", total, maxBundlePreparedItems)
 	}
 	if len(toNormalize) == 0 && len(toDelete) == 0 {
 		return 0, nil // 已经是一券一行
@@ -315,27 +315,27 @@ func (s *Server) setCouponRowQuantityTx(ctx context.Context, tx *sql.Tx, guid st
 	}
 	row, err := getItemTx(ctx, tx, guid)
 	if err != nil {
-		return fmt.Errorf("梦鱼券展开读取 %s: %w", guid, err)
+		return fmt.Errorf("Чтение при разворачивании купонов на чучело %s: %w", guid, err)
 	}
 	if row == nil {
 		return nil
 	}
 	fields, ferr := FieldsFromJSON(row.FieldsJSON)
 	if ferr != nil || len(fields) == 0 {
-		return fmt.Errorf("梦鱼券 %s 字段解析失败: %w", guid, ferr)
+		return fmt.Errorf("Купон на чучело %s: ошибка разбора полей: %w", guid, ferr)
 	}
 	if !setItemQty(row.WireClass, fields, uint64(qty)) {
-		return fmt.Errorf("梦鱼券 %s 无数量槽（wire_class=%s）", guid, row.WireClass)
+		return fmt.Errorf("Купон на чучело %s: нет слота количества (wire_class=%s)", guid, row.WireClass)
 	}
 	bumpCreatedTicks(fields, row.WireClass)
 	fj, jerr := FieldsToJSON(fields)
 	if jerr != nil {
-		return fmt.Errorf("梦鱼券 %s 字段序列化失败: %w", guid, jerr)
+		return fmt.Errorf("Купон на чучело %s: ошибка сериализации полей: %w", guid, jerr)
 	}
 	if _, uerr := tx.ExecContext(ctx, `
 		UPDATE item SET fields_json=?, qty=? WHERE guid=? AND uid=?`,
 		fj, qty, guid, row.UID); uerr != nil {
-		return fmt.Errorf("梦鱼券 %s 写回失败: %w", guid, uerr)
+		return fmt.Errorf("Купон на чучело %s: ошибка записи: %w", guid, uerr)
 	}
 	return nil
 }
@@ -348,7 +348,7 @@ func (s *Server) couponGrants(ctx context.Context) (map[int64]couponGrant, error
 		WHERE action='mail_send' AND detail LIKE '%' || ? || '%'
 		ORDER BY ts, id`, couponChucheloItemID)
 	if err != nil {
-		return nil, fmt.Errorf("读取梦鱼券发放记录: %w", err)
+		return nil, fmt.Errorf("Чтение записей выдачи купонов на чучело: %w", err)
 	}
 	defer rows.Close()
 	out := map[int64]couponGrant{}
@@ -362,12 +362,12 @@ func (s *Server) couponGrants(ctx context.Context) (map[int64]couponGrant, error
 		if jerr := json.Unmarshal([]byte(detail), &rec); jerr != nil {
 			// 经济补偿必须 fail closed：发放记录读不懂就等于少算发放量，
 			// 继续算下去会补券并写完成标记，把缺口永久隐藏。
-			return nil, fmt.Errorf("梦鱼券补偿：发放记录损坏(target=%q): %w", target, jerr)
+			return nil, fmt.Errorf("Компенсация купонов на чучело: запись выдачи повреждена (target=%q): %w", target, jerr)
 		}
 		uid := rec.UID
 		if uid == 0 {
 			if _, serr := fmt.Sscan(target, &uid); serr != nil {
-				return nil, fmt.Errorf("梦鱼券补偿：发放记录缺少可解析的玩家 UID(target=%q): %w", target, serr)
+				return nil, fmt.Errorf("Компенсация купонов на чучело: в записи выдачи нет UID игрока (target=%q): %w", target, serr)
 			}
 		}
 		var qty int64
@@ -399,7 +399,7 @@ func (s *Server) trophyBoardOutputIDs(ctx context.Context) (map[string]bool, err
 	rows, err := s.DB.SQL.QueryContext(ctx,
 		`SELECT COALESCE(item_id,'') FROM item_def WHERE category=?`, trophyMountCategory)
 	if err != nil {
-		return nil, fmt.Errorf("读取标本产物清单: %w", err)
+		return nil, fmt.Errorf("Чтение списка изделий-чучел: %w", err)
 	}
 	defer rows.Close()
 	out := map[string]bool{}
@@ -427,7 +427,7 @@ func (s *Server) trophyCraftCountSince(ctx context.Context, uid int64, since flo
 		SELECT COALESCE(item_id,''), COUNT(*) FROM txn
 		WHERE uid=? AND kind='craft' AND ts>=? GROUP BY item_id`, uid, since)
 	if err != nil {
-		return 0, fmt.Errorf("梦鱼券补偿：读取制作流水失败(uid=%d): %w", uid, err)
+		return 0, fmt.Errorf("Компенсация купонов на чучело: не удалось прочитать журнал изготовления (uid=%d): %w", uid, err)
 	}
 	defer rows.Close()
 	var n int64
@@ -435,14 +435,14 @@ func (s *Server) trophyCraftCountSince(ctx context.Context, uid int64, since flo
 		var itemID string
 		var c int64
 		if err := rows.Scan(&itemID, &c); err != nil {
-			return 0, fmt.Errorf("梦鱼券补偿：解析制作流水失败(uid=%d): %w", uid, err)
+			return 0, fmt.Errorf("Компенсация купонов на чучело: не удалось разобрать журнал изготовления (uid=%d): %w", uid, err)
 		}
 		if outputs[itemID] {
 			n += c
 		}
 	}
 	if err := rows.Err(); err != nil {
-		return 0, fmt.Errorf("梦鱼券补偿：遍历制作流水失败(uid=%d): %w", uid, err)
+		return 0, fmt.Errorf("Компенсация купонов на чучело: ошибка обхода журнала изготовления (uid=%d): %w", uid, err)
 	}
 	return n, nil
 }
@@ -453,7 +453,7 @@ func (s *Server) couponRowGUIDs(ctx context.Context, uid int64) ([]string, error
 		SELECT guid FROM item WHERE uid=? AND item_id=? ORDER BY created_ts, guid`,
 		uid, couponChucheloItemID)
 	if err != nil {
-		return nil, fmt.Errorf("读取玩家梦鱼券: %w", err)
+		return nil, fmt.Errorf("Чтение купонов на чучело игрока: %w", err)
 	}
 	defer rows.Close()
 	var out []string
@@ -471,7 +471,7 @@ func (s *Server) couponRowGUIDs(ctx context.Context, uid int64) ([]string, error
 func (s *Server) couponRowQuantity(ctx context.Context, guid string) (int64, error) {
 	row, err := s.DB.GetItemByGUID(ctx, guid)
 	if err != nil {
-		return 0, fmt.Errorf("读取梦鱼券行 %s: %w", guid, err)
+		return 0, fmt.Errorf("Чтение строк купонов на чучело %s: %w", guid, err)
 	}
 	if row == nil {
 		return 0, nil
@@ -488,40 +488,40 @@ func (s *Server) couponRowQuantity(ctx context.Context, guid string) (int64, err
 // 走事务：数量变更属于经济写操作，中途失败必须整体回滚。
 func (s *Server) setCouponRowQuantity(ctx context.Context, guid string, qty int64) error {
 	if qty < 0 {
-		return fmt.Errorf("券数量不能为负: %d", qty)
+		return fmt.Errorf("Количество купонов не может быть отрицательным: %d", qty)
 	}
 	tx, err := s.DB.SQL.BeginTx(ctx, nil)
 	if err != nil {
-		return fmt.Errorf("梦鱼券补偿开启事务: %w", err)
+		return fmt.Errorf("Компенсация купонов на чучело: начало транзакции: %w", err)
 	}
 	defer func() { _ = tx.Rollback() }()
 
 	row, err := getItemTx(ctx, tx, guid)
 	if err != nil {
-		return fmt.Errorf("梦鱼券补偿读取 %s: %w", guid, err)
+		return fmt.Errorf("Компенсация купонов на чучело: чтение %s: %w", guid, err)
 	}
 	if row == nil {
 		return nil
 	}
 	fields, ferr := FieldsFromJSON(row.FieldsJSON)
 	if ferr != nil || len(fields) == 0 {
-		return fmt.Errorf("梦鱼券 %s 字段解析失败: %w", guid, ferr)
+		return fmt.Errorf("Купон на чучело %s: ошибка разбора полей: %w", guid, ferr)
 	}
 	if !setItemQty(row.WireClass, fields, uint64(qty)) {
-		return fmt.Errorf("梦鱼券 %s 无数量槽（wire_class=%s）", guid, row.WireClass)
+		return fmt.Errorf("Купон на чучело %s: нет слота количества (wire_class=%s)", guid, row.WireClass)
 	}
 	bumpCreatedTicks(fields, row.WireClass)
 	fj, jerr := FieldsToJSON(fields)
 	if jerr != nil {
-		return fmt.Errorf("梦鱼券 %s 字段序列化失败: %w", guid, jerr)
+		return fmt.Errorf("Купон на чучело %s: ошибка сериализации полей: %w", guid, jerr)
 	}
 	if _, uerr := tx.ExecContext(ctx, `
 		UPDATE item SET fields_json=?, qty=? WHERE guid=? AND uid=?`,
 		fj, qty, guid, row.UID); uerr != nil {
-		return fmt.Errorf("梦鱼券 %s 写回失败: %w", guid, uerr)
+		return fmt.Errorf("Купон на чучело %s: ошибка записи: %w", guid, uerr)
 	}
 	if err := tx.Commit(); err != nil {
-		return fmt.Errorf("梦鱼券 %s 提交失败: %w", guid, err)
+		return fmt.Errorf("Купон на чучело %s: ошибка фиксации: %w", guid, err)
 	}
 	return nil
 }

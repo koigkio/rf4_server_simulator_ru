@@ -21,7 +21,7 @@ func TestCheckTicket(t *testing.T) {
 		t.Fatalf("创建船票失败: %v", err)
 	}
 	if it.TypeID != boatTicketTypeID {
-		t.Fatalf("船票 type_id 应为 %d，实得 %d（wire %s）", boatTicketTypeID, it.TypeID, it.WireClass)
+		t.Fatalf("船票 type_id 应为 %d, 实得 %d (wire %s)", boatTicketTypeID, it.TypeID, it.WireClass)
 	}
 
 	// 命中：返回船票对象本身。
@@ -35,7 +35,7 @@ func TestCheckTicket(t *testing.T) {
 		t.Fatalf("3/7 响应不可解码: %v", err)
 	}
 	if dec.Kind != proto.KindObj || dec.TypeID != boatTicketTypeID {
-		t.Fatalf("3/7 应回 type_id=%d 的 obj，实得 kind=%s type=%d class=%s",
+		t.Fatalf("3/7 应回 type_id=%d 的 obj, 实得 kind=%s type=%d class=%s",
 			boatTicketTypeID, dec.Kind, dec.TypeID, dec.Class)
 	}
 	anchorIdx := fieldIdxByCS(dec.Class, "oieepfcgjgn")
@@ -44,12 +44,12 @@ func TestCheckTicket(t *testing.T) {
 		t.Fatal("3/7 响应缺少船票锚点或激活字段")
 	}
 	if got := u64Of(dec.Fields[activeIdx].Num); got != 1 {
-		t.Fatalf("3/7 激活字段=%d，期望 1", got)
+		t.Fatalf("3/7 激活字段=%d, 期望 1", got)
 	}
 	wantAnchor := uint64(worldTotalGameMin(time.Now()))
 	gotAnchor := u64Of(dec.Fields[anchorIdx].Num)
 	if diff := int64(gotAnchor) - int64(wantAnchor); diff < -2 || diff > 2 {
-		t.Fatalf("3/7 锚点=%d，期望世界时钟坐标约 %d", gotAnchor, wantAnchor)
+		t.Fatalf("3/7 锚点=%d, 期望世界时钟坐标约 %d", gotAnchor, wantAnchor)
 	}
 
 	// 3/7 重新上船必须覆盖更早的 3/10 下船事件。
@@ -64,7 +64,7 @@ func TestCheckTicket(t *testing.T) {
 	onBoat, boatKnown := st.onBoatLocked(time.Now().Unix())
 	st.mu.Unlock()
 	if !boatKnown || !onBoat {
-		t.Fatalf("3/7 重新上船后应判在船上，得到 known=%v on=%v", boatKnown, onBoat)
+		t.Fatalf("3/7 重新上船后应判在船上, 得到 known=%v on=%v", boatKnown, onBoat)
 	}
 
 	// 未命中：必须回 null，让客户端走"无票"分支而不是异常分支。
@@ -74,7 +74,7 @@ func TestCheckTicket(t *testing.T) {
 		t.Fatal("3/7 未命中时应返回 handled")
 	}
 	if len(body2) != 1 || body2[0] != 0x00 {
-		t.Fatalf("未命中应回 null(0x00)，实得 %x", body2)
+		t.Fatalf("未命中应回 null(0x00), 实得 %x", body2)
 	}
 
 	// 客户端按 E 时会发 [站点, null guid]（marker 0x17）询问该码头可用的票。
@@ -89,7 +89,7 @@ func TestCheckTicket(t *testing.T) {
 		t.Fatalf("3/7 null guid 响应不可解码: %v", err3)
 	}
 	if dec3.Kind != proto.KindObj || dec3.TypeID != boatTicketTypeID {
-		t.Fatalf("null guid 应按站点回 type_id=%d 的票，实得 kind=%s type=%d",
+		t.Fatalf("null guid 应按站点回 type_id=%d 的票, 实得 kind=%s type=%d",
 			boatTicketTypeID, dec3.Kind, dec3.TypeID)
 	}
 }
@@ -97,7 +97,7 @@ func TestCheckTicket(t *testing.T) {
 func TestOnBoatStateNeedsBoardingEvidence(t *testing.T) {
 	st := &FishState{}
 	if on, known := st.onBoatLocked(1000); on || known {
-		t.Fatal("没见过上船流程时应是未知，不能封鱼")
+		t.Fatal("没见过上船流程时应是未知, 不能封鱼")
 	}
 	st.markBoardLocked(2000)
 	if on, known := st.onBoatLocked(1500); !on || !known {
@@ -130,7 +130,7 @@ func TestCheckTicketRejectsCrossLevelTicket(t *testing.T) {
 		t.Fatal("3/7 未处理")
 	}
 	if len(body) != 1 || body[0] != 0x00 {
-		t.Fatalf("跨地图票应回 null(0x00) 让客户端弹选票框，实得 %x", body)
+		t.Fatalf("跨地图票应回 null(0x00) 让客户端弹选票框, 实得 %x", body)
 	}
 
 	// 被拒的票不能留下租用状态，否则切图后会被当成"已在租用"。
@@ -147,7 +147,7 @@ func TestCheckTicketRejectsCrossLevelTicket(t *testing.T) {
 		t.Fatal("船票缺少激活字段")
 	}
 	if got := u64Of(fields[activeIdx].Num); got != 0 {
-		t.Fatalf("跨地图票不应被激活，激活字段=%d", got)
+		t.Fatalf("跨地图票不应被激活, 激活字段=%d", got)
 	}
 
 	// 走到该票所属地图后，同一张票必须放行。
@@ -161,7 +161,7 @@ func TestCheckTicketRejectsCrossLevelTicket(t *testing.T) {
 		t.Fatalf("3/7 同图票响应不可解码: %v", err)
 	}
 	if dec.Kind != proto.KindObj || dec.TypeID != boatTicketTypeID {
-		t.Fatalf("同图票应回 type_id=%d 的票，实得 kind=%s type=%d",
+		t.Fatalf("同图票应回 type_id=%d 的票, 实得 kind=%s type=%d",
 			boatTicketTypeID, dec.Kind, dec.TypeID)
 	}
 }
@@ -212,6 +212,6 @@ func TestActiveRentalTicketRepairsLegacyWorldAnchor(t *testing.T) {
 	gotAnchor := u64Of(dec.Fields[anchorIdx].Num)
 	wantAnchor := uint64(worldTotalGameMin(time.Now()))
 	if diff := int64(gotAnchor) - int64(wantAnchor); diff < -5 || diff > 5 {
-		t.Fatalf("复用票锚点=%d，期望世界时钟坐标约 %d", gotAnchor, wantAnchor)
+		t.Fatalf("复用票锚点=%d, 期望世界时钟坐标约 %d", gotAnchor, wantAnchor)
 	}
 }

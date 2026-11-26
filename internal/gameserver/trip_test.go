@@ -91,7 +91,7 @@ func TestPlaceTripSilverPurchase(t *testing.T) {
 		t.Fatalf("钓鱼游状态错误: remaining=%.0f purchases=%d", remaining, purchases)
 	}
 	if lastConsume == 0 {
-		t.Fatal("购买即启表（客户端唯一捕获时机）: last_consume_ts=0")
+		t.Fatal("购买即启表 (客户端唯一捕获时机): last_consume_ts=0")
 	}
 	if n := tripAccessCount(t, srv, uid, "level_018_moskitnoe"); n != 1 {
 		t.Fatalf("place_access(kind='trip') 未写入: %d", n)

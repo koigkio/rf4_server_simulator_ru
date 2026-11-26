@@ -56,11 +56,11 @@ type paceDietCacheEntry struct {
 type fishPaceState struct {
 	Known    bool
 	Score    float64
-	Factor   float64 // 延迟乘数（好饵=1.0）
-	Prob     float64 // 底层杆（非路亚族）单轮判定概率
-	LureProb float64 // 路亚轮单轮判定概率（最好一组）
-	Ground   float64 // 打窝压缩（1=无窝/路亚）
-	Tier     int     // 0=差 1=中 2=好，仅日志用
+	Factor   float64 // 延迟乘数 (好饵=1.0)
+	Prob     float64 // 底层杆 (非路亚族)单轮判定概率
+	LureProb float64 // 路亚轮单轮判定概率 (最好一组)
+	Ground   float64 // 打窝压缩 (1=无窝/路亚)
+	Tier     int     // 0=差 1=中 2=好, 仅日志用
 	// LureGroups 路亚族每个钩位的（饵分, 主导拟饵类型）快照；fire 时逐钩位
 	// 判开口率，第一口上鱼即停。非路亚族为空。
 	LureGroups []paceLureGroup
@@ -172,7 +172,7 @@ func paceLureCombinedScore(baitScore float64, lureType, action string) float64 {
 // 类型（吸引成分不参与）。复合分按每组独立计算取最好，与 rollFishForRig
 // 「任意已挂饵钩位都可能出鱼」同语义——哪口饵先出鱼，哪口饵定节奏。
 type paceLureGroup struct {
-	hook     string // 钩位 GUID：fire 时按钩位取本组开口率，上鱼即停
+	hook     string // 钩位 GUID: fire 时按钩位取本组开口率, 上鱼即停
 	score    float64
 	lureType string
 }
@@ -566,7 +566,7 @@ func (s *Server) computePaceState(sess *Session, st *FishState, force bool) fish
 		ground = s.groundbaitPaceFactor(ctx, uid, loc, x, z, hasPos, spot, rigType)
 	}
 	pace := fishPaceState{Known: true, Score: score, Factor: factor, Prob: prob, LureProb: lureProb, Ground: ground, Tier: tier}
-	logArgs := []any{"rod", shortGUID(gear), "各钩饵", groups, "score", roundTo(score, 3)}
+	logArgs := []any{"rod", shortGUID(gear), "Наживки на крючках", groups, "score", roundTo(score, 3)}
 	if rigTypeLureFamily[rigType] {
 		// 路亚族按复合档位（饵分 × 当前动作）：好动作才给好档。多钩位各自
 		// 带（饵分, 主导拟饵类型）快照——等待窗取最好一组，fire 时逐钩位
@@ -586,7 +586,7 @@ func (s *Server) computePaceState(sess *Session, st *FishState, force bool) fish
 			"prob", pace.Prob, "lure_prob", pace.LureProb,
 			"ground", roundTo(pace.Ground, 3), "rig_type", rigType)
 	}
-	s.log.Info("咬钩节奏", logArgs...)
+	s.log.Info("Ритм клёва", logArgs...)
 	return pace
 }
 
@@ -752,6 +752,6 @@ func (s *Server) paceLureActionRearm(sess *Session, st *FishState) {
 	delay *= s.hookBiteDelayFactorForRig(sess.pushCtx(), sess.Userid, gear)
 	s.armBiteTimerLocked(sess.Userid, st, now.Add(time.Duration(delay*float64(time.Second))))
 	st.mu.Unlock()
-	s.log.Info("路亚动作改善，重排咬钩", "rod", shortGUID(gear), "rig_type", rigType,
+	s.log.Info("Проводка улучшилась, клёв пересчитан", "rod", shortGUID(gear), "rig_type", rigType,
 		"action", lureAction, "tier", paceTierName(newTier))
 }

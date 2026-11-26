@@ -33,7 +33,7 @@ func hProfile(ctx *Ctx) ([]byte, bool) {
 	p, err := ctx.Sess.Srv.BuildProfile307W(ctx.Sess.pushCtx(), ctx.Sess.Userid,
 		worldTotalGameMin(time.Now()))
 	if err != nil {
-		ctx.Log.Warn("3/1 构造失败", "err", err)
+		ctx.Log.Warn("3/1 Ошибка создания", "err", err)
 		return nil, false
 	}
 	body, err := proto.EncodeValue(p, ctx.Sess.Table())
@@ -136,7 +136,7 @@ func hItemGUIDs(ctx *Ctx) ([]byte, bool) {
 		start, startOK := ctx.ArgInt(1)
 		count, countOK := ctx.ArgInt(2)
 		if !startOK || !countOK || start > 100000 || count > 500 {
-			ctx.ReplyFailure("System.ArgumentException", "物品分页参数无效")
+			ctx.ReplyFailure("System.ArgumentException", "Неверные параметры страницы предметов")
 			return nil, true
 		}
 		if start >= uint64(len(guids)) {
@@ -235,7 +235,7 @@ func hSkillsGet(ctx *Ctx) ([]byte, bool) {
 	}
 	tree, err := srv.BuildSkillTree311(ctx.Sess.pushCtx(), ctx.Sess.Userid, ^uint64(0))
 	if err != nil {
-		ctx.Log.Error("技能树构建失败（回兜底空包会卡客户端登录）", "err", err)
+		ctx.Log.Error("Ошибка построения дерева навыков (пустой ответ-заглушка подвесит вход клиента)", "err", err)
 		return nil, false
 	}
 	body, err := proto.EncodeValue(tree, ctx.Sess.Table())
@@ -267,12 +267,12 @@ func hShortcutBind(ctx *Ctx) ([]byte, bool) {
 	slot, validSlot := ctx.ArgInt(0)
 	guids := deepGUIDs(ctx.Tree)
 	if !validSlot || slot > 2147483647 || len(guids) != 1 {
-		ctx.ReplyFailure("System.ArgumentException", "快捷栏绑定参数无效")
+		ctx.ReplyFailure("System.ArgumentException", "Неверные параметры привязки к панели быстрого доступа")
 		return nil, true
 	}
 	g := guids[0]
 	if err := srv.DB.BindShortcut(ctx.Sess.pushCtx(), ctx.Sess.Userid, int64(slot), g); err != nil {
-		ctx.ReplyFailure("System.ArgumentException", "快捷栏物品不可用")
+		ctx.ReplyFailure("System.ArgumentException", "Предмет панели быстрого доступа недоступен")
 		return nil, true
 	}
 	body, err := proto.EncodeValue(build136(int64(slot), g), ctx.Sess.Table())
@@ -289,11 +289,11 @@ func hShortcutUnbind(ctx *Ctx) ([]byte, bool) {
 	}
 	slot, validSlot := ctx.ArgInt(0)
 	if !validSlot || slot > 2147483647 {
-		ctx.ReplyFailure("System.ArgumentException", "快捷栏解绑参数无效")
+		ctx.ReplyFailure("System.ArgumentException", "Неверные параметры отвязки от панели быстрого доступа")
 		return nil, true
 	}
 	if err := srv.DB.BindShortcut(ctx.Sess.pushCtx(), ctx.Sess.Userid, int64(slot), ""); err != nil {
-		ctx.ReplyFailure("System.InvalidOperationException", "快捷栏解绑未保存")
+		ctx.ReplyFailure("System.InvalidOperationException", "Отвязка от панели быстрого доступа не сохранена")
 		return nil, true
 	}
 	body, err := proto.EncodeValue(build136(int64(slot), ""), ctx.Sess.Table())
@@ -388,19 +388,19 @@ func hPlaceBuyout(ctx *Ctx) ([]byte, bool) {
 			_ = srv.DB.UpdateBalance(cctx, uid, p.Silver, p.Gold-tier, p.Bank)
 		}
 		if err := srv.DB.PlaceAccessInsert(cctx, uid, place, "buyout"); err != nil {
-			ctx.Log.Warn("3/37 授予地点失败", "place", place, "err", err)
+			ctx.Log.Warn("3/37 Не удалось выдать локацию", "place", place, "err", err)
 		}
 		_ = srv.DB.AddTxn(cctx, uid, "buy", place, "", 0, -tier, "place_buyout")
-		ctx.Log.Info("3/37 金币买断地图", "place", place, "tier", packet,
+		ctx.Log.Info("3/37 Покупка карты за золото", "place", place, "tier", packet,
 			"gold", -tier, "gold_yuan", float64(tier)/100.0)
 	} else {
 		tiers, _ := placeBuyoutTiers[place]
-		ctx.Log.Info("3/37 价格与静态表不符，不扣款", "place", place,
+		ctx.Log.Info("3/37 Цена не совпадает со статической таблицей, оплата не списана", "place", place,
 			"packet", packet, "price", price, "tiers", tiers)
 	}
 	p, err := srv.BuildProfile307W(cctx, uid, worldTotalGameMin(time.Now()))
 	if err != nil {
-		ctx.Log.Warn("3/37 档案构造失败", "err", err)
+		ctx.Log.Warn("3/37 Ошибка создания профиля", "err", err)
 		return nil, false
 	}
 	body, err := proto.EncodeValue(p, ctx.Sess.Table())
@@ -455,7 +455,7 @@ func hPlace(ctx *Ctx) ([]byte, bool) {
 	nowUnix := time.Now().Unix()
 	body, err := ctx.Sess.Srv.buildMapDobBody(ctx.Sess.Userid, key, nowUnix)
 	if err != nil {
-		ctx.Log.Warn("1/12 dob 构造失败", "level", key, "err", err)
+		ctx.Log.Warn("1/12 dob Ошибка создания", "level", key, "err", err)
 		return nil, false
 	}
 	ctx.Sess.rememberWeather(key, nowUnix)
@@ -480,8 +480,8 @@ func settleTravel(ctx *Ctx, level, scene string, spot int64, charge bool) (charg
 
 	tx, err := beginEconomyTx(cctx, srv.DB)
 	if err != nil {
-		ctx.Log.Warn("切图开启事务失败", "level", level, "err", err)
-		ctx.ReplyFailure("System.InvalidOperationException", "切图结算失败，请重试")
+		ctx.Log.Warn("Смена карты: не удалось начать транзакцию", "level", level, "err", err)
+		ctx.ReplyFailure("System.InvalidOperationException", "Смена карты: ошибка расчёта, попробуйте ещё раз")
 		return false, false
 	}
 	defer func() { _ = tx.Rollback() }()
@@ -489,20 +489,20 @@ func settleTravel(ctx *Ctx, level, scene string, spot int64, charge bool) (charg
 	// 先取写锁：DEFERRED 事务不能在读完旧位置后再升级，也不能让两个并发
 	// 切图都基于同一份旧位置各自扣款。
 	if _, err := tx.ExecContext(cctx, `UPDATE profile SET uid=uid WHERE uid=?`, uid); err != nil {
-		ctx.Log.Warn("切图锁定玩家档案失败", "level", level, "err", err)
-		ctx.ReplyFailure("System.InvalidOperationException", "切图结算失败，请重试")
+		ctx.Log.Warn("Смена карты: не удалось заблокировать профиль игрока", "level", level, "err", err)
+		ctx.ReplyFailure("System.InvalidOperationException", "Смена карты: ошибка расчёта, попробуйте ещё раз")
 		return false, false
 	}
 	if err := ensureProfileTx(cctx, tx, uid); err != nil {
-		ctx.Log.Warn("切图建立玩家档案失败", "level", level, "err", err)
-		ctx.ReplyFailure("System.InvalidOperationException", "切图结算失败，请重试")
+		ctx.Log.Warn("Смена карты: не удалось создать профиль игрока", "level", level, "err", err)
+		ctx.ReplyFailure("System.InvalidOperationException", "Смена карты: ошибка расчёта, попробуйте ещё раз")
 		return false, false
 	}
 	var current string
 	if err := tx.QueryRowContext(cctx,
 		`SELECT COALESCE(last_level_key,'') FROM profile WHERE uid=?`, uid).Scan(&current); err != nil {
-		ctx.Log.Warn("切图读取当前地图失败", "level", level, "err", err)
-		ctx.ReplyFailure("System.InvalidOperationException", "切图结算失败，请重试")
+		ctx.Log.Warn("Смена карты: не удалось прочитать текущую карту", "level", level, "err", err)
+		ctx.ReplyFailure("System.InvalidOperationException", "Смена карты: ошибка расчёта, попробуйте ещё раз")
 		return false, false
 	}
 	sameLevel := travelLevelKey(current) == level
@@ -510,19 +510,19 @@ func settleTravel(ctx *Ctx, level, scene string, spot int64, charge bool) (charg
 	if cost > 0 && !sameLevel {
 		free, err := hasFreeTravelAccessTx(cctx, tx, uid, level)
 		if err != nil {
-			ctx.Log.Warn("切图免费通行判定失败", "level", level, "err", err)
-			ctx.ReplyFailure("System.InvalidOperationException", "切图结算失败，请重试")
+			ctx.Log.Warn("Смена карты: ошибка проверки бесплатного прохода", "level", level, "err", err)
+			ctx.ReplyFailure("System.InvalidOperationException", "Смена карты: ошибка расчёта, попробуйте ещё раз")
 			return false, false
 		}
 		if !free {
 			if err := applyWalletTx(cctx, tx, uid, -cost, 0,
 				"buy", level, "", "place_travel"); err != nil {
 				if errors.Is(err, errInsufficientFunds) {
-					ctx.Log.Info("切图银币不足，不切图", "level", level, "cost", cost)
-					ctx.ReplyFailure("System.InvalidOperationException", "银币不足，无法前往该水域")
+					ctx.Log.Info("Смена карты: недостаточно серебра, карта не сменена", "level", level, "cost", cost)
+					ctx.ReplyFailure("System.InvalidOperationException", "Недостаточно серебра, чтобы отправиться на этот водоём")
 				} else {
-					ctx.Log.Warn("切图银币扣款失败", "level", level, "err", err)
-					ctx.ReplyFailure("System.InvalidOperationException", "切图结算失败，请重试")
+					ctx.Log.Warn("Смена карты: не удалось списать серебро", "level", level, "err", err)
+					ctx.ReplyFailure("System.InvalidOperationException", "Смена карты: ошибка расчёта, попробуйте ещё раз")
 				}
 				return false, false
 			}
@@ -530,17 +530,17 @@ func settleTravel(ctx *Ctx, level, scene string, spot int64, charge bool) (charg
 		}
 	}
 	if err := srv.DB.SetPlayerLocationTx(cctx, tx, uid, level, scene, spot); err != nil {
-		ctx.Log.Warn("切图位置落库失败，扣款已回滚", "level", level, "err", err)
-		ctx.ReplyFailure("System.InvalidOperationException", "切图结算失败，请重试")
+		ctx.Log.Warn("Смена карты: не удалось сохранить местоположение, оплата откатана", "level", level, "err", err)
+		ctx.ReplyFailure("System.InvalidOperationException", "Смена карты: ошибка расчёта, попробуйте ещё раз")
 		return false, false
 	}
 	if err := tx.Commit(); err != nil {
-		ctx.Log.Warn("切图事务提交失败，扣款已回滚", "level", level, "err", err)
-		ctx.ReplyFailure("System.InvalidOperationException", "切图结算失败，请重试")
+		ctx.Log.Warn("Смена карты: не удалось зафиксировать транзакцию, оплата откатана", "level", level, "err", err)
+		ctx.ReplyFailure("System.InvalidOperationException", "Смена карты: ошибка расчёта, попробуйте ещё раз")
 		return false, false
 	}
 	if charged {
-		ctx.Log.Info("切图扣银币", "level", level, "silver", -cost)
+		ctx.Log.Info("Смена карты: списано серебро", "level", level, "silver", -cost)
 	}
 	return charged, true
 }
@@ -567,7 +567,7 @@ func hTravel(ctx *Ctx) ([]byte, bool) {
 	// 预构造只用于确认响应可用，避免扣款后才暴露构造失败。
 	body, err := sess.Srv.buildTravelBodyAt(sess, key, nowUnix)
 	if err != nil {
-		ctx.Log.Warn("1/14 travel 构造失败", "level", key, "err", err)
+		ctx.Log.Warn("1/14 travel Ошибка создания", "level", key, "err", err)
 		return nil, false
 	}
 	scene := sceneForLevel(key)
@@ -585,7 +585,7 @@ func hTravel(ctx *Ctx) ([]byte, bool) {
 		if fresh, err := sess.Srv.buildTravelBodyAt(sess, key, nowUnix); err == nil {
 			body = fresh
 		} else {
-			ctx.Log.Warn("1/14 扣款后档案构造失败，改用 2/1 刷新", "level", key, "err", err)
+			ctx.Log.Warn("1/14 Ошибка создания профиля после оплаты, обновление через 2/1", "level", key, "err", err)
 			sess.Push2_1()
 		}
 	}
@@ -620,7 +620,7 @@ func hEnterMap(ctx *Ctx) ([]byte, bool) {
 	level, scene, spot := spawnLevelKey, sceneForLevel(spawnLevelKey), int64(0)
 	saved, err := srv.DB.GetPlayerLocation(sess.pushCtx(), uid)
 	if err != nil {
-		ctx.Log.Warn("1/13 读取上次位置失败，回出生地图", "err", err)
+		ctx.Log.Warn("1/13 Не удалось прочитать прошлое местоположение, возврат на стартовую карту", "err", err)
 	} else if saved != nil && validLevelKey(saved.LevelKey) {
 		level, scene, spot = saved.LevelKey, saved.Scene, saved.Spot
 	}
@@ -641,14 +641,14 @@ func hEnterMap(ctx *Ctx) ([]byte, bool) {
 	// 新银币票流水时才回出生图。带 key 的真正进入交给 settleTravel：
 	// 买断/有效钓鱼游/房屋免票，否则扣银币门票。
 	if !charge && srv.loginRestoreTripExpired(sess.pushCtx(), uid, level) {
-		ctx.Log.Info("1/13 上次地图钓鱼游已到期，回出生地图", "level", level)
+		ctx.Log.Info("1/13 Путёвка на прошлой карте истекла, возврат на стартовую карту", "level", level)
 		level, scene, spot = spawnLevelKey, sceneForLevel(spawnLevelKey), 0
 	}
 
 	nowUnix := time.Now().Unix()
 	body, err := srv.buildSpawnLocatorBody(uid, level, scene, nowUnix)
 	if err != nil {
-		ctx.Log.Warn("1/13 出生点定位构造失败", "level", level, "err", err)
+		ctx.Log.Warn("1/13 Ошибка создания точки появления", "level", level, "err", err)
 		return nil, false
 	}
 	charged, ok := settleTravel(ctx, level, scene, spot, charge)
@@ -667,7 +667,7 @@ func hEnterMap(ctx *Ctx) ([]byte, bool) {
 	}
 	// 装备包与地图同步：落点=有效钓鱼游地图 → 发放；其他地图残留 → 回收。
 	srv.syncTripEquipment(sess.pushCtx(), uid, level)
-	ctx.Log.Info("1/13 下发出生地图", "level", level, "scene", scene, "spot", spot, "bytes", len(body))
+	ctx.Log.Info("1/13 Отправка стартовой карты", "level", level, "scene", scene, "spot", spot, "bytes", len(body))
 	return body, true
 }
 
@@ -718,7 +718,7 @@ func hSetQuivertip(ctx *Ctx) ([]byte, bool) {
 	cctx := ctx.Sess.pushCtx()
 	row := srv.ownedRodRow(cctx, ctx.Sess.Userid, rodGUID)
 	if row == nil {
-		ctx.Log.Warn("17/5 竿不属于当前玩家，已忽略", "竿", shortGUID(rodGUID))
+		ctx.Log.Warn("17/5 Удилище не принадлежит текущему игроку, пропущено", "Удилище", shortGUID(rodGUID))
 		return nil, true
 	}
 	fields, err := FieldsFromJSON(row.FieldsJSON)
@@ -743,7 +743,7 @@ func hSetQuivertip(ctx *Ctx) ([]byte, bool) {
 		err = srv.DB.UpdateItemFields(cctx, row.GUID, fj, row.Qty, row.Durability, row.Workmanship, row.RigGUID)
 	}
 	if err != nil {
-		ctx.ReplyFailure("System.IO.IOException", "竿稍设置保存失败")
+		ctx.ReplyFailure("System.IO.IOException", "Не удалось сохранить настройки кончика удилища")
 		return nil, true
 	}
 	row.FieldsJSON = fj
@@ -821,7 +821,7 @@ func hCastPrepare(ctx *Ctx) ([]byte, bool) {
 	// LureMotionMask/LureType 也不得漏进非路亚判鱼（评审 P1/P2-1）。
 	st.LureMotionMask = 0
 	st.LureAction = ""
-	st.LureLayer = 0 // 0=未知：无运动证据时判鱼走 runtime DiveDepth 兜底，不再恒走 .5
+	st.LureLayer = 0 // 0=未知: 无运动证据时判鱼走 runtime DiveDepth 兜底, 不再恒走 .5
 	st.LureDive = 0
 	st.LureType = ""
 	st.LurePulseCount = 0
@@ -835,7 +835,7 @@ func hCastPrepare(ctx *Ctx) ([]byte, bool) {
 	rigType := st.RigType
 	st.mu.Unlock()
 	if err := ctx.Sess.prepareBaitForCast(st, gear); err != nil {
-		ctx.Log.Warn("抛竿前补饵失败", "err", err)
+		ctx.Log.Warn("Не удалось пополнить наживку перед забросом", "err", err)
 		return nil, false
 	}
 	// 路亚抛竿：按补饵后的实际装配取拟饵名义泳层与类型名，种子进实时水层与
@@ -861,7 +861,7 @@ func hCastPrepare(ctx *Ctx) ([]byte, bool) {
 			st.mu.Lock()
 			st.GearGuid = ""
 			st.mu.Unlock()
-			ctx.Log.Info("14/1 被拒：鱼竿已损坏", "rod", shortGUID(gear))
+			ctx.Log.Info("14/1 Отклонено: удилище сломано", "rod", shortGUID(gear))
 			if body := castReady158(ctx, "", depthCM, 0); body != nil {
 				return body, true
 			}
@@ -874,7 +874,7 @@ func hCastPrepare(ctx *Ctx) ([]byte, bool) {
 		st.mu.Lock()
 		st.GearGuid = ""
 		st.mu.Unlock()
-		ctx.Log.Info("14/1 被拒：装备限制", "rod", shortGUID(gear), "reason", reason)
+		ctx.Log.Info("14/1 Отклонено: ограничение снаряжения", "rod", shortGUID(gear), "reason", reason)
 		if body := castReady158(ctx, "", depthCM, 0); body != nil {
 			return body, true
 		}
@@ -884,7 +884,7 @@ func hCastPrepare(ctx *Ctx) ([]byte, bool) {
 	// 这里必须拦住，否则损坏的轮子还能继续抛投上鱼。
 	// 不清 GearGuid：竿确实还在手上，留着它 14/2 才能回出"请先修理"的提示。
 	if reelGUID := srv.rigBrokenReelGUID(ctx.Sess.pushCtx(), ctx.Sess.Userid, gear); reelGUID != "" {
-		ctx.Log.Info("14/1 被拒：渔线轮已损坏", "rod", shortGUID(gear), "reel", shortGUID(reelGUID))
+		ctx.Log.Info("14/1 Отклонено: катушка сломана", "rod", shortGUID(gear), "reel", shortGUID(reelGUID))
 		if body := castReady158(ctx, "", depthCM, 0); body != nil {
 			return body, true
 		}
@@ -941,8 +941,8 @@ func hCast(ctx *Ctx) ([]byte, bool) {
 	}
 	st.mu.Unlock()
 	if broken {
-		ctx.Log.Info("14/2 被拒：鱼竿已损坏", "rod", shortGUID(gear))
-		ctx.ReplyFailure("System.InvalidOperationException", "鱼竿已损坏，请先修理")
+		ctx.Log.Info("14/2 Отклонено: удилище сломано", "rod", shortGUID(gear))
+		ctx.ReplyFailure("System.InvalidOperationException", "Удилище сломано, сначала отремонтируйте его")
 		return nil, true
 	}
 	// 水域装备限制：竿或已装渔轮被当前地图禁用时不可抛投
@@ -953,20 +953,20 @@ func hCast(ctx *Ctx) ([]byte, bool) {
 		st.mu.Lock()
 		st.GearGuid = ""
 		st.mu.Unlock()
-		ctx.Log.Info("14/2 被拒：装备限制", "rod", shortGUID(gear), "reason", reason)
+		ctx.Log.Info("14/2 Отклонено: ограничение снаряжения", "rod", shortGUID(gear), "reason", reason)
 		ctx.ReplyOperationResult(136) // kOperationResult_WrongRegion
 		return nil, true
 	}
 	// 14/1 给的是力度上限，客户端被拒后仍可能直发 14/2，这里再拦一道。
 	if reelGUID := srv.rigBrokenReelGUID(ctx.Sess.pushCtx(), ctx.Sess.Userid, gear); reelGUID != "" {
-		ctx.Log.Info("14/2 被拒：渔线轮已损坏", "rod", shortGUID(gear), "reel", shortGUID(reelGUID))
-		ctx.ReplyFailure("System.InvalidOperationException", "渔线轮已损坏，请先修理")
+		ctx.Log.Info("14/2 Отклонено: катушка сломана", "rod", shortGUID(gear), "reel", shortGUID(reelGUID))
+		ctx.ReplyFailure("System.InvalidOperationException", "Катушка сломана, сначала отремонтируйте её")
 		return nil, true
 	}
 	// 低精力通过抛投距离修正体现，不在实际抛投请求中硬拒绝，避免
 	// 客户端已将钓组抛入水中、服务端却未启动本竿的咬钩计时。
 	if err := ctx.Sess.prepareBaitForCast(st, gear); err != nil {
-		ctx.Log.Warn("抛竿前补饵失败", "err", err)
+		ctx.Log.Warn("Не удалось пополнить наживку перед забросом", "err", err)
 		return nil, false
 	}
 	st.mu.Lock()
@@ -986,7 +986,7 @@ func hCast(ctx *Ctx) ([]byte, bool) {
 	if actionMaxM > 0 {
 		powerRatio = requestedM / actionMaxM
 	}
-	ctx.Log.Info("实际抛投请求", "rod", shortGUID(gear), "requested_m", math.Round(requestedM*100)/100,
+	ctx.Log.Info("Запрос фактического заброса", "rod", shortGUID(gear), "requested_m", math.Round(requestedM*100)/100,
 		"max_m", math.Round(profile.DistanceM*100)/100, "action", action,
 		"action_factor", math.Round(castActionFactor(action)*1000)/1000,
 		"power_ratio", math.Round(powerRatio*1000)/1000)
@@ -1000,14 +1000,14 @@ func hCast(ctx *Ctx) ([]byte, bool) {
 	// 继续采信 requested（手竿距离对齐见 PR #457）。
 	castM := requestedM
 	if profile.ReelGUID != "" && actionMaxM > 0 && requestedM > actionMaxM {
-		ctx.Log.Info("抛投请求超满竿上限，按上限收口",
+		ctx.Log.Info("Запрос заброса больше максимального, ограничено максимумом",
 			"requested_m", math.Round(requestedM*100)/100, "capped_m", math.Round(actionMaxM*100)/100)
 		castM = actionMaxM
 	}
 	if profile.ClipLimitM > 0 && castM > profile.ClipLimitM {
 		// 轮管卡是机械止线：客户端按竿树 153.f5 自行截停，落点坐标不会
 		// 超过卡米数；requested（红区）仍可能超卡，实测距离以卡米为准。
-		ctx.Log.Info("抛投请求超轮管卡，按卡米截停",
+		ctx.Log.Info("Запрос заброса больше клипсы шпули, остановлено по клипсе",
 			"requested_m", math.Round(castM*100)/100, "clip_m", math.Round(profile.ClipLimitM*100)/100)
 		castM = profile.ClipLimitM
 	}
@@ -1023,18 +1023,18 @@ func hCast(ctx *Ctx) ([]byte, bool) {
 	if hasPos {
 		const waterReachM = 15.0
 		nearWater, hasData := waterWithin(locNow, px, pz, waterReachM)
-		ctx.Log.Info("抛竿水体诊断", "loc", locNow, "x", px, "z", pz, "hasData", hasData, "near", nearWater)
+		ctx.Log.Info("Диагностика водоёма при забросе", "loc", locNow, "x", px, "z", pz, "hasData", hasData, "near", nearWater)
 		if hasData && !nearWater {
-			ctx.Log.Info("距水体过远，本杆不派鱼", "loc", locNow, "x", px, "z", pz, "reach", waterReachM)
+			ctx.Log.Info("Слишком далеко от воды, рыба на этот заброс не выдаётся", "loc", locNow, "x", px, "z", pz, "reach", waterReachM)
 		} else {
 			if !srv.scheduleBite(ctx.Sess, st) {
-				ctx.ReplyFailure("System.InvalidOperationException", "请先处理当前鱼获")
+				ctx.ReplyFailure("System.InvalidOperationException", "Сначала разберитесь с текущим уловом")
 				return nil, true
 			}
 		}
 	} else {
 		if !srv.scheduleBite(ctx.Sess, st) {
-			ctx.ReplyFailure("System.InvalidOperationException", "请先处理当前鱼获")
+			ctx.ReplyFailure("System.InvalidOperationException", "Сначала разберитесь с текущим уловом")
 			return nil, true
 		}
 	}
@@ -1224,7 +1224,7 @@ func hFishingStep(ctx *Ctx) ([]byte, bool) {
 			st.mu.Unlock()
 			if enterWater {
 				if err := ctx.Sess.Srv.consumeCastBait(ctx.Sess, st); err != nil {
-					ctx.Log.Warn("入水窝料扣减失败", "err", err)
+					ctx.Log.Warn("Не удалось списать прикормку при погружении", "err", err)
 					st.mu.Lock()
 					st.InWater = false
 					resetMarineLayerLocked(st)
@@ -1233,10 +1233,10 @@ func hFishingStep(ctx *Ctx) ([]byte, bool) {
 				}
 			}
 			if needBite {
-				ctx.Log.Info("钓组在水中，补排咬钩", "rod", shortGUID(st.GearGuid), "f5", fmt.Sprintf("0x%X", anim))
+				ctx.Log.Info("Оснастка в воде, назначаем поклёвку", "rod", shortGUID(st.GearGuid), "f5", fmt.Sprintf("0x%X", anim))
 				ctx.Sess.Srv.scheduleBiteForHooked(ctx.Sess, st)
 			} else if enterWater {
-				ctx.Log.Info("钓组在水中", "rod", shortGUID(st.GearGuid), "f5", fmt.Sprintf("0x%X", anim))
+				ctx.Log.Info("Оснастка в воде", "rod", shortGUID(st.GearGuid), "f5", fmt.Sprintf("0x%X", anim))
 			}
 			// pace 开启时动作复合档位升高 → 立即按新档重排咬钩（只升不降，
 			// 内部自持锁与守卫复核；好动作一出来即进对应等待窗，见
@@ -1247,7 +1247,7 @@ func hFishingStep(ctx *Ctx) ([]byte, bool) {
 			// 14/7 每帧都会发送，仅在动画位变化时记录日志。
 			if changed {
 				stateAgeMS := time.Since(st.LureStateAt).Milliseconds()
-				ctx.Log.Info("14/7 钓组动画位", "rod", shortGUID(st.GearGuid), "f5", fmt.Sprintf("0x%X", anim),
+				ctx.Log.Info("14/7 Позиция анимации оснастки", "rod", shortGUID(st.GearGuid), "f5", fmt.Sprintf("0x%X", anim),
 					"mask", fmt.Sprintf("0x%X", anim&lureMotionStatusMask),
 					"action", st.LureAction, "layer", st.LureLayer,
 					"layer_cm", st.effectiveBaitDepthCMLocked(time.Now()),
@@ -1284,15 +1284,15 @@ func hFishingFall(ctx *Ctx) ([]byte, bool) {
 	// 幂等键沿用本次抛竿，客户端重复上报不会重复扣份。
 	if spodRigTypes[rigType] {
 		if err := srv.consumeCastBait(ctx.Sess, st); err != nil {
-			ctx.Log.Warn("打窝器入窝料扣减失败", "rod", shortGUID(gear), "err", err)
+			ctx.Log.Warn("Не удалось списать прикормку из кормушки", "rod", shortGUID(gear), "err", err)
 		}
 	} else if enterWater {
 		if err := srv.consumeCastBait(ctx.Sess, st); err != nil {
-			ctx.Log.Warn("入水窝料扣减失败", "rod", shortGUID(gear), "err", err)
+			ctx.Log.Warn("Не удалось списать прикормку при погружении", "rod", shortGUID(gear), "err", err)
 		}
 	}
 	if needBite {
-		ctx.Log.Info("钓组在水中（14/3），补排咬钩", "rod", shortGUID(gear))
+		ctx.Log.Info("Оснастка в воде (14/3), назначаем поклёвку", "rod", shortGUID(gear))
 		ctx.Sess.Srv.scheduleBiteForHooked(ctx.Sess, st)
 	}
 	return nil, true
@@ -1346,7 +1346,7 @@ func hFishingPull(ctx *Ctx) ([]byte, bool) {
 	}
 	if needsConfirmation && nibble {
 		finishNibbleHook(ctx, st, pending, gear, castActive, resolved)
-		ctx.Log.Info("14/9 海钓嘬饵未中钩，重新排鱼", "rod", shortGUID(gear),
+		ctx.Log.Info("14/9 Морская рыба попробовала наживку без засечки, выбор рыбы заново", "rod", shortGUID(gear),
 			"fish", shortGUID(pending.FishGUID), "species", pending.Species)
 		return nil, true
 	}
@@ -1359,7 +1359,7 @@ func hFishingPull(ctx *Ctx) ([]byte, bool) {
 		if ctx.Sess.marineHookConfirm() {
 			bound = ctx.Sess.Push14_15(gear, pending.FishGUID)
 		} else if !ctx.Sess.marineHookItemSync() {
-			ctx.Log.Info("14/9 海钓抬竿走真服 14/11 口径，只补中鱼钩挂载位")
+			ctx.Log.Info("14/9 Подсечка в морской ловле по схеме офиц. 14/11, дополняется только крепление засечённой рыбы")
 		}
 		if ctx.Sess.marineHookItemSync() {
 			ctx.Sess.Push4_22Hook(false, gear)
@@ -1370,13 +1370,13 @@ func hFishingPull(ctx *Ctx) ([]byte, bool) {
 		// 这里只发单钩帧（与 14/11 钩帧同形状），不重建竿树，不会触发
 		// “扣饵 4/21 + 竿树同步打断搏鱼 ctor”的秒脱问题。
 		ctx.Sess.pushFightHookMounted(gear, pending)
-		ctx.Log.Info("14/9 海钓抬竿确认", "rod", shortGUID(gear), "fish", shortGUID(pending.FishGUID),
+		ctx.Log.Info("14/9 Подтверждение подсечки в морской ловле", "rod", shortGUID(gear), "fish", shortGUID(pending.FishGUID),
 			"rig_type", rigType, "14/15", bound)
 	} else if reconfirm {
-		ctx.Log.Info("14/9 重复确认已中钩鱼，幂等恢复 Hooked", "rod", shortGUID(gear),
+		ctx.Log.Info("14/9 Повторное подтверждение засечённой рыбы, идемпотентное восстановление Hooked", "rod", shortGUID(gear),
 			"fish", shortGUID(pending.FishGUID))
 	} else {
-		ctx.Log.Info("14/9 抬杆/小刺", "len", len(ctx.Body), "hex", traceHexHead(ctx.Body, 96), "rig_type", rigType)
+		ctx.Log.Info("14/9 Подсечка / лёгкая подсечка", "len", len(ctx.Body), "hex", traceHexHead(ctx.Body, 96), "rig_type", rigType)
 	}
 	if announce {
 		srv.notifyFishHooked(ctx.Sess, hookedFish, gear)
@@ -1410,9 +1410,9 @@ func hFishingHooked(ctx *Ctx) ([]byte, bool) {
 			// 幂等键兜底扣除——那里本就是额外鱼唯一的终局。
 			// 挂竿位要推这尾鱼自己的钩，不能推线末端那枚（Push4_22Hook 只取槽位 12）。
 			ctx.Sess.Push4_22HookGUID(extra.HookGUID, true)
-			ctx.Log.Info("14/11 额外鱼中钩确认", "rod", shortGUID(gear),
+			ctx.Log.Info("14/11 Подтверждение засечки доп. рыбы", "rod", shortGUID(gear),
 				"fish", shortGUID(extra.FishGUID), "hook", shortGUID(extra.HookGUID),
-				"species", extra.Species, "重量_g", extra.WeightG)
+				"species", extra.Species, "Вес_g", extra.WeightG)
 			return nil, true
 		}
 	}
@@ -1425,7 +1425,7 @@ func hFishingHooked(ctx *Ctx) ([]byte, bool) {
 		if announce {
 			srv.notifyFishHooked(ctx.Sess, hookedFish, gear)
 		}
-		ctx.Log.Info("14/11 重复中钩确认，幂等恢复", "rod", shortGUID(gear),
+		ctx.Log.Info("14/11 Повторное подтверждение засечки, идемпотентное восстановление", "rod", shortGUID(gear),
 			"fish", shortGUID(pending.FishGUID), "species", pending.Species)
 		return nil, true
 	}
@@ -1448,10 +1448,10 @@ func hFishingHooked(ctx *Ctx) ([]byte, bool) {
 	if pending != nil {
 		fishGUID, species = pending.FishGUID, pending.Species
 	}
-	ctx.Log.Info("14/11 中鱼", "rod", shortGUID(gear), "fish", shortGUID(fishGUID), "species", species, "was_hooked", wasHooked)
+	ctx.Log.Info("14/11 Рыба засечена", "rod", shortGUID(gear), "fish", shortGUID(fishGUID), "species", species, "was_hooked", wasHooked)
 	if nibble {
 		finishNibbleHook(ctx, st, pending, gear, castActive, resolved)
-		ctx.Log.Info("14/11 嘬饵未中钩，重新排鱼", "fish", shortGUID(fishGUID), "species", species)
+		ctx.Log.Info("14/11 Проба наживки без засечки, выбор рыбы заново", "fish", shortGUID(fishGUID), "species", species)
 		return nil, true
 	}
 	// 扣饵不在中鱼确认瞬间执行：此时客户端搏鱼 ctor 正在读取挂载态，扣饵
@@ -1506,14 +1506,14 @@ func finishNibbleHook(ctx *Ctx, st *FishState, pending *RolledFish, gear string,
 	if pending != nil {
 		pending.HookConfirmed = false
 		if err := srv.consumeNibbleBait(ctx.Sess, pending, gear); err != nil {
-			ctx.Log.Warn("嘬饵扣饵失败", "fish", pending.FishGUID, "err", err)
+			ctx.Log.Warn("Не удалось списать наживку после пробы", "fish", pending.FishGUID, "err", err)
 		}
 		// 14/11 的客户端语义是"鱼实体已进搏鱼态"，服务端单方面否决必须让客户端
 		// 知情：推送鱼离场（14/15 = 鱼离场分支，args[1]=鱼 GUID），
 		// 客户端走与自然脱钩相同的离场状态机放鱼游走，否则它会一直搏到岸边凭空消失。
 		// 客户端尚未接受鱼实体（此前 f0=3/5 拒收）时这是一次无效查找，无副作用。
 		if bound := ctx.Sess.Push14_15(gear, pending.FishGUID); bound {
-			ctx.Log.Info("嘬饵否决推送鱼离场 14/15", "fish", shortGUID(pending.FishGUID),
+			ctx.Log.Info("Проба отклонена, отправляем уход рыбы 14/15", "fish", shortGUID(pending.FishGUID),
 				"species", pending.Species)
 		}
 	}
@@ -1547,7 +1547,7 @@ func hFishingLeft(ctx *Ctx) ([]byte, bool) {
 		}
 	}
 	st.mu.Lock()
-	ctx.Log.Info("14/12 鱼状态", "rod", shortGUID(st.GearGuid), "f0", f0, "hooked", st.Hooked)
+	ctx.Log.Info("14/12 Состояние рыбы", "rod", shortGUID(st.GearGuid), "f0", f0, "hooked", st.Hooked)
 	// 14/12 顶层 args 为 [竿 GUID, 鱼 GUID, 状态对象]（实机 TRACE 与 14/14
 	// 推送核对）。鱼 GUID 与当前 Pending 不一致的是陈旧/异常帧：它描述的是
 	// 别的鱼，不得影响正在搏斗或待入护的这条。
@@ -1563,7 +1563,7 @@ func hFishingLeft(ctx *Ctx) ([]byte, bool) {
 			case 6:
 				extra.HookConfirmed = true
 				st.mu.Unlock()
-				ctx.Log.Info("14/12 额外鱼实体已就位", "fish", shortGUID(extra.FishGUID),
+				ctx.Log.Info("14/12 Сущность доп. рыбы на месте", "fish", shortGUID(extra.FishGUID),
 					"hook", shortGUID(extra.HookGUID))
 				return nil, true
 			case 3, 5:
@@ -1573,7 +1573,7 @@ func hFishingLeft(ctx *Ctx) ([]byte, bool) {
 				if srv.extraPushDeferredOnStrike() {
 					st.Extra[i].NoEntity = true
 					st.mu.Unlock()
-					ctx.Log.Info("14/12 客户端拒收额外鱼实体，改为只结算不显示",
+					ctx.Log.Info("14/12 Клиент отклонил сущность доп. рыбы, только расчёт без отображения",
 						"fish", shortGUID(extra.FishGUID), "hook", shortGUID(extra.HookGUID))
 					return nil, true
 				}
@@ -1583,10 +1583,10 @@ func hFishingLeft(ctx *Ctx) ([]byte, bool) {
 				st.mu.Unlock()
 				if hooked {
 					if err := srv.consumeHookedBait(ctx.Sess, extra, rodGUID); err != nil {
-						ctx.Log.Warn("额外鱼放弃时扣饵失败", "fish", shortGUID(extra.FishGUID), "err", err)
+						ctx.Log.Warn("Не удалось списать наживку при отказе от доп. рыбы", "fish", shortGUID(extra.FishGUID), "err", err)
 					}
 				}
-				ctx.Log.Info("14/12 客户端拒收额外鱼实体，放弃该尾", "fish", shortGUID(extra.FishGUID))
+				ctx.Log.Info("14/12 Клиент отклонил сущность доп. рыбы, она пропущена", "fish", shortGUID(extra.FishGUID))
 				return nil, true
 			case 1, 2, 8:
 				hooked := extra.HookConfirmed
@@ -1595,17 +1595,17 @@ func hFishingLeft(ctx *Ctx) ([]byte, bool) {
 				st.mu.Unlock()
 				if hooked {
 					if err := srv.consumeHookedBait(ctx.Sess, extra, rodGUID); err != nil {
-						ctx.Log.Warn("额外鱼离场扣饵失败", "fish", shortGUID(extra.FishGUID), "err", err)
+						ctx.Log.Warn("Не удалось списать наживку при уходе доп. рыбы", "fish", shortGUID(extra.FishGUID), "err", err)
 					}
 				}
-				ctx.Log.Info("14/12 额外鱼离场", "fish", shortGUID(extra.FishGUID),
+				ctx.Log.Info("14/12 Доп. рыба ушла", "fish", shortGUID(extra.FishGUID),
 					"hooked", hooked)
 				return nil, true
 			}
 		}
 	}
 	if st.Pending != nil && reported != "" && !strings.EqualFold(reported, st.Pending.FishGUID) {
-		ctx.Log.Info("14/12 忽略不一致的鱼 GUID", "f0", f0,
+		ctx.Log.Info("14/12 Несовпадающая рыба пропущена GUID", "f0", f0,
 			"reported", shortGUID(reported), "pending", shortGUID(st.Pending.FishGUID))
 		st.mu.Unlock()
 		return nil, true
@@ -1613,7 +1613,7 @@ func hFishingLeft(ctx *Ctx) ([]byte, bool) {
 	if completedCatchPending(st) {
 		// 14/4 已结算、等待 14/5 入护 / 14/6 放生：经验已落账，任何迟到的
 		// 状态上报不得清掉这尾鱼，否则结算无处安放（幽灵鱼）。
-		ctx.Log.Info("14/12 已结算渔获等待处理，忽略状态上报", "f0", f0)
+		ctx.Log.Info("14/12 Рассчитанный улов ждёт обработки, отчёт о состоянии пропущен", "f0", f0)
 		st.mu.Unlock()
 		return nil, true
 	}
@@ -1632,7 +1632,7 @@ func hFishingLeft(ctx *Ctx) ([]byte, bool) {
 		// 它会 cancel 刚 armed 的咬钩 timer 并把 Resolved 置真，整竿就此哑火。
 		if st.Pending == nil {
 			st.mu.Unlock()
-			ctx.Log.Info("14/12 无在途鱼，按离场回执忽略", "f0", f0, "reported", shortGUID(reported))
+			ctx.Log.Info("14/12 Нет рыбы в пути, квитанция ухода пропущена", "f0", f0, "reported", shortGUID(reported))
 			return nil, true
 		}
 		st.cancelBiteTimerLocked()
@@ -1644,7 +1644,7 @@ func hFishingLeft(ctx *Ctx) ([]byte, bool) {
 		} else {
 			// 连续拒收说明当前钓组状态与鱼实体不兼容；继续重推只会每 6 秒
 			// 重新刷一次鱼。放弃这尾鱼，等玩家重新抛竿。
-			ctx.Log.Info("14/12 连续拒收鱼实体，停止重推", "f0", f0, "retries", maxPendingRepush)
+			ctx.Log.Info("14/12 Клиент несколько раз отклонил сущность рыбы, повторная отправка остановлена", "f0", f0, "retries", maxPendingRepush)
 			st.Pending = nil
 			st.PendingRepush = 0
 			st.Resolved = true
@@ -1688,31 +1688,31 @@ func hFishingLeft(ctx *Ctx) ([]byte, bool) {
 				if pending != nil {
 					fid = shortGUID(pending.FishGUID)
 				}
-				ctx.Log.Info("14/12 叼住吐出（咬饵未咬钩），官方静默", "f0", f0, "fish", fid)
+				ctx.Log.Info("14/12 Взяла и выплюнула (клюнула, но не засеклась), офиц. сервер молчит", "f0", f0, "fish", fid)
 			} else {
 				srv.bumpFishingCounter(ctx.Sess.Userid, "escapes")
 				srv.recordHuntEscape(ctx.Sess.pushCtx(), ctx.Sess.Userid, loc, spot, pending)
-				srv.notifyFishEscape(ctx.Sess, pending, "脱钩离开")
-				ctx.Log.Info("14/12 搏鱼脱钩，按真脱钩播报", "f0", f0)
+				srv.notifyFishEscape(ctx.Sess, pending, "сошла с крючка")
+				ctx.Log.Info("14/12 Сход при вываживании, сообщаем как настоящий сход", "f0", f0)
 			}
 		} else {
-			ctx.Log.Info("14/12 鱼未上钩离场，官方静默", "f0", f0, "hooked", hooked)
+			ctx.Log.Info("14/12 Рыба ушла без засечки, офиц. сервер молчит", "f0", f0, "hooked", hooked)
 		}
 		// 扣饵在搏鱼终局（此处客户端已离开搏鱼态）执行：中鱼确认瞬间扣饵会
 		// 打断搏鱼 ctor（specs/changes/bait-consume-fight-end）。幂等键
 		// txn(uid,'bait_bite',FishGUID)，与 14/5/14/6/14/4 先到先扣。
 		if hooked && pending != nil {
 			if err := srv.consumeHookedBait(ctx.Sess, pending, rodGUID); err != nil {
-				ctx.Log.Warn("脱钩后鱼饵扣减失败", "fish", pending.FishGUID, "err", err)
+				ctx.Log.Warn("Не удалось списать наживку после схода", "fish", pending.FishGUID, "err", err)
 			}
 		}
 		// 这一尾鱼的渔轮账到此为止，先落库再排下一尾。
 		srv.settleFightReelWearState(srv.dbCtx(), st, ctx.Sess.Userid, "14/12")
 		// 多钩：当前这条走了，队列里还有就立刻接管，不重新排咬钩。
 		if next := srv.promoteAfterActiveGone(st); next != nil {
-			ctx.Log.Info("14/12 多钩接管下一条", "rod", shortGUID(rodGUID),
+			ctx.Log.Info("14/12 Несколько крючков: следующая рыба", "rod", shortGUID(rodGUID),
 				"fish", shortGUID(next.FishGUID), "hook", shortGUID(next.HookGUID),
-				"剩余", srv.pendingExtraCount(st))
+				"Осталось", srv.pendingExtraCount(st))
 			srv.repushPromotedAfterTakeover(ctx.Sess, st)
 			return nil, true
 		}
@@ -1739,15 +1739,15 @@ func hFishingLeft(ctx *Ctx) ([]byte, bool) {
 	if hooked && pending != nil && !alreadyResolved {
 		srv.bumpFishingCounter(ctx.Sess.Userid, "escapes")
 		srv.recordHuntEscape(ctx.Sess.pushCtx(), ctx.Sess.Userid, loc, spot, pending)
-		srv.notifyFishEscape(ctx.Sess, pending, "脱钩离开")
-		ctx.Log.Info("14/12 未知帧已中鱼跑鱼，按真脱钩播报", "f0", f0)
+		srv.notifyFishEscape(ctx.Sess, pending, "сошла с крючка")
+		ctx.Log.Info("14/12 Неизвестный кадр: засечённая рыба сошла, сообщаем как настоящий сход", "f0", f0)
 	} else {
-		ctx.Log.Info("14/12 未知帧鱼未上钩，不记脱钩补偿", "f0", f0, "hooked", hooked)
+		ctx.Log.Info("14/12 Неизвестный кадр: рыба не засечена, компенсация схода не начисляется", "f0", f0, "hooked", hooked)
 	}
 	// 扣饵在搏鱼终局执行（与 14/12 已知帧分支 / 14/5 / 14/6 / 14/4 共享幂等键）。
 	if hooked && pending != nil {
 		if err := srv.consumeHookedBait(ctx.Sess, pending, rodGUID); err != nil {
-			ctx.Log.Warn("脱钩后鱼饵扣减失败", "fish", pending.FishGUID, "err", err)
+			ctx.Log.Warn("Не удалось списать наживку после схода", "fish", pending.FishGUID, "err", err)
 		}
 	}
 	return nil, true
@@ -1776,7 +1776,7 @@ func hFishingEnd(ctx *Ctx) ([]byte, bool) {
 	resetMarineLayerLocked(st)
 	st.mu.Unlock()
 	body, ok := ctx.Sess.Srv.fishingEndSettle(ctx)
-	ctx.Log.Info("14/4 收竿", "handled", ok, "bytes", len(body))
+	ctx.Log.Info("14/4 Вытаскивание снасти", "handled", ok, "bytes", len(body))
 	return body, ok
 }
 
@@ -1798,13 +1798,13 @@ func hFishStats(ctx *Ctx) ([]byte, bool) {
 	}
 	tree, err := srv.buildStats321(ctx.Sess.pushCtx(), ctx.Sess.Userid)
 	if err != nil {
-		ctx.Log.Warn("3/2 统计构造失败", "err", err)
+		ctx.Log.Warn("3/2 Ошибка создания статистики", "err", err)
 		return nil, false
 	}
 	f0, f1, f4 := tree.Field(0), tree.Field(1), tree.Field(4)
 	// 同时输出 f11/f13，便于与客户端面板逐项对照这两个语义未定的槽位。
 	f11, f13 := tree.Field(11), tree.Field(13)
-	ctx.Log.Info("3/2 统计快照", "total", f0.U32(), "rare", f1.U32(), "daily_count", f4.U32(),
+	ctx.Log.Info("3/2 Снимок статистики", "total", f0.U32(), "rare", f1.U32(), "daily_count", f4.U32(),
 		"slot_f11", f11.U64(), "slot_f13", f13.U64())
 	body, err := proto.EncodeValue(tree, ctx.Sess.Table())
 	if err != nil {
@@ -1826,8 +1826,8 @@ func registerSessionHandlers(d *Dispatch) {
 	d.Register(11, 1, hShortcutSnapshot)
 	d.Register(11, 2, hShortcutBind)
 	d.Register(11, 3, hShortcutUnbind)
-	d.Register(3, 9, hPositionReport) // 位置同步：记录玩家世界坐标
-	d.Register(3, 13, hKitchenEat)    // 3/13 player/kitchen_eat：野外厨房进食，恢复饱食度
+	d.Register(3, 9, hPositionReport) // 位置同步: 记录玩家世界坐标
+	d.Register(3, 13, hKitchenEat)    // 3/13 player/kitchen_eat: 野外厨房进食, 恢复饱食度
 	d.Register(3, 30, hRigSyncBackpack)
 	d.Register(3, 31, hRigSyncRig)
 	d.Register(3, 37, hPlaceBuyout)
@@ -1897,7 +1897,7 @@ func buildKeepnet25(e *store.KeepnetEntry, levelKey string, rarity int64, modelK
 	if levelKey != "" {
 		loc = &levelKey
 	}
-	created := uint64(netTicksNow()) // f22 是版本戳，每次序列化必须严格变大
+	created := uint64(netTicksNow()) // f22 是版本戳, 每次序列化必须严格变大
 	updated := uint64(filetimeFromUnixFloat(e.TS))
 	displayXP := uint32(float64(e.WeightG) * map[bool]float64{true: 1.3, false: 0.85}[grade == 1])
 
@@ -1915,7 +1915,7 @@ func buildKeepnet25(e *store.KeepnetEntry, levelKey string, rarity int64, modelK
 		}),
 		7:  proto.U32(uint32(opt)),
 		8:  proto.Str(bait),
-		9:  proto.U32(27), // 钩位：浮钓
+		9:  proto.U32(27), // 钩位: 浮钓
 		10: proto.Str(loc),
 		11: proto.Str(name),
 		12: proto.Str(nameText),
@@ -1973,19 +1973,19 @@ var defaultPremiumBundleDefs = []premiumBundleDef{
 	{
 		Place: "level_012_north_sea",
 		Price: 17990,
-		Name:  "北海-全捆绑包",
+		Name:  "Северное море — полный набор",
 		Items: northSeaBundleItems,
 	},
 	{
 		Place: "level_012_north_sea",
 		Price: 15990,
-		Name:  "北海-扩展捆绑包",
+		Name:  "Северное море — расширенный набор",
 		Items: northSeaBundleItems,
 	},
 	{
 		Place: "level_012_north_sea",
 		Price: 3290,
-		Name:  "北海-基本捆绑包",
+		Name:  "Северное море — базовый набор",
 		Items: northSeaBundleItems,
 	},
 }
@@ -2040,7 +2040,7 @@ func (s *Server) grantPremiumBundle(ctx context.Context, c *Ctx, uid int64, plac
 		break
 	}
 	if hit == nil {
-		c.Log.Info("捆绑包未配置，跳过发放", "place", place, "price", price)
+		c.Log.Info("Набор не настроен, выдача пропущена", "place", place, "price", price)
 		return
 	}
 	name := hit.Name
@@ -2049,14 +2049,14 @@ func (s *Server) grantPremiumBundle(ctx context.Context, c *Ctx, uid int64, plac
 	}
 	slot, err := s.DB.NextFreeSlot(ctx, uid, "backpack")
 	if err != nil {
-		c.Log.Warn("捆绑包发放取空槽失败", "bundle", name, "err", err)
+		c.Log.Warn("Набор: не удалось найти пустой слот", "bundle", name, "err", err)
 		return
 	}
 	granted := 0
 	for _, it := range hit.Items {
 		rows, gerr := s.grantItemUnits(ctx, uid, it.ItemID, "backpack", it.Qty)
 		if gerr != nil {
-			c.Log.Warn("捆绑包物品发放失败", "bundle", name, "item", it.ItemID, "err", gerr)
+			c.Log.Warn("Набор: не удалось выдать предмет", "bundle", name, "item", it.ItemID, "err", gerr)
 			continue
 		}
 		for _, row := range rows {
@@ -2064,7 +2064,7 @@ func (s *Server) grantPremiumBundle(ctx context.Context, c *Ctx, uid int64, plac
 				continue
 			}
 			if serr := s.DB.SetItemSlot(ctx, row.GUID, slot); serr != nil {
-				c.Log.Warn("捆绑包物品槽位设置失败", "item", it.ItemID, "slot", slot, "err", serr)
+				c.Log.Warn("Набор: не удалось задать слот предмета", "item", it.ItemID, "slot", slot, "err", serr)
 			}
 			slot++
 			granted++
@@ -2073,7 +2073,7 @@ func (s *Server) grantPremiumBundle(ctx context.Context, c *Ctx, uid int64, plac
 			}
 		}
 	}
-	c.Log.Info("捆绑包附赠物品已发放", "bundle", name, "place", place, "price", price,
+	c.Log.Info("Бонусные предметы набора выданы", "bundle", name, "place", place, "price", price,
 		"granted", granted, "total", len(hit.Items))
 }
 

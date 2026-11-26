@@ -30,36 +30,36 @@ func (s *Server) attachDB(db *store.DB, log *slog.Logger) {
 	}
 	s.loadFightCurves()
 	if n, err := s.ensureFishEcology(context.Background()); err != nil {
-		s.log.Warn("鱼种生态档案初始化失败", "err", err)
+		s.log.Warn("Не удалось инициализировать экологические профили видов", "err", err)
 	} else if n > 0 {
-		s.log.Info("鱼种生态档案初始化", "inserted", n)
+		s.log.Info("Инициализация экологических профилей видов", "inserted", n)
 	}
 	if err := s.reloadFishEcologyCache(context.Background()); err != nil {
-		s.log.Warn("鱼种生态缓存加载失败", "err", err)
+		s.log.Warn("Не удалось загрузить кэш экологии видов", "err", err)
 	}
 	if rarities, err := db.SpeciesRarityMap(context.Background()); err != nil {
-		s.log.Warn("鱼种稀有度加载失败，缺席判定按普通鱼处理", "err", err)
+		s.log.Warn("Не удалось загрузить редкость видов, отсутствующие считаются обычными", "err", err)
 	} else {
 		setFishRaritySnapshot(rarities)
 	}
 	if n, err := s.reloadMarineFishKeys(context.Background()); err != nil {
-		s.log.Warn("海图鱼种集合加载失败，海水组回退词表判定", "err", err)
+		s.log.Warn("Не удалось загрузить набор видов морской карты, морская группа определяется по словарю", "err", err)
 	} else if n > 0 {
-		s.log.Info("海图鱼种集合已加载", "species", n)
+		s.log.Info("Набор видов морской карты загружен", "species", n)
 	}
 	if n, err := s.ensureFishSkillEffects(context.Background()); err != nil {
-		s.log.Warn("鱼口技能效果初始化失败", "err", err)
+		s.log.Warn("Не удалось инициализировать эффекты навыков клёва", "err", err)
 	} else if n > 0 {
-		s.log.Info("鱼口技能效果初始化", "inserted", n)
+		s.log.Info("Инициализация эффектов навыков клёва", "inserted", n)
 	}
 	// 必须在 ensureFishSkillEffects 之后：先种鱼侧行再删，DELETE 才能站稳。
 	if n, err := s.ensureCastSkillEffects(context.Background()); err != nil {
-		s.log.Warn("抛投技能效果初始化失败", "err", err)
+		s.log.Warn("Не удалось инициализировать эффекты навыков заброса", "err", err)
 	} else if n > 0 {
-		s.log.Info("抛投技能效果初始化", "inserted", n)
+		s.log.Info("Инициализация эффектов навыков заброса", "inserted", n)
 	}
 	if err := s.reloadHookBiteProfiles(context.Background()); err != nil {
-		s.log.Warn("鱼钩型号咬口缓存加载失败", "err", err)
+		s.log.Warn("Не удалось загрузить кэш засечки крючков", "err", err)
 	}
 }
 
@@ -71,7 +71,7 @@ func (s *Server) loadFightCurves() {
 		} `json:"pools"`
 	}
 	if err := json.Unmarshal(fightCurvesJSON, &parsed); err != nil {
-		s.log.Warn("fight_curves_sets.json 解析失败", "err", err)
+		s.log.Warn("fight_curves_sets.json Ошибка разбора", "err", err)
 		return
 	}
 	s.curveMu.Lock()
@@ -189,7 +189,7 @@ func (s *Server) buildFightCurvesWithProfile(species string, pull float64, profi
 			items[i] = proto.F32(float32(v))
 		}
 		for i := 15; i <= 18; i++ {
-			items[i] = proto.U32(uint32(r[i])) // 必须 int（阶段重复次数区间）
+			items[i] = proto.U32(uint32(r[i])) // 必须 int (阶段重复次数区间)
 		}
 		out.Items = append(out.Items, wiregen.MustMakeObj("oiikpeaajln", items))
 	}
@@ -381,7 +381,7 @@ func (s *Server) EnsurePlayer(ctx context.Context, uid int64) error {
 		return err
 	}
 	if _, _, err := s.removeItemsAndRepairRigs(ctx, uid, nil); err != nil {
-		return fmt.Errorf("修复物品装配引用: %w", err)
+		return fmt.Errorf("Исправление ссылок сборки предметов: %w", err)
 	}
 	var parsed struct {
 		Items []struct {
@@ -394,37 +394,37 @@ func (s *Server) EnsurePlayer(ctx context.Context, uid int64) error {
 		} `json:"shortcuts"`
 	}
 	if err := json.Unmarshal(starterItemsJSON, &parsed); err != nil {
-		return fmt.Errorf("starter_items.json 解析: %w", err)
+		return fmt.Errorf("starter_items.json Разбор: %w", err)
 	}
 	if len(parsed.Items) == 0 {
-		return fmt.Errorf("starter_items.json 不含物品")
+		return fmt.Errorf("starter_items.json не содержит предметов")
 	}
 
 	items := make([]*store.Item, 0, len(parsed.Items))
 	firstByItem := make(map[string]string, len(parsed.Items))
 	for i, si := range parsed.Items {
 		if si.ItemID == "" {
-			return fmt.Errorf("starter 第 %d 项缺少 item_id", i)
+			return fmt.Errorf("starter В пункте %d нет item_id", i)
 		}
 		if si.Qty < 0 {
-			return fmt.Errorf("starter %s 数量非法: %d", si.ItemID, si.Qty)
+			return fmt.Errorf("starter %s Недопустимое количество: %d", si.ItemID, si.Qty)
 		}
 		it, err := s.prepareNewItem(ctx, uid, si.ItemID, "backpack", 1, "")
 		if err != nil {
-			return fmt.Errorf("构造 starter %s: %w", si.ItemID, err)
+			return fmt.Errorf("Создание starter %s: %w", si.ItemID, err)
 		}
 		it.Slot = int64(i)
 		if si.Qty > 0 {
 			fields, err := FieldsFromJSON(it.FieldsJSON)
 			if err != nil {
-				return fmt.Errorf("解析 starter %s 字段: %w", si.ItemID, err)
+				return fmt.Errorf("Разбор полей starter %s: %w", si.ItemID, err)
 			}
 			if !setItemQty(it.WireClass, fields, uint64(si.Qty)) {
-				return fmt.Errorf("starter %s 不支持数量 %d", si.ItemID, si.Qty)
+				return fmt.Errorf("starter %s Количество не поддерживается %d", si.ItemID, si.Qty)
 			}
 			fj, err := FieldsToJSON(fields)
 			if err != nil {
-				return fmt.Errorf("编码 starter %s 字段: %w", si.ItemID, err)
+				return fmt.Errorf("Кодирование полей starter %s: %w", si.ItemID, err)
 			}
 			it.FieldsJSON = fj
 			it.Qty = si.Qty
@@ -439,18 +439,18 @@ func (s *Server) EnsurePlayer(ctx context.Context, uid int64) error {
 	for _, sc := range parsed.Shortcuts {
 		guid := firstByItem[sc.ItemID]
 		if guid == "" {
-			return fmt.Errorf("starter 快捷栏引用不存在: slot=%d item=%s", sc.Slot, sc.ItemID)
+			return fmt.Errorf("starter Ссылка панели быстрого доступа не существует: slot=%d item=%s", sc.Slot, sc.ItemID)
 		}
 		shortcuts[sc.Slot] = guid
 	}
 	seeded, err := s.DB.SeedStarterBundle(ctx, uid, items, shortcuts)
 	if err != nil {
-		return fmt.Errorf("播种 starter: %w", err)
+		return fmt.Errorf("Начальное заполнение starter: %w", err)
 	}
 	if !seeded {
 		return nil
 	}
-	s.log.Info("新玩家播种完成", "uid", uid, "items", len(items))
+	s.log.Info("Начальное заполнение нового игрока завершено", "uid", uid, "items", len(items))
 	return nil
 }
 

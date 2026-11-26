@@ -20,11 +20,11 @@ func TestFloatWeightComesFromRatedGram(t *testing.T) {
 	float := testDef(fmt.Sprintf(`{"fopbhlmkcpe":1,"jpaemlfkohn":%d,"hkgndoipdlc":%d}`,
 		f32Attr(4.0), f32Attr(11.0)))
 	if got := itemDefCastWeightG(float); math.Abs(got-4.0) > 1e-6 {
-		t.Fatalf("4G 浮漂应计 4g，实得 %f", got)
+		t.Fatalf("4G 浮漂应计 4g, 实得 %f", got)
 	}
 	heavy := testDef(fmt.Sprintf(`{"jpaemlfkohn":%d}`, f32Attr(50.0)))
 	if got := itemDefCastWeightG(heavy); math.Abs(got-50.0) > 1e-6 {
-		t.Fatalf("50G 浮漂应计 50g，实得 %f", got)
+		t.Fatalf("50G 浮漂应计 50g, 实得 %f", got)
 	}
 }
 
@@ -37,7 +37,7 @@ func TestLeaderWeightFromGeometry(t *testing.T) {
 		f32Attr(200.0), f32Attr(0.35))}
 	want := 1.14 * math.Pi / 4 * 0.35 * 0.35 * 2.0
 	if got := leaderMassG(leader, 0); math.Abs(got-want) > 1e-6 {
-		t.Fatalf("2m 0.35mm 尼龙前导应约 %.4fg，实得 %f", want, got)
+		t.Fatalf("2m 0.35mm 尼龙前导应约 %.4fg, 实得 %f", want, got)
 	}
 	// 散装钢丝前导线：长度在 ljnnpokapig（米）。
 	wire := &store.ItemDef{AttrsJSON: fmt.Sprintf(
@@ -45,10 +45,10 @@ func TestLeaderWeightFromGeometry(t *testing.T) {
 		f32Attr(13.0), f32Attr(0.50), f32Attr(15.0))}
 	gotWire := leaderMassG(wire, 0)
 	if gotWire <= 0 {
-		t.Fatalf("钢丝前导线应折算为正重量，实得 %f", gotWire)
+		t.Fatalf("钢丝前导线应折算为正重量, 实得 %f", gotWire)
 	}
 	if gotWire < 10 {
-		t.Fatalf("15m 0.5mm 钢丝前导应明显重于普通前导，实得 %f g", gotWire)
+		t.Fatalf("15m 0.5mm 钢丝前导应明显重于普通前导, 实得 %f g", gotWire)
 	}
 	// 重量必须随长度线性增长。
 	short := &store.ItemDef{AttrsJSON: fmt.Sprintf(
@@ -66,10 +66,10 @@ func TestLureWeightIncludesNestedHooks(t *testing.T) {
 		`{"dhlkahnodoo":%d,"gpoaffnjbdo":[{"ijbjficbhog":%d},{"ijbjficbhog":%d},{"ijbjficbhog":%d}]}`,
 		f32Attr(20.0), f32Attr(1.6), f32Attr(1.6), f32Attr(1.6))}
 	if got := lureChildWeightG(lure); math.Abs(got-4.8) > 1e-6 {
-		t.Fatalf("三枚 1.6g 子钩应合计 4.8g，实得 %f", got)
+		t.Fatalf("三枚 1.6g 子钩应合计 4.8g, 实得 %f", got)
 	}
 	if got := rigComponentCastWeight(catLure, lure, 0); math.Abs(got-24.8) > 1e-6 {
-		t.Fatalf("20g 饵体 + 4.8g 子钩 应计 24.8g，实得 %f", got)
+		t.Fatalf("20g 饵体 + 4.8g 子钩 应计 24.8g, 实得 %f", got)
 	}
 }
 
@@ -89,7 +89,7 @@ func TestRigComponentWeightsByCategory(t *testing.T) {
 	}
 	for _, tc := range cases {
 		if got := rigComponentCastWeight(tc.category, testDef(tc.attrs), 0); math.Abs(got-tc.want) > 1e-6 {
-			t.Fatalf("%s: 期望 %.4fg，实得 %f", tc.name, tc.want, got)
+			t.Fatalf("%s: 期望 %.4fg, 实得 %f", tc.name, tc.want, got)
 		}
 	}
 }
@@ -108,12 +108,12 @@ func TestLineMassScalesWithDiameter(t *testing.T) {
 	// 0.30mm 尼龙约 0.08g/m，用来确认量级没有跑偏。
 	mono := testDef(fmt.Sprintf(`{"fopbhlmkcpe":1,"ciichedlnjh":%d}`, f32Attr(0.30)))
 	if got := lineMassGPM(mono); got < 0.06 || got > 0.10 {
-		t.Fatalf("0.30mm 尼龙线重应在 0.06~0.10 g/m，实得 %f", got)
+		t.Fatalf("0.30mm 尼龙线重应在 0.06~0.10 g/m, 实得 %f", got)
 	}
 	// 缺线径时回退静态字段，不能返回 0。
 	fallback := testDef(fmt.Sprintf(`{"fopbhlmkcpe":1,"lgjeahdobch":%d}`, f32Attr(0.02)))
 	if got := lineMassGPM(fallback); math.Abs(got-0.02) > 1e-9 {
-		t.Fatalf("无线径时应回退 lgjeahdobch，实得 %f", got)
+		t.Fatalf("无线径时应回退 lgjeahdobch, 实得 %f", got)
 	}
 }
 
@@ -159,7 +159,7 @@ func TestRigWearKeyFollowsAssemblyCategory(t *testing.T) {
 	}
 	for slot, want := range cases {
 		if got := wearKey(slot); got != want {
-			t.Fatalf("slot %d 应映射到 %q，实得 %q", slot, want, got)
+			t.Fatalf("slot %d 应映射到 %q, 实得 %q", slot, want, got)
 		}
 	}
 	if wearPerCatch[wearKey(catLine)] != 0 {
@@ -169,6 +169,6 @@ func TestRigWearKeyFollowsAssemblyCategory(t *testing.T) {
 		t.Fatal("鱼钩应比拟饵磨得快")
 	}
 	if wearPerCatch[wearKey(catBait)] != 0 {
-		t.Fatal("鱼饵是消耗品，不应按耐久磨损")
+		t.Fatal("鱼饵是消耗品, 不应按耐久磨损")
 	}
 }

@@ -15,23 +15,23 @@ func TestMarineRollBaitsOnlyKeepsRealLures(t *testing.T) {
 	// 同一钩位混挂真实拟饵、天然饵和彩珠：只有真实拟饵参与判鱼。
 	mixed := baitedHookSet{baits: []string{"pilkerlures_2630", "worm_01", "color_bead_009"}}
 	if got := s.rollBaitsForGroup(t.Context(), c, mixed, 50); len(got) != 1 || got[0] != "pilkerlures_2630" {
-		t.Fatalf("混挂钩位的候选=%v，期望只保留 pilkerlures_2630", got)
+		t.Fatalf("混挂钩位的候选=%v, 期望只保留 pilkerlures_2630", got)
 	}
 
 	// 只有天然饵与彩珠的钩位视为装饰，不会出鱼。
 	decorated := baitedHookSet{baits: []string{"worm_01", "color_bead_009"}}
 	if got := s.rollBaitsForGroup(t.Context(), c, decorated, 50); len(got) != 0 {
-		t.Fatalf("装饰钩位不应有判鱼候选，得到 %v", got)
+		t.Fatalf("装饰钩位不应有判鱼候选, 得到 %v", got)
 	}
 
 	// 开口率分母只算能出鱼的钩位。
 	groups := []baitedHookSet{mixed, decorated}
 	if got := s.marineBaitHookCount(t.Context(), 50, groups); got != 1 {
-		t.Fatalf("海钓有效钩位数=%d，期望 1（天然饵与彩珠不算）", got)
+		t.Fatalf("海钓有效钩位数=%d, 期望 1 (天然饵与彩珠不算)", got)
 	}
 	// 非海钓钓组保持原口径：每组饵都能参与判鱼。
 	if got := s.marineBaitHookCount(t.Context(), 12, groups); got != 2 {
-		t.Fatalf("非海钓钩位数=%d，期望原样返回 2", got)
+		t.Fatalf("非海钓钩位数=%d, 期望原样返回 2", got)
 	}
 }
 
@@ -55,7 +55,7 @@ func TestRollExtraFishSkipsDecorationOnlyHooks(t *testing.T) {
 	extras := s.rollExtraFishForRig(ctx, 1000001, rod, "loc12_15", "worm_01",
 		fishingSkillBonus{}, fishRollContext{rigType: 50}, primary, s.multiHookConfig())
 	if len(extras) != 0 {
-		t.Fatalf("装饰钩位不应出额外鱼，得到 %d 条: %+v", len(extras), extras)
+		t.Fatalf("装饰钩位不应出额外鱼, 得到 %d 条: %+v", len(extras), extras)
 	}
 }
 

@@ -56,8 +56,8 @@ func (s *Server) useAlcoholDrink(ctx *Ctx) ([]byte, bool) {
 		return nil, true
 	}
 	failed := func(err error) ([]byte, bool) {
-		ctx.Log.Warn("饮用未完成", "err", err)
-		return fail("饮用未完成，请重试")
+		ctx.Log.Warn("Напиток не выпит", "err", err)
+		return fail("Напиток не выпит, попробуйте ещё раз")
 	}
 	cctx, uid := ctx.Sess.pushCtx(), ctx.Sess.Userid
 	// tunableF 首次装载有 2 秒超时的表查询，不能发生在持锁事务内
@@ -85,7 +85,7 @@ func (s *Server) useAlcoholDrink(ctx *Ctx) ([]byte, bool) {
 			return failed(err)
 		}
 		if receipt.BodySHA256 != bodySHA || receipt.ExpectResponse != ctx.ExpectResponse {
-			return fail("饮用请求与已处理的请求不一致")
+			return fail("Запрос на напиток не совпадает с уже обработанным")
 		}
 		return receipt.Body, true
 	}
@@ -133,13 +133,13 @@ func (s *Server) useAlcoholDrink(ctx *Ctx) ([]byte, bool) {
 		return nil, false
 	}
 	if ctx.Sess.Closed() {
-		return fail("会话已关闭，请重新连接")
+		return fail("Сессия закрыта, переподключитесь")
 	}
 	if !hasStorage || storage != 0 || row.UID != uid || row.Container != "backpack" || row.RigGUID != "" {
-		return fail("只能使用自己背包中的消耗品")
+		return fail("Можно использовать только расходники из своего инвентаря")
 	}
 	if def.Category != 26 || row.WireClass != "aafdnnmleob" || row.TypeID != 128 {
-		return fail("消耗品状态无效，请刷新背包")
+		return fail("Неверное состояние расходника, обновите инвентарь")
 	}
 	fields, err := FieldsFromJSON(row.FieldsJSON)
 	if err != nil {
@@ -147,11 +147,11 @@ func (s *Server) useAlcoholDrink(ctx *Ctx) ([]byte, bool) {
 	}
 	qtyIdx := stackQtyFieldIdx(row.WireClass)
 	if len(fields) != len(s.table.OpsFor(row.WireClass)) {
-		return fail("饮品数量无效，请刷新背包")
+		return fail("Неверное количество напитка, обновите инвентарь")
 	}
 	if qtyIdx < 0 || qtyIdx >= len(fields) || fields[qtyIdx].Num == nil || row.Qty <= 0 ||
 		u64Of(fields[qtyIdx].Num) != uint64(row.Qty) || uint64(row.Qty) > 0xffffffff {
-		return fail("饮品数量无效，请刷新背包")
+		return fail("Неверное количество напитка, обновите инвентарь")
 	}
 
 	if isConsumable {

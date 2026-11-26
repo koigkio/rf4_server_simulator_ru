@@ -17,28 +17,28 @@ func TestSkillProficiencyFixedPercent(t *testing.T) {
 	}
 	// 固定 50%：0.49 应命中，0.51 应失败；不再受原版 60% 熟练度概率影响。
 	if got := s.skillProficiencyGainForRoll(cat, current, 0.49, 0); got <= 0 {
-		t.Fatalf("50%% 概率下 0.49 应命中，实际 gain=%.2f", got)
+		t.Fatalf("50%% 概率下 0.49 应命中, 实际 gain=%.2f", got)
 	}
 	if got := s.skillProficiencyGainForRoll(cat, current, 0.51, 0); got != 0 {
-		t.Fatalf("50%% 概率下 0.51 不应命中，实际 gain=%.2f", got)
+		t.Fatalf("50%% 概率下 0.51 不应命中, 实际 gain=%.2f", got)
 	}
 
 	// 0 = 原版概率：随机数 0 应命中。
 	s.tunCache["skill_gain_pct_2"] = 0
 	if got := s.skillProficiencyGainForRoll(cat, current, 0, 0); got <= 0 {
-		t.Fatalf("0 应回退原版概率并命中，实际 gain=%.2f", got)
+		t.Fatalf("0 应回退原版概率并命中, 实际 gain=%.2f", got)
 	}
 
 	// 100 = 必定命中，即使随机数接近 1。
 	s.tunCache["skill_gain_pct_2"] = 100
 	if got := s.skillProficiencyGainForRoll(cat, current, 0.9999, 0); got <= 0 {
-		t.Fatalf("100%% 概率应必定命中，实际 gain=%.2f", got)
+		t.Fatalf("100%% 概率应必定命中, 实际 gain=%.2f", got)
 	}
 
 	// 未配置的大类回退原版公式。
 	s.tunCache = map[string]float64{}
 	if got := s.skillProficiencyGainForRoll(99, current, 0, 0); got <= 0 {
-		t.Fatalf("未配置大类应回退原版并命中，实际 gain=%.2f", got)
+		t.Fatalf("未配置大类应回退原版并命中, 实际 gain=%.2f", got)
 	}
 }
 
@@ -64,16 +64,16 @@ func TestSkillGradeMultiplierScalesGain(t *testing.T) {
 
 	// 未配置倍数的档位回退 1 倍；grade<=0 表示调用方不区分档位。
 	if got := s.skillProficiencyGainForGradeRoll(cat, 9, current, 0.5, 0); got != 0.2 {
-		t.Fatalf("未配置档位应回退 1 倍，实际 %.2f", got)
+		t.Fatalf("未配置档位应回退 1 倍, 实际 %.2f", got)
 	}
 	if got := s.skillProficiencyGainForGradeRoll(cat, 0, current, 0.5, 0); got != 0.2 {
-		t.Fatalf("grade<=0 应回退 1 倍，实际 %.2f", got)
+		t.Fatalf("grade<=0 应回退 1 倍, 实际 %.2f", got)
 	}
 
 	// 非法倍数回退 1 倍，而不是把成长关掉。
 	s.tunCache["skill_grade_mult_2"] = -1
 	if got := s.skillProficiencyGainForGradeRoll(cat, 2, current, 0.5, 0); got != 0.2 {
-		t.Fatalf("负倍数应回退 1 倍，实际 %.2f", got)
+		t.Fatalf("负倍数应回退 1 倍, 实际 %.2f", got)
 	}
 }
 
@@ -87,15 +87,15 @@ func TestSkillGradeMultiplierKeepsProbability(t *testing.T) {
 	}
 	// 倍数为 8 也只放大增量，命中概率仍是固定 50%：0.51 必须判失败。
 	if got := s.skillProficiencyGainForGradeRoll(cat, 4, current, 0.51, 0); got != 0 {
-		t.Fatalf("档位倍数不应抬高命中概率，实际 gain=%.2f", got)
+		t.Fatalf("档位倍数不应抬高命中概率, 实际 gain=%.2f", got)
 	}
 	if got := s.skillProficiencyGainForGradeRoll(cat, 4, current, 0.49, 0); got != 1.6 {
-		t.Fatalf("命中后应按 8 倍放大到 1.6，实际 %.2f", got)
+		t.Fatalf("命中后应按 8 倍放大到 1.6, 实际 %.2f", got)
 	}
 
 	// 满熟练度不增长，倍数也不能绕过上限。
 	if got := s.skillProficiencyGainForGradeRoll(cat, 4, profCap, 0.49, 0); got != 0 {
-		t.Fatalf("满熟练度不应增长，实际 %.2f", got)
+		t.Fatalf("满熟练度不应增长, 实际 %.2f", got)
 	}
 }
 
@@ -117,7 +117,7 @@ func TestCraftProficiencyFixedPercent(t *testing.T) {
 	setSkillGainCache(srv, "skill_gain_pct_6", 100)
 	srv.randFloat = fixedRolls(0.9999, 0.99)
 	if got := srv.awardCraftProficiency(ctx, uid, craftCookSkillID, 3); got != 0.3 {
-		t.Fatalf("100%% 三件制作应增加 0.3，实得 %.2f", got)
+		t.Fatalf("100%% 三件制作应增加 0.3, 实得 %.2f", got)
 	}
 	if got, err := db.GetSkillPoints(ctx, uid, craftCookSkillID); err != nil || got != 0.3 {
 		t.Fatalf("写入烹饪熟练度=%.2f err=%v, want 0.3", got, err)
@@ -149,7 +149,7 @@ func TestFixedChanceSkipsHappyHourRoll(t *testing.T) {
 	// 0.6 在固定 50% 下失败；若错误地叠加欢乐时光修正会变成 0.48 并命中。
 	srv.randFloat = fixedRolls(0.6, 0.99)
 	if got := srv.proficiencyGainForCatch(2, 60, true); got != 0 {
-		t.Fatalf("固定模式不应叠加欢乐时光修正，实得 gain=%.2f", got)
+		t.Fatalf("固定模式不应叠加欢乐时光修正, 实得 gain=%.2f", got)
 	}
 }
 

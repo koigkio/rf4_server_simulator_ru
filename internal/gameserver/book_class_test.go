@@ -20,7 +20,7 @@ func TestSkillBookUsesWrapperClass(t *testing.T) {
 		t.Fatal("category 80 未映射")
 	}
 	if got.Class != "ipdakkbfoja" || got.TypeID != 13301 {
-		t.Fatalf("category 80 映射=%+v，期望 ipdakkbfoja/13301", got)
+		t.Fatalf("category 80 映射=%+v, 期望 ipdakkbfoja/13301", got)
 	}
 }
 
@@ -49,7 +49,7 @@ func TestSkillBookUseRaisesProficiencyAndConsumesBook(t *testing.T) {
 			useCtx := drinkUseTestCtx(t, srv, 1, row.GUID, 0)
 			body, handled := hItemUse(useCtx)
 			if !handled || len(body) == 0 || len(useCtx.afterResponse) != 1 {
-				t.Fatalf("4/8 阅读技能书未完成: handled=%v body=%v pushes=%d", handled, body, len(useCtx.afterResponse))
+				t.Fatalf("4/8 Чтение книги навыка не завершено: handled=%v body=%v pushes=%d", handled, body, len(useCtx.afterResponse))
 			}
 			value, end, err := proto.DecodeValue(body, 0, srv.Table())
 			if err != nil || end != len(body) || value.TypeID != 800 {

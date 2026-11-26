@@ -19,7 +19,7 @@ func (s *Server) handleMapTextures(w http.ResponseWriter, r *http.Request) {
 	name := strings.TrimPrefix(r.URL.Path, "/maps/")
 	if name == "" || name != filepath.Base(name) || !strings.HasSuffix(name, ".webp") ||
 		!strings.HasPrefix(name, "map_") {
-		httpError(w, 404, "贴图名不合法")
+		httpError(w, 404, "Недопустимое имя изображения")
 		return
 	}
 	if path, ok := findPaperMap(name); ok {
@@ -75,9 +75,9 @@ func paperMapPlaceholder(w http.ResponseWriter, name string) {
 		b.WriteString(`<line x1="` + p + `" y1="0" x2="` + p + `" y2="2048" stroke="#2c3a4a" stroke-width="2"/>`)
 		b.WriteString(`<line x1="0" y1="` + p + `" x2="2048" y2="` + p + `" stroke="#2c3a4a" stroke-width="2"/>`)
 	}
-	b.WriteString(`<text x="1024" y="960" fill="#8aa2b8" font-size="72" text-anchor="middle" font-family="sans-serif">纸地图素材未部署</text>`)
+	b.WriteString(`<text x="1024" y="960" fill="#8aa2b8" font-size="72" text-anchor="middle" font-family="sans-serif">Изображения бумажных карт не установлены</text>`)
 	b.WriteString(`<text x="1024" y="1080" fill="#61788e" font-size="48" text-anchor="middle" font-family="sans-serif">ref/paper_maps/` + xmlEscape(name) + `</text>`)
-	b.WriteString(`<text x="1024" y="1180" fill="#61788e" font-size="40" text-anchor="middle" font-family="sans-serif">python tools/extract_paper_maps.py（见 docs/admin-console.md）</text>`)
+	b.WriteString(`<text x="1024" y="1180" fill="#61788e" font-size="40" text-anchor="middle" font-family="sans-serif">python tools/extract_paper_maps.py(см. docs/admin-console.md)</text>`)
 	b.WriteString(`</svg>`)
 	w.Header().Set("Content-Type", "image/svg+xml; charset=utf-8")
 	w.Header().Set("Cache-Control", "no-store")

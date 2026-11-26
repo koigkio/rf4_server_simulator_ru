@@ -180,7 +180,7 @@ func (d *DB) ListPlayerSkillsAdmin(ctx context.Context, uid int64) ([]*AdminSkil
 			v.Name = zh
 		}
 		if v.Name == "" {
-			v.Name = fmt.Sprintf("技能 %d", v.SkillID)
+			v.Name = fmt.Sprintf("Навыки %d", v.SkillID)
 		}
 		out = append(out, v)
 	}
@@ -189,9 +189,9 @@ func (d *DB) ListPlayerSkillsAdmin(ctx context.Context, uid int64) ([]*AdminSkil
 
 func adminSkillCategoryNames() map[int64]string {
 	return map[int64]string{
-		1: "浮子钓鱼", 2: "纺车钓鱼", 3: "底钓", 4: "饵料制作",
-		5: "技能 801-815", 6: "烹饪", 7: "混合诱饵", 8: "路亚手工",
-		9: "技能 1-18", 10: "技能 901-904", 11: "海钓",
+		1: "浮子钓鱼", 2: "Спиннинг", 3: "Донка", 4: "Изготовление насадок",
+		5: "Навыки 801-815", 6: "Кулинария", 7: "混合诱饵", 8: "Ручные приманки",
+		9: "Навыки 1-18", 10: "Навыки 901-904", 11: "Морская ловля",
 	}
 }
 
@@ -208,7 +208,7 @@ func (d *DB) SetPlayerSkillPointsAdmin(ctx context.Context, uid, skillID int64, 
 		return err
 	}
 	if exists == 0 {
-		return fmt.Errorf("技能大类 %d 不存在", skillID)
+		return fmt.Errorf("Категория навыков %d не существует", skillID)
 	}
 	_, err := d.SQL.ExecContext(ctx, `
 		INSERT INTO skill(uid, skill_id, points) VALUES(?,?,?)
@@ -429,7 +429,7 @@ func (d *DB) ListAdminStoreItems(ctx context.Context, storeID, query string, lim
 func (d *DB) ListAdminStoreItemsFiltered(ctx context.Context, storeID, query string, limit int, overridesOnly bool) ([]*AdminStoreItemView, error) {
 	storeID = strings.TrimSpace(storeID)
 	if storeID == "" {
-		return nil, fmt.Errorf("store_id 不能为空")
+		return nil, fmt.Errorf("store_id не может быть пустым")
 	}
 	if limit <= 0 || limit > 2000 {
 		limit = 500
@@ -492,14 +492,14 @@ func (d *DB) SetAdminShopOverride(ctx context.Context, storeID, itemID string, s
 	storeID = strings.TrimSpace(storeID)
 	itemID = strings.TrimSpace(itemID)
 	if storeID == "" || itemID == "" {
-		return fmt.Errorf("store_id 和 item_id 不能为空")
+		return fmt.Errorf("store_id и item_id не могут быть пустыми")
 	}
 	if silver < 0 || gold < 0 || stock < 0 {
-		return fmt.Errorf("价格和库存不能为负数")
+		return fmt.Errorf("Цена и наличие не могут быть отрицательными")
 	}
 	if _, err := d.ShopItemGet(ctx, storeID, itemID); err != nil {
 		if err == sql.ErrNoRows {
-			return fmt.Errorf("商品不在该店生效货架: %s/%s", storeID, itemID)
+			return fmt.Errorf("Товара нет на действующей полке этого магазина: %s/%s", storeID, itemID)
 		}
 		return err
 	}
@@ -684,7 +684,7 @@ func applyBaitRotation(row *FishConfigRow, o FishBaitOverride) {
 
 func (d *DB) SaveAdminFishConfig(ctx context.Context, in FishConfigSave, updatedBy string) error {
 	if strings.TrimSpace(in.Area) == "" {
-		return fmt.Errorf("水域不能为空")
+		return fmt.Errorf("Водоём не может быть пустым")
 	}
 	now := float64(time.Now().UnixNano()) / 1e9
 	tx, err := d.SQL.BeginTx(ctx, nil)
@@ -750,7 +750,7 @@ func (d *DB) SaveAdminFishConfig(ctx context.Context, in FishConfigSave, updated
 
 func (d *DB) ResetAdminFishConfig(ctx context.Context, loc string) error {
 	if strings.TrimSpace(loc) == "" {
-		return fmt.Errorf("水域不能为空")
+		return fmt.Errorf("Водоём не может быть пустым")
 	}
 	tx, err := d.SQL.BeginTx(ctx, nil)
 	if err != nil {

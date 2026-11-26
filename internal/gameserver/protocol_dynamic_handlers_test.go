@@ -63,7 +63,7 @@ func TestSonarGuideSpotRequiresBaitLanding(t *testing.T) {
 			srv.prepareFishRollRuntime(t.Context(), &c, "")
 			if !c.hasPos || c.runtime.zoneKnown != tc.cast || (tc.cast && c.runtime.zone != 170) ||
 				c.runtime.guideKnown != tc.cast || c.runtime.guideSpot != tc.want {
-				t.Fatalf("位置可用=%t，声呐网格=%d，攻略定位=%t 标深=%d，期望标深=%d", c.hasPos, c.runtime.zone, c.runtime.guideKnown, c.runtime.guideSpot, tc.want)
+				t.Fatalf("位置可用=%t, 声呐网格=%d, 攻略定位=%t 标深=%d, 期望标深=%d", c.hasPos, c.runtime.zone, c.runtime.guideKnown, c.runtime.guideSpot, tc.want)
 			}
 		})
 	}
@@ -94,11 +94,11 @@ func TestDynamicProtocolHandlersShapeAndEcho(t *testing.T) {
 		}
 		f0 := dec.Field(0)
 		if got := f0.StrOr(); got != "loc12_01" {
-			t.Fatalf("1/10 f0=%q, 期望 loc12_01", got)
+			t.Fatalf("1/10 f0=%q, Ожидалось loc12_01", got)
 		}
 		grid := dec.Field(1).Val
 		if grid == nil || grid.Kind != proto.KindArgs || grid.ArgCodeStr() != sonarCellArgCode || grid.ArgCount() != 0 {
-			t.Fatalf("1/10 f1 应为空 args(%s)，实得 %#v", sonarCellArgCode, grid)
+			t.Fatalf("1/10 f1 应为空 args(%s), 实得 %#v", sonarCellArgCode, grid)
 		}
 		if reason := srv.dispatch.checkRegisteredResponse(1, 10, body, srv.Table()); reason != "" {
 			t.Fatalf("1/10 合同守卫误拒: %s", reason)
@@ -218,7 +218,7 @@ func TestDynamicHanditemThrowConsumesLoadedStack(t *testing.T) {
 	f0 := dec.Field(0)
 	gotDist := float64(proto.F32FromBits(f0.U32()))
 	if math.Abs(gotDist-17.5) > 0.001 {
-		t.Fatalf("13/5 f0=%f, 期望 17.5", gotDist)
+		t.Fatalf("13/5 f0=%f, Ожидалось 17.5", gotDist)
 	}
 	scatterField := dec.Field(1)
 	if gotScatter := float64(proto.F32FromBits(scatterField.U32())); math.Abs(gotScatter-5.0) > 0.001 {
@@ -226,23 +226,23 @@ func TestDynamicHanditemThrowConsumesLoadedStack(t *testing.T) {
 	}
 	upserts := dec.Field(3).Val
 	if upserts == nil || upserts.ArgCount() != 1 {
-		t.Fatalf("13/5 f3 应更新装填物，实得 %#v", upserts)
+		t.Fatalf("13/5 f3 应更新装填物, 实得 %#v", upserts)
 	}
 	fresh, err := srv.DB.GetItemByGUID(ctx, bait.GUID)
 	if err != nil || fresh == nil {
 		t.Fatalf("第一次抛投后装填物应剩 1 份: %v", err)
 	}
 	if left := srv.stackCountOf(ctx, fresh); left != 1 {
-		t.Fatalf("第一次抛投后剩 %d 份，期望 1", left)
+		t.Fatalf("第一次抛投后剩 %d 份, 期望 1", left)
 	}
 
 	// f2 姿态块与 f4 抛出物：客户端凭 f2 写全局时间，凭 f4 的新实例生成飞行中的饵。
 	if pose := dec.Field(2).Val; pose == nil || pose.Class != "pnbphpdmppe" {
-		t.Fatalf("13/5 f2 应为姿态块 pnbphpdmppe，实得 %#v", pose)
+		t.Fatalf("13/5 f2 应为姿态块 pnbphpdmppe, 实得 %#v", pose)
 	}
 	proj := dec.Field(4).Val
 	if proj == nil || proj.ArgCount() != 1 {
-		t.Fatalf("13/5 f4 应下发 1 个抛出物，实得 %#v", proj)
+		t.Fatalf("13/5 f4 应下发 1 个抛出物, 实得 %#v", proj)
 	}
 	pj := proj.ArgItem(0)
 	gi := fieldIdxByCS(pj.Class, csGUID)
@@ -252,16 +252,16 @@ func TestDynamicHanditemThrowConsumesLoadedStack(t *testing.T) {
 	pjID := pj.Field(gi)
 	g := pjID.GuidHex()
 	if g == "" || g == bait.GUID {
-		t.Fatalf("抛出物必须是新实例 GUID，实得 %q（装填物 %s）", g, bait.GUID)
+		t.Fatalf("抛出物必须是新实例 GUID, 实得 %q (装填物 %s)", g, bait.GUID)
 	}
 	if qi := fieldIdxByCS(pj.Class, csQty); qi >= 0 {
 		pjQty := pj.Field(qi)
 		if got := pjQty.U32(); got != 1 {
-			t.Fatalf("抛出物数量=%d，期望 1", got)
+			t.Fatalf("抛出物数量=%d, 期望 1", got)
 		}
 	}
 	if row, _ := srv.DB.GetItemByGUID(ctx, g); row != nil {
-		t.Fatal("抛出物是一次性记录，不应落库")
+		t.Fatal("抛出物是一次性记录, 不应落库")
 	}
 
 	body, ok = hDynamicHanditemThrow(dynamicTestCtx(srv, req))
@@ -274,10 +274,10 @@ func TestDynamicHanditemThrowConsumesLoadedStack(t *testing.T) {
 	}
 	if removed := dec.Field(5).Val; removed == nil || removed.Kind != proto.KindGuidArr ||
 		removed.ArgCount() != 1 || removed.ArgItem(0).GuidHex() != bait.GUID {
-		t.Fatalf("第二次抛投 f5 应移除装填物 %s，实得 %#v", bait.GUID, removed)
+		t.Fatalf("第二次抛投 f5 应移除装填物 %s, 实得 %#v", bait.GUID, removed)
 	}
 	if left, _ := srv.DB.GetItemByGUID(ctx, bait.GUID); left != nil {
-		t.Fatal("装填物用尽后仍存在（被错误退回/未删除）")
+		t.Fatal("装填物用尽后仍存在 (被错误退回/未删除)")
 	}
 	if loaded := srv.handitemLoadedGuid(ctx, hand.GUID); loaded != "" {
 		t.Fatalf("装填物用尽后引用未清空: %s", loaded)
@@ -303,10 +303,10 @@ func TestDynamicHanditemThrowConsumesLoadedStack(t *testing.T) {
 		t.Fatal(err)
 	}
 	if proj := dec.Field(4).Val; proj == nil || proj.ArgCount() != 0 {
-		t.Fatalf("缺省应不下发抛出物实例，实得 %#v", proj)
+		t.Fatalf("缺省应不下发抛出物实例, 实得 %#v", proj)
 	}
 	if pose := dec.Field(2).Val; pose == nil || pose.Class != "pnbphpdmppe" {
-		t.Fatalf("关掉抛出物不该影响 f2 姿态块，实得 %#v", pose)
+		t.Fatalf("关掉抛出物不该影响 f2 姿态块, 实得 %#v", pose)
 	}
 	setWeatherTestTunable(t, srv, "handitem_throw_scatter", "0")
 	body, ok = hDynamicHanditemThrow(dynamicTestCtx(srv, req))
@@ -319,13 +319,13 @@ func TestDynamicHanditemThrowConsumesLoadedStack(t *testing.T) {
 	}
 	scatterField = dec.Field(1)
 	if gotScatter := float64(proto.F32FromBits(scatterField.U32())); gotScatter != 0 {
-		t.Fatalf("散布开关调 0 后 f1=%f，期望 0", gotScatter)
+		t.Fatalf("散布开关调 0 后 f1=%f, 期望 0", gotScatter)
 	}
 	if fresh2, _ := srv.DB.GetItemByGUID(ctx, bait2.GUID); fresh2 != nil {
-		t.Fatalf("第二发用尽后 bait2 应删除，实得 %#v", fresh2)
+		t.Fatalf("第二发用尽后 bait2 应删除, 实得 %#v", fresh2)
 	}
 	if loaded := srv.handitemLoadedGuid(ctx, hand.GUID); loaded != "" {
-		t.Fatalf("两发用尽后装填引用应清空，实得 %s", loaded)
+		t.Fatalf("两发用尽后装填引用应清空, 实得 %s", loaded)
 	}
 }
 
@@ -362,7 +362,7 @@ func TestDynamicHanditemThrowDistanceForceOverridesClientDistance(t *testing.T) 
 	}
 	f0d := dec.Field(0)
 	if got := float64(proto.F32FromBits(f0d.U32())); math.Abs(got-10) > 0.001 {
-		t.Fatalf("缺省 f0=%f，期望沿用客户端上报的 10", got)
+		t.Fatalf("缺省 f0=%f, 期望沿用客户端上报的 10", got)
 	}
 
 	setWeatherTestTunable(t, srv, "handitem_throw_dist_force", "60")
@@ -376,10 +376,10 @@ func TestDynamicHanditemThrowDistanceForceOverridesClientDistance(t *testing.T) 
 	}
 	f0f := dec.Field(0)
 	if got := float64(proto.F32FromBits(f0f.U32())); math.Abs(got-60) > 0.001 {
-		t.Fatalf("强制距离后 f0=%f，期望服务端下发的 60", got)
+		t.Fatalf("强制距离后 f0=%f, 期望服务端下发的 60", got)
 	}
 	if row, _ := srv.DB.GetItemByGUID(ctx, bait.GUID); row != nil {
-		t.Fatal("两发用尽后装填物应删除（覆盖距离不该影响扣料）")
+		t.Fatal("两发用尽后装填物应删除 (覆盖距离不该影响扣料)")
 	}
 }
 
@@ -422,7 +422,7 @@ func TestDynamicHanditemThrowLedgerSurvivesCallIDReuse(t *testing.T) {
 		}
 	}
 	if n := gbCount(t, srv, uid); n != 2 {
-		t.Fatalf("两次登录同 CallID 应有 2 笔窝账，实得 %d（幂等键撞车）", n)
+		t.Fatalf("两次登录同 CallID 应有 2 笔窝账, 实得 %d (幂等键撞车)", n)
 	}
 	var keys []string
 	rows, err := srv.DB.SQL.Query(
@@ -461,7 +461,7 @@ func TestDynamicEquippedItemsUsesRigRows(t *testing.T) {
 		t.Fatal(err)
 	}
 	if dec.Kind != proto.KindArgs || dec.ArgCodeStr() != "61" || dec.ArgCount() != 1 {
-		t.Fatalf("3/41 应回 args(61)[1 件]，实得 %#v", dec)
+		t.Fatalf("3/41 应回 args(61)[1 件], 实得 %#v", dec)
 	}
 	got := dec.ArgItem(0)
 	if got == nil || got.Kind != proto.KindObj || got.TypeID != uint32(item.TypeID) {
@@ -519,7 +519,7 @@ func TestDynamicHanditemThrowLandingOverridesPoseBlock(t *testing.T) {
 		}
 		pose := dec.Field(2).Val
 		if pose == nil || pose.Class != "pnbphpdmppe" {
-			t.Fatalf("13/5 f2 应为 float×5+long+int 块，实得 %#v", pose)
+			t.Fatalf("13/5 f2 应为 float×5+long+int 块, 实得 %#v", pose)
 		}
 		return pose
 	}
@@ -532,20 +532,20 @@ func TestDynamicHanditemThrowLandingOverridesPoseBlock(t *testing.T) {
 	setWeatherTestTunable(t, srv, "handitem_throw_pose_pos", "1")
 	pose := throwOnce()
 	if got := f32(pose, 0); math.Abs(got-100) > 0.01 {
-		t.Fatalf("落点 x=%f，期望 100", got)
+		t.Fatalf("落点 x=%f, 期望 100", got)
 	}
 	if got := f32(pose, 1); math.Abs(got) > 0.01 {
-		t.Fatalf("落点 y=%f，期望水面 0", got)
+		t.Fatalf("落点 y=%f, 期望水面 0", got)
 	}
 	if got := f32(pose, 2); math.Abs(got-110) > 0.01 {
-		t.Fatalf("落点 z=%f，期望 100+10=110（朝 +Z 的浮标方向前进 10m）", got)
+		t.Fatalf("落点 z=%f, 期望 100+10=110 (朝 +Z 的浮标方向前进 10m)", got)
 	}
 	if got := f32(pose, 3); math.Abs(got) > 0.01 {
-		t.Fatalf("偏航=%f 度，期望 +Z 方向 0 度", got)
+		t.Fatalf("偏航=%f 度, 期望 +Z 方向 0 度", got)
 	}
 	// 后四位不动：体力常量与世界钟 FILETIME 保持姿态块原值。
 	if got := f32(pose, 5); math.Abs(got-11.375) > 0.001 {
-		t.Fatalf("f2 第 6 位=%f，期望沿用姿态块 11.375", got)
+		t.Fatalf("f2 第 6 位=%f, 期望沿用姿态块 11.375", got)
 	}
 	f7 := pose.Field(7)
 	if f7.U64() == 0 {
@@ -559,10 +559,10 @@ func TestDynamicHanditemThrowLandingOverridesPoseBlock(t *testing.T) {
 	setWeatherTestTunable(t, srv, "handitem_throw_fallback_yaw", "90")
 	pose = throwOnce()
 	if got := f32(pose, 0); math.Abs(got-110) > 0.01 {
-		t.Fatalf("兜底偏航 90 度时落点 x=%f，期望 110", got)
+		t.Fatalf("兜底偏航 90 度时落点 x=%f, 期望 110", got)
 	}
 	if got := f32(pose, 2); math.Abs(got-100) > 0.01 {
-		t.Fatalf("兜底偏航 90 度时落点 z=%f，期望 100", got)
+		t.Fatalf("兜底偏航 90 度时落点 z=%f, 期望 100", got)
 	}
 	setWeatherTestTunable(t, srv, "handitem_throw_fallback_yaw", "0")
 
@@ -570,7 +570,7 @@ func TestDynamicHanditemThrowLandingOverridesPoseBlock(t *testing.T) {
 	setWeatherTestTunable(t, srv, "handitem_throw_pose_pos", "0")
 	pose = throwOnce()
 	if got := f32(pose, 0); math.Abs(got-100) < 0.01 {
-		t.Fatalf("关掉 pose_pos 后 f2 首位仍是坐标 %f，期望体力值", got)
+		t.Fatalf("关掉 pose_pos 后 f2 首位仍是坐标 %f, 期望体力值", got)
 	}
 }
 
@@ -615,9 +615,9 @@ func TestDynamicHanditemThrowLandingCell(t *testing.T) {
 	castCell := int64(600 / groundbaitCellSizeM)
 	landCell := int64(110 / groundbaitCellSizeM)
 	if cellZ == castCell {
-		t.Fatalf("窝账仍记在抛竿落点格 %d,%d，land_cell 开关应该改掉它", cellX, cellZ)
+		t.Fatalf("窝账仍记在抛竿落点格 %d,%d, land_cell 开关应该改掉它", cellX, cellZ)
 	}
 	if cellZ != landCell {
-		t.Fatalf("窝账格 %d,%d，期望落点格 %d", cellX, cellZ, landCell)
+		t.Fatalf("窝账格 %d,%d, 期望落点格 %d", cellX, cellZ, landCell)
 	}
 }

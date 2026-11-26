@@ -21,7 +21,7 @@ func TestFightCurvesKeepSprintTensionStages(t *testing.T) {
 	const pull = 50.0
 	curves := srv.buildFightCurves("crucian", pull)
 	if curves == nil || len(curves.Items) < 20 {
-		t.Fatalf("搏鱼曲线行数=%d，期望完整冲刺阶段池", len(curves.Items))
+		t.Fatalf("搏鱼曲线行数=%d, 期望完整冲刺阶段池", len(curves.Items))
 	}
 
 	stageIDs := map[uint32]bool{}
@@ -46,11 +46,11 @@ func TestFightCurvesKeepSprintTensionStages(t *testing.T) {
 	}
 	// uniform 缩放：min/max 比例固定为池包络，与 pull 无关。
 	if minTension < pull*0.45 || maxTension > pull*1.35 {
-		t.Fatalf("曲线张力范围 %.2f..%.2f 偏离 crucian 池 uniform 包络（基准 %.2f）",
+		t.Fatalf("曲线张力范围 %.2f..%.2f 偏离 crucian 池 uniform 包络 (基准 %.2f)",
 			minTension, maxTension, pull)
 	}
 	if minTension >= pull || maxTension <= pull {
-		t.Fatalf("张力包络未跨过基准拉力 %.2f，冲刺差异丢失", pull)
+		t.Fatalf("张力包络未跨过基准拉力 %.2f, 冲刺差异丢失", pull)
 	}
 }
 
@@ -64,7 +64,7 @@ func TestFishPullScalesWithSpeciesAndWeight(t *testing.T) {
 	crucianPull := srv.fishFightPullFor(&RolledFish{Species: "crucian", WeightG: 1000})
 
 	if pikeLarge <= pikeSmall {
-		t.Fatalf("同鱼种大体型拉力应更强（ln 斜率）: small=%f large=%f", pikeSmall, pikeLarge)
+		t.Fatalf("同鱼种大体型拉力应更强 (ln 斜率): small=%f large=%f", pikeSmall, pikeLarge)
 	}
 	if roachPull <= crucianPull {
 		t.Fatalf("拟鲤族 K0 应高于静水小鲤: roach=%f crucian=%f", roachPull, crucianPull)
@@ -79,7 +79,7 @@ func TestFishPullScalesWithSpeciesAndWeight(t *testing.T) {
 	// 未实测鱼种走习性组/fallback，不得为 0 或负。
 	fallback := srv.fishFightPullFor(&RolledFish{Species: "not_in_calib", WeightG: 500})
 	if fallback <= 0 {
-		t.Fatalf("未测种拉力=%f，应走组表/fallback", fallback)
+		t.Fatalf("未测种拉力=%f, 应走组表/fallback", fallback)
 	}
 }
 
@@ -142,16 +142,16 @@ func TestFishFightGroupFallbackCanBeDisabled(t *testing.T) {
 	tree := srv.buildFish27(f, "", "", 24)
 	wantStamina := verifiedStaminaPerGram * 100 * srv.fishFightProfileFor(f).StaminaScale
 	if got := f32At(tree, 5); math.Abs(got-wantStamina) > 0.001 {
-		t.Fatalf("关闭组兜底后 f5=%f，期望旧公式 %f", got, wantStamina)
+		t.Fatalf("关闭组兜底后 f5=%f, 期望旧公式 %f", got, wantStamina)
 	}
 	if got := f32At(tree, 6); math.Abs(got-defaultFishInitialStaminaRatio) > 1e-6 {
-		t.Fatalf("关闭组兜底后 f6=%f，期望旧常数 %f", got, defaultFishInitialStaminaRatio)
+		t.Fatalf("关闭组兜底后 f6=%f, 期望旧常数 %f", got, defaultFishInitialStaminaRatio)
 	}
 	if got := f32At(tree, 14); math.Abs(got-0.5) > 1e-6 {
-		t.Fatalf("关闭组兜底后 f14=%f，期望旧 fallback 0.5", got)
+		t.Fatalf("关闭组兜底后 f14=%f, 期望旧 fallback 0.5", got)
 	}
 	if got := f32At(tree, 16); math.Abs(got-0.833907) > 1e-6 {
-		t.Fatalf("关闭组兜底后 f16=%f，期望旧 fallback 0.833907", got)
+		t.Fatalf("关闭组兜底后 f16=%f, 期望旧 fallback 0.833907", got)
 	}
 }
 
@@ -171,14 +171,14 @@ func TestFightLegacyModelRestoresOldScales(t *testing.T) {
 	profile := srv.fishFightProfileFor(f)
 	wantPull := verifiedForcePerGram * 1000 * profile.ForceScale
 	if got := srv.fishFightPullFor(f); math.Abs(got-wantPull) > 1e-3 {
-		t.Fatalf("legacy f8=%v，期望旧公式 %v", got, wantPull)
+		t.Fatalf("legacy f8=%v, 期望旧公式 %v", got, wantPull)
 	}
 	wantStamina := verifiedStaminaPerGram * 1000 * profile.StaminaScale
 	if got := srv.fishStaminaForProfile(f, profile); math.Abs(got-wantStamina) > 1e-6 {
-		t.Fatalf("legacy f5=%v，期望旧公式 %v", got, wantStamina)
+		t.Fatalf("legacy f5=%v, 期望旧公式 %v", got, wantStamina)
 	}
 	if got := srv.fishF6For(f); got != srv.fishInitialStaminaRatio() {
-		t.Fatalf("legacy f6=%v，期望旧常数 %v", got, srv.fishInitialStaminaRatio())
+		t.Fatalf("legacy f6=%v, 期望旧常数 %v", got, srv.fishInitialStaminaRatio())
 	}
 }
 
@@ -196,14 +196,14 @@ func TestFightOfficialStrengthOverridesLegacy(t *testing.T) {
 	profile := srv.fishFightProfileFor(f)
 	wantPull := 1.0 * (srv.fishPullK0For("b_carp") + fishPullLnSlope*math.Log(1))
 	if got := srv.fishFightPullFor(f); math.Abs(got-wantPull) > 1e-3 {
-		t.Fatalf("official strength f8=%v，期望官方公式 %v", got, wantPull)
+		t.Fatalf("official strength f8=%v, 期望官方公式 %v", got, wantPull)
 	}
 	if got := srv.fishF6For(f); got != fishF6Table["b_carp"] {
-		t.Fatalf("official strength f6=%v，期望 %v", got, fishF6Table["b_carp"])
+		t.Fatalf("official strength f6=%v, 期望 %v", got, fishF6Table["b_carp"])
 	}
 	wantStamina := fishStaminaRatePerGram["b_carp"] * 1000
 	if got := srv.fishStaminaForProfile(f, profile); math.Abs(got-wantStamina) > 1e-6 {
-		t.Fatalf("official strength f5=%v，期望 %v", got, wantStamina)
+		t.Fatalf("official strength f5=%v, 期望 %v", got, wantStamina)
 	}
 }
 
@@ -217,26 +217,26 @@ func TestFishF6Scale(t *testing.T) {
 	srv.tunAt = time.Now()
 	srv.tunMu.Unlock()
 	if got := srv.fishF6For(&RolledFish{Species: "b_carp", WeightG: 1000}); got != 1.0 {
-		t.Fatalf("b_carp f6=%v，期望钳到 1.0", got)
+		t.Fatalf("b_carp f6=%v, 期望钳到 1.0", got)
 	}
 	if got := srv.fishF6For(&RolledFish{Species: "c.roach", WeightG: 300}); got != 0.75 {
-		t.Fatalf("c.roach f6=%v，期望 0.75", got)
+		t.Fatalf("c.roach f6=%v, 期望 0.75", got)
 	}
 }
 
 // TestFightPhaseScales 钉住旧版阶段倍率，防止 legacy 曲线悄悄漂移。
 func TestFightPhaseScales(t *testing.T) {
 	if got := fightPhaseTensionScale(302); got != 1.78 {
-		t.Fatalf("302 张力倍率=%v，期望 1.78", got)
+		t.Fatalf("302 张力倍率=%v, 期望 1.78", got)
 	}
 	if got := fightPhaseTensionScale(306); got != 0.42 {
-		t.Fatalf("306 张力倍率=%v，期望 0.42", got)
+		t.Fatalf("306 张力倍率=%v, 期望 0.42", got)
 	}
 	if got := fightPhaseDurationScale(306); got != 1.55 {
-		t.Fatalf("306 时长倍率=%v，期望 1.55", got)
+		t.Fatalf("306 时长倍率=%v, 期望 1.55", got)
 	}
 	if got := fightPhaseDurationScale(101); got != 0.72 {
-		t.Fatalf("101 时长倍率=%v，期望 0.72", got)
+		t.Fatalf("101 时长倍率=%v, 期望 0.72", got)
 	}
 	if !fightIsRestPhase(104) || !fightIsRestPhase(105) || !fightIsRestPhase(306) {
 		t.Fatal("104/105/306 应识别为休息阶段")

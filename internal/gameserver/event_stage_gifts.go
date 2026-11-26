@@ -38,7 +38,7 @@ type eventStageGiftPlan struct {
 	Branch  int64
 	Stage   int64
 	Gifts   []eventStageGift
-	Preview []string // 去重后的目录键，保持首次出现顺序
+	Preview []string // 去重后的目录键, 保持首次出现顺序
 }
 
 // eventStageGiftPlans 解析并校验 tunable 配置，按分支、阶段升序返回。
@@ -55,25 +55,25 @@ func (s *Server) eventStageGiftPlans() []eventStageGiftPlan {
 		Qty  int64  `json:"qty"`
 	}
 	if err := json.Unmarshal([]byte(raw), &parsed); err != nil {
-		s.log.Warn("阶段礼物配置解析失败", "err", err)
+		s.log.Warn("Ошибка разбора настроек подарков за этапы", "err", err)
 		return nil
 	}
 	var plans []eventStageGiftPlan
 	for branchStr, stages := range parsed {
 		branch, err := strconv.ParseInt(branchStr, 10, 32)
 		if err != nil {
-			s.log.Warn("阶段礼物配置分支号非法，跳过", "branch", branchStr)
+			s.log.Warn("Неверный номер ветки в настройках подарков за этапы, пропущено", "branch", branchStr)
 			continue
 		}
 		counts, ok := eventTaskCounts[uint64(branch)]
 		if !ok {
-			s.log.Warn("阶段礼物配置分支不是活动分支，跳过", "branch", branch)
+			s.log.Warn("Ветка в настройках подарков за этапы не является веткой события, пропущено", "branch", branch)
 			continue
 		}
 		for stageStr, gifts := range stages {
 			stage, err := strconv.ParseInt(stageStr, 10, 32)
 			if err != nil || stage < 0 || stage > int64(len(counts)) {
-				s.log.Warn("阶段礼物配置阶段号非法，跳过", "branch", branch, "stage", stageStr)
+				s.log.Warn("Неверный номер этапа в настройках подарков за этапы, пропущено", "branch", branch, "stage", stageStr)
 				continue
 			}
 			plan := eventStageGiftPlan{Branch: branch, Stage: stage}
@@ -84,7 +84,7 @@ func (s *Server) eventStageGiftPlans() []eventStageGiftPlan {
 					continue
 				}
 				if g.Item == "" {
-					s.log.Warn("阶段礼物配置物品键为空，跳过", "branch", branch, "stage", stage)
+					s.log.Warn("Пустой ключ предмета в настройках подарков за этапы, пропущено", "branch", branch, "stage", stage)
 					continue
 				}
 				qty := g.Qty
@@ -176,10 +176,10 @@ func (s *Server) ensureEventStageGifts(ctx context.Context, uid int64) []*store.
 	}
 	states, err := s.DB.QualificationStates(ctx, uid)
 	if err != nil {
-		s.log.Warn("阶段礼物巡检读进度失败", "uid", uid, "err", err)
+		s.log.Warn("Проверка подарков за этапы: не удалось прочитать прогресс", "uid", uid, "err", err)
 		return nil
 	}
-	stageRules := map[int64][]int64{} // key = branch*100+stage，仅活动分支非缺口规则
+	stageRules := map[int64][]int64{} // key = branch*100+stage, 仅活动分支非缺口规则
 	branchRules := map[int64][]int64{}
 	for _, r := range qualificationRules {
 		if eventGapRuleIDs[r.ID] {
@@ -205,7 +205,7 @@ func (s *Server) ensureEventStageGifts(ctx context.Context, uid int64) []*store.
 			rules = branchRules[plan.Branch]
 		}
 		if len(rules) == 0 {
-			continue // 阶段没有可判定任务，不能凭空发放
+			continue // 阶段没有可判定任务, 不能凭空发放
 		}
 		complete := true
 		for _, id := range rules {
@@ -254,7 +254,7 @@ func grantEventStageGiftItemTx(ctx context.Context, tx *sql.Tx, it *store.Item) 
 	if merge {
 		limit := bundleQuantityLimit(it.WireClass)
 		if it.Qty < 1 || it.Qty > limit {
-			return nil, fmt.Errorf("阶段奖励数量超出数量槽范围: %s", it.ItemID)
+			return nil, fmt.Errorf("Количество награды за этап выходит за пределы слота количества: %s", it.ItemID)
 		}
 		// 与 grantPreparedItemTx 使用同一排序，容量判断和入账都在当前事务中。
 		row, err := scanTxItem(tx.QueryRowContext(ctx, `SELECT `+txItemCols+`
@@ -284,7 +284,7 @@ func (s *Server) grantEventStageGift(ctx context.Context, uid int64, plan *event
 	for _, g := range plan.Gifts {
 		def, err := s.DB.GetItemDefByItemID(ctx, g.ItemID)
 		if err != nil || def == nil {
-			s.log.Warn("阶段礼物定义不存在", "item", g.ItemID, "err", err)
+			s.log.Warn("Определение подарка за этап не существует", "item", g.ItemID, "err", err)
 			return nil, nil
 		}
 		// 官服预览含 premium_3d；本地直接兑现三天服务，不创建无法使用的凭证。
@@ -304,7 +304,7 @@ func (s *Server) grantEventStageGift(ctx context.Context, uid int64, plan *event
 				it, err = s.prepareNewItem(ctx, uid, g.ItemID, "backpack", 1, "")
 			}
 			if err != nil {
-				s.log.Warn("阶段礼物物品构造失败", "uid", uid, "branch", plan.Branch,
+				s.log.Warn("Не удалось создать предмет подарка за этап", "uid", uid, "branch", plan.Branch,
 					"stage", plan.Stage, "item", g.ItemID, "err", err)
 				return nil, nil
 			}
@@ -313,14 +313,14 @@ func (s *Server) grantEventStageGift(ctx context.Context, uid int64, plan *event
 	}
 	tx, err := beginEconomyTx(ctx, s.DB)
 	if err != nil {
-		s.log.Warn("阶段礼物事务开启失败", "uid", uid, "err", err)
+		s.log.Warn("Не удалось начать транзакцию подарка за этап", "uid", uid, "err", err)
 		return nil, nil
 	}
 	defer func() { _ = tx.Rollback() }()
 	res, err := tx.ExecContext(ctx, `INSERT OR IGNORE INTO kv(k,v) VALUES(?,?)`,
 		eventStageGiftKey(uid, plan.Branch, plan.Stage), "granted")
 	if err != nil {
-		s.log.Warn("阶段礼物幂等键写入失败", "uid", uid, "err", err)
+		s.log.Warn("Не удалось записать ключ идемпотентности подарка за этап", "uid", uid, "err", err)
 		return nil, nil
 	}
 	if n, err := res.RowsAffected(); err != nil || n == 0 {
@@ -328,7 +328,7 @@ func (s *Server) grantEventStageGift(ctx context.Context, uid int64, plan *event
 	}
 	if membershipDays > 0 {
 		if err := grantEventMembershipTx(ctx, tx, uid, membershipDays, time.Now().Unix()); err != nil {
-			s.log.Warn("活动会员发放失败", "uid", uid, "err", err)
+			s.log.Warn("Не удалось выдать премиум события", "uid", uid, "err", err)
 			return nil, nil
 		}
 	}
@@ -336,14 +336,14 @@ func (s *Server) grantEventStageGift(ctx context.Context, uid int64, plan *event
 	for _, it := range prepared {
 		row, err := grantEventStageGiftItemTx(ctx, tx, it)
 		if err != nil {
-			s.log.Warn("阶段礼物发放失败", "uid", uid, "branch", plan.Branch,
+			s.log.Warn("Не удалось выдать подарок за этап", "uid", uid, "branch", plan.Branch,
 				"stage", plan.Stage, "item", it.ItemID, "err", err)
 			return nil, nil
 		}
 		out = append(out, row)
 	}
 	if err := tx.Commit(); err != nil {
-		s.log.Warn("阶段礼物提交失败", "uid", uid, "err", err)
+		s.log.Warn("Не удалось зафиксировать подарок за этап", "uid", uid, "err", err)
 		return nil, nil
 	}
 	var names []string
@@ -365,13 +365,13 @@ func grantEventMembershipTx(ctx context.Context, tx *sql.Tx, uid, days, now int6
 	}
 	if kind == 2 {
 		return nil
-	} // 永久会员不能降级或覆盖到期时间。
+	} // 永久会员不能降级或覆盖到期时间.
 	base := now
 	if kind == 1 && expires > base {
 		base = expires
 	}
 	if days <= 0 || days > (253402300799-base)/86400 {
-		return fmt.Errorf("活动会员到期时间超出范围")
+		return fmt.Errorf("Время окончания премиума события вне допустимого диапазона")
 	}
 	if _, err := tx.ExecContext(ctx, `UPDATE profile SET membership=1,membership_exp=?,updated_ts=? WHERE uid=?`, base+days*86400, now, uid); err != nil {
 		return err

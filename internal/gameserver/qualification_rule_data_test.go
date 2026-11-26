@@ -11,7 +11,7 @@ import (
 
 func TestPermanentQualificationWireRulesComplete(t *testing.T) {
 	if len(qualificationRuleWireByID) != 168 {
-		t.Fatalf("永久资格静态规则数=%d，期望 168", len(qualificationRuleWireByID))
+		t.Fatalf("永久资格静态规则数=%d, 期望 168", len(qualificationRuleWireByID))
 	}
 	seen := make(map[uint64]bool, 168)
 	for branch := uint64(1); branch <= qualificationBranches; branch++ {
@@ -54,7 +54,7 @@ func TestPermanentQualificationWireRulesRoundTrip(t *testing.T) {
 		}
 		for idx, value := range wantScalars {
 			if got.Fields[idx].Num == nil || *got.Fields[idx].Num != value {
-				t.Fatalf("规则 %d 字段 %d=%v，期望 %d", id, idx, got.Fields[idx].Num, value)
+				t.Fatalf("规则 %d 字段 %d=%v, 期望 %d", id, idx, got.Fields[idx].Num, value)
 			}
 		}
 
@@ -65,7 +65,7 @@ func TestPermanentQualificationWireRulesRoundTrip(t *testing.T) {
 		for idx, values := range wantEnums {
 			field := got.Fields[idx].Val
 			if field == nil || field.Kind != proto.KindU32Arr {
-				t.Fatalf("规则 %d 字段 %d 应为非 null u32 数组，实得 %v", id, idx, field)
+				t.Fatalf("规则 %d 字段 %d 应为非 null u32 数组, 实得 %v", id, idx, field)
 			}
 			actual := make([]uint32, 0, len(field.Items))
 			for _, item := range field.Items {
@@ -75,7 +75,7 @@ func TestPermanentQualificationWireRulesRoundTrip(t *testing.T) {
 				values = []uint32{}
 			}
 			if !reflect.DeepEqual(actual, values) {
-				t.Fatalf("规则 %d 字段 %d=%v，期望 %v", id, idx, actual, values)
+				t.Fatalf("规则 %d 字段 %d=%v, 期望 %v", id, idx, actual, values)
 			}
 		}
 
@@ -83,7 +83,7 @@ func TestPermanentQualificationWireRulesRoundTrip(t *testing.T) {
 		for idx, values := range wantStrings {
 			field := got.Fields[idx].Val
 			if field == nil || field.Kind != proto.KindArray {
-				t.Fatalf("规则 %d 字段 %d 应为非 null 字符串数组，实得 %v", id, idx, field)
+				t.Fatalf("规则 %d 字段 %d 应为非 null 字符串数组, 实得 %v", id, idx, field)
 			}
 			actual := make([]string, 0, len(field.Items))
 			for _, item := range field.Items {
@@ -97,7 +97,7 @@ func TestPermanentQualificationWireRulesRoundTrip(t *testing.T) {
 				values = []string{}
 			}
 			if !reflect.DeepEqual(actual, values) {
-				t.Fatalf("规则 %d 字段 %d=%v，期望 %v", id, idx, actual, values)
+				t.Fatalf("规则 %d 字段 %d=%v, 期望 %v", id, idx, actual, values)
 			}
 		}
 	}
@@ -114,7 +114,7 @@ func TestPermanentQualificationOfficialTargetAnchors(t *testing.T) {
 	for id, check := range checks {
 		rule := qualificationRuleWireByID[id]
 		if rule.F3 != check.target || !reflect.DeepEqual(rule.F9, check.rigs) {
-			t.Fatalf("规则 %d 目标/钓组=%d/%v，期望 %d/%v", id, rule.F3, rule.F9, check.target, check.rigs)
+			t.Fatalf("规则 %d 目标/钓组=%d/%v, 期望 %d/%v", id, rule.F3, rule.F9, check.target, check.rigs)
 		}
 	}
 	ghost := qualificationRuleWireByID[7401]

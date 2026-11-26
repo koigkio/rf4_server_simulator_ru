@@ -87,7 +87,7 @@ func (d *DB) AddTripGrants(ctx context.Context, uid int64, place string, guids, 
 		return nil
 	}
 	if len(guids) != len(itemIDs) {
-		return errors.New("trip_grant 参数不配对")
+		return errors.New("trip_grant Параметры не парные")
 	}
 	now := float64(time.Now().Unix())
 	tx, err := d.SQL.BeginTx(ctx, nil)

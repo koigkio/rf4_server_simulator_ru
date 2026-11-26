@@ -90,12 +90,12 @@ type rigGearIDs struct {
 type gearPhysicsSpec struct {
 	RodPowerKg          float64
 	LineStrengthKg      float64
-	LeaderStrengthKg    float64 // 前导/子线：取内嵌线与连接件较小值
-	LeadcoreStrengthKg  float64 // 铅芯前导（cat57）自身拉力
-	ConnectorStrengthKg float64 // 独立连接件（cat14）自身拉力
+	LeaderStrengthKg    float64 // 前导/子线: 取内嵌线与连接件较小值
+	LeadcoreStrengthKg  float64 // 铅芯前导 (cat57)自身拉力
+	ConnectorStrengthKg float64 // 独立连接件 (cat14)自身拉力
 	ReelPresent         bool
 	ReelDragKg          float64 // 当前耐久阶段下的锁轮承力
-	ReelCurrentDragKg   float64 // 当前摩擦档位下的制动力，线上 29（UI 30）锁轮时等于锁轮承力
+	ReelCurrentDragKg   float64 // 当前摩擦档位下的制动力, 线上 29 (UI 30)锁轮时等于锁轮承力
 	LineStretch         float64
 	HookPresent         bool
 	HookItemID          string
@@ -222,7 +222,7 @@ func (s *Server) logMissingRodPhysics(rodItemID string, def *store.ItemDef) {
 	if _, dup := missingRodDataLogged.LoadOrStore(rodItemID, true); dup {
 		return
 	}
-	s.log.Warn("竿缺少物理字段，最弱环/抛投将静默跳过", "rod", rodItemID,
+	s.log.Warn("У удилища нет физических полей, проверка слабого звена/заброса молча пропускается", "rod", rodItemID,
 		"max_load_kg", power, "length_m", length)
 }
 func lineStrengthKg(def *store.ItemDef) float64 { return itemDefF32(def, gearAttrMaxLoad) }

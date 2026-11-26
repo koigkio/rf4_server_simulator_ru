@@ -25,18 +25,18 @@ func TestSkillProficiencyCap(t *testing.T) {
 		t.Fatal(err)
 	}
 	if pts, _ := db.GetSkillPoints(ctx, uid, 1); pts != maxSkillPoints {
-		t.Fatalf("熟练度应封顶 %v，实得 %v", maxSkillPoints, pts)
+		t.Fatalf("熟练度应封顶 %v, 实得 %v", maxSkillPoints, pts)
 	}
 	all, _ := db.ListSkills(ctx, uid)
 	if all[1] != maxSkillPoints {
-		t.Fatalf("列表熟练度应封顶 %v，实得 %v", maxSkillPoints, all[1])
+		t.Fatalf("列表熟练度应封顶 %v, 实得 %v", maxSkillPoints, all[1])
 	}
 
 	if _, err := db.SQL.Exec(`UPDATE skill SET points=110 WHERE uid=? AND skill_id=1`, uid); err != nil {
 		t.Fatal(err)
 	}
 	if pts, _ := db.GetSkillPoints(ctx, uid, 1); pts != maxSkillPoints {
-		t.Fatalf("历史熟练度应在读取时封顶，实得 %v", pts)
+		t.Fatalf("历史熟练度应在读取时封顶, 实得 %v", pts)
 	}
 	if _, err := db.SQL.Exec(`DELETE FROM schema_migrations WHERE name='migrations/00017_skill_points_cap.sql'`); err != nil {
 		t.Fatal(err)
@@ -49,7 +49,7 @@ func TestSkillProficiencyCap(t *testing.T) {
 		t.Fatal(err)
 	}
 	if stored != maxSkillPoints {
-		t.Fatalf("迁移后历史熟练度应封顶 %v，实得 %v", maxSkillPoints, stored)
+		t.Fatalf("迁移后历史熟练度应封顶 %v, 实得 %v", maxSkillPoints, stored)
 	}
 }
 
@@ -74,7 +74,7 @@ func TestAddSkillPointsQuantizesToDisplayGrid(t *testing.T) {
 		t.Fatal(err)
 	}
 	if pts, _ := db.GetSkillPoints(ctx, uid, 1); pts != 12.3 {
-		t.Fatalf("初始行应量化 12.34→12.3，实得 %v", pts)
+		t.Fatalf("初始行应量化 12.34→12.3, 实得 %v", pts)
 	}
 	// 累加分支：存量尾差 + 0.1 也要落回 0.1 格。
 	if _, err := db.SQL.Exec(`UPDATE skill SET points=12.299999999999999 WHERE uid=? AND skill_id=1`, uid); err != nil {
@@ -84,7 +84,7 @@ func TestAddSkillPointsQuantizesToDisplayGrid(t *testing.T) {
 		t.Fatal(err)
 	}
 	if pts, _ := db.GetSkillPoints(ctx, uid, 1); pts != 12.4 {
-		t.Fatalf("累加应量化 12.299999999999999+0.1→12.4，实得 %v", pts)
+		t.Fatalf("累加应量化 12.299999999999999+0.1→12.4, 实得 %v", pts)
 	}
 
 	// AddSkillPointsTx 同款语义：尾差行 + 0.2 → 精确落格。
@@ -102,6 +102,6 @@ func TestAddSkillPointsQuantizesToDisplayGrid(t *testing.T) {
 		t.Fatal(err)
 	}
 	if pts, _ := db.GetSkillPoints(ctx, uid, 1); pts != 12.7 {
-		t.Fatalf("事务累加应量化 12.499999999999998+0.2→12.7，实得 %v", pts)
+		t.Fatalf("事务累加应量化 12.499999999999998+0.2→12.7, 实得 %v", pts)
 	}
 }

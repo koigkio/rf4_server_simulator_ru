@@ -12,19 +12,19 @@ import (
 func TestRodPodCategoryWireClass(t *testing.T) {
 	entry, ok := categoryWireClass[79]
 	if !ok {
-		t.Fatal("category 79（竿架）缺少 wire 类型映射，会落到饵料兜底类型")
+		t.Fatal("category 79 (竿架)缺少 wire 类型映射, 会落到饵料兜底类型")
 	}
 	if entry.Class != "abmokghdbhf" || entry.TypeID != 11500 {
-		t.Fatalf("category 79 映射=%#v，期望 abmokghdbhf/11500", entry)
+		t.Fatalf("category 79 映射=%#v, 期望 abmokghdbhf/11500", entry)
 	}
 	info, ok := wiregen.ClassMeta[entry.Class]
 	if !ok {
 		t.Fatalf("wiregen 缺少类 %s", entry.Class)
 	}
 	if info.DTO != "pphmpibfgea" {
-		t.Fatalf("类 %s 的 DTO=%q，期望 pphmpibfgea（客户端竿架模型）", entry.Class, info.DTO)
+		t.Fatalf("类 %s 的 DTO=%q, 期望 pphmpibfgea (客户端竿架模型)", entry.Class, info.DTO)
 	}
 	if got := wiregen.ClassForType(int32(entry.TypeID)); got != entry.Class {
-		t.Fatalf("type_id %d 对应类=%q，期望 %q", entry.TypeID, got, entry.Class)
+		t.Fatalf("type_id %d 对应类=%q, 期望 %q", entry.TypeID, got, entry.Class)
 	}
 }

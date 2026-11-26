@@ -36,7 +36,7 @@ func (d *DB) AdvanceDrinkBonuses(ctx context.Context, uid int64, runKey string, 
 // AdvanceDrinkBonusesTx 返回仍有效的逐瓶效果，供饮用和钓获在同一事务内读取。
 func AdvanceDrinkBonusesTx(ctx context.Context, tx *sql.Tx, uid int64, runKey string, now time.Time, online bool, maxGap time.Duration) ([]DrinkBonusStatus, error) {
 	if tx == nil || uid <= 0 || strings.TrimSpace(runKey) == "" {
-		return nil, errors.New("饮品计时参数无效")
+		return nil, errors.New("Неверные параметры таймера напитка")
 	}
 	// 即使该账户尚无时钟行，写语句也会先取得 SQLite 写锁。
 	if _, err := tx.ExecContext(ctx, `UPDATE drink_bonus_clock SET online=online WHERE uid=?`, uid); err != nil {
@@ -100,7 +100,7 @@ func AdvanceDrinkBonusesTx(ctx context.Context, tx *sql.Tx, uid int64, runKey st
 // AddDrinkBonusTx 每瓶插入一条独立效果；同类可叠加，同一时刻最多保留最近 10 瓶。
 func AddDrinkBonusTx(ctx context.Context, tx *sql.Tx, uid int64, category string, peak float64, duration time.Duration, sourceGUID string) error {
 	if tx == nil || uid <= 0 || strings.TrimSpace(category) == "" || peak < 0 || peak > 1 || duration.Milliseconds() <= 0 {
-		return errors.New("饮品效果参数无效")
+		return errors.New("Неверные параметры эффекта напитка")
 	}
 	// 先写后读的调用方可与物品消耗共用这笔事务。
 	if _, err := tx.ExecContext(ctx, `INSERT INTO drink_bonus_effect(uid,category,peak,remaining_millis,duration_millis,source_guid)

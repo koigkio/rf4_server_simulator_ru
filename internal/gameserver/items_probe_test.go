@@ -148,11 +148,11 @@ func TestItemDetailsEncodeError(t *testing.T) {
 		}
 		tree, err := srv.ItemToTree(ctx, row)
 		if err != nil {
-			t.Logf("[%d] %s ItemToTree 失败: %v", i, row.ItemID, err)
+			t.Logf("[%d] %s ItemToTree Ошибка: %v", i, row.ItemID, err)
 			continue
 		}
 		if _, err := proto.EncodeValue(tree, srv.Table()); err != nil {
-			t.Errorf("[%d] %s (%s/%d) 编码失败: %v", i, row.ItemID, row.WireClass, row.TypeID, err)
+			t.Errorf("[%d] %s (%s/%d) Ошибка кодирования: %v", i, row.ItemID, row.WireClass, row.TypeID, err)
 			continue
 		}
 		_ = tree
@@ -171,9 +171,9 @@ func TestItemDetailsEncodeError(t *testing.T) {
 		out.Items = append(out.Items, tree)
 	}
 	if _, err := proto.EncodeValue(out, srv.Table()); err != nil {
-		t.Errorf("整体 args(61) 编码失败（%d 件）: %v", len(out.Items), err)
+		t.Errorf("整体 args(61) 编码失败 (%d 件): %v", len(out.Items), err)
 	} else {
-		t.Logf("整体编码 OK（%d 件）", len(out.Items))
+		t.Logf("整体编码 OK (%d 件)", len(out.Items))
 	}
 }
 
@@ -256,16 +256,16 @@ func TestSpawnLocatorBuild(t *testing.T) {
 	srv.SetDB(db)
 	body, err := srv.buildSpawnLocatorBody(1, spawnLevelKey, spawnScene, time.Now().Unix())
 	if err != nil {
-		t.Fatalf("构造失败: %v", err)
+		t.Fatalf("Ошибка создания: %v", err)
 	}
 	if body[0] != 0x01 {
-		t.Fatalf("顶层应为 obj(0x01)，实得 %x", body[0])
+		t.Fatalf("顶层应为 obj(0x01), 实得 %x", body[0])
 	}
 	tid := uint32(body[1]) | uint32(body[2])<<8 | uint32(body[3])<<16 | uint32(body[4])<<24
 	if tid != 206 {
-		t.Fatalf("顶层 type_id 应 206，实得 %d", tid)
+		t.Fatalf("顶层 type_id 应 206, 实得 %d", tid)
 	}
-	t.Logf("1/13 响应 %dB，顶层 206 ✓", len(body))
+	t.Logf("1/13 响应 %dB, 顶层 206 ✓", len(body))
 	// 重锚校验：预报最小日号 == 昨天
 	day, _ := worldDayAndHour(time.Now().Unix())
 	maps, _ := loadMapDefs()
@@ -282,7 +282,7 @@ func TestSpawnLocatorBuild(t *testing.T) {
 		}
 	})
 	if minD != day-1 {
-		t.Fatalf("预报首条应=今天-1(%d)，实得 %d", day-1, minD)
+		t.Fatalf("预报首条应=今天-1(%d), 实得 %d", day-1, minD)
 	}
 	t.Logf("预报重锚 ✓ 首条=%d", minD)
 }
@@ -330,7 +330,7 @@ func TestTimelineHandlersSmoke(t *testing.T) {
 		t.Fatalf("23/1 解码失败: %v", err)
 	}
 	if dec.Kind != proto.KindArgs || len(dec.Items) != 0 {
-		t.Fatalf("23/1 应为 args(147)[0 件]，实得 %d 件", len(dec.Items))
+		t.Fatalf("23/1 应为 args(147)[0 件], 实得 %d 件", len(dec.Items))
 	}
 	// 28/1、28/2
 	for name, h := range map[string]Handler{"28/1": hEnvironment, "28/2": hFog} {
@@ -380,7 +380,7 @@ func TestAllHandlersDecode(t *testing.T) {
 		}
 		n++
 		if _, _, err := proto.DecodeValue(body, 0, srv.Table()); err != nil {
-			t.Errorf("%d/%d 响应不可解码: %v（body=%x…）", key.main, key.sub, err, head(body, 16))
+			t.Errorf("%d/%d 响应不可解码: %v (body=%x…)", key.main, key.sub, err, head(body, 16))
 		}
 	}
 	t.Logf("解码门通过处理器数: %d / 注册 %d", n, len(srv.dispatch.exact))
@@ -449,7 +449,7 @@ func TestCreateItemWellFormed(t *testing.T) {
 			t.Errorf("%s iofbjlaadfg=%d 与 numeric_id=%d 不一致", itemID, got, it.NumericID)
 		}
 		if _, err := srv.ItemToTree(ctx, it); err != nil {
-			t.Errorf("%s ItemToTree 失败: %v", itemID, err)
+			t.Errorf("%s ItemToTree Ошибка: %v", itemID, err)
 		}
 	}
 }
@@ -487,7 +487,7 @@ func TestWorkshopToolsAreNotFishingLine(t *testing.T) {
 		t.Fatal(err)
 	}
 	if pliers.WireClass != "jceogpbfpjh" || pliers.TypeID != 163 {
-		t.Fatalf("钓鱼工具 wire=%s type=%d，期望 jceogpbfpjh/163", pliers.WireClass, pliers.TypeID)
+		t.Fatalf("钓鱼工具 wire=%s type=%d, 期望 jceogpbfpjh/163", pliers.WireClass, pliers.TypeID)
 	}
 	fields, err := FieldsFromJSON(pliers.FieldsJSON)
 	if err != nil {
@@ -499,7 +499,7 @@ func TestWorkshopToolsAreNotFishingLine(t *testing.T) {
 		t.Fatal("工具类缺少数字 id 或 guid")
 	}
 	if got := u64Of(fields[idIdx].Num); got != 6347 {
-		t.Fatalf("钓鱼工具数字 id=%d，期望 6347", got)
+		t.Fatalf("钓鱼工具数字 id=%d, 期望 6347", got)
 	}
 	if fields[guidIdx].Hex == "" {
 		t.Fatal("钓鱼工具 guid 为空")
@@ -510,7 +510,7 @@ func TestWorkshopToolsAreNotFishingLine(t *testing.T) {
 		t.Fatal(err)
 	}
 	if mat.WireClass != "nacllfpgomk" || mat.TypeID != 142 {
-		t.Fatalf("木炭 wire=%s type=%d，期望 nacllfpgomk/142", mat.WireClass, mat.TypeID)
+		t.Fatalf("木炭 wire=%s type=%d, 期望 nacllfpgomk/142", mat.WireClass, mat.TypeID)
 	}
 	mf, err := FieldsFromJSON(mat.FieldsJSON)
 	if err != nil {
@@ -560,7 +560,7 @@ func TestWorkshopToolsAreNotFishingLine(t *testing.T) {
 		t.Fatal(err)
 	}
 	if hex := gf[fieldIdxByCS(got.WireClass, csGUID)].Hex; hex != badGUID {
-		t.Fatalf("修复后 guid=%s，期望保持 %s", hex, badGUID)
+		t.Fatalf("修复后 guid=%s, 期望保持 %s", hex, badGUID)
 	}
 	for _, itemID := range []string{"fishing_pliers", "charcoal_bag"} {
 		def, err := db.GetItemDefByItemID(ctx, itemID)

@@ -31,13 +31,13 @@ func bundleAttrs(def *store.ItemDef) (map[string]any, error) {
 		return nil, nil
 	}
 	if !json.Valid([]byte(def.AttrsJSON)) {
-		return nil, fmt.Errorf("组合包相关定义属性损坏: %s", def.ItemID)
+		return nil, fmt.Errorf("Повреждены атрибуты определения набора: %s", def.ItemID)
 	}
 	var attrs map[string]any
 	decoder := json.NewDecoder(strings.NewReader(def.AttrsJSON))
 	decoder.UseNumber()
 	if err := decoder.Decode(&attrs); err != nil {
-		return nil, fmt.Errorf("组合包相关定义属性损坏: %s: %w", def.ItemID, err)
+		return nil, fmt.Errorf("Повреждены атрибуты определения набора: %s: %w", def.ItemID, err)
 	}
 	return attrs, nil
 }
@@ -50,7 +50,7 @@ func bundlePositiveQuantity(value any) (int64, error) {
 			return rational.Num().Int64(), nil
 		}
 	}
-	return 0, fmt.Errorf("组合包数量必须是正整数且不能溢出: %v", value)
+	return 0, fmt.Errorf("Количество наборов должно быть положительным целым без переполнения: %v", value)
 }
 
 func bundleQuantityLimit(class string) int64 {
@@ -81,14 +81,14 @@ func bundleQuantityLimit(class string) int64 {
 // This function only prepares in-memory objects and must run before the inventory transaction.
 func (s *Server) prepareBundleItems(ctx context.Context, uid int64, itemID, container string, packs int64) ([]*store.Item, error) {
 	if packs <= 0 {
-		return nil, fmt.Errorf("组合包包数非法: %s: %d", itemID, packs)
+		return nil, fmt.Errorf("Недопустимое число наборов: %s: %d", itemID, packs)
 	}
 	def, err := s.DB.GetItemDefByItemID(ctx, itemID)
 	if err != nil || def == nil {
-		return nil, fmt.Errorf("组合包定义不存在: %s: %w", itemID, err)
+		return nil, fmt.Errorf("Определение набора не существует: %s: %w", itemID, err)
 	}
 	if def.Category != bundleCategory {
-		return nil, fmt.Errorf("不是组合包定义: %s", itemID)
+		return nil, fmt.Errorf("Это не определение набора: %s", itemID)
 	}
 	attrs, err := bundleAttrs(def)
 	if err != nil {
@@ -96,7 +96,7 @@ func (s *Server) prepareBundleItems(ctx context.Context, uid int64, itemID, cont
 	}
 	contents, ok := attrs["nbkhfhenbag"].([]any)
 	if !ok || len(contents) == 0 {
-		return nil, fmt.Errorf("组合包没有内含物: %s", itemID)
+		return nil, fmt.Errorf("В наборе нет содержимого: %s", itemID)
 	}
 	type contentPlan struct {
 		def      *store.ItemDef
@@ -109,25 +109,25 @@ func (s *Server) prepareBundleItems(ctx context.Context, uid int64, itemID, cont
 		entry, _ := raw.(map[string]any)
 		inner, _ := entry["cemjmlpafmc"].(string)
 		if inner == "" {
-			return nil, fmt.Errorf("组合包内含物缺少 item_id: %s", itemID)
+			return nil, fmt.Errorf("В содержимом набора отсутствует item_id: %s", itemID)
 		}
 		absolute, _ := entry[csQtyAbsolute].(bool)
 		quantity, err := bundlePositiveQuantity(entry[csQty])
 		if err != nil {
-			return nil, fmt.Errorf("组合包 %s 内含物 %s: %w", itemID, inner, err)
+			return nil, fmt.Errorf("Содержимое набора %s %s: %w", itemID, inner, err)
 		}
 		if quantity > math.MaxInt64/packs {
-			return nil, fmt.Errorf("组合包内含物数量溢出: %s", inner)
+			return nil, fmt.Errorf("Переполнение количества содержимого набора: %s", inner)
 		}
 		child, err := s.DB.GetItemDefByItemID(ctx, inner)
 		if err != nil || child == nil {
-			return nil, fmt.Errorf("组合包内含物定义不存在: %s: %w", inner, err)
+			return nil, fmt.Errorf("Определение содержимого набора не существует: %s: %w", inner, err)
 		}
 		if child.Category == bundleCategory {
-			return nil, fmt.Errorf("不支持嵌套或循环组合包: %s -> %s", itemID, inner)
+			return nil, fmt.Errorf("Вложенные или циклические наборы не поддерживаются: %s -> %s", itemID, inner)
 		}
 		if _, ok := resolveWireClass(child); !ok {
-			return nil, fmt.Errorf("组合包内含物类别尚不支持: %s: %d", inner, child.Category)
+			return nil, fmt.Errorf("Категория содержимого набора пока не поддерживается: %s: %d", inner, child.Category)
 		}
 		units := quantity * packs
 		count := units
@@ -135,7 +135,7 @@ func (s *Server) prepareBundleItems(ctx context.Context, uid int64, itemID, cont
 			count = 1
 		}
 		if count > maxBundlePreparedItems-instances {
-			return nil, fmt.Errorf("组合包实例数超过上限 %d: %s", maxBundlePreparedItems, itemID)
+			return nil, fmt.Errorf("Количество экземпляров набора превышает предел %d: %s", maxBundlePreparedItems, itemID)
 		}
 		instances += count
 		plans = append(plans, contentPlan{def: child, units: units, absolute: absolute})
@@ -153,7 +153,7 @@ func (s *Server) prepareBundleItems(ctx context.Context, uid int64, itemID, cont
 			}
 			if value, exists := attrs[csQty]; exists {
 				if _, err := bundlePositiveQuantity(value); err != nil {
-					return nil, fmt.Errorf("组合包内含物单位量非法: %s: %w", plan.def.ItemID, err)
+					return nil, fmt.Errorf("Недопустимая единица количества в содержимом набора: %s: %w", plan.def.ItemID, err)
 				}
 			}
 		}
@@ -172,16 +172,16 @@ func (s *Server) prepareBundleItems(ctx context.Context, uid int64, itemID, cont
 					// 绝对个数条目：units 即最终件数，不乘子物定义默认量。
 					quantity = plan.units
 					if quantity > limit {
-						return nil, fmt.Errorf("组合包内含物数量超过数量槽上限: %s", it.ItemID)
+						return nil, fmt.Errorf("Количество содержимого набора превышает предел слота количества: %s", it.ItemID)
 					}
 				} else {
 					if it.Qty <= 0 || it.Qty > limit/plan.units {
-						return nil, fmt.Errorf("组合包内含物单位换算溢出: %s", it.ItemID)
+						return nil, fmt.Errorf("Переполнение при пересчёте единиц содержимого набора: %s", it.ItemID)
 					}
 					quantity = it.Qty * plan.units
 				}
 				if totals[it.ItemID] > limit-quantity {
-					return nil, fmt.Errorf("组合包内含物总量溢出: %s", it.ItemID)
+					return nil, fmt.Errorf("Переполнение общего количества содержимого набора: %s", it.ItemID)
 				}
 				totals[it.ItemID] += quantity
 				fields, err := FieldsFromJSON(it.FieldsJSON)
@@ -189,7 +189,7 @@ func (s *Server) prepareBundleItems(ctx context.Context, uid int64, itemID, cont
 					return nil, err
 				}
 				if !setItemQty(it.WireClass, fields, uint64(quantity)) {
-					return nil, fmt.Errorf("组合包计件内含物缺少数量字段: %s", it.ItemID)
+					return nil, fmt.Errorf("У штучного содержимого набора нет поля количества: %s", it.ItemID)
 				}
 				it.FieldsJSON, err = FieldsToJSON(fields)
 				if err != nil {

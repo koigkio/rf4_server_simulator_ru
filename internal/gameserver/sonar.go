@@ -70,7 +70,7 @@ func loadSonarGrids() (map[string]sonarGrid, error) {
 	sonarGridsOnce.Do(func() {
 		var asset sonarGridAsset
 		if err := json.Unmarshal(sonarGridsJSON, &asset); err != nil {
-			sonarGridsErr = fmt.Errorf("解析声呐网格资产: %w", err)
+			sonarGridsErr = fmt.Errorf("Разбор ресурса сетки эхолота: %w", err)
 			return
 		}
 		grids := make(map[string]sonarGrid, len(asset.Grids))
@@ -95,7 +95,7 @@ func loadSonarGrids() (map[string]sonarGrid, error) {
 			grids[systemID] = candidate
 		}
 		if len(grids) == 0 {
-			sonarGridsErr = fmt.Errorf("声呐网格资产没有有效水域")
+			sonarGridsErr = fmt.Errorf("В ресурсе сетки эхолота нет подходящих водоёмов")
 			return
 		}
 		sonarGrids = grids
@@ -811,7 +811,7 @@ func (s *Server) sonarResponse(ctx context.Context, systemID string, c fishRollC
 			for _, school := range schools {
 				details = append(details, fmt.Sprintf("%s@%.1fm", school.fishKey, school.depthM))
 			}
-			s.log.Info("声呐鱼群", "system", systemID, "schools", strings.Join(details, ","))
+			s.log.Info("Стаи на эхолоте", "system", systemID, "schools", strings.Join(details, ","))
 			return synthesizeSonarSchools(systemID, profile, schools, rng)
 		}
 	}

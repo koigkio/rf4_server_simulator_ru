@@ -49,21 +49,21 @@ type fightReelWear struct {
 	fishGUID   string
 	rodGUID    string
 	reelGUID   string
-	leaderGUID string // 本竿挂装的前导实例（无前导装配为空）；落库后由下发使用
+	leaderGUID string // 本竿挂装的前导实例 (无前导装配为空); 落库后由下发使用
 
-	setting  int64   // 17/14 线上摩擦档位，0~29；29 为锁轮（dragKg 已按档位取到锁轮承力）
-	dragKg   float64 // 当前摩擦档位的泄力（已含摩擦片剩余寿命与轴承效率）
-	ratedKg  float64 // 摩擦片额定制动力（含母轮工艺）
-	oilWear  float64 // 轮油磨损倍率：好油 <1，差油 >1
-	oilMatch float64 // 轮油与当前轮子的适配倍率：专用 < 通用 < 不匹配
-	pullKg   float64 // 服务端已知的鱼拉力（公斤力）
+	setting  int64   // 17/14 线上摩擦档位, 0~29; 29 为锁轮 (dragKg 已按档位取到锁轮承力)
+	dragKg   float64 // 当前摩擦档位的泄力 (已含摩擦片剩余寿命与轴承效率)
+	ratedKg  float64 // 摩擦片额定制动力 (含母轮工艺)
+	oilWear  float64 // 轮油磨损倍率: 好油 <1, 差油 >1
+	oilMatch float64 // 轮油与当前轮子的适配倍率: 专用 < 通用 < 不匹配
+	pullKg   float64 // 服务端已知的鱼拉力 (公斤力)
 
-	StressSecs float64 // 受力累计秒数：轮件/竿件/前导按秒磨损
+	StressSecs float64 // 受力累计秒数: 轮件/竿件/前导按秒磨损
 	SlipTicks  int
-	SlipSecs   float64 // 打滑累计的真实秒数（摩擦片磨损口径与诊断）
+	SlipSecs   float64 // 打滑累计的真实秒数 (摩擦片磨损口径与诊断)
 	SlipWear   float64 // 泄力打滑累计的摩擦片寿命比例
-	BreakHits  int     // 断件次数（仅诊断：断件冲击磨损无官服数据，不扣寿命）
-	settled    bool    // 本竿是否已落库（每竿一次）
+	BreakHits  int     // 断件次数 (仅诊断: 断件冲击磨损无官服数据, 不扣寿命)
+	settled    bool    // 本竿是否已落库 (每竿一次)
 	// lastLoadAt 是上一条 14/8 到达服务端的时刻，用来把受力秒数换成真实时长；
 	// lastFlushAt 是上次中途落库的时刻（节流）。两者与 loadProbe 都只是进程内
 	// 状态，做成非导出字段，不进钓组状态的 JSON 快照。
@@ -358,7 +358,7 @@ func (s *Server) recordFightReelLoad(ctx *Ctx) {
 	st.mu.Lock()
 	if st.Pending != fish || st.GearGuid != gear {
 		st.mu.Unlock()
-		return // 期间换竿或换鱼：这条上报作废
+		return // 期间换竿或换鱼: 这条上报作废
 	}
 	previous, hasPrevious := fightReelWear{}, false
 	cur := &st.reelWear
@@ -553,7 +553,7 @@ func (s *Server) applyRodStressWear(ctx context.Context, uid int64, rodGUID stri
 	}
 	parts := s.wearRodPartsInFields(ctx, fields, counts)
 	if len(parts) == 0 {
-		return nil // 没磨到就不写库（子件齐全但速率关到 0 的场合）
+		return nil // 没磨到就不写库 (子件齐全但速率关到 0 的场合)
 	}
 	bumpCreatedTicks(fields, row.WireClass)
 	fj, err := FieldsToJSON(fields)

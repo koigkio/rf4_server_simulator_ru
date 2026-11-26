@@ -99,12 +99,12 @@ func TestWorkshopSameModelRepairRestoresItemDurability(t *testing.T) {
 	}
 	fresh := mustItem(t, db, rod.GUID)
 	if fresh.Durability != 1 {
-		t.Fatalf("同型号修理后物品本体耐久应回 1，实得 %v", fresh.Durability)
+		t.Fatalf("同型号修理后物品本体耐久应回 1, 实得 %v", fresh.Durability)
 	}
 	freshFields := snapshotFields(t, fresh.FieldsJSON)
 	repairedPart, _ := snapshotPart(t, srv, freshFields, 4)
 	if got := snapshotFloat(repairedPart.Fields, repairedPart.Class, csDurability); got != 1 {
-		t.Fatalf("同型号修理后竿柄耐久应回 1，实得 %v", got)
+		t.Fatalf("同型号修理后竿柄耐久应回 1, 实得 %v", got)
 	}
 }
 
@@ -133,16 +133,16 @@ func TestWorkshopOrderRejectsLowClientQuote(t *testing.T) {
 		t.Fatal(err)
 	}
 	if profile.Silver != 1000 {
-		t.Fatalf("报价被拒绝后余额应保持 1000，实得 %d", profile.Silver)
+		t.Fatalf("报价被拒绝后余额应保持 1000, 实得 %d", profile.Silver)
 	}
 	fresh := mustItem(t, db, rod.GUID)
 	if fresh.Durability != .5 {
-		t.Fatalf("报价被拒绝后本体耐久应保持 0.5，实得 %v", fresh.Durability)
+		t.Fatalf("报价被拒绝后本体耐久应保持 0.5, 实得 %v", fresh.Durability)
 	}
 	fields := snapshotFields(t, fresh.FieldsJSON)
 	part, _ := snapshotPart(t, srv, fields, 4)
 	if got := snapshotFloat(part.Fields, part.Class, csDurability); math.Abs(got-.8) > 1e-6 {
-		t.Fatalf("报价被拒绝后竿柄耐久应保持 0.8，实得 %v", got)
+		t.Fatalf("报价被拒绝后竿柄耐久应保持 0.8, 实得 %v", got)
 	}
 }
 
@@ -168,7 +168,7 @@ func TestWorkshopOrderRollsBackWalletWhenItemWriteFails(t *testing.T) {
 	})
 	if _, err := db.SQL.ExecContext(ctx,
 		`UPDATE item SET fields_json=fields_json WHERE guid=?`, rod.GUID); err == nil {
-		t.Fatal("注入未生效：物品字段写库没有失败")
+		t.Fatal("注入未生效: 物品字段写库没有失败")
 	}
 
 	c := &Ctx{
@@ -184,7 +184,7 @@ func TestWorkshopOrderRollsBackWalletWhenItemWriteFails(t *testing.T) {
 		t.Fatal(err)
 	}
 	if profile.Silver != 1000 {
-		t.Fatalf("物品写库失败后余额必须回滚为 1000，实得 %d", profile.Silver)
+		t.Fatalf("物品写库失败后余额必须回滚为 1000, 实得 %d", profile.Silver)
 	}
 	var txnCount int
 	if err := db.SQL.QueryRowContext(ctx,
@@ -192,11 +192,11 @@ func TestWorkshopOrderRollsBackWalletWhenItemWriteFails(t *testing.T) {
 		t.Fatal(err)
 	}
 	if txnCount != 0 {
-		t.Fatalf("物品写库失败后流水必须回滚，实得 %d 条", txnCount)
+		t.Fatalf("物品写库失败后流水必须回滚, 实得 %d 条", txnCount)
 	}
 	fresh := mustItem(t, db, rod.GUID)
 	if fresh.Durability != .5 {
-		t.Fatalf("物品写库失败后本体耐久应保持 0.5，实得 %v", fresh.Durability)
+		t.Fatalf("物品写库失败后本体耐久应保持 0.5, 实得 %v", fresh.Durability)
 	}
 }
 
@@ -225,12 +225,12 @@ func TestWorkshopReelRepairRejectsGoldPayment(t *testing.T) {
 		t.Fatal(err)
 	}
 	if profile.Silver != 1000 || profile.Gold != 1000 {
-		t.Fatalf("金币修理被拒绝后余额应保持 1000/1000，实得 %d/%d",
+		t.Fatalf("金币修理被拒绝后余额应保持 1000/1000, 实得 %d/%d",
 			profile.Silver, profile.Gold)
 	}
 	fresh := mustItem(t, db, reel.GUID)
 	if fresh.Durability != .5 {
-		t.Fatalf("金币修理被拒绝后本体耐久应保持 0.5，实得 %v", fresh.Durability)
+		t.Fatalf("金币修理被拒绝后本体耐久应保持 0.5, 实得 %v", fresh.Durability)
 	}
 }
 
@@ -259,16 +259,16 @@ func TestWorkshopReelRepairFullPartLeavesOtherWearUnchanged(t *testing.T) {
 		t.Fatal(err)
 	}
 	if profile.Silver != 10000 {
-		t.Fatalf("满耐久齿轮不应扣费，余额为 %d", profile.Silver)
+		t.Fatalf("满耐久齿轮不应扣费, 余额为 %d", profile.Silver)
 	}
 	fresh := mustItem(t, db, reel.GUID)
 	if fresh.Durability != .5 {
-		t.Fatalf("无操作本体耐久应保持 .5，实得 %v", fresh.Durability)
+		t.Fatalf("无操作本体耐久应保持 .5, 实得 %v", fresh.Durability)
 	}
 	fields := snapshotFields(t, fresh.FieldsJSON)
 	washer, _ := snapshotPart(t, srv, fields, reelPartCatWasher)
 	if got := snapshotFloat(washer.Fields, washer.Class, csDurability); math.Abs(got-.2) > 1e-6 {
-		t.Fatalf("未选择的摩擦片耐久应保持 .2，实得 %v", got)
+		t.Fatalf("未选择的摩擦片耐久应保持 .2, 实得 %v", got)
 	}
 }
 
@@ -293,7 +293,7 @@ func TestWorkshopReelRepairZeroCostReturnsCurrentItem(t *testing.T) {
 		c.Sub = sub
 		body, ok := hWorkshopOrder(c)
 		if !ok {
-			t.Fatalf("21/%d 无磨损请求应返回当前装备，不能落入空列表兜底", sub)
+			t.Fatalf("21/%d 无磨损请求应返回当前装备, 不能落入空列表兜底", sub)
 		}
 		tree, _, err := proto.DecodeValue(body, 0, srv.Table())
 		if err != nil || tree == nil || tree.Kind != proto.KindObj || tree.Class != reel.WireClass {
@@ -317,7 +317,7 @@ func TestWorkshopReelRepairZeroCostReturnsCurrentItem(t *testing.T) {
 		t.Fatal(err)
 	}
 	if txnCount != 0 {
-		t.Fatalf("零金额修理不得写流水，实得 %d 条", txnCount)
+		t.Fatalf("零金额修理不得写流水, 实得 %d 条", txnCount)
 	}
 }
 
@@ -348,7 +348,7 @@ func TestWorkshopReelRepairChargesSelectedWear(t *testing.T) {
 	// 仅修齿轮：20% 磨损 * 500 = 100。
 	wantCost := int64(100)
 	if got := int64(10000) - profile.Silver; got != wantCost {
-		t.Fatalf("所选部件修理费=%d，期望 %d", got, wantCost)
+		t.Fatalf("所选部件修理费=%d, 期望 %d", got, wantCost)
 	}
 }
 
@@ -426,7 +426,7 @@ func TestWorkshopWornReelDirectReplaceSequence(t *testing.T) {
 			t.Fatal(err)
 		}
 		if count != wantTxns {
-			t.Fatalf("步骤 %d 交易流水=%d，期望 %d", i, count, wantTxns)
+			t.Fatalf("步骤 %d 交易流水=%d, 期望 %d", i, count, wantTxns)
 		}
 	}
 }
@@ -476,7 +476,7 @@ func TestWorkshopDiagReelRepairQuoteMatchesSelectedPart(t *testing.T) {
 	// 只选择磨损 20% 的齿轮。
 	want := int64(100)
 	if quote != want {
-		t.Fatalf("21/2 所选部件修理报价=%d，期望 %d", quote, want)
+		t.Fatalf("21/2 所选部件修理报价=%d, 期望 %d", quote, want)
 	}
 
 	c := &Ctx{
@@ -492,7 +492,7 @@ func TestWorkshopDiagReelRepairQuoteMatchesSelectedPart(t *testing.T) {
 		t.Fatal(err)
 	}
 	if got := int64(10000) - profile.Silver; got != want {
-		t.Fatalf("所选部件修理扣费=%d，期望 %d", got, want)
+		t.Fatalf("所选部件修理扣费=%d, 期望 %d", got, want)
 	}
 }
 
@@ -509,7 +509,7 @@ func TestWorkshopReelRepairAcceptsAggregatedClientQuote(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	quote := int64(350) // 齿轮 100 + 轴承 250。
+	quote := int64(350) // 齿轮 100 + 轴承 250.
 	_, bearingDef := snapshotPart(t, srv, snapshotFields(t, reel.FieldsJSON), reelPartCatBearing)
 	orders := proto.Args(proto.S("503"),
 		wiregen.MustMakeObj("gcllbdkgkna", map[int]*proto.Value{
@@ -536,7 +536,7 @@ func TestWorkshopReelRepairAcceptsAggregatedClientQuote(t *testing.T) {
 		t.Fatal(err)
 	}
 	if got := int64(10000) - profile.Silver; got != quote {
-		t.Fatalf("所选部件修理应只扣一次 %d，实扣 %d", quote, got)
+		t.Fatalf("所选部件修理应只扣一次 %d, 实扣 %d", quote, got)
 	}
 	fresh := mustItem(t, db, reel.GUID)
 	fields := snapshotFields(t, fresh.FieldsJSON)
@@ -578,6 +578,6 @@ func TestWorkshopReelRepairRejectsLowQuote(t *testing.T) {
 		t.Fatal(err)
 	}
 	if profile.Silver != 10000 {
-		t.Fatalf("低报价被拒绝后余额应保持 10000，实得 %d", profile.Silver)
+		t.Fatalf("低报价被拒绝后余额应保持 10000, 实得 %d", profile.Silver)
 	}
 }

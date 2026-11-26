@@ -14,7 +14,7 @@ import (
 // CraftTemplate 是一条玩家保存的配方模板。
 type CraftTemplate struct {
 	UID           int64
-	GUID          string // 模板实例 id（16 字节 hex），9/7 删除键
+	GUID          string // 模板实例 id (16 字节 hex), 9/7 删除键
 	RecipeID      string
 	Name          string
 	Kind          string

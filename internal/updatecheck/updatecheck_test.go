@@ -76,7 +76,7 @@ func TestCheckPreviewNewerAvailable(t *testing.T) {
 		t.Fatalf("Check: %v", err)
 	}
 	if !res.Available || res.Channel != ChannelPreview {
-		t.Fatalf("期望 preview 有更新，got %+v", res)
+		t.Fatalf("期望 preview 有更新, got %+v", res)
 	}
 	if res.LatestVersion != "preview-20261107T110000Z-abc1234" || res.CurrentVersion != "preview-20261106T100000Z-0000000" {
 		t.Fatalf("版本字段不符: %+v", res)
@@ -228,14 +228,14 @@ func TestSourceFallback(t *testing.T) {
 	c := New(urls, filepath.Join(t.TempDir(), "update_state.json"))
 	res, err := c.Check(context.Background(), "v1.1.0", "20261101120000")
 	if err != nil {
-		t.Fatalf("前三个源坏、第四个应胜出: %v", err)
+		t.Fatalf("前三个源坏, 第四个应胜出: %v", err)
 	}
 	if res.LatestVersion != "v1.2.0" {
 		t.Fatalf("应取第四个源: %+v", res)
 	}
 	for i, url := range urls[:3] {
 		if hits[url].Load() != 1 {
-			t.Fatalf("源 %d 应被请求 1 次，got %d", i+1, hits[url].Load())
+			t.Fatalf("源 %d 应被请求 1 次, got %d", i+1, hits[url].Load())
 		}
 	}
 }
@@ -256,10 +256,10 @@ func TestFirstSourceWins(t *testing.T) {
 	for url := range env.hits {
 		want[url] = 1
 	}
-	want[urls[1]] = 0 // 首个合法源胜出后，后续源不应被请求
+	want[urls[1]] = 0 // 首个合法源胜出后, 后续源不应被请求
 	for url, h := range env.hits {
 		if h.Load() != want[url] {
-			t.Fatalf("源 %s 期望请求 %d 次，got %d", url, want[url], h.Load())
+			t.Fatalf("源 %s 期望请求 %d 次, got %d", url, want[url], h.Load())
 		}
 	}
 }
@@ -267,7 +267,7 @@ func TestFirstSourceWins(t *testing.T) {
 func TestUnknownLocalBuildTsRejected(t *testing.T) {
 	env := newTestEnv(t, manifestBody(1, releaseBody("v1.0.0", "20261107120000"), ""))
 	if _, err := env.checker.Check(context.Background(), "dev", "0"); err != ErrUnknownLocalBuildTs {
-		t.Fatalf("期望 ErrUnknownLocalBuildTs，got %v", err)
+		t.Fatalf("期望 ErrUnknownLocalBuildTs, got %v", err)
 	}
 }
 
@@ -278,7 +278,7 @@ func TestRemoteBuildTsInvalidMeansNoUpdate(t *testing.T) {
 		t.Fatalf("Check: %v", err)
 	}
 	if res.Available {
-		t.Fatalf("远端 BuildTs 非法应视为不可比（0）: %+v", res)
+		t.Fatalf("远端 BuildTs 非法应视为不可比 (0): %+v", res)
 	}
 }
 

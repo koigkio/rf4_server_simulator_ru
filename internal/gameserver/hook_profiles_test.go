@@ -24,7 +24,7 @@ func TestHookFamilyForRealModelIDs(t *testing.T) {
 	}
 	for itemID, want := range tests {
 		if got := hookFamilyFor(itemID); got != want {
-			t.Fatalf("hookFamilyFor(%q)=%q，期望 %q", itemID, got, want)
+			t.Fatalf("hookFamilyFor(%q)=%q, 期望 %q", itemID, got, want)
 		}
 	}
 }
@@ -41,7 +41,7 @@ func TestSyncHookBiteProfilesUsesRealStaticData(t *testing.T) {
 		t.Fatal(err)
 	}
 	if n != len(defs) || n < 1000 {
-		t.Fatalf("同步型号数=%d，静态定义=%d", n, len(defs))
+		t.Fatalf("同步型号数=%d, 静态定义=%d", n, len(defs))
 	}
 
 	p, ok := s.hookBiteProfileFor("triple_20686")

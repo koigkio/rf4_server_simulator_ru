@@ -22,7 +22,7 @@ func fightFlagTestObj(t *testing.T, class string, numericID, base uint64) *proto
 	t.Helper()
 	ni, si := fieldIdxByCS(class, csNumericID), fieldIdxByCS(class, csStateEnum)
 	if ni < 0 || si < 0 {
-		t.Fatalf("类 %s 缺 iofbjlaadfg/hgaijieklek，增量表无法注入", class)
+		t.Fatalf("类 %s 缺 iofbjlaadfg/hgaijieklek, 增量表无法注入", class)
 	}
 	return wiregen.MustMakeObj(class, map[int]*proto.Value{
 		ni: proto.U32(uint32(numericID)),
@@ -64,7 +64,7 @@ func TestFightMountBitsTableMatchesOfficial(t *testing.T) {
 		obj := fightFlagTestObj(t, tc.class, 777001, tc.base)
 		markFightMounted(obj, func(int64) (int64, bool) { return tc.cat, true })
 		if got := objFlagsOf(t, obj); got != tc.want {
-			t.Errorf("cat%d %s flags=%d，期望官方观测值 %d", tc.cat, tc.class, got, tc.want)
+			t.Errorf("cat%d %s flags=%d, 期望官方观测值 %d", tc.cat, tc.class, got, tc.want)
 		}
 	}
 }
@@ -74,12 +74,12 @@ func TestFightMountBitsSkipsKnobUnknownAndPlain(t *testing.T) {
 	knob := fightFlagTestObj(t, "bndpebpblfk", 777002, 16896)
 	markFightMounted(knob, func(int64) (int64, bool) { return 34, true })
 	if got := objFlagsOf(t, knob); got != 16896 {
-		t.Fatalf("旋钮 cat34 不应注入，实得 %d", got)
+		t.Fatalf("旋钮 cat34 不应注入, 实得 %d", got)
 	}
 	rod := fightFlagTestObj(t, "cnolibojkao", 777003, 16896)
 	markFightMounted(rod, func(int64) (int64, bool) { return 0, false })
 	if got := objFlagsOf(t, rod); got != 16896 {
-		t.Fatalf("查不到 cat 不应注入，实得 %d", got)
+		t.Fatalf("查不到 cat 不应注入, 实得 %d", got)
 	}
 	plain := wiregen.MustMakeObj("gcfcdnfmnbh", map[int]*proto.Value{0: proto.U32(12)})
 	markFightMounted(plain, func(int64) (int64, bool) { return 3, true }) // 仅要求不 panic
@@ -99,11 +99,11 @@ func TestMarkHookMountedFlagsLureContainerAndHooks(t *testing.T) {
 	})
 	markHookMounted(container)
 	if got := objFlagsOf(t, container); got != 22016 {
-		t.Fatalf("拟饵容器本体 flags=%d，期望 22016", got)
+		t.Fatalf("拟饵容器本体 flags=%d, 期望 22016", got)
 	}
 	for i, h := range []*proto.Value{h1, h2} {
 		if got := objFlagsOf(t, h); got != 22016 {
-			t.Fatalf("嵌套钩[%d] flags=%d，期望 22016", i, got)
+			t.Fatalf("嵌套钩[%d] flags=%d, 期望 22016", i, got)
 		}
 	}
 }
@@ -160,9 +160,9 @@ func TestPush422FightSyncLureIncludesLureTree(t *testing.T) {
 	}
 	rodTree, lineTree, lureTree, reelTree := byClass["cnolibojkao"], byClass["ohciikgjghe"], byClass["ioombppcnlh"], byClass["dgjinoebdop"]
 	if rodTree == nil || lineTree == nil || lureTree == nil || reelTree == nil {
-		t.Fatalf("搏鱼推送应含竿/线/拟饵树/轮四元素，实得 %v", classList(dec.Items))
+		t.Fatalf("搏鱼推送应含竿/线/拟饵树/轮四元素, 实得 %v", classList(dec.Items))
 	}
-	for name, tree := range map[string]*proto.Value{"竿": rodTree, "线": lineTree, "轮": reelTree} {
+	for name, tree := range map[string]*proto.Value{"Удилище": rodTree, "线": lineTree, "轮": reelTree} {
 		if got := objFlagsOf(t, tree); got&(1024|2048) != 1024|2048 {
 			t.Fatalf("%s flags=%d 缺运行位 1024|2048", name, got)
 		}
@@ -193,7 +193,7 @@ func TestPush422FightSyncBottomRigNoLureTree(t *testing.T) {
 		t.Fatal(err)
 	}
 	if !srv.rigSetType(ctx, uid, rod.GUID, 12) {
-		t.Fatal("rigSetType 失败")
+		t.Fatal("rigSetType Ошибка")
 	}
 	line, err := srv.CreateItem(ctx, uid, "mono_15094", "backpack", 1)
 	if err != nil {
@@ -217,7 +217,7 @@ func TestPush422FightSyncBottomRigNoLureTree(t *testing.T) {
 		t.Fatalf("钩帧应 1 个对象: n=%d err=%v", len(hookItems), err)
 	}
 	if hookItems[0].Class != "agedjipcnpe" {
-		t.Fatalf("底钓钩帧应保持裸钩 agedjipcnpe，实得 %s", hookItems[0].Class)
+		t.Fatalf("底钓钩帧应保持裸钩 agedjipcnpe, 实得 %s", hookItems[0].Class)
 	}
 
 	conn, peer := cleanupTestTunnel(t, "fight-sync-bottom")
@@ -268,7 +268,7 @@ func TestPush422FightSyncMarineIncludesHookAndLureTrees(t *testing.T) {
 	}
 	// boatr 竿型（rod_type 16）允许 50~59；50 = rig_MarinePilker。
 	if !srv.rigSetType(ctx, uid, rod.GUID, 50) {
-		t.Fatal("rigSetType 50 失败")
+		t.Fatal("rigSetType 50 Ошибка")
 	}
 	line, err := srv.CreateItem(ctx, uid, "mono_15097", "backpack", 1)
 	if err != nil {
@@ -329,11 +329,11 @@ func TestPush422FightSyncMarineIncludesHookAndLureTrees(t *testing.T) {
 	}
 	// 2 棵拟饵容器树 + 2 行独立裸钩 + 竿/线/轮，全部顶层在帧内。
 	if counts["ioombppcnlh"] != 2 {
-		t.Fatalf("海钓搏鱼帧应含 2 棵拟饵容器树，实得 %v（classList=%v）",
+		t.Fatalf("海钓搏鱼帧应含 2 棵拟饵容器树, 实得 %v (classList=%v)",
 			counts["ioombppcnlh"], classList(dec.Items))
 	}
 	if counts["agedjipcnpe"] != 2 {
-		t.Fatalf("海钓搏鱼帧应含 2 棵独立裸钩树，实得 %v（classList=%v）",
+		t.Fatalf("海钓搏鱼帧应含 2 棵独立裸钩树, 实得 %v (classList=%v)",
 			counts["agedjipcnpe"], classList(dec.Items))
 	}
 	if counts["cnolibojkao"] != 1 || counts["ohciikgjghe"] != 1 || counts["dgjinoebdop"] != 1 {
@@ -360,7 +360,7 @@ func TestPush422FightSyncMarineIncludesHookAndLureTrees(t *testing.T) {
 			t.Fatalf("拟饵容器[0]内嵌钩[%d] flags=%d 缺 1024", i, got)
 		}
 	}
-	for name, tree := range map[string]*proto.Value{"竿": byClass["cnolibojkao"][0], "线": byClass["ohciikgjghe"][0], "轮": byClass["dgjinoebdop"][0]} {
+	for name, tree := range map[string]*proto.Value{"Удилище": byClass["cnolibojkao"][0], "线": byClass["ohciikgjghe"][0], "轮": byClass["dgjinoebdop"][0]} {
 		if got := objFlagsOf(t, tree); got&(1024|2048) != 1024|2048 {
 			t.Fatalf("%s flags=%d 缺运行位 1024|2048", name, got)
 		}
@@ -378,7 +378,7 @@ func TestPush422FightSyncMarineF5SourceWithoutProjection(t *testing.T) {
 		t.Fatal(err)
 	}
 	if !srv.rigSetType(ctx, uid, rod.GUID, 50) {
-		t.Fatal("rigSetType 50 失败")
+		t.Fatal("rigSetType 50 Ошибка")
 	}
 	line, err := srv.CreateItem(ctx, uid, "mono_15097", "backpack", 1)
 	if err != nil {
@@ -431,7 +431,7 @@ func TestPush422FightSyncMarineF5SourceWithoutProjection(t *testing.T) {
 		}
 	}
 	if counts["ioombppcnlh"] != 1 || counts["agedjipcnpe"] != 1 {
-		t.Fatalf("投影清空后仍应从 f5 发完整钩/拟饵树: %v（classList=%v）",
+		t.Fatalf("投影清空后仍应从 f5 发完整钩/拟饵树: %v (classList=%v)",
 			counts, classList(dec.Items))
 	}
 }
@@ -447,7 +447,7 @@ func TestAppendFightHookLureTreesQueryFailureReturnsError(t *testing.T) {
 		t.Fatal(err)
 	}
 	if !srv.rigSetType(ctx, uid, rod.GUID, 50) {
-		t.Fatal("rigSetType 50 失败")
+		t.Fatal("rigSetType 50 Ошибка")
 	}
 	lure, err := srv.CreateItem(ctx, uid, "pilkerlures_21176", "backpack", 1)
 	if err != nil {
@@ -459,7 +459,7 @@ func TestAppendFightHookLureTreesQueryFailureReturnsError(t *testing.T) {
 		t.Fatal(err)
 	}
 	if _, err := sess.appendFightHookLureTrees(ctx, nil, rod.GUID); err == nil {
-		t.Fatal("数据库不可用时应返回错误（整帧放弃），实得 nil")
+		t.Fatal("数据库不可用时应返回错误 (整帧放弃), 实得 nil")
 	}
 }
 
@@ -500,12 +500,12 @@ func TestLureContainsHookAndWholeTree(t *testing.T) {
 	}
 	tree := srv.buildMountedHookTree(ctx, rod.GUID)
 	if tree == nil || tree.Class != "ioombppcnlh" {
-		t.Fatalf("路亚中鱼钩帧应为拟饵整树 ioombppcnlh，实得 %v", tree)
+		t.Fatalf("路亚中鱼钩帧应为拟饵整树 ioombppcnlh, 实得 %v", tree)
 	}
 	// 钩物理链路（mountedHookDef 强度/钩号）依赖单钩树语义。
 	sub := srv.mountedHookSubTree(ctx, rod.GUID, factoryHook)
 	if sub == nil || sub.Class != "agedjipcnpe" {
-		t.Fatalf("mountedHookSubTree 应返回单钩 agedjipcnpe，实得 %v", sub)
+		t.Fatalf("mountedHookSubTree 应返回单钩 agedjipcnpe, 实得 %v", sub)
 	}
 }
 
@@ -540,7 +540,7 @@ func readFightSyncPush(srv *Server, peer *tunnel.Conn) (*proto.Value, error) {
 			return nil, derr
 		}
 		if v.ArgCodeStr() != "61" {
-			return nil, &wireErrShim{msg: "4/22 应为 args(61)，实得 " + v.ArgCodeStr()}
+			return nil, &wireErrShim{msg: "4/22 应为 args(61), 实得 " + v.ArgCodeStr()}
 		}
 		return v, nil
 	}
@@ -557,7 +557,7 @@ func waitFightFrame(t *testing.T, frames <-chan *proto.Value) *proto.Value {
 	select {
 	case v, ok := <-frames:
 		if !ok || v == nil {
-			t.Fatal("收集协程提前结束，未收到 4/22")
+			t.Fatal("收集协程提前结束, 未收到 4/22")
 		}
 		return v
 	case <-time.After(3 * time.Second):
@@ -625,7 +625,7 @@ func TestHookConfirmSendsHookFrameThenFightSync(t *testing.T) {
 	// 第一帧：钩帧（路亚=拟饵整树 +1024）。
 	hookFrame := waitFightFrame(t, frames)
 	if hookFrame.ArgCount() != 1 || hookFrame.Items[0] == nil || hookFrame.Items[0].Class != "ioombppcnlh" {
-		t.Fatalf("14/11 第一帧应为钩帧（拟饵整树 1 元素），实得 %v", classList(hookFrame.Items))
+		t.Fatalf("14/11 第一帧应为钩帧 (拟饵整树 1 元素), 实得 %v", classList(hookFrame.Items))
 	}
 	lureInHookFrame := hookFrame.Items[0]
 	if got := objFlagsOf(t, lureInHookFrame); got&1024 == 0 {
@@ -642,9 +642,9 @@ func TestHookConfirmSendsHookFrameThenFightSync(t *testing.T) {
 	}
 	rodTree, lineTree, lureTree, reelTree := byClass["cnolibojkao"], byClass["ohciikgjghe"], byClass["ioombppcnlh"], byClass["dgjinoebdop"]
 	if rodTree == nil || lineTree == nil || lureTree == nil || reelTree == nil {
-		t.Fatalf("14/11 全树同步应含竿/线/拟饵树/轮，实得 %v", classList(fightFrame.Items))
+		t.Fatalf("14/11 全树同步应含竿/线/拟饵树/轮, 实得 %v", classList(fightFrame.Items))
 	}
-	for name, tree := range map[string]*proto.Value{"竿": rodTree, "线": lineTree, "轮": reelTree} {
+	for name, tree := range map[string]*proto.Value{"Удилище": rodTree, "线": lineTree, "轮": reelTree} {
 		if got := objFlagsOf(t, tree); got&(1024|2048) != 1024|2048 {
 			t.Fatalf("14/11 %s flags=%d 缺运行位 1024|2048", name, got)
 		}
@@ -671,7 +671,7 @@ func TestHookConfirmMarineArmHookFrameUsesBiteHook(t *testing.T) {
 		t.Fatal(err)
 	}
 	if !srv.rigSetType(ctx, uid, rod.GUID, 50) {
-		t.Fatal("rigSetType 50 失败")
+		t.Fatal("rigSetType 50 Ошибка")
 	}
 	mainHook, err := srv.CreateItem(ctx, uid, "c_hook_20712", "backpack", 1)
 	if err != nil {
@@ -720,18 +720,18 @@ func TestHookConfirmMarineArmHookFrameUsesBiteHook(t *testing.T) {
 	}
 	hookFrame := waitFightFrame(t, frames)
 	if hookFrame.ArgCount() != 1 || len(hookFrame.Items) != 1 {
-		t.Fatalf("钩帧应为 1 棵树，实得 %v", classList(hookFrame.Items))
+		t.Fatalf("钩帧应为 1 棵树, 实得 %v", classList(hookFrame.Items))
 	}
 	hook := hookFrame.Items[0]
 	if hook.Class != "agedjipcnpe" {
-		t.Fatalf("倒钓臂钩帧应为裸钩 agedjipcnpe，实得 %s", hook.Class)
+		t.Fatalf("倒钓臂钩帧应为裸钩 agedjipcnpe, 实得 %s", hook.Class)
 	}
 	gi := fieldIdxByCS(hook.Class, csGUID)
 	if gi < 0 || gi >= len(hook.Fields) || !strings.EqualFold(hook.Fields[gi].GuidHex(), armHook.GUID) {
-		t.Fatalf("14/11 钩帧推的是 %q，期望中鱼的倒钓臂钩 %s", hook.Fields[gi].GuidHex(), shortGUID(armHook.GUID))
+		t.Fatalf("14/11 钩帧推的是 %q, 期望中鱼的倒钓臂钩 %s", hook.Fields[gi].GuidHex(), shortGUID(armHook.GUID))
 	}
 	if got := objFlagsOf(t, hook); got&1024 == 0 {
-		t.Fatalf("中鱼钩未补挂竿位：flags=%d", got)
+		t.Fatalf("中鱼钩未补挂竿位: flags=%d", got)
 	}
 }
 
@@ -746,7 +746,7 @@ func TestMarinePullConfirmUsesBiteHook(t *testing.T) {
 		t.Fatal(err)
 	}
 	if !srv.rigSetType(ctx, uid, rod.GUID, 50) {
-		t.Fatal("rigSetType 50 失败")
+		t.Fatal("rigSetType 50 Ошибка")
 	}
 	mainHook, err := srv.CreateItem(ctx, uid, "c_hook_20712", "backpack", 1)
 	if err != nil {
@@ -795,15 +795,15 @@ func TestMarinePullConfirmUsesBiteHook(t *testing.T) {
 	}
 	hookFrame := waitFightFrame(t, frames)
 	if len(hookFrame.Items) != 1 || hookFrame.Items[0].Class != "agedjipcnpe" {
-		t.Fatalf("14/9 应补推单枚裸钩，实得 %v", classList(hookFrame.Items))
+		t.Fatalf("14/9 应补推单枚裸钩, 实得 %v", classList(hookFrame.Items))
 	}
 	hook := hookFrame.Items[0]
 	gi := fieldIdxByCS(hook.Class, csGUID)
 	if gi < 0 || gi >= len(hook.Fields) || !strings.EqualFold(hook.Fields[gi].GuidHex(), armHook.GUID) {
-		t.Fatalf("14/9 钩帧推的是 %q，期望中鱼的倒钓臂钩 %s", hook.Fields[gi].GuidHex(), shortGUID(armHook.GUID))
+		t.Fatalf("14/9 钩帧推的是 %q, 期望中鱼的倒钓臂钩 %s", hook.Fields[gi].GuidHex(), shortGUID(armHook.GUID))
 	}
 	if got := objFlagsOf(t, hook); got&1024 == 0 {
-		t.Fatalf("14/9 中鱼钩未补挂竿位：flags=%d", got)
+		t.Fatalf("14/9 中鱼钩未补挂竿位: flags=%d", got)
 	}
 }
 
@@ -865,11 +865,11 @@ func TestHookConfirmSkipsFightSyncWhenDisabled(t *testing.T) {
 	}
 	hookFrame := waitFightFrame(t, frames)
 	if hookFrame.ArgCount() != 1 || hookFrame.Items[0] == nil || hookFrame.Items[0].Class != "ioombppcnlh" {
-		t.Fatalf("关闭全树后第一帧应为钩帧，实得 %v", classList(hookFrame.Items))
+		t.Fatalf("关闭全树后第一帧应为钩帧, 实得 %v", classList(hookFrame.Items))
 	}
 	select {
 	case v := <-frames:
-		t.Fatalf("fight_hook_full_sync=0 不应再推全树，实得 %v", classList(v.Items))
+		t.Fatalf("fight_hook_full_sync=0 不应再推全树, 实得 %v", classList(v.Items))
 	case <-time.After(300 * time.Millisecond):
 	}
 }

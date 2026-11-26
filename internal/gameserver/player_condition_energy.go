@@ -29,7 +29,7 @@ const defBaitDigEnergyCost = 0.15
 // 门槛与消耗同源：剩余体力必须够一次挖饵的消耗量才允许挖，不另设绝对门槛常量。
 // 精力上限是 0.85 且可被装备加成抬高，写死绝对门槛（例如 0.75）会随上限失真，
 // 甚至让满状态玩家也挖不了。
-var errEnergyNotEnough = errors.New("精力不足")
+var errEnergyNotEnough = errors.New("Недостаточно энергии")
 
 // baitDigEnergyCost 读取挖饵体力消耗 tunable，钳到 [0,1]。
 func (s *Server) baitDigEnergyCost() float64 {

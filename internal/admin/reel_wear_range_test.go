@@ -47,7 +47,7 @@ func TestReelWearTunableRangeValidation(t *testing.T) {
 	for _, value := range []string{"0", "-1", "0.000000000000000000001", "1e-21", "1e-13", "2", "NaN", ""} {
 		got := call("POST", "/api/tunables", login.Token, `{"key":"reel_slip_wear","value":"`+value+`"}`).Code
 		if got != 400 {
-			t.Fatalf("磨损率 %q 应被拒绝，实得 %d", value, got)
+			t.Fatalf("磨损率 %q 应被拒绝, 实得 %d", value, got)
 		}
 	}
 
@@ -55,7 +55,7 @@ func TestReelWearTunableRangeValidation(t *testing.T) {
 	for _, value := range []string{"0.000001", "1e-12", "1"} {
 		w = call("POST", "/api/tunables", login.Token, `{"key":"reel_slip_wear","value":"`+value+`"}`)
 		if w.Code != 200 {
-			t.Fatalf("磨损率 %q 应被接受，实得 %d %s", value, w.Code, w.Body)
+			t.Fatalf("磨损率 %q 应被接受, 实得 %d %s", value, w.Code, w.Body)
 		}
 		if got, ok, err := db.TunableGet(ctx, "reel_slip_wear"); err != nil || !ok || got != value {
 			t.Fatalf("保存 %q 读到 %q err=%v", value, got, err)
@@ -65,33 +65,33 @@ func TestReelWearTunableRangeValidation(t *testing.T) {
 	// 其它磨损参数的边界：校准秒数下限 0.01、上限 3600。
 	for _, value := range []string{"0.001", "3601"} {
 		if got := call("POST", "/api/tunables", login.Token, `{"key":"reel_slip_calibration_seconds","value":"`+value+`"}`).Code; got != 400 {
-			t.Fatalf("校准秒数 %q 应被拒绝，实得 %d", value, got)
+			t.Fatalf("校准秒数 %q 应被拒绝, 实得 %d", value, got)
 		}
 	}
 	if got := call("POST", "/api/tunables", login.Token, `{"key":"reel_slip_calibration_seconds","value":"0.01"}`).Code; got != 200 {
-		t.Fatalf("校准秒数下限 0.01 应被接受，实得 %d", got)
+		t.Fatalf("校准秒数下限 0.01 应被接受, 实得 %d", got)
 	}
 
 	// 受力磨损速率上限 0.01%/s（官服量级 0.0004，0.01 已快 25 倍）：超出应被拒；
 	// 烧穿曲线键已随锁轮曲线删除，不再受区间约束。
 	for _, value := range []string{"0.02", "-0.1"} {
 		if got := call("POST", "/api/tunables", login.Token, `{"key":"wear_stress_gear_per_s","value":"`+value+`"}`).Code; got != 400 {
-			t.Fatalf("受力速率 %q 应被拒绝，实得 %d", value, got)
+			t.Fatalf("受力速率 %q 应被拒绝, 实得 %d", value, got)
 		}
 	}
 	if got := call("POST", "/api/tunables", login.Token, `{"key":"wear_stress_gear_per_s","value":"0.0004"}`).Code; got != 200 {
-		t.Fatalf("受力速率 0.0004 应被接受，实得 %d", got)
+		t.Fatalf("受力速率 0.0004 应被接受, 实得 %d", got)
 	}
 	// 打滑门槛倍率：下限 1，上限 10。
 	if got := call("POST", "/api/tunables", login.Token, `{"key":"reel_slip_deadband_ratio","value":"0.9"}`).Code; got != 400 {
-		t.Fatalf("打滑门槛 0.9 应被拒绝，实得 %d", got)
+		t.Fatalf("打滑门槛 0.9 应被拒绝, 实得 %d", got)
 	}
 	if got := call("POST", "/api/tunables", login.Token, `{"key":"reel_slip_deadband_ratio","value":"1.05"}`).Code; got != 200 {
-		t.Fatalf("打滑门槛 1.05 应被接受，实得 %d", got)
+		t.Fatalf("打滑门槛 1.05 应被接受, 实得 %d", got)
 	}
 
 	// 未受区间约束的键不受影响（回归保护：别把校验扩散到别的参数）。
 	if got := call("POST", "/api/tunables", login.Token, `{"key":"xp_gain","value":"0.0001"}`).Code; got != 200 {
-		t.Fatalf("xp_gain 不在磨损区间表内，应正常保存，实得 %d", got)
+		t.Fatalf("xp_gain 不在磨损区间表内, 应正常保存, 实得 %d", got)
 	}
 }

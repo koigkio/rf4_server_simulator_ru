@@ -96,8 +96,8 @@ func TestPlayerRewards2015RejectsMismatchedRows(t *testing.T) {
 		guid, wireClass string
 		typeID          int
 	}{
-		{"11111111111111111111111111111111", "enikeammfen", 305},  // 类对、type 错
-		{"22222222222222222222222222222222", "otherclass", 2015},  // type 对、类错
+		{"11111111111111111111111111111111", "enikeammfen", 305},  // 类对, type 错
+		{"22222222222222222222222222222222", "otherclass", 2015},  // type 对, 类错
 		{"33333333333333333333333333333333", "enikeammfen", 2015}, // 两者都对
 	}
 	for _, r := range rows {
@@ -189,7 +189,7 @@ func TestPlaceOfItem(t *testing.T) {
 	}
 	for id, want := range cases {
 		if got := placeOfItem(id); got != want {
-			t.Errorf("placeOfItem(%q)=%d, 期望 %d", id, got, want)
+			t.Errorf("placeOfItem(%q)=%d, Ожидалось %d", id, got, want)
 		}
 	}
 }
@@ -218,7 +218,7 @@ func TestDynamicRewardVisibilityPersistsToList(t *testing.T) {
 	}
 	visibility := detail.Field(1)
 	if got := visibility.U32(); got != 1 {
-		t.Fatalf("3/40 隐藏后 f1=%d，期望 1", got)
+		t.Fatalf("3/40 隐藏后 f1=%d, 期望 1", got)
 	}
 
 	fresh := mustItem(t, db, item.GUID)
@@ -267,6 +267,6 @@ func TestDynamicRewardVisibilityPersistsToList(t *testing.T) {
 	}
 	visibility = detail.Field(1)
 	if got := visibility.U32(); got != 0 {
-		t.Fatalf("3/40 显示后 f1=%d，期望 0", got)
+		t.Fatalf("3/40 显示后 f1=%d, 期望 0", got)
 	}
 }

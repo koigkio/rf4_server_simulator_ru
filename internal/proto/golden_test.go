@@ -63,7 +63,7 @@ func loadGolden(t *testing.T) *goldenFile {
 	t.Helper()
 	var g goldenFile
 	if err := json.Unmarshal(goldenJSON, &g); err != nil {
-		t.Fatalf("解析 golden.json: %v", err)
+		t.Fatalf("Разбор golden.json: %v", err)
 	}
 	return &g
 }
@@ -87,7 +87,7 @@ func TestGoldenRC4(t *testing.T) {
 	if !bytes.Equal(ks1, mustHex(t, g.RC4.KS1)) {
 		t.Fatalf("ks1 mismatch:\n got %x\nwant %s", ks1, g.RC4.KS1)
 	}
-	ks2 := rc.Crypt(make([]byte, 16)) // 连续性：接在 ks1 之后
+	ks2 := rc.Crypt(make([]byte, 16)) // 连续性: 接在 ks1 之后
 	if !bytes.Equal(ks2, mustHex(t, g.RC4.KS2)) {
 		t.Fatalf("ks2 mismatch (keystream 连续性破坏)")
 	}

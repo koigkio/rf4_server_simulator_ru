@@ -13,17 +13,17 @@ import (
 // 硬度档实际是 0..10：8..10（多为船竿）不能静默拿到中性 1.0。
 func TestCastRodStiffnessCoversFullEnum(t *testing.T) {
 	if got := castRodStiffnessFactor(0); got != 1 {
-		t.Fatalf("0=未登记/任意应中性 1.0，实得 %f", got)
+		t.Fatalf("0=未登记/任意应中性 1.0, 实得 %f", got)
 	}
 	if got := castRodStiffnessFactor(-3); got != 1 {
-		t.Fatalf("非法负值应中性 1.0，实得 %f", got)
+		t.Fatalf("非法负值应中性 1.0, 实得 %f", got)
 	}
 	if got := castRodStiffnessFactor(1); math.Abs(got-0.990) > 1e-9 {
-		t.Fatalf("1 档应为 0.990，实得 %f", got)
+		t.Fatalf("1 档应为 0.990, 实得 %f", got)
 	}
 	for _, stiffness := range []int64{7, 8, 9, 10, 11} {
 		if got := castRodStiffnessFactor(stiffness); math.Abs(got-1.014) > 1e-9 {
-			t.Fatalf("硬度 %d 应取上限 1.014，实得 %f", stiffness, got)
+			t.Fatalf("硬度 %d 应取上限 1.014, 实得 %f", stiffness, got)
 		}
 	}
 }
@@ -32,7 +32,7 @@ func TestCastRodStiffnessCoversFullEnum(t *testing.T) {
 func TestLeaderMassUsesInstanceLength(t *testing.T) {
 	noLength := testDef(fmt.Sprintf(`{"ocmbfkebgpp":6,"ciichedlnjh":%d}`, f32Attr(0.50)))
 	if got := leaderMassG(noLength, 0); got != 0 {
-		t.Fatalf("定义与实例都没长度时应返回 0，实得 %f", got)
+		t.Fatalf("定义与实例都没长度时应返回 0, 实得 %f", got)
 	}
 	short, long := leaderMassG(noLength, 15), leaderMassG(noLength, 30)
 	if short <= 0 || math.Abs(long-2*short) > 1e-6 {
@@ -49,6 +49,6 @@ func TestLeaderMassUsesInstanceLength(t *testing.T) {
 	noDiameter := testDef(fmt.Sprintf(`{"lgjeahdobch":%d,"ljnnpokapig":%d}`,
 		f32Attr(0.02), f32Attr(2.0)))
 	if got := leaderMassG(noDiameter, 0); got <= 0 {
-		t.Fatalf("无线径时兜底应给出正重量，实得 %f", got)
+		t.Fatalf("无线径时兜底应给出正重量, 实得 %f", got)
 	}
 }

@@ -35,13 +35,13 @@ func TestMountedHookDefReadsEmbeddedLureHookDurability(t *testing.T) {
 		t.Fatal("mountedHookDef 没有返回钩定义")
 	}
 	if math.Abs(dur-0.4) > 1e-6 {
-		t.Fatalf("内嵌钩耐久 = %v，期望 0.4", dur)
+		t.Fatalf("内嵌钩耐久 = %v, 期望 0.4", dur)
 	}
 	ids := s.rigGearIDs(ctx, uid, rod.GUID)
 	spec := s.loadGearSpecForRig(ctx, ids, rod.GUID)
 	want := itemDefF32(def, gearAttrMaxLoad) * 0.4
 	if math.Abs(spec.HookStrengthKg-want) > 1e-6 {
-		t.Fatalf("HookStrengthKg = %v，期望 %v", spec.HookStrengthKg, want)
+		t.Fatalf("HookStrengthKg = %v, 期望 %v", spec.HookStrengthKg, want)
 	}
 }
 
@@ -76,12 +76,12 @@ func TestMountedHookDefReadsSwappedLureHookRow(t *testing.T) {
 		t.Fatal("mountedHookDef 没有返回钩定义")
 	}
 	if math.Abs(dur-0.4) > 1e-6 {
-		t.Fatalf("换上钩耐久 = %v，期望 0.4", dur)
+		t.Fatalf("换上钩耐久 = %v, 期望 0.4", dur)
 	}
 	ids := s.rigGearIDs(ctx, uid, rod.GUID)
 	spec := s.loadGearSpecForRig(ctx, ids, rod.GUID)
 	want := itemDefF32(def, gearAttrMaxLoad) * 0.4
 	if math.Abs(spec.HookStrengthKg-want) > 1e-6 {
-		t.Fatalf("HookStrengthKg = %v，期望 %v", spec.HookStrengthKg, want)
+		t.Fatalf("HookStrengthKg = %v, 期望 %v", spec.HookStrengthKg, want)
 	}
 }

@@ -20,7 +20,7 @@ func TestRegisteredResponseContractCatchesScalar19_5(t *testing.T) {
 	}
 	reason := d.checkRegisteredResponse(19, 5, scalar, srv.Table())
 	if reason == "" || !strings.Contains(reason, "obj") {
-		t.Fatalf("19/5 标量响应应被合同守卫拒绝，reason=%q", reason)
+		t.Fatalf("19/5 标量响应应被合同守卫拒绝, reason=%q", reason)
 	}
 
 	good := wiregen.MustMakeObj("pbndmldbfai", map[int]*proto.Value{

@@ -35,29 +35,29 @@ func checkPushArgsStrict(main, sub uint8, body *proto.Value) string {
 	}
 	for _, want := range base {
 		if !knownPushPattern(want) {
-			return fmt.Sprintf("未知推送合同模式 %q（形状 %v）", want, decl)
+			return fmt.Sprintf("Неизвестный режим контракта отправки %q (форма %v)", want, decl)
 		}
 	}
 	if hasTail && !knownPushPattern(tail) {
-		return fmt.Sprintf("未知推送合同模式 %q（形状 %v）", tail, decl)
+		return fmt.Sprintf("Неизвестный режим контракта отправки %q (форма %v)", tail, decl)
 	}
 
 	items := body.Items
 	for i, want := range base {
 		if reason := checkExtendedPushPattern(want, items[i]); reason != "" {
-			return fmt.Sprintf("推送参数[%d] %s", i, reason)
+			return fmt.Sprintf("Параметр отправки[%d] %s", i, reason)
 		}
 	}
 	if hasTail {
 		for i := len(base); i < len(items); i++ {
 			if reason := checkExtendedPushPattern(tail, items[i]); reason != "" {
-				return fmt.Sprintf("推送参数[%d] %s", i, reason)
+				return fmt.Sprintf("Параметр отправки[%d] %s", i, reason)
 			}
 		}
 	} else {
 		for i, want := range decl {
 			if reason := checkExtendedPushPattern(want, items[i]); reason != "" {
-				return fmt.Sprintf("推送参数[%d] %s", i, reason)
+				return fmt.Sprintf("Параметр отправки[%d] %s", i, reason)
 			}
 		}
 	}
@@ -69,7 +69,7 @@ func checkExtendedPushPattern(want string, it *proto.Value) string {
 	switch want {
 	case "guidarr":
 		if it == nil || !it.IsKind(proto.KindGuidArr) {
-			return fmt.Sprintf("应为 guidarr, 实得 %s", kindName(it))
+			return fmt.Sprintf("ожидается guidarr, получено %s", kindName(it))
 		}
 		return ""
 	default:

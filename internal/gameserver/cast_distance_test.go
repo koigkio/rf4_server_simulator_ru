@@ -39,7 +39,7 @@ func TestReelCastFrictionImprovesWithBearingOilAndDurability(t *testing.T) {
 			wornBasic, newBasic, premium)
 	}
 	if math.Abs(premium-0.05) > 1e-9 {
-		t.Fatalf("满品质轮子摩擦=%f，期望0.05", premium)
+		t.Fatalf("满品质轮子摩擦=%f, 期望0.05", premium)
 	}
 	// 零件自身磨旧也要体现在抛投手感上：油干了、轴承旧了都更甩不出去。
 	dryOil := reelCastFriction(100, 1, 100, 0, 1.0)
@@ -73,10 +73,10 @@ func TestCastRodWithoutTestDataUsesConservativeFactor(t *testing.T) {
 	// 折减处理，不应与登记了合适 Test 区间的竿同等对待。
 	missing := rodTestWeightFactor(8, 0, 0)
 	if missing != 0.85 {
-		t.Fatalf("缺 Test 区间的竿应固定折减 0.85，实得 %f", missing)
+		t.Fatalf("缺 Test 区间的竿应固定折减 0.85, 实得 %f", missing)
 	}
 	if registered := rodTestWeightFactor(8, 5, 30); registered >= missing {
-		t.Fatalf("登记了合适 Test 区间的竿（系数 %.3f）应低于缺数据竿的固定折减 %.2f",
+		t.Fatalf("登记了合适 Test 区间的竿 (系数 %.3f)应低于缺数据竿的固定折减 %.2f",
 			registered, missing)
 	}
 	// 负值同样视为未登记。
@@ -95,7 +95,7 @@ func TestCastOverTestPayloadShortensDistance(t *testing.T) {
 			peak, twenty, forty, hundred)
 	}
 	if hundred < 0.15 {
-		t.Fatalf("超重 10 倍时系数过低，距离会被压到失去意义: %.4f", hundred)
+		t.Fatalf("超重 10 倍时系数过低, 距离会被压到失去意义: %.4f", hundred)
 	}
 	// 数值锚点：衰减只与超重倍率 r=payload/testMax 有关，相对峰值恒为
 	// 1/(1+0.70*(r-1))。这里故意用字面量 0.70 而不是 rodTestOverloadDecay，
@@ -109,18 +109,18 @@ func TestCastOverTestPayloadShortensDistance(t *testing.T) {
 		{30, 1.0 / (1 + 0.70*2.0)}, // 3×   → 峰值 41.7%
 	} {
 		if ratio := rodTestWeightFactor(tc.payload, 2, 10) / peak; math.Abs(ratio-tc.want) > 1e-9 {
-			t.Fatalf("%.0fg 应为峰值的 %.4f，实得 %.4f", tc.payload, tc.want, ratio)
+			t.Fatalf("%.0fg 应为峰值的 %.4f, 实得 %.4f", tc.payload, tc.want, ratio)
 		}
 	}
 	// 10× 撞的是 clampFloat 的绝对下限 0.22，不是"剩峰值的 22%"。
 	if math.Abs(hundred-0.22) > 1e-9 {
-		t.Fatalf("超重 10 倍应落到绝对下限 0.22，实得 %.4f", hundred)
+		t.Fatalf("超重 10 倍应落到绝对下限 0.22, 实得 %.4f", hundred)
 	}
 	if ratio := rodOverTestRatio(25, 10); math.Abs(ratio-2.5) > 1e-9 {
-		t.Fatalf("超重倍率应为 2.5，实得 %f", ratio)
+		t.Fatalf("超重倍率应为 2.5, 实得 %f", ratio)
 	}
 	if ratio := rodOverTestRatio(25, 0); ratio != 0 {
-		t.Fatalf("竿未登记 Test 时应返回 0，实得 %f", ratio)
+		t.Fatalf("竿未登记 Test 时应返回 0, 实得 %f", ratio)
 	}
 	// 同一条竿（Test 5-30g）：合规载荷必须比超重载荷抛得远。
 	underDistance := castCalibrationDistance(30, 5)
@@ -161,10 +161,10 @@ func TestCastCalibrationBands(t *testing.T) {
 		largeSpool := castCalibrationDistance(payload, 5) // 6000
 		smallSpool := castCalibrationDistance(payload, 2) // 2000
 		if largeSpool < 33.4 || largeSpool > 34.4 {
-			t.Fatalf("6000线杯 %.0fg 距离=%0.2f，期望33.4～34.4米区间", payload, largeSpool)
+			t.Fatalf("6000线杯 %.0fg 距离=%0.2f, 期望33.4~34.4米区间", payload, largeSpool)
 		}
 		if smallSpool < 39.0 || smallSpool > 40.0 {
-			t.Fatalf("2000线杯 %.0fg 距离=%0.2f，期望39.0～40.0米区间", payload, smallSpool)
+			t.Fatalf("2000线杯 %.0fg 距离=%0.2f, 期望39.0~40.0米区间", payload, smallSpool)
 		}
 		if smallSpool <= largeSpool+5 {
 			t.Fatalf("小线杯应比6000线杯远至少5米: 小杯=%0.2f 大杯=%0.2f", smallSpool, largeSpool)
@@ -179,7 +179,7 @@ func TestCastPlayerStateFactorZeroStateUsesFloor(t *testing.T) {
 		t.Fatalf("空状态应落到 0.70 下限: %v", got)
 	}
 	if got := castPlayerStateFactor(defaultPlayerConditionPrimary); math.Abs(got-1.0) > 1e-9 {
-		t.Fatalf("精力满即应满抛距（饱食度不参与）: %v", got)
+		t.Fatalf("精力满即应满抛距 (饱食度不参与): %v", got)
 	}
 	if got := castPlayerStateFactor(1.0); math.Abs(got-1.03) > 1e-9 {
 		t.Fatalf("超上限应钳到 1.03: %v", got)
@@ -203,7 +203,7 @@ func TestCastHighEndGearCeilingAfterRodTestScaling(t *testing.T) {
 		SkillMastery: 100, SkillCastPct: 10,
 	})
 	if d < 56.4 || d > 57.2 {
-		t.Fatalf("高阶装备上限应落在 ~56.8m，实得%0.2f", d)
+		t.Fatalf("高阶装备上限应落在 ~56.8m, 实得%0.2f", d)
 	}
 }
 
@@ -224,7 +224,7 @@ func TestCastFreshwaterLureOfficialAnchorBand(t *testing.T) {
 		SkillMastery:       95, SkillCastPct: 60,
 	})
 	if math.IsNaN(d) || d < 27.6 || d > 28.1 {
-		t.Fatalf("Test8 档 UL 配置应落在 ~27.82m（官服 UL 锚点 27m），实得 %.2f factors=%+v",
+		t.Fatalf("Test8 档 UL 配置应落在 ~27.82m (官服 UL 锚点 27m), 实得 %.2f factors=%+v",
 			d, factors)
 	}
 }
@@ -245,7 +245,7 @@ func TestCastOfficialULAnchor(t *testing.T) {
 		SkillMastery:       100, SkillCastPct: 60,
 	})
 	if d < 26.9 || d > 27.1 {
-		t.Fatalf("UL 官服锚点应落在 27.0m，实得 %.2f factors=%+v", d, factors)
+		t.Fatalf("UL 官服锚点应落在 27.0m, 实得 %.2f factors=%+v", d, factors)
 	}
 }
 
@@ -270,7 +270,7 @@ func TestCastMHAnchorRegression(t *testing.T) {
 		SkillMastery:       100, SkillCastPct: 60,
 	})
 	if d < 49.9 || d > 50.7 {
-		t.Fatalf("中重装档回归基线应落在 50m（非官服锚点，见函数注释），实得 %.2f", d)
+		t.Fatalf("中重装档回归基线应落在 50m (非官服锚点, 见函数注释), 实得 %.2f", d)
 	}
 }
 
@@ -279,19 +279,19 @@ func TestCastMHAnchorRegression(t *testing.T) {
 // 锚点、其余默认族 60。
 func TestCastNominalDistanceByRigFamily(t *testing.T) {
 	if got := castNominalDistanceM(5); got != 23.06 {
-		t.Fatalf("淡水路亚锚点档标称 = %v，期望 23.06", got)
+		t.Fatalf("淡水路亚锚点档标称 = %v, 期望 23.06", got)
 	}
 	if got := castNominalDistanceM(22); got != 23.06 {
-		t.Fatalf("淡水路亚 rigType22 锚点档标称 = %v，期望 23.06", got)
+		t.Fatalf("淡水路亚 rigType22 锚点档标称 = %v, 期望 23.06", got)
 	}
 	if got := castNominalDistanceM(52); got != 45.0 {
-		t.Fatalf("海钓路亚标称 = %v，期望 45（待补锚点保留旧值）", got)
+		t.Fatalf("海钓路亚标称 = %v, 期望 45 (待补锚点保留旧值)", got)
 	}
 	if got := castNominalDistanceM(1); got != 60.0 {
-		t.Fatalf("浮钓默认族标称 = %v，期望 60", got)
+		t.Fatalf("浮钓默认族标称 = %v, 期望 60", got)
 	}
 	if got := castNominalDistanceM(12); got != 60.0 {
-		t.Fatalf("底钓默认族标称 = %v，期望 60", got)
+		t.Fatalf("底钓默认族标称 = %v, 期望 60", got)
 	}
 }
 
@@ -444,7 +444,7 @@ func TestReelSpoolCapacityMatchesGameData(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			got := reelSpoolCapacityM(tc.coef, tc.diameter)
 			if math.Abs(got-tc.want) > 1e-9 {
-				t.Fatalf("容量 %.0fm，期望 %.0fm", got, tc.want)
+				t.Fatalf("容量 %.0fm, 期望 %.0fm", got, tc.want)
 			}
 		})
 	}
@@ -471,7 +471,7 @@ func TestReelSpoolCapacityUsesStaticItemAnchors(t *testing.T) {
 			}
 			_, _, got := srv.castReelSpoolStats(ctx, reel, tc.lineID)
 			if got != tc.want {
-				t.Fatalf("静态轮型 %s / 线材 %s 容量=%0.fm，期望 %0.fm", tc.reelID, tc.lineID, got, tc.want)
+				t.Fatalf("静态轮型 %s / 线材 %s 容量=%0.fm, 期望 %0.fm", tc.reelID, tc.lineID, got, tc.want)
 			}
 		})
 	}
@@ -481,13 +481,13 @@ func TestReelSpoolCapacityUsesStaticItemAnchors(t *testing.T) {
 // 短于容量时按实际线长计。
 func TestSpoolFillCapsAtCapacity(t *testing.T) {
 	if got := spoolFillRatio(600, 17); got != 1 {
-		t.Fatalf("600m 盘装 17m 杯，上杯率应为 1，实得 %.3f", got)
+		t.Fatalf("600m 盘装 17m 杯, 上杯率应为 1, 实得 %.3f", got)
 	}
 	if got := spoolFillRatio(8.5, 17); math.Abs(got-0.5) > 1e-9 {
-		t.Fatalf("8.5m/17m 上杯率应为 0.5，实得 %.3f", got)
+		t.Fatalf("8.5m/17m 上杯率应为 0.5, 实得 %.3f", got)
 	}
 	if got := spoolFillRatio(0, 17); got != 0 {
-		t.Fatalf("无对应为 0，实得 %.3f", got)
+		t.Fatalf("无对应为 0, 实得 %.3f", got)
 	}
 }
 
@@ -581,7 +581,7 @@ func TestCastOverMaxRequestedDoesNotUnlockAchievements(t *testing.T) {
 	rodGUID, rigMax, sess := newOverMaxCastRig(t, srv)
 	castM := castOverMaxRequest(t, srv, sess, rodGUID, rigMax)
 	if math.Abs(castM-rigMax) > 1e-6 {
-		t.Fatalf("前置条件：本次距离应已收口到上限，CastM=%g 上限=%g", castM, rigMax)
+		t.Fatalf("前置条件: 本次距离应已收口到上限, CastM=%g 上限=%g", castM, rigMax)
 	}
 	// 1000-1004 是 30/45/60/80/100 m 阶梯（achievements_rules.go）。
 	tiers := []struct {
@@ -595,16 +595,16 @@ func TestCastOverMaxRequestedDoesNotUnlockAchievements(t *testing.T) {
 	above := 0
 	for _, tr := range tiers {
 		if rigMax > tr.m {
-			continue // 上限本身就过了这一档，收不收口都该解锁
+			continue // 上限本身就过了这一档, 收不收口都该解锁
 		}
 		above++
 		if states[tr.id].Unlocked {
-			t.Fatalf("红区请求（%.2f）不应解锁 %.0f m 成就 %d，实际上限只有 %.2f",
+			t.Fatalf("红区请求 (%.2f)不应解锁 %.0f m 成就 %d, 实际上限只有 %.2f",
 				rigMax*1.3, tr.m, tr.id, rigMax)
 		}
 	}
 	if above == 0 {
-		t.Fatalf("用例前提不成立：上限 %.2f 已覆盖全部成就阶梯", rigMax)
+		t.Fatalf("用例前提不成立: 上限 %.2f 已覆盖全部成就阶梯", rigMax)
 	}
 	// 正对照：把同一个 1.3 倍距离直接喂给成就规则，30 m 阶梯必须能解锁——
 	// 证明上面"没解锁"是收口的结果，而不是成就系统没跑起来。
@@ -615,7 +615,7 @@ func TestCastOverMaxRequestedDoesNotUnlockAchievements(t *testing.T) {
 		t.Fatal(err)
 	}
 	if !states2[1000].Unlocked {
-		t.Fatalf("正对照失败：直接喂 %.2f m 应解锁 30 m 成就", rigMax*1.3)
+		t.Fatalf("正对照失败: 直接喂 %.2f m 应解锁 30 m 成就", rigMax*1.3)
 	}
 }
 
@@ -648,7 +648,7 @@ func TestCastRodlessKeepsRequestedOverLegacyMax(t *testing.T) {
 	castM := st.CastM
 	st.mu.Unlock()
 	if castM != 50 {
-		t.Fatalf("无轮手竿红区请求应直通: CastM = %g，期望 50", castM)
+		t.Fatalf("无轮手竿红区请求应直通: CastM = %g, 期望 50", castM)
 	}
 }
 
@@ -661,13 +661,13 @@ func TestRodTestWeightFactorWithoutPayloadKeepsDefault(t *testing.T) {
 		{2, 10}, {5, 30}, {0.5, 1.2}, {0, 8},
 	} {
 		if got := rodTestWeightFactor(0, tc.minG, tc.maxG); math.Abs(got-0.80) > 1e-9 {
-			t.Fatalf("载荷未知时应固定折减 0.80（Test %.1f~%.1f），实得 %.4f",
+			t.Fatalf("载荷未知时应固定折减 0.80 (Test %.1f~%.1f), 实得 %.4f",
 				tc.minG, tc.maxG, got)
 		}
 	}
 	// 未登记 Test 区间时优先走 0.85 保守折减，不应被载荷未知分支覆盖。
 	if got := rodTestWeightFactor(0, 0, 0); math.Abs(got-0.85) > 1e-9 {
-		t.Fatalf("未登记 Test 且载荷未知时应取 0.85，实得 %.4f", got)
+		t.Fatalf("未登记 Test 且载荷未知时应取 0.85, 实得 %.4f", got)
 	}
 	// 已知载荷不应落在未知载荷的默认值上，避免把「恒返回 0.80」写成合法实现。
 	if got := rodTestWeightFactor(8, 5, 30); math.Abs(got-0.80) < 1e-9 {
@@ -693,7 +693,7 @@ func TestCastCarpRigMatchesForumRange(t *testing.T) {
 	// 同帖四条重装实测分布 95 / 105-110 / 115 / 135 / 146m，配置差异主要在竿与轮；
 	// 指数取中位后本配置落在 112-117m（四条的中位区），而不是顶配那条的 146m。
 	if d < 105 || d > 130 {
-		t.Fatalf("3.9m/Test2040g/140g/+75%% 应落在四条实测的中位区 105-130m，实得 %.2f（nominal=%.1f，因子=%v）",
+		t.Fatalf("3.9m/Test2040g/140g/+75%% 应落在四条实测的中位区 105-130m, 实得 %.2f (nominal=%.1f, 因子=%v)",
 			d, castNominalDistanceForRod(16, 2040), factors)
 	}
 	// 同配置只挂 +60%（无竿自带 15%）应略近，且仍远于旧 60 基准的 45m。
@@ -723,16 +723,16 @@ func TestCastNominalNonLureFamilyScalesWithTest(t *testing.T) {
 			bologna, feeder, carp)
 	}
 	if bologna < 35 || bologna > 41 {
-		t.Fatalf("博洛尼亚 Test18 标称应落在 35-41，实得 %.2f", bologna)
+		t.Fatalf("博洛尼亚 Test18 标称应落在 35-41, 实得 %.2f", bologna)
 	}
 	if feeder < 55 || feeder > 62 {
-		t.Fatalf("飞德 Test100 标称应落在 55-62，实得 %.2f", feeder)
+		t.Fatalf("飞德 Test100 标称应落在 55-62, 实得 %.2f", feeder)
 	}
 	// Test 缺失仍回落到族常量，不被分档曲线拉走。
 	if got := castNominalDistanceForRod(1, 0); got != 60.0 {
-		t.Fatalf("非路亚族 Test 缺失应回落 60，实得 %v", got)
+		t.Fatalf("非路亚族 Test 缺失应回落 60, 实得 %v", got)
 	}
 	if got := castNominalDistanceForRod(5, 0); got != 23.06 {
-		t.Fatalf("路亚族 Test 缺失应回落 23.06，实得 %v", got)
+		t.Fatalf("路亚族 Test 缺失应回落 23.06, 实得 %v", got)
 	}
 }

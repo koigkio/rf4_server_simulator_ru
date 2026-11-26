@@ -13,16 +13,16 @@ func TestLoginBytesGolden(t *testing.T) {
 	// ---- 1/5：9 个 40 位 SHA1 的 0x04 数组 ----
 	vers, err := configVersions()
 	if err != nil {
-		t.Fatalf("configVersions 解析失败（会使 1/5 返回空数组）: %v", err)
+		t.Fatalf("configVersions 解析失败 (会使 1/5 返回空数组): %v", err)
 	}
 	if len(vers) != 9 {
-		t.Fatalf("配置版本应 9 个，实得 %d", len(vers))
+		t.Fatalf("配置版本应 9 个, 实得 %d", len(vers))
 	}
 	out := []byte{0x04}
 	out = append(out, proto.PackU16(uint32(len(vers)))...)
 	for _, v := range vers {
 		if len(v) != 40 {
-			t.Fatalf("SHA1 应 40 字节，实得 %d", len(v))
+			t.Fatalf("SHA1 应 40 字节, 实得 %d", len(v))
 		}
 		out = append(out, proto.PackU32(uint32(len(v)))...)
 		out = append(out, v...)
@@ -33,7 +33,7 @@ func TestLoginBytesGolden(t *testing.T) {
 		t.Fatalf("1/5 body 头不符\n want %s\n got  %s", wantHead, got)
 	}
 	if len(out) != 399 {
-		t.Fatalf("1/5 body 应 399B，实得 %d", len(out))
+		t.Fatalf("1/5 body 应 399B, 实得 %d", len(out))
 	}
 	env := proto.BuildResponseEnvelope(3, out)
 	// 预期信封：01 feffffff 03000000 + body

@@ -12,9 +12,9 @@ type fishingWeather struct {
 	known           bool
 	airTemp         float64
 	previousAirTemp float64
-	wind            float64 // 米/秒。
+	wind            float64 // 米/秒.
 	fog             float64
-	kind            int // 按即时云量、降雨和雷暴强度分类。
+	kind            int // 按即时云量, 降雨和雷暴强度分类.
 	waterCategory   int
 }
 

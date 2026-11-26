@@ -32,7 +32,7 @@ func TestGradeRatioBelowBandHonorsSpeciesMinWeight(t *testing.T) {
 		}
 	}
 	if below == 0 {
-		t.Fatal("样本里没有未达标个体，用例无效")
+		t.Fatal("样本里没有未达标个体, 用例无效")
 	}
 }
 
@@ -44,7 +44,7 @@ func TestGradeRatioBelowBandFallsBackToProportionalFloor(t *testing.T) {
 	const val, tro, sup = int64(1000), int64(5000), int64(8000)
 	lines := cachedGradeLines{val: ptrI64(val), trophy: ptrI64(tro), blue: ptrI64(sup)}
 
-	const wantLo = 50.0 // belowGradeFloorFromVal(1000) = 15% = 150，钳到 50
+	const wantLo = 50.0 // belowGradeFloorFromVal(1000) = 15% = 150, 钳到 50
 	model, handled := srv.gradeRatioModel(lines, 1, 1, 0)
 	if !handled {
 		t.Fatal("档位模型不可用")
@@ -54,7 +54,7 @@ func TestGradeRatioBelowBandFallsBackToProportionalFloor(t *testing.T) {
 		if b.grade == 1 {
 			found = true
 			if math.Abs(b.lo-wantLo) > 1e-9 {
-				t.Fatalf("min_g 缺失时未达标档下界应 = 兜底 15%%钳 50 g，实得 %.2f", b.lo)
+				t.Fatalf("min_g 缺失时未达标档下界应 = 兜底 15%%钳 50 g, 实得 %.2f", b.lo)
 			}
 		}
 	}
@@ -83,7 +83,7 @@ func TestGradeRatioBelowBandGuardsMinAboveLine(t *testing.T) {
 		}
 		found = true
 		if math.Abs(b.lo-50) > 1e-9 {
-			t.Fatalf("min_g 越界时未达标档下界应 = 兜底 15%%钳 50 g，实得 %.2f", b.lo)
+			t.Fatalf("min_g 越界时未达标档下界应 = 兜底 15%%钳 50 g, 实得 %.2f", b.lo)
 		}
 	}
 	if !found {
@@ -108,7 +108,7 @@ func TestGradeRatioBelowBandUsesMinGBelowFloor(t *testing.T) {
 		if b.grade == 1 {
 			found = true
 			if math.Abs(b.lo-30) > 1e-9 {
-				t.Fatalf("下界应取 min_g=30（低于兜底 50），实得 %.2f", b.lo)
+				t.Fatalf("下界应取 min_g=30 (低于兜底 50), 实得 %.2f", b.lo)
 			}
 		}
 	}
@@ -144,7 +144,7 @@ func TestSampleWeightDBLoadsSpeciesMinG(t *testing.T) {
 		}
 	}
 	if below == 0 {
-		t.Fatal("样本里没有未达标个体，用例无效")
+		t.Fatal("样本里没有未达标个体, 用例无效")
 	}
 }
 
@@ -176,11 +176,11 @@ func TestSampleWeightDBFloorsBelowBandWhenMinGMissing(t *testing.T) {
 		}
 	}
 	if below == 0 {
-		t.Fatal("样本里没有未达标个体，用例无效")
+		t.Fatal("样本里没有未达标个体, 用例无效")
 	}
-	const floor = int64(50) // 1000 × 15% = 150，钳到上限 50 g（独立常量，不用被测函数自算）
+	const floor = int64(50) // 1000 × 15% = 150, 钳到上限 50 g (独立常量, 不用被测函数自算)
 	if minSeen < floor {
-		t.Fatalf("min_g 缺失时未达标个体最小应 ≥ 兜底下界 %d g，实测 %d g", floor, minSeen)
+		t.Fatalf("min_g 缺失时未达标个体最小应 ≥ 兜底下界 %d g, 实测 %d g", floor, minSeen)
 	}
 }
 
@@ -188,10 +188,10 @@ func TestBelowGradeFloorFromVal(t *testing.T) {
 	cases := []struct {
 		val, want int64
 	}{
-		{0, 0}, {-5, 0}, // 无达标线：不兜底
-		{1000, 50}, // 15% = 150，但钳到上限 50 g
+		{0, 0}, {-5, 0}, // 无达标线: 不兜底
+		{1000, 50}, // 15% = 150, 但钳到上限 50 g
 		{100, 15},
-		{10, 2},    // 10 × 15% = 1.5，四舍五入为 2
+		{10, 2},    // 10 × 15% = 1.5, 四舍五入为 2
 		{7, 1},     // 1.05 → 1
 		{5000, 50}, // 上限 50 g
 		{100000, 50},

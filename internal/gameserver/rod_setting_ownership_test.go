@@ -30,7 +30,7 @@ func TestRodSetDepthRejectsForeignRod(t *testing.T) {
 	}
 
 	if after := storedRigField(t, db, rod.GUID, 4); after != before {
-		t.Fatalf("外玩家竿 f5.f4 钓深被改成 %d，期望保持 %d", after, before)
+		t.Fatalf("外玩家竿 f5.f4 钓深被改成 %d, 期望保持 %d", after, before)
 	}
 	st := srv.stateFor(attacker.Userid)
 	st.mu.Lock()
@@ -62,7 +62,7 @@ func TestRodSetClipRejectsForeignRod(t *testing.T) {
 		t.Fatalf("外玩家竿被写入轮管卡: got=%q err=%v", got, err)
 	}
 	if after := storedRigField(t, db, rod.GUID, 5); after != 0 {
-		t.Fatalf("外玩家竿 f5.f5 轮管卡被改成 %d，期望保持默认 0", after)
+		t.Fatalf("外玩家竿 f5.f5 轮管卡被改成 %d, 期望保持默认 0", after)
 	}
 }
 
@@ -88,7 +88,7 @@ func TestRodSetQuivertipRejectsForeignRod(t *testing.T) {
 		t.Fatalf("外玩家竿被写入竿稍设置: got=%q err=%v", got, err)
 	}
 	if afterTip, _ := rodTipOf(t, db, rod.GUID); afterTip != beforeTip {
-		t.Fatalf("外玩家竿稍被改成 %q，期望保持 %q", afterTip, beforeTip)
+		t.Fatalf("外玩家竿稍被改成 %q, 期望保持 %q", afterTip, beforeTip)
 	}
 }
 
@@ -114,7 +114,7 @@ func TestRodSetRigTypeRejectsForeignRod(t *testing.T) {
 		t.Fatalf("外玩家竿被写入钓组类型标记: got=%q err=%v", got, err)
 	}
 	if afterType := storedRigField(t, db, rod.GUID, 1); afterType != beforeType {
-		t.Fatalf("外玩家竿钓组类型被改成 %d，期望保持 %d", afterType, beforeType)
+		t.Fatalf("外玩家竿钓组类型被改成 %d, 期望保持 %d", afterType, beforeType)
 	}
 }
 
@@ -140,6 +140,6 @@ func TestRodBaitMountRejectsForeignRod(t *testing.T) {
 		t.Fatalf("外玩家竿被写入挂饵方式: got=%q err=%v", got, err)
 	}
 	if afterMount := storedRigField(t, db, rod.GUID, 8); afterMount != beforeMount {
-		t.Fatalf("外玩家竿挂饵方式被改成 %d，期望保持 %d", afterMount, beforeMount)
+		t.Fatalf("外玩家竿挂饵方式被改成 %d, 期望保持 %d", afterMount, beforeMount)
 	}
 }

@@ -133,7 +133,7 @@ func TestQualificationMarineFirstStageProgress(t *testing.T) {
 		}
 	}
 	ev.CatchGUID = "marine-second"
-	srv.evaluateQualifications(ctx, ev) // 同鱼种、同饵的另一尾鱼。
+	srv.evaluateQualifications(ctx, ev) // 同鱼种, 同饵的另一尾鱼.
 	states, err := db.QualificationStates(context.Background(), sess.Userid)
 	if err != nil {
 		t.Fatal(err)

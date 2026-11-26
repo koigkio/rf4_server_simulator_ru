@@ -119,17 +119,17 @@ func TestWaterwayTrophyIssuedOnSettleBeforeKeep(t *testing.T) {
 		WeightG: 1500, LengthM: 0.45, LocLevel: water}
 	dec := wlSettle(t, s, sess, fish, 1)
 	if n := owned(); n != 1 {
-		t.Fatalf("结算当场应发 1 枚水域奖杯，实得 %d 枚", n)
+		t.Fatalf("结算当场应发 1 枚水域奖杯, 实得 %d 枚", n)
 	}
 	if line := giftRowOf(dec.Field(4).Val, giftSourceTrophyTableCollected); line == nil {
-		t.Fatalf("801.f4 没有来源码 %d 的礼物行：%+v", giftSourceTrophyTableCollected, dec.Field(4).Val)
+		t.Fatalf("801.f4 没有来源码 %d 的礼物行: %+v", giftSourceTrophyTableCollected, dec.Field(4).Val)
 	}
 
 	// 2) 放生不回退：奖杯是纪念品，官方顺序是先发卡后选择。
 	// 图鉴同口径——这一尾在结算时已落 catch_log，放生不回收，面板仍是满格。
 	wlRelease(t, s, sess, fish, 2)
 	if n := owned(); n != 1 {
-		t.Fatalf("放生不该回收奖杯，实得 %d 枚", n)
+		t.Fatalf("放生不该回收奖杯, 实得 %d 枚", n)
 	}
 	var logged int64
 	var source string
@@ -138,15 +138,15 @@ func TestWaterwayTrophyIssuedOnSettleBeforeKeep(t *testing.T) {
 		t.Fatal(err)
 	}
 	if logged != 1 {
-		t.Fatalf("放生的鱼也该留下一条钓获记录（图鉴点亮），实得 %d 行", logged)
+		t.Fatalf("放生的鱼也该留下一条钓获记录 (图鉴点亮), 实得 %d 行", logged)
 	}
 	if source != "catch" {
-		t.Fatalf("放生后 catch_log.source 应为 catch，实得 %q", source)
+		t.Fatalf("放生后 catch_log.source 应为 catch, 实得 %q", source)
 	}
 	if p, err := s.waterwayTrophyProgressFor(t.Context(), uid, water); err != nil {
 		t.Fatal(err)
 	} else if p.Done != p.Total {
-		t.Fatalf("放生后水域面板应为满格 %d/%d，实得 %d/%d", p.Total, p.Total, p.Done, p.Total)
+		t.Fatalf("放生后水域面板应为满格 %d/%d, 实得 %d/%d", p.Total, p.Total, p.Done, p.Total)
 	}
 
 	// 3) 同一种鱼改成入护：入护补写 catch_log，但奖杯已在结算时发过，不重复发。
@@ -155,7 +155,7 @@ func TestWaterwayTrophyIssuedOnSettleBeforeKeep(t *testing.T) {
 	wlSettle(t, s, sess, again, 3)
 	wlKeep(t, s, sess, again, 4)
 	if n := owned(); n != 1 {
-		t.Fatalf("重复结算/入护不应再发第二枚，实得 %d 枚", n)
+		t.Fatalf("重复结算/入护不应再发第二枚, 实得 %d 枚", n)
 	}
 	var kv int64
 	if err := db.SQL.QueryRow(`SELECT COUNT(*) FROM kv WHERE k=?`,
@@ -163,12 +163,12 @@ func TestWaterwayTrophyIssuedOnSettleBeforeKeep(t *testing.T) {
 		t.Fatal(err)
 	}
 	if kv != 1 {
-		t.Fatalf("奖杯幂等标记应有 1 行，实得 %d", kv)
+		t.Fatalf("奖杯幂等标记应有 1 行, 实得 %d", kv)
 	}
 
 	// 4) 重复入护（重放）不再发第二枚。
 	wlKeep(t, s, sess, again, 5)
 	if n := owned(); n != 1 {
-		t.Fatalf("重放入护不应再发奖杯，实得 %d 枚", n)
+		t.Fatalf("重放入护不应再发奖杯, 实得 %d 枚", n)
 	}
 }

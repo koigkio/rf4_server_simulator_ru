@@ -30,15 +30,15 @@ func TestRodPodDefaultAlarmSlots(t *testing.T) {
 	}
 	idx := fieldIdxByCS(rodPodWireClass, rodPodSlotsCS)
 	if idx < 0 {
-		t.Fatal("abmokghdbhf 缺少 cfpajgilkng")
+		t.Fatal("abmokghdbhf Отсутствует cfpajgilkng")
 	}
 	arr := tree.Fields[idx].Val
 	if arr == nil || arr.Kind != proto.KindTypedArr || arr.TypeName != rodPodSlotName || len(arr.Items) != 3 {
-		t.Fatalf("竿位设置不是 3 个元素：%+v", arr)
+		t.Fatalf("竿位设置不是 3 个元素: %+v", arr)
 	}
 	for i, it := range arr.Items {
 		if it.Kind != proto.KindObj || it.TypeID != rodPodSlotTypeID || len(it.Fields) != 4 {
-			t.Fatalf("第 %d 个竿位设置形状不对：%+v", i, it)
+			t.Fatalf("第 %d 个竿位设置形状不对: %+v", i, it)
 		}
 	}
 	raw, err := proto.EncodeValue(arr, srv.Table())
@@ -52,11 +52,11 @@ func TestRodPodDefaultAlarmSlots(t *testing.T) {
 		want = append(want, rodPodSlotWire(1, 0, 0, math.Float32bits(0.5))...)
 	}
 	if len(raw) != len(want) {
-		t.Fatalf("f1 长度 %d，期望 %d", len(raw), len(want))
+		t.Fatalf("f1 长度 %d, 期望 %d", len(raw), len(want))
 	}
 	for i := range want {
 		if raw[i] != want[i] {
-			t.Fatalf("f1 第 %d 字节 0x%02x，期望 0x%02x", i, raw[i], want[i])
+			t.Fatalf("f1 第 %d 字节 0x%02x, 期望 0x%02x", i, raw[i], want[i])
 		}
 	}
 	// 服务端解码器把 typed array 读成 args(类型名)，元素仍是 4 字段对象。
@@ -65,10 +65,10 @@ func TestRodPodDefaultAlarmSlots(t *testing.T) {
 		t.Fatalf("f1 回读失败: %v", err)
 	}
 	if decoded.Kind != proto.KindArgs || decoded.Code == nil || *decoded.Code != rodPodSlotName || len(decoded.Items) != 3 {
-		t.Fatalf("f1 回读形状不对：%+v", decoded)
+		t.Fatalf("f1 回读形状不对: %+v", decoded)
 	}
 	if decoded.Items[0].Kind != proto.KindObj || decoded.Items[0].TypeID != rodPodSlotTypeID {
-		t.Fatalf("元素不是竿位设置对象：%+v", decoded.Items[0])
+		t.Fatalf("元素不是竿位设置对象: %+v", decoded.Items[0])
 	}
 }
 
@@ -82,7 +82,7 @@ func TestRodPodSlotCountByModel(t *testing.T) {
 	}
 	for itemID, want := range cases {
 		if got := rodPodSlotCount(itemID, 0); got != want {
-			t.Fatalf("%s 竿位数 %d，期望 %d", itemID, got, want)
+			t.Fatalf("%s 竿位数 %d, 期望 %d", itemID, got, want)
 		}
 	}
 }
@@ -114,16 +114,16 @@ func TestRodPodSetSlotPersists(t *testing.T) {
 	}
 	arr := fields[fieldIdxByCS(row.WireClass, rodPodSlotsCS)].Val
 	if arr == nil || arr.Kind != proto.KindTypedArr || len(arr.Items) != 3 {
-		t.Fatalf("落库的 f1 不对：%+v", arr)
+		t.Fatalf("落库的 f1 不对: %+v", arr)
 	}
 	got := arr.Items[1]
 	if got.Fields[0].Num == nil || *got.Fields[0].Num != 1 ||
 		*got.Fields[1].Num != 3 || *got.Fields[2].Num != 7 ||
 		*got.Fields[3].Num != uint64(math.Float32bits(0.9)) {
-		t.Fatalf("竿位 1 设置没落库：%+v", got.Fields)
+		t.Fatalf("竿位 1 设置没落库: %+v", got.Fields)
 	}
 	if arr.Items[0].Kind != proto.KindObj || *arr.Items[0].Fields[1].Num != 0 {
-		t.Fatalf("其他竿位被改动：%+v", arr.Items[0])
+		t.Fatalf("其他竿位被改动: %+v", arr.Items[0])
 	}
 	// 重新装载物品树仍然是 3 个竿位，且第 1 位是刚写入的设置。
 	tree2, err := srv.ItemToTree(ctx, stored)
@@ -132,7 +132,7 @@ func TestRodPodSetSlotPersists(t *testing.T) {
 	}
 	arr2 := tree2.Fields[fieldIdxByCS(row.WireClass, rodPodSlotsCS)].Val
 	if arr2.Kind != proto.KindTypedArr || len(arr2.Items) != 3 || *arr2.Items[1].Fields[1].Num != 3 {
-		t.Fatalf("重新装载后竿位设置丢失：%+v", arr2)
+		t.Fatalf("重新装载后竿位设置丢失: %+v", arr2)
 	}
 }
 
@@ -157,7 +157,7 @@ func TestRodPodSetMasterPersists(t *testing.T) {
 	}
 	f0 := fields[fieldIdxByCS(row.WireClass, rodPodMasterCS)].Num
 	if f0 == nil || *f0 != 4 {
-		t.Fatalf("f0 没落库：%+v", f0)
+		t.Fatalf("f0 没落库: %+v", f0)
 	}
 }
 

@@ -20,7 +20,7 @@ func TestEventStageGiftNonStackableQuantity(t *testing.T) {
 	completeQualificationTasks(t, db, uid, eventStageRuleIDs(13, 7))
 	gifts := srv.ensureEventStageGifts(t.Context(), uid)
 	if len(gifts) != 4 {
-		t.Fatalf("3件装备和1堆咖啡应返回4行，实得%d", len(gifts))
+		t.Fatalf("3件装备和1堆咖啡应返回4行, 实得%d", len(gifts))
 	}
 	seen := map[string]bool{}
 	for _, row := range gifts {
@@ -235,18 +235,18 @@ func TestAppend811RowsFlattensStageGiftContainer(t *testing.T) {
 
 	merged := append811Rows(base, stage)
 	if merged.Kind != proto.KindArgs || merged.ArgCodeStr() != "173" || merged.ArgCount() != 2 {
-		t.Fatalf("合并后的 801.f4 应为扁平 args(173)[2]，实得 kind=%s code=%q count=%d",
+		t.Fatalf("合并后的 801.f4 应为扁平 args(173)[2], 实得 kind=%s code=%q count=%d",
 			merged.Kind, merged.ArgCodeStr(), merged.ArgCount())
 	}
 	for i, line := range merged.Items {
 		if line == nil || line.Kind != proto.KindObj || line.TypeID != 811 {
-			t.Fatalf("合并后的第 %d 项应为 obj(811)，实得 %#v", i, line)
+			t.Fatalf("合并后的第 %d 项应为 obj(811), 实得 %#v", i, line)
 		}
 	}
 
 	fresh := append811Rows(proto.Null(), stage)
 	if fresh != stage || fresh.ArgCount() != 1 {
-		t.Fatalf("空容器合并应直接复用 args(173) 行，实得 %#v", fresh)
+		t.Fatalf("空容器合并应直接复用 args(173) 行, 实得 %#v", fresh)
 	}
 }
 
@@ -273,7 +273,7 @@ func TestEventStageGiftPlansParse(t *testing.T) {
 
 	setEventStageGifts(t, srv, db, "not-json")
 	if plans := srv.eventStageGiftPlans(); len(plans) != 0 {
-		t.Fatalf("坏 JSON 应得空计划，实得 %v", plans)
+		t.Fatalf("坏 JSON 应得空计划, 实得 %v", plans)
 	}
 	// 分支 1 不是活动分支、阶段 8 越界、qty=0 钳成 1、重复键去重。
 	cfg := `{"1":{"1":[{"item":"fcb_coffee_can2","qty":1}]},` +
@@ -282,17 +282,17 @@ func TestEventStageGiftPlansParse(t *testing.T) {
 	setEventStageGifts(t, srv, db, cfg)
 	plans := srv.eventStageGiftPlans()
 	if len(plans) != 1 {
-		t.Fatalf("应只剩分支 13 阶段 1 的计划，实得 %v", plans)
+		t.Fatalf("应只剩分支 13 阶段 1 的计划, 实得 %v", plans)
 	}
 	p := &plans[0]
 	if p.Branch != 13 || p.Stage != 1 {
-		t.Fatalf("计划应为 13/1，实得 %d/%d", p.Branch, p.Stage)
+		t.Fatalf("计划应为 13/1, 实得 %d/%d", p.Branch, p.Stage)
 	}
 	if len(p.Gifts) != 3 || p.Gifts[0].Qty != 1 || p.Gifts[1].Qty != 2 || p.Gifts[2].Qty != 3 {
-		t.Fatalf("数量钳制错误，实得 %v", p.Gifts)
+		t.Fatalf("数量钳制错误, 实得 %v", p.Gifts)
 	}
 	if len(p.Preview) != 2 || p.Preview[0] != "fcb_coffee_can2" || p.Preview[1] != "ab_tea_can2" {
-		t.Fatalf("预览键应去重为 [咖啡,茶]，实得 %v", p.Preview)
+		t.Fatalf("预览键应去重为 [咖啡,茶], 实得 %v", p.Preview)
 	}
 }
 
@@ -304,7 +304,7 @@ func TestEventStageGiftPreviewEncoding(t *testing.T) {
 
 	nodes := srv.eventNodes()
 	if len(nodes) == 0 {
-		t.Fatal("新年活动默认开启，应下发活动节点")
+		t.Fatal("新年活动默认开启, 应下发活动节点")
 	}
 	var branch13 *proto.Value
 	for _, n := range nodes {
@@ -319,21 +319,21 @@ func TestEventStageGiftPreviewEncoding(t *testing.T) {
 	stage1 := stages.Items[0]
 	f2 := stage1.Fields[2].Val
 	if f2 == nil || f2.Kind != proto.KindArray || len(f2.Items) != 2 {
-		t.Fatalf("阶段 1 f2 应为 2 元素 0x04 数组，实得 %v", f2)
+		t.Fatalf("阶段 1 f2 应为 2 元素 0x04 数组, 实得 %v", f2)
 	}
 	want := []string{"fcb_coffee_can2", "ab_tea_can2"}
 	for i, it := range f2.Items {
 		if it.Kind != proto.KindBytes {
-			t.Fatalf("f2[%d] 应为字节元素，实得 %v", i, it.Kind)
+			t.Fatalf("f2[%d] 应为字节元素, 实得 %v", i, it.Kind)
 		}
 		if it.Hex != hex.EncodeToString([]byte(want[i])) {
-			t.Fatalf("f2[%d] 应为 %s 的 UTF8，实得 %s", i, want[i], it.Hex)
+			t.Fatalf("f2[%d] 应为 %s 的 UTF8, 实得 %s", i, want[i], it.Hex)
 		}
 	}
 	// 未配置的阶段仍有字符串数组类型，编码为空 0x04 数组。
 	stage2 := stages.Items[1]
 	if v := stage2.Fields[2].Val; v == nil || v.Kind != proto.KindArray || len(v.Items) != 0 {
-		t.Fatalf("未配置阶段 f2 应为空数组，实得 %v", v)
+		t.Fatalf("未配置阶段 f2 应为空数组, 实得 %v", v)
 	}
 	encoded, err := proto.EncodeValue(stage2.Fields[2].Val, wiregen.Table())
 	if err != nil || hex.EncodeToString(encoded) != "040000" {
@@ -362,26 +362,26 @@ func TestEventStageGiftGrantOnce(t *testing.T) {
 	// 差一条：不发。
 	completeQualificationTasks(t, db, uid, ids[:len(ids)-1])
 	if gifts := srv.ensureEventStageGifts(c, uid); len(gifts) != 0 {
-		t.Fatalf("阶段未集齐不应发放，实得 %v", gifts)
+		t.Fatalf("阶段未集齐不应发放, 实得 %v", gifts)
 	}
 	// 补上最后一条：发一次，数量正确。
 	completeQualificationTasks(t, db, uid, ids[len(ids)-1:])
 	gifts := srv.ensureEventStageGifts(c, uid)
 	if len(gifts) != 2 {
-		t.Fatalf("应发 2 件物品，实得 %v", gifts)
+		t.Fatalf("应发 2 件物品, 实得 %v", gifts)
 	}
 	if rows, qty := countContainerItem(t, db, uid, "fcb_coffee_can2", "backpack"); rows != 1 || qty != 2 {
-		t.Fatalf("咖啡应 1 行 2 件，实得 %d 行 %d 件", rows, qty)
+		t.Fatalf("咖啡应 1 行 2 件, 实得 %d 行 %d 件", rows, qty)
 	}
 	if rows, qty := countContainerItem(t, db, uid, "ab_tea_can2", "backpack"); rows != 1 || qty != 1 {
-		t.Fatalf("茶应 1 行 1 件，实得 %d 行 %d 件", rows, qty)
+		t.Fatalf("茶应 1 行 1 件, 实得 %d 行 %d 件", rows, qty)
 	}
 	if rows, qty := countContainerItem(t, db, uid, "fcb_coffee_can2", "house"); rows != 0 || qty != 0 {
-		t.Fatalf("活动奖励不应进入 house，实得 %d 行 %d 件", rows, qty)
+		t.Fatalf("活动奖励不应进入 house, 实得 %d 行 %d 件", rows, qty)
 	}
 	// 幂等：再巡检不重发。
 	if gifts := srv.ensureEventStageGifts(c, uid); len(gifts) != 0 {
-		t.Fatalf("重复巡检不应重发，实得 %v", gifts)
+		t.Fatalf("重复巡检不应重发, 实得 %v", gifts)
 	}
 }
 
@@ -414,7 +414,7 @@ func TestEventStageGiftIgnoresGapRules(t *testing.T) {
 		}
 	}
 	if !found {
-		t.Skip("没有同时含缺口与可见任务的阶段，本用例不适用")
+		t.Skip("没有同时含缺口与可见任务的阶段, 本用例不适用")
 	}
 
 	srv, db := newStaticRigTestServer(t)
@@ -426,7 +426,7 @@ func TestEventStageGiftIgnoresGapRules(t *testing.T) {
 
 	completeQualificationTasks(t, db, uid, visible)
 	if gifts := srv.ensureEventStageGifts(c, uid); len(gifts) == 0 {
-		t.Fatalf("分支 %d 阶段 %d 可见任务全达标（缺口不算）应发放阶段礼物", branch, stage)
+		t.Fatalf("分支 %d 阶段 %d 可见任务全达标 (缺口不算)应发放阶段礼物", branch, stage)
 	}
 }
 
@@ -442,11 +442,11 @@ func TestEventStageGiftUsesNormalBackpackTree(t *testing.T) {
 
 	gifts := srv.ensureEventStageGifts(ctx, uid)
 	if len(gifts) != 1 {
-		t.Fatalf("13/7 应发 1 件奖励，实得 %d", len(gifts))
+		t.Fatalf("13/7 应发 1 件奖励, 实得 %d", len(gifts))
 	}
 	row := gifts[0]
 	if row.Container != "backpack" {
-		t.Fatalf("活动装备奖励 container=%q，应 backpack", row.Container)
+		t.Fatalf("活动装备奖励 container=%q, 应 backpack", row.Container)
 	}
 	tree, err := srv.ItemToTree(ctx, row)
 	if err != nil {
@@ -457,7 +457,7 @@ func TestEventStageGiftUsesNormalBackpackTree(t *testing.T) {
 		t.Fatalf("活动装备奖励缺少容器字段 idx=%d", idx)
 	}
 	if got := u64Of(tree.Fields[idx].Num); got != rootItemStorageKind(row.WireClass) {
-		t.Fatalf("活动装备奖励 f4=%d，应为普通背包枚举 %d", got, rootItemStorageKind(row.WireClass))
+		t.Fatalf("活动装备奖励 f4=%d, 应为普通背包枚举 %d", got, rootItemStorageKind(row.WireClass))
 	}
 }
 
@@ -480,7 +480,7 @@ func TestEventStageGiftSnapshotPushUsesBackpackTree(t *testing.T) {
 				t.Fatal("奖励推送前隧道关闭")
 			}
 			if env.Main != 4 || env.Sub != 22 {
-				continue // 系统聊天播报不影响物品更新。
+				continue // 系统聊天播报不影响物品更新.
 			}
 			items, n, err := proto.DecodeValue(env.Body, 0, h.sess.Table())
 			if err != nil || n != len(env.Body) {
@@ -490,7 +490,7 @@ func TestEventStageGiftSnapshotPushUsesBackpackTree(t *testing.T) {
 				t.Fatalf("4/22 合同不符: %s", reason)
 			}
 			if len(items.Items) != 1 {
-				t.Fatalf("应推送一件阶段奖励，实得 %d", len(items.Items))
+				t.Fatalf("应推送一件阶段奖励, 实得 %d", len(items.Items))
 			}
 			var guid string
 			if err := db.SQL.QueryRow(`SELECT guid FROM item WHERE uid=? AND item_id=? AND container='backpack'`, uid, "bcr_5008").Scan(&guid); err != nil {
@@ -506,7 +506,7 @@ func TestEventStageGiftSnapshotPushUsesBackpackTree(t *testing.T) {
 				t.Fatal("阶段奖励推送缺少容器字段")
 			}
 			if got := u64Of(tree.Fields[idx].Num); got != rootItemStorageKind(row.WireClass) {
-				t.Fatalf("补发推送容器=%d，应为普通背包枚举 %d", got, rootItemStorageKind(row.WireClass))
+				t.Fatalf("补发推送容器=%d, 应为普通背包枚举 %d", got, rootItemStorageKind(row.WireClass))
 			}
 			if _, ok := hFog(&Ctx{Sess: h.sess}); !ok {
 				t.Fatal("重复 28/2 快照构造失败")

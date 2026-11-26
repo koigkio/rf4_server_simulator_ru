@@ -59,7 +59,7 @@ func nextPush(t *testing.T, ch <-chan *proto.Envelope) *proto.Envelope {
 	select {
 	case env, ok := <-ch:
 		if !ok {
-			t.Fatal("推送通道已关闭，没等到预期推送")
+			t.Fatal("推送通道已关闭, 没等到预期推送")
 		}
 		return env
 	case <-time.After(3 * time.Second):
@@ -110,7 +110,7 @@ func TestHanditemSwitchReAddsOldAmmoToBackpack(t *testing.T) {
 		t.Fatalf("13/1 第一次装填未处理: ok=%v body=%d", ok, len(body))
 	}
 	if len(hctx.afterResponse) != 0 {
-		t.Fatalf("首次装填没有旧弹药，不应安排移除+重加，实得 %d", len(hctx.afterResponse))
+		t.Fatalf("首次装填没有旧弹药, 不应安排移除+重加, 实得 %d", len(hctx.afterResponse))
 	}
 	loadedOld := srv.handitemLoadedGuid(ctx, hand.GUID)
 	if loadedOld == "" {
@@ -123,13 +123,13 @@ func TestHanditemSwitchReAddsOldAmmoToBackpack(t *testing.T) {
 		t.Fatalf("13/1 换弹未处理: ok=%v body=%d", ok, len(body))
 	}
 	if len(hctx2.afterResponse) != 1 {
-		t.Fatalf("换弹应安排一次回包后的移除+重加，实得 %d", len(hctx2.afterResponse))
+		t.Fatalf("换弹应安排一次回包后的移除+重加, 实得 %d", len(hctx2.afterResponse))
 	}
 	if row, _ := db.GetItemByGUID(ctx, loadedOld); row == nil || row.Container != "backpack" {
-		t.Fatalf("旧弹药应已退回背包，实得 %+v", row)
+		t.Fatalf("旧弹药应已退回背包, 实得 %+v", row)
 	}
 	if row, _ := db.GetItemByGUID(ctx, srv.handitemLoadedGuid(ctx, hand.GUID)); row == nil || row.Container != "rig" {
-		t.Fatalf("新弹药应挂在手持物上，实得 %+v", row)
+		t.Fatalf("新弹药应挂在手持物上, 实得 %+v", row)
 	}
 
 	hctx2.afterResponse[0]()
@@ -146,10 +146,10 @@ func TestHanditemSwitchReAddsOldAmmoToBackpack(t *testing.T) {
 		}
 		next := nextPush(t, pushes)
 		if next.Main != 4 || next.Sub != 22 {
-			t.Fatalf("4/21 移除旧弹药后必须紧跟 4/22 重加，实得 %d/%d", next.Main, next.Sub)
+			t.Fatalf("4/21 移除旧弹药后必须紧跟 4/22 重加, 实得 %d/%d", next.Main, next.Sub)
 		}
 		if !pushHasGUID(pushGuids(t, srv, next), loadedOld) {
-			t.Fatalf("4/22 必须把旧弹药 %s 重新加回背包，实得 %v", shortGUID(loadedOld), pushGuids(t, srv, next))
+			t.Fatalf("4/22 必须把旧弹药 %s 重新加回背包, 实得 %v", shortGUID(loadedOld), pushGuids(t, srv, next))
 		}
 		break
 	}
@@ -181,7 +181,7 @@ func TestHanditemSwitchRefreshCanBeDisabled(t *testing.T) {
 		t.Fatal("换弹未处理")
 	}
 	if len(hctx.afterResponse) != 0 {
-		t.Fatalf("开关关闭时不应安排移除+重加，实得 %d", len(hctx.afterResponse))
+		t.Fatalf("开关关闭时不应安排移除+重加, 实得 %d", len(hctx.afterResponse))
 	}
 }
 
@@ -220,7 +220,7 @@ func TestHanditemThrowSelfcleanRemovesProjectileInstance(t *testing.T) {
 	}
 	proj := dec.Field(4).Val
 	if proj == nil || proj.ArgCount() != 1 {
-		t.Fatalf("f4 应下发 1 个抛出物，实得 %#v", proj)
+		t.Fatalf("f4 应下发 1 个抛出物, 实得 %#v", proj)
 	}
 	pj := proj.ArgItem(0)
 	gi := fieldIdxByCS(pj.Class, csGUID)
@@ -230,14 +230,14 @@ func TestHanditemThrowSelfcleanRemovesProjectileInstance(t *testing.T) {
 	pjField := pj.Field(gi)
 	thrownGUID := pjField.GuidHex()
 	if thrownGUID == "" || thrownGUID == stack.GUID {
-		t.Fatalf("抛出物必须是新实例 GUID，实得 %q", thrownGUID)
+		t.Fatalf("抛出物必须是新实例 GUID, 实得 %q", thrownGUID)
 	}
 	removed := dec.Field(5).Val
 	if removed == nil || removed.ArgCount() != 1 || removed.ArgItem(0).GuidHex() != thrownGUID {
-		t.Fatalf("selfclean 开启时 f5 应移除抛出物 %s，实得 %#v", shortGUID(thrownGUID), removed)
+		t.Fatalf("selfclean 开启时 f5 应移除抛出物 %s, 实得 %#v", shortGUID(thrownGUID), removed)
 	}
 	if left, _ := db.GetItemByGUID(ctx, stack.GUID); left == nil || srv.stackCountOf(ctx, left) != 2 {
-		t.Fatalf("抛出物自清不能影响弹药扣减：应剩 2 份，实得 %+v", left)
+		t.Fatalf("抛出物自清不能影响弹药扣减: 应剩 2 份, 实得 %+v", left)
 	}
 	if reason := srv.dispatch.checkRegisteredResponse(13, 5, body, srv.Table()); reason != "" {
 		t.Fatalf("13/5 合同守卫误拒: %s", reason)
@@ -277,9 +277,9 @@ func TestHanditemThrowKeepsProjectileWhenSelfcleanOff(t *testing.T) {
 		t.Fatal(err)
 	}
 	if removed := dec.Field(5).Val; removed != nil && removed.ArgCount() > 0 {
-		t.Fatalf("开关关闭时 f5 应为空，实得 %#v", removed)
+		t.Fatalf("开关关闭时 f5 应为空, 实得 %#v", removed)
 	}
 	if proj := dec.Field(4).Val; proj == nil || proj.ArgCount() != 1 {
-		t.Fatalf("开关关闭时 f4 仍要下发抛出物，实得 %#v", proj)
+		t.Fatalf("开关关闭时 f4 仍要下发抛出物, 实得 %#v", proj)
 	}
 }

@@ -20,7 +20,7 @@ func TestSeasonBoundsCoversNow(t *testing.T) {
 	s := proto.FiletimeToTime(int64(start))
 	e := proto.FiletimeToTime(int64(end))
 	if s.Day() != 22 || s.Hour() != 0 || e.Day() != 22 || e.Hour() != 9 {
-		t.Fatalf("赛季锚点应为每月 22 日 00:00 → 次月 22 日 09:00 UTC，实得 %s ~ %s", s, e)
+		t.Fatalf("赛季锚点应为每月 22 日 00:00 → 次月 22 日 09:00 UTC, 实得 %s ~ %s", s, e)
 	}
 	if d := e.Sub(s); d < 30*24*time.Hour || d > 32*24*time.Hour {
 		t.Fatalf("赛季跨度异常: %s", d)
@@ -33,7 +33,7 @@ func TestSeasonBoundsSharedByProfileAndFog(t *testing.T) {
 
 	body, err := proto.EncodeValue(build5013(0, seasonEndFiletime(0)), wiregen.Table())
 	if err != nil {
-		t.Fatalf("5013 编码失败: %v", err)
+		t.Fatalf("5013 Ошибка кодирования: %v", err)
 	}
 	dec, _, err := proto.DecodeValue(body, 0, wiregen.Table())
 	if err != nil {

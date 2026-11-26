@@ -33,7 +33,7 @@ func decodeLocator(t *testing.T, srv *Server, body []byte) (level, scene string)
 		t.Fatalf("1/13 响应解码失败: %v", err)
 	}
 	if dec.Kind != proto.KindObj || dec.Class != "cgbaffjpbkg" {
-		t.Fatalf("1/13 响应应为 206 cgbaffjpbkg，实得 %s/%s", dec.Kind, dec.Class)
+		t.Fatalf("1/13 响应应为 206 cgbaffjpbkg, 实得 %s/%s", dec.Kind, dec.Class)
 	}
 	dobField := dec.Field(0)
 	dob := dobField.Tree()
@@ -59,7 +59,7 @@ func TestPlayerLocationFirstLoginTravelReconnectAndRestart(t *testing.T) {
 	}
 	level, scene := decodeLocator(t, srv, body)
 	if level != spawnLevelKey || scene != spawnScene {
-		t.Fatalf("首次登录应回出生图，实得 %s/%s", level, scene)
+		t.Fatalf("首次登录应回出生图, 实得 %s/%s", level, scene)
 	}
 
 	// 1/13 若携带合法地图 key，也应把这次成功进入原子写回。
@@ -70,7 +70,7 @@ func TestPlayerLocationFirstLoginTravelReconnectAndRestart(t *testing.T) {
 	}
 	level, _ = decodeLocator(t, srv, body)
 	if level != reqLevel {
-		t.Fatalf("1/13 切图后=%q，期望 %q", level, reqLevel)
+		t.Fatalf("1/13 切图后=%q, 期望 %q", level, reqLevel)
 	}
 	if loc, err := db.GetPlayerLocation(context.Background(), uid); err != nil || loc == nil || loc.LevelKey != reqLevel {
 		t.Fatalf("1/13 切图未落库: loc=%+v err=%v", loc, err)
@@ -91,7 +91,7 @@ func TestPlayerLocationFirstLoginTravelReconnectAndRestart(t *testing.T) {
 		t.Fatalf("1/14 未持久化目标位置: %+v", loc)
 	}
 	if got := srv.currentLevel(uid); got != target {
-		t.Fatalf("同进程 currentLevel=%q，期望 %q", got, target)
+		t.Fatalf("同进程 currentLevel=%q, 期望 %q", got, target)
 	}
 
 	// 同进程新连接：1/13 空请求必须返回上次地图。
@@ -101,7 +101,7 @@ func TestPlayerLocationFirstLoginTravelReconnectAndRestart(t *testing.T) {
 	}
 	level, _ = decodeLocator(t, srv, body)
 	if level != target {
-		t.Fatalf("同进程重连回 %q，期望 %q", level, target)
+		t.Fatalf("同进程重连回 %q, 期望 %q", level, target)
 	}
 
 	// 模拟进程重启：全新 Server 无 levelMap，只能从 DB 恢复。
@@ -112,10 +112,10 @@ func TestPlayerLocationFirstLoginTravelReconnectAndRestart(t *testing.T) {
 	}
 	level, _ = decodeLocator(t, restarted, body)
 	if level != target {
-		t.Fatalf("重启后登录回 %q，期望 %q", level, target)
+		t.Fatalf("重启后登录回 %q, 期望 %q", level, target)
 	}
 	if got := restarted.currentLevel(uid); got != target {
-		t.Fatalf("重启后 currentLevel=%q，期望 %q", got, target)
+		t.Fatalf("重启后 currentLevel=%q, 期望 %q", got, target)
 	}
 }
 
@@ -166,14 +166,14 @@ func TestTravelDeductsMapSilver(t *testing.T) {
 		t.Fatal(err)
 	}
 	if txnCount != 1 {
-		t.Fatalf("切图流水应为 1 条，实得 %d", txnCount)
+		t.Fatalf("切图流水应为 1 条, 实得 %d", txnCount)
 	}
 	if loc, err := db.GetPlayerLocation(context.Background(), uid); err != nil ||
 		loc == nil || loc.LevelKey != target {
 		t.Fatalf("扣费后未切到目标地图: loc=%+v err=%v", loc, err)
 	}
 
-	travel(target)                    // 同图重入，客户端重新定位不算新旅行
+	travel(target)                    // 同图重入, 客户端重新定位不算新旅行
 	travel("level_019_american_pond") // 免费地图
 	if got := silverOf(); got != start-cost {
 		t.Fatalf("同图/免费地图不应再扣费: silver=%d want=%d", got, start-cost)
@@ -306,7 +306,7 @@ func TestPlayerLocationInvalidMapFallsBackToSpawn(t *testing.T) {
 	}
 	level, scene := decodeLocator(t, srv, body)
 	if level != spawnLevelKey || scene != spawnScene {
-		t.Fatalf("无效地图应回出生图，实得 %s/%s", level, scene)
+		t.Fatalf("无效地图应回出生图, 实得 %s/%s", level, scene)
 	}
 	loc, err := db.GetPlayerLocation(context.Background(), uid)
 	if err != nil {
@@ -456,7 +456,7 @@ func TestTravelActiveTripIsFree(t *testing.T) {
 		t.Fatalf("钓鱼游到期后应收旅费: silver=%d want=%d", got, start-cost)
 	}
 	if got := travelTestTxns(t, db, uid); got != 1 {
-		t.Fatalf("钓鱼游到期后应有 1 条旅费流水，实得 %d", got)
+		t.Fatalf("钓鱼游到期后应有 1 条旅费流水, 实得 %d", got)
 	}
 }
 
@@ -521,7 +521,7 @@ func TestConcurrentTravelChargesOnce(t *testing.T) {
 		t.Fatalf("并发切图重复扣费: silver=%d want=%d", got, start-cost)
 	}
 	if got := travelTestTxns(t, db, uid); got != 1 {
-		t.Fatalf("并发切图旅费流水应为 1 条，实得 %d", got)
+		t.Fatalf("并发切图旅费流水应为 1 条, 实得 %d", got)
 	}
 	if loc, err := db.GetPlayerLocation(context.Background(), uid); err != nil ||
 		loc == nil || loc.LevelKey != target {
@@ -590,13 +590,13 @@ func TestEnterMapKeyedPaidMapChargesSilver(t *testing.T) {
 	}
 	level, _ := decodeLocator(t, srv, body)
 	if level != target {
-		t.Fatalf("银币票进入回 %q，期望 %q", level, target)
+		t.Fatalf("银币票进入回 %q, 期望 %q", level, target)
 	}
 	if got := travelTestSilver(t, db, uid); got != start-cost {
-		t.Fatalf("银币票进入后余额=%d，期望 %d", got, start-cost)
+		t.Fatalf("银币票进入后余额=%d, 期望 %d", got, start-cost)
 	}
 	if got := travelTestTxns(t, db, uid); got != 1 {
-		t.Fatalf("银币票进入流水=%d，期望 1", got)
+		t.Fatalf("银币票进入流水=%d, 期望 1", got)
 	}
 	if loc, err := db.GetPlayerLocation(context.Background(), uid); err != nil ||
 		loc == nil || loc.LevelKey != target {
@@ -660,16 +660,16 @@ func TestLoginRestoreKeepsPaidMapByAccessMode(t *testing.T) {
 			}
 			level, _ := decodeLocator(t, srv, body)
 			if level != target {
-				t.Fatalf("登录恢复回 %q，期望保留 %q", level, target)
+				t.Fatalf("登录恢复回 %q, 期望保留 %q", level, target)
 			}
 			if got := srv.currentLevel(uid); got != target {
-				t.Fatalf("currentLevel=%q，期望 %q", got, target)
+				t.Fatalf("currentLevel=%q, 期望 %q", got, target)
 			}
 			if got := travelTestSilver(t, db, uid); got != start {
 				t.Fatalf("登录恢复重复扣费: silver=%d want=%d", got, start)
 			}
 			if got := travelTestTxns(t, db, uid); got != 0 {
-				t.Fatalf("登录恢复不应产生旅费流水，实得 %d", got)
+				t.Fatalf("登录恢复不应产生旅费流水, 实得 %d", got)
 			}
 		})
 	}
@@ -693,10 +693,10 @@ func TestLoginRestoreExpiredTripFallsBackToSpawn(t *testing.T) {
 	}
 	level, _ := decodeLocator(t, srv, body)
 	if level != spawnLevelKey {
-		t.Fatalf("钓鱼游到期后登录回 %q，期望 %q", level, spawnLevelKey)
+		t.Fatalf("钓鱼游到期后登录回 %q, 期望 %q", level, spawnLevelKey)
 	}
 	if got := srv.currentLevel(uid); got != spawnLevelKey {
-		t.Fatalf("到期后 currentLevel=%q，期望 %q", got, spawnLevelKey)
+		t.Fatalf("到期后 currentLevel=%q, 期望 %q", got, spawnLevelKey)
 	}
 	if loc, err := db.GetPlayerLocation(context.Background(), uid); err != nil ||
 		loc == nil || loc.LevelKey != spawnLevelKey {
@@ -730,6 +730,6 @@ func TestLoginRestoreExpiredTripWithLaterTicketKeepsMap(t *testing.T) {
 	}
 	level, _ := decodeLocator(t, srv, body)
 	if level != target {
-		t.Fatalf("到期后重新买票登录回 %q，期望保留 %q", level, target)
+		t.Fatalf("到期后重新买票登录回 %q, 期望保留 %q", level, target)
 	}
 }

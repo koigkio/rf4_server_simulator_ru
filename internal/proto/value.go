@@ -19,24 +19,24 @@ const (
 	KindValList     Kind = "vallist"
 	KindDict        Kind = "dict"
 	KindArgs        Kind = "args"
-	KindArray       Kind = "array" // 0x04：字节数组的数组
+	KindArray       Kind = "array" // 0x04: 字节数组的数组
 	KindU32Arr      Kind = "u32arr"
 	KindGuidArr     Kind = "guidarr"
 	KindTypedU32Arr Kind = "typed_u32arr"
 	KindBytes       Kind = "bytes"
 	KindStr3        Kind = "str3"
 	KindKV          Kind = "kv"
-	KindKVList      Kind = "kvlist"   // 0x03：对象数组容器 + typed KV 元素（401.f4 候选形状）
-	KindKVArr       Kind = "kvarr"    // 裸类型化数组：[u16 n] + n×([键][值 marker+载荷])（401.f4 候选形状）
-	KindTypedArr    Kind = "typedarr" // 自定义类型名数组：[0x03][类型名][u16 n] + 元素（探测用）
-	KindKVEntry     Kind = "kventry"  // KV 元素：[01][u32 typeid 400][键字节][值 marker+载荷]
+	KindKVList      Kind = "kvlist"   // 0x03: 对象数组容器 + typed KV 元素 (401.f4 候选形状)
+	KindKVArr       Kind = "kvarr"    // 裸类型化数组: [u16 n] + n×([键][值 marker+载荷]) (401.f4 候选形状)
+	KindTypedArr    Kind = "typedarr" // 自定义类型名数组: [0x03][类型名][u16 n] + 元素 (探测用)
+	KindKVEntry     Kind = "kventry"  // KV 元素: [01][u32 typeid 400][键字节][值 marker+载荷]
 	KindDateTime    Kind = "datetime"
 	KindGuid        Kind = "guid"
 	KindU32         Kind = "u32"
 	KindU64         Kind = "u64"
 	KindBool        Kind = "bool"
 	KindStr         Kind = "str"
-	KindRaw         Kind = "raw" // 原始字节直通：Hex 字段原样输出，探测用
+	KindRaw         Kind = "raw" // 原始字节直通: Hex 字段原样输出, 探测用
 	KindElemNull    Kind = "elem_null"
 )
 
@@ -70,15 +70,15 @@ type Value struct {
 	//   str: 0x14/0x15/0x16（0=按长度自动） guid: 0x0c/0x17（默认 0x0c）
 	Marker byte
 
-	IsNull bool // array 元素空哨兵（0x7FFFFFFF 长度）
+	IsNull bool // array 元素空哨兵 (0x7FFFFFFF 长度)
 
 	Bool bool
-	Num  uint64 // u32 / u64 / datetime（FILETIME）
+	Num  uint64 // u32 / u64 / datetime (FILETIME)
 	Str  *string
-	Hex  string // guid（32 hex）/ bytes（hex）/ guidarr 元素
+	Hex  string // guid (32 hex)/ bytes (hex)/ guidarr 元素
 
 	TypeID uint32  // obj
-	Class  string  // obj（解码时查表填充；编码时按类查 ops）
+	Class  string  // obj (解码时查表填充; 编码时按类查 ops)
 	Fields []Field // obj
 
 	Code     *string  // args 容器 code

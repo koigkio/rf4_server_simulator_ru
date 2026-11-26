@@ -41,13 +41,13 @@ func TestXpMonotonicLevel(t *testing.T) {
 		t.Fatalf("levelForXp(744)=%d, want 3", got)
 	}
 	if got := baseXp(4); got != 1200 {
-		t.Fatalf("baseXp(4)=%d, want 1200（300+400+500 累计）", got)
+		t.Fatalf("baseXp(4)=%d, want 1200 (300+400+500 累计)", got)
 	}
 	if got := baseXp(15); got != 180000 {
 		t.Fatalf("baseXp(15)=%d, want 180000", got)
 	}
 	if maxLevel != 58 {
-		t.Fatalf("maxLevel=%d, want 58（等级上限）", maxLevel)
+		t.Fatalf("maxLevel=%d, want 58 (等级上限)", maxLevel)
 	}
 	// baseXp(L) ↔ levelForXp 互逆（全级别）
 	for lv := int64(1); lv <= maxLevel; lv++ {
@@ -59,13 +59,13 @@ func TestXpMonotonicLevel(t *testing.T) {
 	// 钓获加经验后等级必须保持 15。
 	newLevel, totalXp, gained := srv.grantXpMonotonic(ctx, uid, 229)
 	if newLevel != 15 {
-		t.Fatalf("钓获后等级=%d, want 15（只升不降）", newLevel)
+		t.Fatalf("钓获后等级=%d, want 15 (只升不降)", newLevel)
 	}
 	if gained != 0 {
 		t.Fatalf("levelsGained=%d, want 0", gained)
 	}
 	if want := baseXp(15); totalXp != want {
-		t.Fatalf("累计 xp=%d, want %d（不足门槛时回填到 baseXp(15)）", totalXp, want)
+		t.Fatalf("累计 xp=%d, want %d (不足门槛时回填到 baseXp(15))", totalXp, want)
 	}
 
 	// 连续钓获：等级单调不降
@@ -73,7 +73,7 @@ func TestXpMonotonicLevel(t *testing.T) {
 	for i := 0; i < 5; i++ {
 		lv, _, _ := srv.grantXpMonotonic(ctx, uid, 500)
 		if lv < prev {
-			t.Fatalf("第 %d 杆等级 %d < 上一杆 %d（非单调）", i, lv, prev)
+			t.Fatalf("第 %d 杆等级 %d < 上一杆 %d (非单调)", i, lv, prev)
 		}
 		prev = lv
 	}
@@ -94,7 +94,7 @@ func TestXpMonotonicLevel(t *testing.T) {
 	bad := int64(320)
 	lvl, xpAfter = AdminResolveLevelXP(&l15, &bad, 25, 710)
 	if lvl != 15 || xpAfter < baseXp(15) {
-		t.Fatalf("AdminResolveLevelXP(15,320)=%d/%d, want 15/>=%d（等级不低于门槛）", lvl, xpAfter, baseXp(15))
+		t.Fatalf("AdminResolveLevelXP(15,320)=%d/%d, want 15/>=%d (等级不低于门槛)", lvl, xpAfter, baseXp(15))
 	}
 	// xp-only 修改：等级由累计经验托底，不低于重算值
 	xpOnly := int64(1000000)
@@ -132,7 +132,7 @@ func TestSettleWithoutXPBonusSources(t *testing.T) {
 	f := fish(1000001)
 	res := srv.settleCatchXP(ctx, 1000001, f, 1)
 	if res.baseXP != 261 {
-		t.Fatalf("基础经验=%d, want 261（perch 642g grade2，官服锚外推速率）", res.baseXP)
+		t.Fatalf("基础经验=%d, want 261 (perch 642g grade2, 官服锚外推速率)", res.baseXP)
 	}
 	if res.totalXP != 261 {
 		t.Fatalf("无加成总经验=%d, want 261", res.totalXP)
@@ -152,17 +152,17 @@ func TestSettleWithoutXPBonusSources(t *testing.T) {
 		t.Fatalf("813.f8 不是 310 块: %v", obj813.Field(8).Val)
 	}
 	if got := u64Of(obj310.Field(0).Num); got != 261 {
-		t.Fatalf("310.f0=%d, want 261（本条鱼总经验）", got)
+		t.Fatalf("310.f0=%d, want 261 (本条鱼总经验)", got)
 	}
 	if got := u32Of(obj310.Field(1).Num); got != 0 {
-		t.Fatalf("310.f1=%d, want 0（261 XP 尚未达到升级门槛）", got)
+		t.Fatalf("310.f1=%d, want 0 (261 XP 尚未达到升级门槛)", got)
 	}
 	if got := u32Of(obj310.Field(5).Num); got != 0 {
-		t.Fatalf("310.f5=%d, want 0（261 XP 不足以升 2 级）", got)
+		t.Fatalf("310.f5=%d, want 0 (261 XP 不足以升 2 级)", got)
 	}
 	bonusList := obj310.Field(6).Val
 	if bonusList == nil || len(bonusList.Items) != 0 {
-		t.Fatalf("310.f6 应为空列表，got %v", bonusList)
+		t.Fatalf("310.f6 应为空列表, got %v", bonusList)
 	}
 
 	// 非会员逐值一致。
@@ -175,12 +175,12 @@ func TestSettleWithoutXPBonusSources(t *testing.T) {
 	obj813b := srv.buildSettle813(ctx, 1000002, f2, res2)
 	b2 := obj813b.Field(8).Val.Field(6).Val
 	if b2 == nil || len(b2.Items) != 0 {
-		t.Fatalf("非会员 310.f6 应为空列表，got %v", b2)
+		t.Fatalf("非会员 310.f6 应为空列表, got %v", b2)
 	}
 
 	// 编码烟测：813 全树可编码（wire 合同）
 	if _, err := proto.EncodeValue(obj813, srv.Table()); err != nil {
-		t.Fatalf("813 编码失败: %v", err)
+		t.Fatalf("813 Ошибка кодирования: %v", err)
 	}
 }
 
@@ -212,13 +212,13 @@ func TestGradeLinesFollowSettlementRuler(t *testing.T) {
 		{"perch_test", 260, 2, "w >= 结算尺达标线"},
 		{"perch_test", 1499, 2, "达标 ≤ w < 奖杯线(trophy_line_g)"},
 		{"perch_test", 1500, 3, "w >= 奖杯线"},
-		{"perch_test", 2999, 3, "奖杯 ≤ w < 蓝冠线(super_trophy_line_g)"},
+		{"perch_test", 2999, 3, "Трофей ≤ w < 蓝冠线(super_trophy_line_g)"},
 		{"perch_test", 3000, 4, "w >= 蓝冠线"},
-		{"degenerate_test", 3000, 3, "tro==sup 退化：判 grade3 不造 grade4"},
+		{"degenerate_test", 3000, 3, "tro==sup 退化: 判 grade3 不造 grade4"},
 	}
 	for _, c := range cases {
 		if got := srv.rollGradeDB(ctx, c.key, c.w); got != c.want {
-			t.Fatalf("rollGradeDB(%s,%d)=%d, want %d（%s）", c.key, c.w, got, c.want, c.note)
+			t.Fatalf("rollGradeDB(%s,%d)=%d, want %d (%s)", c.key, c.w, got, c.want, c.note)
 		}
 	}
 	// 纯函数与 DB 路径同判定
@@ -266,7 +266,7 @@ func TestPersonalRecordFollowsKeptWeight(t *testing.T) {
 	lighter := &RolledFish{FishGUID: newFishGUID(), Species: "perch", Grade: 2, WeightG: 642, LengthM: 0.28, LocLevel: "level_001_lake"}
 	res := srv.settleCatchXP(ctx, uid, lighter, 1)
 	if res.isRecord {
-		t.Fatal("642g 未超过已入护的 800g，不应记为个人纪录")
+		t.Fatal("642g 未超过已入护的 800g, 不应记为个人纪录")
 	}
 	if got := u32Of(srv.buildSettle813(ctx, uid, lighter, res).Field(8).Val.Field(1).Num); int64(got) != res.levelsGained {
 		t.Fatalf("310.f1=%d, want 升级数%d", got, res.levelsGained)
@@ -274,7 +274,7 @@ func TestPersonalRecordFollowsKeptWeight(t *testing.T) {
 	heavier := &RolledFish{FishGUID: newFishGUID(), Species: "perch", Grade: 4, WeightG: 900, LengthM: 0.35, LocLevel: "level_001_lake"}
 	res2 := srv.settleCatchXP(ctx, uid, heavier, 1)
 	if !res2.isRecord {
-		t.Fatal("900g 超过已入护的 800g，应记为个人纪录")
+		t.Fatal("900g 超过已入护的 800g, 应记为个人纪录")
 	}
 	if got := u32Of(srv.buildSettle813(ctx, uid, heavier, res2).Field(8).Val.Field(1).Num); int64(got) != res2.levelsGained {
 		t.Fatalf("310.f1=%d, want 升级数%d", got, res2.levelsGained)

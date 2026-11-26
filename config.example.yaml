@@ -1,72 +1,74 @@
-# rf4server 配置模板。
-# 复制为 config.yaml，并替换所有密钥占位值。
-# config.yaml 已被 .gitignore 排除。
+# Шаблон конфигурации rf4server.
+# Скопируйте в config.yaml и замените все секреты-заглушки.
+# config.yaml исключён через .gitignore.
 
-env: dev             # 运行环境标识：dev | prod
+env: dev             # Окружение: dev | prod
 log:
-  level: info        # 日志级别：debug | info | warn | error
-  format: text       # 日志格式：text | json
+  level: info        # Уровень журнала: debug | info | warn | error
+  format: text       # Формат журнала: text | json
 
 launcher:
-  game_path: ""      # rf4_x64.exe 的绝对路径；也可在控制中心页面保存。
-  game_region: "CN" # 启动游戏时传给 -region 的值。
-  hosts_switch: false # true 时：服务启动后自动把 api.rf4game.ru/com 指向 127.0.0.1，launcher 退出时自动还原；需以管理员身份运行 launcher。
+  game_path: ""      # Абсолютный путь к rf4_x64.exe; можно сохранить и в центре управления.
+  game_region: "RU"  # Значение параметра -region при запуске игры.
+  launch_via: "steam" # Способ запуска: steam — через клиент Steam (steam.exe -applaunch), direct — напрямую rf4_x64.exe.
+  steam_app_id: 766570 # AppID Russian Fishing 4 в Steam.
+  hosts_switch: false # true: после запуска сервисов api.rf4game.ru/com автоматически направляются на 127.0.0.1, при выходе лаунчера восстанавливаются; нужен запуск от имени администратора.
 
 sqlite:
-  path: "data/rf4server.db"                  # 所有服务进程共享的主数据库。
-  static_path: "server_data/static.sqlite3" # 运行时以只读方式附加的静态目录。
+  path: "data/rf4server.db"                  # Основная база, общая для всех процессов сервера.
+  static_path: "server_data/static.sqlite3" # Статический каталог, подключается только для чтения.
 
 gateway:
-  login_addr: ":443"                  # HTTPS 登录监听地址。
-  login_compat_addr: "127.0.0.1:7515" # 可选：旧版 CN 客户端明文 HTTP 登录兼容口；留空则关闭。
-  realtime_addr: ":9341"              # 游戏客户端 realtime 监听地址。
-  cert_file: "certs/server.crt"       # HTTPS 证书；缺失时自动生成。
-  key_file: "certs/server.key"        # HTTPS 私钥；缺失时自动生成。
-  advertise_host: "127.0.0.1"         # 登录应答中返回给客户端的 realtime 主机。
-  advertise_port: 9341                # 登录应答中返回给客户端的 realtime 端口。
-  region: "CN"                        # 客户端区域值。
-  server_name: "RF4_566"              # 登录应答中返回的服务器名称。
-  login_domain: "api.rf4game.ru"      # 主登录域名及证书主题。
-  max_conns: 512                      # realtime 最大并发连接数。
-  ack_client_frames: true             # 处理客户端帧前先发送协议 ACK。
-  transport_keepalive_sec: 5.0        # 空传输帧保活间隔（秒）。
-  obs_addr: ":9501"                   # 健康检查、指标和性能分析监听地址。
+  login_addr: ":443"                  # Адрес HTTPS-входа.
+  login_compat_addr: "127.0.0.1:7515" # Необязательно: открытый HTTP-порт совместимости для старых CN-клиентов; пусто — выключен.
+  realtime_addr: ":9341"              # Адрес realtime-подключения клиента игры.
+  cert_file: "certs/server.crt"       # HTTPS-сертификат; создаётся автоматически, если его нет.
+  key_file: "certs/server.key"        # Закрытый ключ HTTPS; создаётся автоматически, если его нет.
+  advertise_host: "127.0.0.1"         # Realtime-адрес, который возвращается клиенту при входе.
+  advertise_port: 9341                # Realtime-порт, который возвращается клиенту при входе.
+  region: "RU"                        # Регион клиента (RU — русский интерфейс, CN — китайский).
+  server_name: "RF4_566"              # Имя сервера в ответе на вход.
+  login_domain: "api.rf4game.ru"      # Основной домен входа и субъект сертификата.
+  max_conns: 512                      # Максимум одновременных realtime-подключений.
+  ack_client_frames: true             # Отправлять ACK протокола до обработки кадра клиента.
+  transport_keepalive_sec: 5.0        # Интервал пустых keepalive-кадров (с).
+  obs_addr: ":9501"                   # Адрес проверки работоспособности, метрик и профилирования.
   tunnel:
-    addr: "127.0.0.1:9401"                          # gameserver 内部隧道地址。
-    psk: "replace-with-shared-random-secret"        # 必须与 game.tunnel.psk 一致。
+    addr: "127.0.0.1:9401"                          # Внутренний адрес туннеля gameserver.
+    psk: "replace-with-shared-random-secret"        # Должен совпадать с game.tunnel.psk.
 
-  # 运行参数默认值，钓鱼限制可通过管理后台覆盖。
-  token_ttl_days: 365                 # 登录 token 有效期（天）。
-  userid_start: 1000001               # 登录服务分配的第一个 user ID。
-  bite_probability: 1.0               # 每次抛竿出鱼的概率；1.0 表示每次都有鱼。
-  bite_delay_scale: 1.0               # 标准咬钩延迟分布的倍率。
-  bite_delay_fixed: 0                 # 固定咬钩延迟（秒）；大于 0 时不再使用分布。
-  keepalive_interval_sec: 5.0         # 世界时钟推送间隔（秒）；应小于 10 秒。
+  # Значения по умолчанию; ограничения ловли можно переопределить в админ-панели.
+  token_ttl_days: 365                 # Срок действия токена входа (дни).
+  userid_start: 1000001               # Первый user ID, выдаваемый сервисом входа.
+  bite_probability: 1.0               # Вероятность поклёвки на заброс; 1.0 — рыба на каждом забросе.
+  bite_delay_scale: 1.0               # Множитель стандартного распределения задержки клёва.
+  bite_delay_fixed: 0                 # Фиксированная задержка клёва (с); больше 0 — распределение не используется.
+  keepalive_interval_sec: 5.0         # Интервал отправки мировых часов (с); должен быть меньше 10.
 
 game:
   tunnel:
-    addr: "127.0.0.1:9401"                          # 内部隧道监听地址。
-    psk: "replace-with-shared-random-secret"        # 必须与 gateway.tunnel.psk 一致。
-  obs_addr: ":9502"                   # 健康检查、指标和性能分析监听地址。
-  default_userid: 1000001             # seed 创建的玩家档案 user ID。
-  keepalive_interval_sec: 5.0         # 世界时钟推送间隔（秒）。
-  # 天气序列：启动时按每张图加权生成晴/少云/多云/雨/暴雨/雷暴。
+    addr: "127.0.0.1:9401"                          # Внутренний адрес туннеля.
+    psk: "replace-with-shared-random-secret"        # Должен совпадать с gateway.tunnel.psk.
+  obs_addr: ":9502"                   # Адрес проверки работоспособности, метрик и профилирования.
+  default_userid: 1000001             # User ID профиля игрока, создаваемого seed.
+  keepalive_interval_sec: 5.0         # Интервал отправки мировых часов (с).
+  # Последовательность погоды: при запуске для каждой карты по весам генерируются ясно/малооблачно/облачно/дождь/ливень/гроза.
   weather:
-    randomize: true                   # false=沿用地图模板的固定 kind 顺序。
-    cycle_days: 64                    # 每图序列天数，最小 8。
+    randomize: true                   # false — фиксированный порядок из шаблона карты.
+    cycle_days: 64                    # Длина последовательности для карты в днях, минимум 8.
 
 admin:
-  http_addr: ":8080"                          # 仅 cmd/admin 独立调试使用；launcher 不监听此端口。
-  jwt_secret: "replace-with-long-random-secret"  # 管理员会话 token 的签名密钥。
-  obs_addr: ":9503"                           # 仅 cmd/admin 独立调试使用。
-  username: "admin"                           # 管理员用户名。
-  password: "replace-with-strong-password"   # 管理员密码；每次启动 admin 时应用。
+  http_addr: ":8080"                          # Только для отдельной отладки cmd/admin; launcher этот порт не слушает.
+  jwt_secret: "replace-with-long-random-secret"  # Ключ подписи токенов сессий администратора.
+  obs_addr: ":9503"                           # Только для отдельной отладки cmd/admin.
+  username: "admin"                           # Имя администратора.
+  password: "replace-with-strong-password"   # Пароль администратора; применяется при каждом запуске админки.
 
-# 支持的环境变量覆盖：
-# RF4_LOG_LEVEL、RF4_LOG_FORMAT、RF4_SQLITE_PATH、RF4_SQLITE_STATIC_PATH、
-# RF4_GATEWAY_LOGIN_ADDR、RF4_GATEWAY_LOGIN_COMPAT_ADDR、RF4_GATEWAY_REALTIME_ADDR、RF4_GATEWAY_ADVERTISE_HOST、
-# RF4_GATEWAY_CERT、RF4_GATEWAY_KEY、RF4_TUNNEL_ADDR、RF4_TUNNEL_PSK、
-# RF4_GAME_TUNNEL_PSK、RF4_ADMIN_HTTP_ADDR、RF4_ADMIN_JWT_SECRET、RF4_ADMIN_PASSWORD、
-# RF4_GAME_CLIENT_PATH、RF4_GAME_CLIENT_REGION、
-# RF4_GATEWAY_KEEPALIVE_SEC、RF4_KEEPALIVE_INTERVAL_SEC、
-# RF4_BITE_PROBABILITY、RF4_GATEWAY_MAX_CONNS。
+# Поддерживаемые переопределения через переменные окружения:
+# RF4_LOG_LEVEL, RF4_LOG_FORMAT, RF4_SQLITE_PATH, RF4_SQLITE_STATIC_PATH,
+# RF4_GATEWAY_LOGIN_ADDR, RF4_GATEWAY_LOGIN_COMPAT_ADDR, RF4_GATEWAY_REALTIME_ADDR, RF4_GATEWAY_ADVERTISE_HOST,
+# RF4_GATEWAY_CERT, RF4_GATEWAY_KEY, RF4_TUNNEL_ADDR, RF4_TUNNEL_PSK,
+# RF4_GAME_TUNNEL_PSK, RF4_ADMIN_HTTP_ADDR, RF4_ADMIN_JWT_SECRET, RF4_ADMIN_PASSWORD,
+# RF4_GAME_CLIENT_PATH, RF4_GAME_CLIENT_REGION, RF4_GAME_LAUNCH_VIA,
+# RF4_GATEWAY_KEEPALIVE_SEC, RF4_KEEPALIVE_INTERVAL_SEC,
+# RF4_BITE_PROBABILITY, RF4_GATEWAY_MAX_CONNS.

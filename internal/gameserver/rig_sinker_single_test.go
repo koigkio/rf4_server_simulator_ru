@@ -22,8 +22,8 @@ func TestSinkerKeepsSingleInstance(t *testing.T) {
 	if err != nil {
 		t.Fatalf("造竿失败: %v", err)
 	}
-	if !srv.rigSetType(ctx, uid, rod.GUID, 26) { // BottomPopup：模板含两个 {29,200}
-		t.Fatal("rigSetType 失败")
+	if !srv.rigSetType(ctx, uid, rod.GUID, 26) { // BottomPopup: 模板含两个 {29,200}
+		t.Fatal("rigSetType Ошибка")
 	}
 	first, err := srv.CreateItem(ctx, uid, "flpsinker_30149", "backpack", 1) // Flat Pear Clay SW 50
 	if err != nil {
@@ -52,13 +52,13 @@ func TestSinkerKeepsSingleInstance(t *testing.T) {
 		ordinal, guid = rc.Ordinal, rc.GUID
 	}
 	if count != 1 {
-		t.Fatalf("沉子应只有 1 条 rig_component，实得 %d 条", count)
+		t.Fatalf("沉子应只有 1 条 rig_component, 实得 %d 条", count)
 	}
 	if ordinal != 0 {
-		t.Fatalf("沉子 ordinal=%d，应固定为 0（同索引槽位不再分配第二实例）", ordinal)
+		t.Fatalf("沉子 ordinal=%d, 应固定为 0 (同索引槽位不再分配第二实例)", ordinal)
 	}
 	if guid != second.GUID {
-		t.Fatalf("槽位应换成后装的 %s，实得 %s", shortGUID(second.GUID), shortGUID(guid))
+		t.Fatalf("槽位应换成后装的 %s, 实得 %s", shortGUID(second.GUID), shortGUID(guid))
 	}
 
 	prev, err := db.GetItemByGUID(ctx, first.GUID)
@@ -66,7 +66,7 @@ func TestSinkerKeepsSingleInstance(t *testing.T) {
 		t.Fatalf("第一枚沉子行丢失: %v", err)
 	}
 	if prev.Container != "backpack" || prev.RigGUID != "" {
-		t.Fatalf("第一枚应退回背包，实得 container=%q rig=%q", prev.Container, prev.RigGUID)
+		t.Fatalf("第一枚应退回背包, 实得 container=%q rig=%q", prev.Container, prev.RigGUID)
 	}
 }
 
@@ -79,7 +79,7 @@ func TestLegacyDuplicateSinkersAreReturnedByProjection(t *testing.T) {
 		t.Fatal(err)
 	}
 	if !srv.rigSetType(ctx, uid, rod.GUID, 26) {
-		t.Fatal("rigSetType 失败")
+		t.Fatal("rigSetType Ошибка")
 	}
 	kept, err := srv.CreateItem(ctx, uid, "flpsinker_30149", "backpack", 1)
 	if err != nil {

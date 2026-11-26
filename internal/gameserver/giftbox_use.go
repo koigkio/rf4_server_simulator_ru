@@ -45,51 +45,51 @@ func (s *Server) useGiftBox(ctx *Ctx) ([]byte, bool) {
 		return nil, true
 	}
 	if ctx.Sess.Closed() {
-		return fail("会话已关闭，请重新连接")
+		return fail("Сессия закрыта, переподключитесь")
 	}
 	if !hasStorage || storage != 0 || row.Container != "backpack" || row.RigGUID != "" {
-		return fail("礼盒只能在背包中打开")
+		return fail("Подарочную коробку можно открыть только в инвентаре")
 	}
 	// prepareBundleItems 只读、必须在库存事务之前调用（见其函数注释）。
 	contents, err := s.prepareBundleItems(cctx, uid, row.ItemID, "backpack", 1)
 	if err != nil {
-		ctx.Log.Warn("礼盒内容物构造失败", "item", row.ItemID, "err", err)
-		return fail("礼盒打开未完成，请重试")
+		ctx.Log.Warn("Не удалось создать содержимое подарочной коробки", "item", row.ItemID, "err", err)
+		return fail("Подарочная коробка не открыта, попробуйте ещё раз")
 	}
 	tx, err := beginEconomyTx(cctx, s.DB)
 	if err != nil {
-		ctx.Log.Warn("礼盒开启事务失败", "err", err)
-		return fail("礼盒打开未完成，请重试")
+		ctx.Log.Warn("Не удалось начать транзакцию открытия коробки", "err", err)
+		return fail("Подарочная коробка не открыта, попробуйте ещё раз")
 	}
 	defer func() { _ = tx.Rollback() }()
 	fresh, err := getOwnedItemTx(cctx, tx, uid, guid)
 	if errors.Is(err, sql.ErrNoRows) {
-		return fail("礼盒不存在或已被打开")
+		return fail("Подарочная коробка не существует или уже открыта")
 	}
 	if err != nil {
-		ctx.Log.Warn("礼盒读取失败", "guid", guid, "err", err)
-		return fail("礼盒打开未完成，请重试")
+		ctx.Log.Warn("Не удалось прочитать подарочную коробку", "guid", guid, "err", err)
+		return fail("Подарочная коробка не открыта, попробуйте ещё раз")
 	}
 	if fresh.Container != "backpack" || fresh.RigGUID != "" {
-		return fail("礼盒只能在背包中打开")
+		return fail("Подарочную коробку можно открыть только в инвентаре")
 	}
 	removed, err := removeItemsTx(cctx, tx, uid, []string{guid})
 	if err != nil || removed != 1 {
-		ctx.Log.Warn("礼盒删除失败", "guid", guid, "removed", removed, "err", err)
-		return fail("礼盒打开未完成，请重试")
+		ctx.Log.Warn("Не удалось удалить подарочную коробку", "guid", guid, "removed", removed, "err", err)
+		return fail("Подарочная коробка не открыта, попробуйте ещё раз")
 	}
 	granted := make([]*store.Item, 0, len(contents))
 	for _, it := range contents {
 		out, _, gerr := grantPreparedItemTx(cctx, tx, it, true)
 		if gerr != nil {
-			ctx.Log.Warn("礼盒内容物入库失败", "item", it.ItemID, "err", gerr)
-			return fail("礼盒打开未完成，请重试")
+			ctx.Log.Warn("Не удалось положить содержимое коробки в инвентарь", "item", it.ItemID, "err", gerr)
+			return fail("Подарочная коробка не открыта, попробуйте ещё раз")
 		}
 		granted = append(granted, out)
 	}
 	if err := tx.Commit(); err != nil {
-		ctx.Log.Warn("礼盒事务提交失败", "item", row.ItemID, "err", err)
-		return fail("礼盒打开未完成，请重试")
+		ctx.Log.Warn("Не удалось зафиксировать транзакцию коробки", "item", row.ItemID, "err", err)
+		return fail("Подарочная коробка не открыта, попробуйте ещё раз")
 	}
 	// ItemToTree 含嵌套写，禁止在事务内调用；实例树在提交后构建
 	// （与 22/2 购买同一顺序）。单棵失败只降级该物品的即时显示，
@@ -98,7 +98,7 @@ func (s *Server) useGiftBox(ctx *Ctx) ([]byte, bool) {
 	for _, g := range granted {
 		tree, terr := s.ItemToTree(cctx, g)
 		if terr != nil {
-			ctx.Log.Warn("礼盒内容物树构造失败", "item", g.ItemID, "err", terr)
+			ctx.Log.Warn("Ошибка создания дерева содержимого коробки", "item", g.ItemID, "err", terr)
 			continue
 		}
 		added = append(added, tree)

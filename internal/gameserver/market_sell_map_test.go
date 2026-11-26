@@ -24,10 +24,10 @@ func TestMarketPriceFollowsSellMap(t *testing.T) {
 		t.Fatalf("水域价差未生效: lake=%v old=%v sea=%v", lake, old, sea)
 	}
 	if got := old / sea; math.Abs(got-0.916) > 0.01 {
-		t.Fatalf("老奥/海图 = %.4f，期望 0.916", got)
+		t.Fatalf("老奥/海图 = %.4f, 期望 0.916", got)
 	}
 	if got := lake / sea; math.Abs(got-0.831) > 0.01 {
-		t.Fatalf("1 图/海图 = %.4f，期望 0.831", got)
+		t.Fatalf("1 图/海图 = %.4f, 期望 0.831", got)
 	}
 }
 
@@ -84,19 +84,19 @@ func TestMarketRateAndSellFollowCurrentMap(t *testing.T) {
 	e := &store.KeepnetEntry{Species: "bream", Cat: 3, WeightG: 6054}
 	wantSea := marketPriceCentsForMap(e, now, "level_012_north_sea")
 	if got := ratePrice(lakeFish); got != wantSea {
-		t.Fatalf("海图询价=%d，期望卖鱼地图价 %d", got, wantSea)
+		t.Fatalf("海图询价=%d, 期望卖鱼地图价 %d", got, wantSea)
 	}
 	if got := sellPrice(lakeFish); got != wantSea {
-		t.Fatalf("海图入账=%d，期望询价 %d", got, wantSea)
+		t.Fatalf("海图入账=%d, 期望询价 %d", got, wantSea)
 	}
 
 	insert(seaFish, "loc1_02", "level_012_north_sea")
 	srv.setLevel(uid, "level_001_lake")
 	wantLake := marketPriceCentsForMap(e, now, "level_001_lake")
 	if got := ratePrice(seaFish); got != wantLake {
-		t.Fatalf("1 图询价=%d，期望卖鱼地图价 %d", got, wantLake)
+		t.Fatalf("1 图询价=%d, 期望卖鱼地图价 %d", got, wantLake)
 	}
 	if got := sellPrice(seaFish); got != wantLake {
-		t.Fatalf("1 图入账=%d，期望询价 %d", got, wantLake)
+		t.Fatalf("1 图入账=%d, 期望询价 %d", got, wantLake)
 	}
 }

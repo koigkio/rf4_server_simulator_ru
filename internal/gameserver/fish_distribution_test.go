@@ -213,10 +213,10 @@ func TestBsSalmonHasStaticDistributionAndBaitEvidence(t *testing.T) {
 		}
 	}
 	if !found {
-		t.Fatalf("LocRoster(%q) 缺少 bs_salmon", loc)
+		t.Fatalf("LocRoster(%q) Отсутствует bs_salmon", loc)
 	}
 	if catches != 8 {
-		t.Fatalf("bs_salmon 名册权重=%v，期望 8", catches)
+		t.Fatalf("bs_salmon 名册权重=%v, 期望 8", catches)
 	}
 	evidence := srv.loadLocalBaitEvidence(ctx, loc, "AngryWalker S8-001", "AngryWalker S8-001")
 	if !evidence["bs_salmon"] {

@@ -126,7 +126,7 @@ func lineMaterialDensity(material int64) float64 {
 	case 2:
 		return 1.78 // 氟碳
 	case 3:
-		return 0.70 // 编织（PE，含编织空隙）
+		return 0.70 // 编织 (PE, 含编织空隙)
 	case 6:
 		return 7.85 // 钢丝
 	case 7:
@@ -166,11 +166,11 @@ func leaderMassG(def *store.ItemDef, instanceLengthM float64) float64 {
 	}
 	lengthM := 0.0
 	if v := itemDefNumericScalar(def, gearAttrLength); v > 0 {
-		lengthM = v / 100 // 成品前导：厘米
+		lengthM = v / 100 // 成品前导: 厘米
 	}
 	if lengthM <= 0 {
 		if v := itemDefNumericScalar(def, gearAttrLineLen); v > 0 {
-			lengthM = v // 散装前导线：米
+			lengthM = v // 散装前导线: 米
 		}
 	}
 	if lengthM <= 0 && instanceLengthM > 0 {

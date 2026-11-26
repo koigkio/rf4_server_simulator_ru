@@ -91,7 +91,7 @@ func TestMarketSellAtomicAndDedup(t *testing.T) {
 		t.Fatal(err)
 	}
 	if silver <= 100 {
-		t.Fatalf("卖鱼应入账且只入账一次，silver=%d", silver)
+		t.Fatalf("卖鱼应入账且只入账一次, silver=%d", silver)
 	}
 	var txnCount, keepCount int
 	if err := db.SQL.QueryRow(`SELECT COUNT(*) FROM txn WHERE uid=? AND kind='sell_fish'`, uid).Scan(&txnCount); err != nil {
@@ -185,7 +185,7 @@ func TestCraftMissingMaterialAndRollback(t *testing.T) {
 		t.Fatal(err)
 	}
 	if n != 0 {
-		t.Fatalf("缺料不得产出，out=%d", n)
+		t.Fatalf("缺料不得产出, out=%d", n)
 	}
 
 	economyTestItem(t, srv, uid, "econ_mat", "backpack", 2)
@@ -198,7 +198,7 @@ func TestCraftMissingMaterialAndRollback(t *testing.T) {
 		t.Fatal(err)
 	}
 	if matCount != 0 {
-		t.Fatalf("材料应被扣完，mat=%d", matCount)
+		t.Fatalf("材料应被扣完, mat=%d", matCount)
 	}
 
 	economyTestItem(t, srv, uid, "econ_mat", "backpack", 2)
@@ -401,7 +401,7 @@ func TestPaperMapBuyDoesNotUnlockPlace(t *testing.T) {
 			t.Fatal(err)
 		}
 		if owned != 0 {
-			t.Fatalf("%s 不应写入 place_access（%s），实得 %d 行", itemID, place, owned)
+			t.Fatalf("%s 不应写入 place_access (%s), 实得 %d 行", itemID, place, owned)
 		}
 	}
 	buy("papermap_torfynoe_01", "level_004_torfyanoe_ozero")
@@ -411,7 +411,7 @@ func TestPaperMapBuyDoesNotUnlockPlace(t *testing.T) {
 		t.Fatal(err)
 	}
 	if silver != 800 {
-		t.Fatalf("两张地图应各扣 100，silver=%d", silver)
+		t.Fatalf("两张地图应各扣 100, silver=%d", silver)
 	}
 }
 

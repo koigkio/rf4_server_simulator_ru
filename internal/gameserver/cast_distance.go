@@ -223,9 +223,9 @@ type castDistanceProfile struct {
 	BaitItemID         string
 	BaitWeightG        float64
 	PayloadWeightG     float64
-	PayloadTestRatio   float64 // 载荷 / 竿 Test 上限；0 表示竿未登记 Test
-	RodOverTest        bool    // 载荷超过竿 Test 上限，抛投距离开始衰减
-	PayloadParts       string  // 组合重量的分项摘要，供日志审计
+	PayloadTestRatio   float64 // 载荷 / 竿 Test 上限; 0 表示竿未登记 Test
+	RodOverTest        bool    // 载荷超过竿 Test 上限, 抛投距离开始衰减
+	PayloadParts       string  // 组合重量的分项摘要, 供日志审计
 	WeightFactor       float64
 	SkillCategory      int64
 	SkillMastery       float64

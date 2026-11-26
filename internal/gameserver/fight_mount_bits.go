@@ -24,10 +24,10 @@ var fightMountBitsByCat = map[int64]uint64{
 	14: fightMountBitsRod, // 丝锁
 	17: hookMountedFlag,   // 拟饵
 	12: hookMountedFlag,   // 钩
-	7:  hookMountedFlag,   // 轮零件：线杯
-	8:  hookMountedFlag,   // 轮零件：轴承
-	10: hookMountedFlag,   // 轮零件：轮油
-	52: hookMountedFlag,   // 轮零件：齿轮
+	7:  hookMountedFlag,   // 轮零件: 线杯
+	8:  hookMountedFlag,   // 轮零件: 轴承
+	10: hookMountedFlag,   // 轮零件: 轮油
+	52: hookMountedFlag,   // 轮零件: 齿轮
 }
 
 const (

@@ -40,12 +40,12 @@ func Open(path string) (*DB, error) {
 func (d *DB) Migrate() error {
 	if _, err := d.SQL.Exec(`CREATE TABLE IF NOT EXISTS schema_migrations(
 		version INTEGER PRIMARY KEY, name TEXT NOT NULL, applied_at REAL NOT NULL)`); err != nil {
-		return fmt.Errorf("建迁移表: %w", err)
+		return fmt.Errorf("Создание таблицы миграций: %w", err)
 	}
 	// 已应用 00001 的数据库可能缺少后续列。CREATE TABLE IF NOT EXISTS 不会
 	// 修改现有表，因此先补齐这些列，避免仓储查询或写入失败。
 	if err := d.ensureLegacyPlayerColumns(); err != nil {
-		return fmt.Errorf("补全玩家表列: %w", err)
+		return fmt.Errorf("Дополнение столбцов таблицы игроков: %w", err)
 	}
 	// 按文件名识别旧分支，保留同编号的主线迁移。
 	if _, err := d.SQL.Exec(`UPDATE schema_migrations
@@ -55,28 +55,28 @@ func (d *DB) Migrate() error {
 		WHERE name IN ('migrations/00023_cafe_pricing_version.sql','migrations/00025_cafe_pricing_version.sql',
 		               'migrations/00027_cafe_pricing_version.sql','migrations/00029_cafe_pricing_version.sql',
 		               'migrations/00025_bait_consumption.sql')`); err != nil {
-		return fmt.Errorf("兼容旧分支迁移编号: %w", err)
+		return fmt.Errorf("Совместимость номеров миграций старой ветки: %w", err)
 	}
 	// 钓鱼游分支曾以 00036 登记 trip_grant，上游 00036 现为 fish_ecology：
 	// 按文件名把旧分支行重映射到 00039，让主线 00036 能正常补齐。
 	if _, err := d.SQL.Exec(`UPDATE schema_migrations
 		SET version=39, name='migrations/00039_trip_grant.sql'
 		WHERE name='migrations/00036_trip_grant.sql'`); err != nil {
-		return fmt.Errorf("兼容钓鱼游分支迁移编号: %w", err)
+		return fmt.Errorf("Совместимость номеров миграций ветки путёвок: %w", err)
 	}
 	// 海图狩猎分支曾以 00047 登记 marine_hunt，主线 00047 现为
 	// qualification_progress：先挪到 00050，避免与主线 47/48/49 撞号。
 	if _, err := d.SQL.Exec(`UPDATE schema_migrations
 		SET version=50, name='migrations/00050_marine_hunt.sql'
 		WHERE name='migrations/00047_marine_hunt.sql'`); err != nil {
-		return fmt.Errorf("兼容海图狩猎分支迁移编号: %w", err)
+		return fmt.Errorf("Совместимость номеров миграций ветки охоты по морской карте: %w", err)
 	}
 	// 大鱼狩猎分支曾以 00046 登记 fish_hunt，主线现在已占用 46/47/48：
 	// 按文件名重映射到 00049，让主线迁移能正常补齐。
 	if _, err := d.SQL.Exec(`UPDATE schema_migrations
 		SET version=49, name='migrations/00049_fish_hunt.sql'
 		WHERE name='migrations/00046_fish_hunt.sql'`); err != nil {
-		return fmt.Errorf("兼容大鱼狩猎分支迁移编号: %w", err)
+		return fmt.Errorf("Совместимость номеров миграций ветки охоты на крупную рыбу: %w", err)
 	}
 	entries, err := fs.Glob(migrationsFS, "migrations/*.sql")
 	if err != nil {
@@ -146,7 +146,7 @@ func (d *DB) Migrate() error {
 				present += n
 			}
 			if present == len(spec.columns) {
-				body = []byte("-- 列已由改号前的旧编号迁移建过，跳过 ALTER，只登记新编号")
+				body = []byte("-- Столбец уже создан миграцией со старым номером, ALTER пропущен, регистрируется только новый номер")
 				if spec.remains != "" {
 					body = []byte(spec.remains)
 				}
@@ -154,7 +154,7 @@ func (d *DB) Migrate() error {
 		}
 		if _, err := tx.Exec(string(body)); err != nil {
 			_ = tx.Rollback()
-			return fmt.Errorf("迁移 %s: %w", name, err)
+			return fmt.Errorf("Миграция %s: %w", name, err)
 		}
 		if _, err := tx.Exec(
 			`INSERT INTO schema_migrations(version, name, applied_at) VALUES(?,?,?)`,
@@ -170,7 +170,7 @@ func (d *DB) Migrate() error {
 		guardCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 		if err := d.EnableStaticReadOnly(guardCtx); err != nil {
-			return fmt.Errorf("启用静态表只读隔离: %w", err)
+			return fmt.Errorf("Включение изоляции статических таблиц (только чтение): %w", err)
 		}
 	}
 	return nil
@@ -293,7 +293,7 @@ func retireStaleMigrationRows(sql *sql.DB, entries []string) error {
 	}
 	rows, err := sql.Query(`SELECT version, name FROM schema_migrations ORDER BY version`)
 	if err != nil {
-		return fmt.Errorf("读取迁移登记: %w", err)
+		return fmt.Errorf("Чтение журнала миграций: %w", err)
 	}
 	type staleRow struct {
 		version int64
@@ -304,7 +304,7 @@ func retireStaleMigrationRows(sql *sql.DB, entries []string) error {
 		var s staleRow
 		if err := rows.Scan(&s.version, &s.name); err != nil {
 			rows.Close()
-			return fmt.Errorf("读取迁移登记行: %w", err)
+			return fmt.Errorf("Чтение строки журнала миграций: %w", err)
 		}
 		if known[s.name] || !wanted[s.version] {
 			continue
@@ -313,7 +313,7 @@ func retireStaleMigrationRows(sql *sql.DB, entries []string) error {
 	}
 	if err := rows.Err(); err != nil {
 		rows.Close()
-		return fmt.Errorf("遍历迁移登记: %w", err)
+		return fmt.Errorf("Обход журнала миграций: %w", err)
 	}
 	rows.Close()
 
@@ -323,7 +323,7 @@ func retireStaleMigrationRows(sql *sql.DB, entries []string) error {
 		for {
 			var n int
 			if err := sql.QueryRow(`SELECT COUNT(*) FROM schema_migrations WHERE version=?`, target).Scan(&n); err != nil {
-				return fmt.Errorf("探测退役编号 %d: %w", target, err)
+				return fmt.Errorf("Проверка выведенных номеров %d: %w", target, err)
 			}
 			if n == 0 && !claimed[target] {
 				break
@@ -333,7 +333,7 @@ func retireStaleMigrationRows(sql *sql.DB, entries []string) error {
 		claimed[target] = true
 		if _, err := sql.Exec(`UPDATE schema_migrations SET version=?, name=? WHERE version=? AND name=?`,
 			target, "retired/"+s.name, s.version, s.name); err != nil {
-			return fmt.Errorf("退役旧分支迁移登记 %s: %w", s.name, err)
+			return fmt.Errorf("Вывод из журнала миграций старой ветки %s: %w", s.name, err)
 		}
 	}
 	return nil

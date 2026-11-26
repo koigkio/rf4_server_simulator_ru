@@ -117,19 +117,19 @@ func TestHuntStateEnabledCombinesFlags(t *testing.T) {
 
 func TestFishHuntStageNameFollowsMode(t *testing.T) {
 	ts := huntWeightsTestServer(map[string]float64{"two_stage_hunt_enabled": 1})
-	if got := ts.fishHuntStageName(fishHuntModeFreshwater, fishHuntDaily); got != "日常" {
+	if got := ts.fishHuntStageName(fishHuntModeFreshwater, fishHuntDaily); got != "Обычный" {
 		t.Fatalf("两档制日常名称错: %s", got)
 	}
 	for _, stage := range []int{fishHuntGather, fishHuntActive, fishHuntGiant} {
-		if got := ts.fishHuntStageName(fishHuntModeFreshwater, stage); got != "打窝" {
+		if got := ts.fishHuntStageName(fishHuntModeFreshwater, stage); got != "Прикормка" {
 			t.Fatalf("两档制打窝名称错 stage=%d: %s", stage, got)
 		}
 	}
-	if got := ts.fishHuntStageName(fishHuntModeMarine, fishHuntGiant); got != "巨物发窝" {
+	if got := ts.fishHuntStageName(fishHuntModeMarine, fishHuntGiant); got != "Гиганты на прикормке" {
 		t.Fatalf("两档制不得改写海钓阶段名: %s", got)
 	}
 	fh := huntWeightsTestServer(nil)
-	if got := fh.fishHuntStageName(fishHuntModeFreshwater, fishHuntGather); got != "聚鱼" {
+	if got := fh.fishHuntStageName(fishHuntModeFreshwater, fishHuntGather); got != "Сбор рыбы" {
 		t.Fatalf("鱼猎模式淡水阶段名错: %s", got)
 	}
 }
@@ -142,13 +142,13 @@ func TestFishHuntPityForcesTrophy(t *testing.T) {
 	}
 	_, _, w3, _, force := s.fishHuntWeights(fishHuntModeMarine, fishHuntActive, &fishHuntState{Pity: 30}, 0, false)
 	if force || w3 <= 6.8 {
-		t.Fatalf("30 尾软保底应提高奖杯权重，w3=%.2f force=%v", w3, force)
+		t.Fatalf("30 尾软保底应提高奖杯权重, w3=%.2f force=%v", w3, force)
 	}
 	// 两档制打窝表同样吃保底：基础 w3=6，Pity30 → ×1.5 = 9。
 	ts := huntWeightsTestServer(map[string]float64{"two_stage_hunt_enabled": 1})
 	_, _, w3b, _, force := ts.fishHuntWeights(fishHuntModeFreshwater, fishHuntGather, &fishHuntState{Pity: 30}, 0, false)
 	if force || math.Abs(w3b-9) > 1e-9 {
-		t.Fatalf("两档制打窝 Pity30 应 w3=9，实得 %.2f force=%v", w3b, force)
+		t.Fatalf("两档制打窝 Pity30 应 w3=9, 实得 %.2f force=%v", w3b, force)
 	}
 	_, _, _, _, force = ts.fishHuntWeights(fishHuntModeFreshwater, fishHuntGather, &fishHuntState{Pity: 60}, 0, false)
 	if !force {
@@ -203,16 +203,16 @@ func TestHookSpawnCompatibilityPrefersMatchingFish(t *testing.T) {
 	large := gearPhysicsSpec{HookPresent: true, HookSize: 14, HookLengthMM: 6}
 	huge := gearPhysicsSpec{HookPresent: true, HookSize: 28, HookLengthMM: 24}
 	if got := hookSpawnCompatibility(300, small); got != 1 {
-		t.Fatalf("6 号钩遇 300g 应完全匹配，实得 %.3f", got)
+		t.Fatalf("6 号钩遇 300g 应完全匹配, 实得 %.3f", got)
 	}
 	if got := hookSpawnCompatibility(1737, small); got >= .40 {
-		t.Fatalf("6 号钩遇 1737g 应显著降权，实得 %.3f", got)
+		t.Fatalf("6 号钩遇 1737g 应显著降权, 实得 %.3f", got)
 	}
 	if got := hookSpawnCompatibility(1737, large); got < .95 {
-		t.Fatalf("14 号钩遇 1737g 应基本匹配，实得 %.3f", got)
+		t.Fatalf("14 号钩遇 1737g 应基本匹配, 实得 %.3f", got)
 	}
 	if got := hookSpawnCompatibility(50, huge); got >= .60 {
-		t.Fatalf("特大钩遇 50g 应降权，实得 %.3f", got)
+		t.Fatalf("特大钩遇 50g 应降权, 实得 %.3f", got)
 	}
 }
 
@@ -266,7 +266,7 @@ func TestHookControlsDefaultOff(t *testing.T) {
 		t.Fatal("嘬饵机制默认应关闭")
 	}
 	if got := s.effectiveHookSpawnMatchStrength(); got != 0 {
-		t.Fatalf("钩型发鱼软匹配默认应关闭，实得强度 %g", got)
+		t.Fatalf("钩型发鱼软匹配默认应关闭, 实得强度 %g", got)
 	}
 }
 
@@ -285,7 +285,7 @@ func TestHookNibbleSwitchKeepsProfileHoldMultiplier(t *testing.T) {
 		t.Fatalf("关闭嘬饵后不得再产生 nibble: %+v", f)
 	}
 	if math.Abs(f.HookHoldP-.25) > 1e-9 {
-		t.Fatalf("后台保持率倍率仍应生效，HookHoldP=%.4f", f.HookHoldP)
+		t.Fatalf("后台保持率倍率仍应生效, HookHoldP=%.4f", f.HookHoldP)
 	}
 }
 
@@ -364,7 +364,7 @@ func TestLuckProtectedBlueTerminalFrameStillFinal(t *testing.T) {
 	st.cancelBiteTimerLocked()
 	st.mu.Unlock()
 	if !terminal {
-		t.Fatalf("f0=7 是终态，蓝冠鱼同样不得复活: pending=%v hooked=%v resolved=%v timer=%v",
+		t.Fatalf("f0=7 是终态, 蓝冠鱼同样不得复活: pending=%v hooked=%v resolved=%v timer=%v",
 			st.Pending != nil, st.Hooked, st.Resolved, st.pendingTimer != nil)
 	}
 }
@@ -438,7 +438,7 @@ func TestDisabledNibbleStillHooksPendingNibble(t *testing.T) {
 	st.cancelPendingTimerLocked()
 	st.mu.Unlock()
 	if !hooked {
-		t.Fatalf("关闭嘬饵后，在途 nibble 也必须正常中钩: pending=%v hooked=%v confirmed=%v",
+		t.Fatalf("关闭嘬饵后, 在途 nibble 也必须正常中钩: pending=%v hooked=%v confirmed=%v",
 			st.Pending != nil, st.Hooked, fish.HookConfirmed)
 	}
 }
@@ -521,17 +521,17 @@ func TestNibbleVetoPushesFishLeave(t *testing.T) {
 	}
 	env := awaitPushEnvelope(t, gc)
 	if env.Main != 14 || env.Sub != 15 {
-		t.Fatalf("嘬饵否决应推送 14/15 鱼离场，实得 %d/%d", env.Main, env.Sub)
+		t.Fatalf("嘬饵否决应推送 14/15 鱼离场, 实得 %d/%d", env.Main, env.Sub)
 	}
 	dec, _, err := proto.DecodeValue(env.Body, 0, s.Table())
 	if err != nil {
 		t.Fatalf("14/15 body 不可解码: %v", err)
 	}
 	if len(dec.Items) < 2 {
-		t.Fatalf("14/15 args 应为 [竿GUID, 鱼GUID]，实得 %d 项", len(dec.Items))
+		t.Fatalf("14/15 args 应为 [竿GUID, 鱼GUID], 实得 %d 项", len(dec.Items))
 	}
 	if got := dec.Items[1].GuidHex(); !strings.EqualFold(got, fish.FishGUID) {
-		t.Fatalf("14/15 args[1] 应为否决鱼 GUID %s，实得 %q", fish.FishGUID, got)
+		t.Fatalf("14/15 args[1] 应为否决鱼 GUID %s, 实得 %q", fish.FishGUID, got)
 	}
 	// 推送不得改变否决本身的状态转移。
 	st.mu.Lock()
@@ -561,14 +561,14 @@ func TestMarineNibbleVetoPushesFishLeave(t *testing.T) {
 	}
 	env := awaitPushEnvelope(t, gc)
 	if env.Main != 14 || env.Sub != 15 {
-		t.Fatalf("海钓嘬饵否决应推送 14/15 鱼离场，实得 %d/%d", env.Main, env.Sub)
+		t.Fatalf("海钓嘬饵否决应推送 14/15 鱼离场, 实得 %d/%d", env.Main, env.Sub)
 	}
 	dec, _, err := proto.DecodeValue(env.Body, 0, s.Table())
 	if err != nil {
 		t.Fatalf("14/15 body 不可解码: %v", err)
 	}
 	if got := dec.Items[1].GuidHex(); !strings.EqualFold(got, fish.FishGUID) {
-		t.Fatalf("14/15 args[1] 应为否决鱼 GUID %s，实得 %q", fish.FishGUID, got)
+		t.Fatalf("14/15 args[1] 应为否决鱼 GUID %s, 实得 %q", fish.FishGUID, got)
 	}
 }
 
@@ -613,7 +613,7 @@ func TestNibbleVetoLeaveAckBenign(t *testing.T) {
 	}()
 	select {
 	case err := <-ch:
-		t.Fatalf("离场回执不应产生推送，实得 %v", err)
+		t.Fatalf("离场回执不应产生推送, 实得 %v", err)
 	case <-time.After(400 * time.Millisecond):
 	}
 	st.mu.Lock()
@@ -628,20 +628,20 @@ func TestHookQualityPrefersDifferentFishSizes(t *testing.T) {
 		t.Fatalf("大钩评分应高于小钩: tiny=%.2f large=%.2f", hookScore(tiny), hookScore(large))
 	}
 	if solid, _ := hookSolidHold(100, large); solid >= .9 {
-		t.Fatalf("大钩遇 100g 小鱼不应有稳定入口，solid=%.2f", solid)
+		t.Fatalf("大钩遇 100g 小鱼不应有稳定入口, solid=%.2f", solid)
 	}
 	if solid, _ := hookSolidHold(20_000, tiny); solid >= .9 {
-		t.Fatalf("小钩遇 20kg 大鱼不应有稳定入口，solid=%.2f", solid)
+		t.Fatalf("小钩遇 20kg 大鱼不应有稳定入口, solid=%.2f", solid)
 	}
 }
 
 func TestHookHoldOnlyFailsAboveHookCapacity(t *testing.T) {
 	large := gearPhysicsSpec{HookPresent: true, HookSize: 28, HookLengthMM: 24}
 	if _, hold := hookSolidHold(100_000, large); hold != 1 {
-		t.Fatalf("钩容量内中钩后应固定保持率 1，实得 %.4f", hold)
+		t.Fatalf("钩容量内中钩后应固定保持率 1, 实得 %.4f", hold)
 	}
 	if _, hold := hookSolidHold(200_000, large); hold >= 1 {
-		t.Fatalf("超过钩容量后保持率应下降，实得 %.4f", hold)
+		t.Fatalf("超过钩容量后保持率应下降, 实得 %.4f", hold)
 	}
 }
 
@@ -657,16 +657,16 @@ func TestFishHuntCircularGroundbaitRange(t *testing.T) {
 		return s.groundbaitSpotAt(ctx, uid, "range-test", x, z, true, 7).units
 	}
 	if got := unitsAt(100, 100); got < 9.99 || got > 10.01 {
-		t.Fatalf("核心圈应为全额 10，实得 %.3f", got)
+		t.Fatalf("核心圈应为全额 10, 实得 %.3f", got)
 	}
 	if got := unitsAt(105, 100); got < 8.6 || got > 8.75 {
-		t.Fatalf("5 米距离应约 86.7%%，实得 %.3f", got)
+		t.Fatalf("5 米距离应约 86.7%%, 实得 %.3f", got)
 	}
 	if got := unitsAt(109, 100); got < 1.9 || got > 2.1 {
-		t.Fatalf("9 米距离应约 20%%，实得 %.3f", got)
+		t.Fatalf("9 米距离应约 20%%, 实得 %.3f", got)
 	}
 	if got := unitsAt(111, 100); got != 0 {
-		t.Fatalf("10 米外应为 0，实得 %.3f", got)
+		t.Fatalf("10 米外应为 0, 实得 %.3f", got)
 	}
 }
 
@@ -696,11 +696,11 @@ func TestFishHuntReadinessRequiresFishMouthMatch(t *testing.T) {
 	}
 	r := s.fishHuntReadiness(ctx, "crucian", c, h)
 	if r.A < .80 || r.G < .50 || r.P < .80 {
-		t.Fatalf("窝料与持续度应已充分积累，实得 A=%.2f E=%.2f G=%.2f P=%.2f Q=%.2f",
+		t.Fatalf("窝料与持续度应已充分积累, 实得 A=%.2f E=%.2f G=%.2f P=%.2f Q=%.2f",
 			r.A, r.E, r.G, r.P, r.Q)
 	}
 	if r.E < .45 && r.Stage != fishHuntDaily {
-		t.Fatalf("鱼口匹配不足时必须守住日常阶段，实得 E=%.2f stage=%s", r.E, s.fishHuntStageName(fishHuntModeFreshwater, r.Stage))
+		t.Fatalf("鱼口匹配不足时必须守住日常阶段, 实得 E=%.2f stage=%s", r.E, s.fishHuntStageName(fishHuntModeFreshwater, r.Stage))
 	}
 }
 
@@ -724,7 +724,7 @@ func TestLureHuntBuildsBigFishProgressWithoutGroundbait(t *testing.T) {
 	}
 	r := s.fishHuntReadiness(ctx, "perch", c, h)
 	if r.Stage != fishHuntGiant {
-		t.Fatalf("路亚持续搜索不应依赖窝料，stage=%s A=%.2f E=%.2f G=%.2f Q=%.2f",
+		t.Fatalf("路亚持续搜索不应依赖窝料, stage=%s A=%.2f E=%.2f G=%.2f Q=%.2f",
 			s.fishHuntStageName(fishHuntModeLure, r.Stage), r.A, r.E, r.G, r.Q)
 	}
 	if h.Mode != fishHuntModeLure {
@@ -801,7 +801,7 @@ func TestMarineHuntUsesSonarZoneWithoutGroundbait(t *testing.T) {
 	}
 	r := s.fishHuntReadiness(ctx, "atl_cod", c, h)
 	if r.A < .50 || r.G < .25 || r.Stage == fishHuntDaily {
-		t.Fatalf("海图声呐区应能建立狩猎状态，实得 stage=%s A=%.2f E=%.2f G=%.2f P=%.2f Q=%.2f",
+		t.Fatalf("海图声呐区应能建立狩猎状态, 实得 stage=%s A=%.2f E=%.2f G=%.2f P=%.2f Q=%.2f",
 			s.fishHuntStageName(fishHuntModeMarine, r.Stage), r.A, r.E, r.G, r.P, r.Q)
 	}
 	if h.Mode != fishHuntModeMarine || !h.ZoneKnown || h.Zone != 215 {
@@ -867,7 +867,7 @@ func TestFishHuntEscapeCompensation(t *testing.T) {
 	s.recordHuntEscape(ctx, uid, loc, spot, f)
 	h := s.loadFishHuntState(ctx, uid, loc, spot)
 	if h.BigMiss != 1 || h.CompFish != 3 || h.CompUntil <= 0 {
-		t.Fatalf("奖杯脱钩应留下 3 尾回访补偿，实得 %+v", h)
+		t.Fatalf("奖杯脱钩应留下 3 尾回访补偿, 实得 %+v", h)
 	}
 
 	for i := 1; i <= 3; i++ {
@@ -876,7 +876,7 @@ func TestFishHuntEscapeCompensation(t *testing.T) {
 		s.recordHuntCatch(ctx, uid, loc, spot, f)
 		h = s.loadFishHuntState(ctx, uid, loc, spot)
 		if want := int64(3 - i); h.CompFish != want {
-			t.Fatalf("第 %d 尾有效鱼后补偿剩余=%d，期望 %d: %+v", i, h.CompFish, want, h)
+			t.Fatalf("第 %d 尾有效鱼后补偿剩余=%d, 期望 %d: %+v", i, h.CompFish, want, h)
 		}
 		s.recordHuntCatch(ctx, uid, loc, spot, f)
 		if replay := s.loadFishHuntState(ctx, uid, loc, spot); replay.CompFish != h.CompFish {
@@ -959,12 +959,12 @@ func TestFishHuntNewSpotResetsAfterTwentyMeters(t *testing.T) {
 	s.groundbaitDeposit(ctx, uid, loc, 115, 100, true, spot,
 		"feed_dry", 1, "catapult", "anchor:2", "")
 	if got := s.loadFishHuntState(ctx, uid, loc, spot).ValidBites; got != 7 {
-		t.Fatalf("20 米内的补窝不应重置发窝进度，实得 %d", got)
+		t.Fatalf("20 米内的补窝不应重置发窝进度, 实得 %d", got)
 	}
 
 	s.groundbaitDeposit(ctx, uid, loc, 125, 100, true, spot,
 		"feed_dry", 1, "catapult", "anchor:3", "")
 	if got := s.loadFishHuntState(ctx, uid, loc, spot).ValidBites; got != 0 {
-		t.Fatalf("超过 20 米的新窝应重置发窝进度，实得 %d", got)
+		t.Fatalf("超过 20 米的新窝应重置发窝进度, 实得 %d", got)
 	}
 }

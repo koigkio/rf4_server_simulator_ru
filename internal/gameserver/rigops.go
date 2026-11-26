@@ -47,13 +47,13 @@ const (
 
 // 装配使用的物品品类。
 const (
-	catReel  = 6  // 渔轮（f4 专用字段）
-	catLine  = 11 // 钓线（f3 专用字段）
+	catReel  = 6  // 渔轮 (f4 专用字段)
+	catLine  = 11 // 钓线 (f3 专用字段)
 	catHook  = 12 // 鱼钩
 	catLead  = 13 // 前导
 	catLure  = 17 // 拟饵
-	catBait  = 27 // 鱼饵（不占独立槽，挂饵路径）
-	catFloat = 28 // 浮漂（沉底族无此槽）
+	catBait  = 27 // 鱼饵 (不占独立槽, 挂饵路径)
+	catFloat = 28 // 浮漂 (沉底族无此槽)
 )
 
 // defaultRigDepthCM 是 153.f4 的默认钓棚深度，单位为厘米。
@@ -125,17 +125,17 @@ var rigSlotTemplates = map[int64][]rigSlotTemplate{
 	2:  {{[]int64{28}, 125}, {[]int64{13}, 150}, {[]int64{12}, 250}},                                                             // FloatBolognese
 	3:  {{[]int64{28}, 125}, {[]int64{13}, 150}, {[]int64{12}, 250}},                                                             // FloatSlider
 	4:  {{[]int64{28}, 125}, {[]int64{13}, 150}, {[]int64{12}, 250}},                                                             // FloatLiveFish
-	5:  {{[]int64{13}, 150}},                                                                                                     // Lure（拟饵走挂饵路径）
+	5:  {{[]int64{13}, 150}},                                                                                                     // Lure (拟饵走挂饵路径)
 	6:  {{[]int64{13}, 150}, {[]int64{12}, 250}},                                                                                 // SimpleJig
 	7:  {{[]int64{13}, 150}, {[]int64{29}, 200}, {[]int64{33}, 325}, {[]int64{12}, 250}},                                         // Texas
 	8:  {{[]int64{13}, 150}, {[]int64{29}, 200}, {[]int64{12}, 250}},                                                             // DropShot
 	9:  {{[]int64{29}, 200}, {[]int64{33}, 325}, {[]int64{13}, 150}, {[]int64{12}, 250}},                                         // Carolina
 	10: {{[]int64{29}, 200}, {[]int64{13}, 150}, {[]int64{12}, 250}},                                                             // ThreeWay
 	11: {{[]int64{13}, 150}, {[]int64{12}, 250}},                                                                                 // Wacky
-	12: {{[]int64{47}, 100}, {[]int64{29, 31}, 200}, {[]int64{13}, 150}, {[]int64{12}, 250}},                                     // BottomSimple（沉子/喂食器共用槽；引线槽为官方行为）
+	12: {{[]int64{47}, 100}, {[]int64{29, 31}, 200}, {[]int64{13}, 150}, {[]int64{12}, 250}},                                     // BottomSimple (沉子/喂食器共用槽; 引线槽为官方行为)
 	13: {{[]int64{47}, 100}, {[]int64{12}, 250}},                                                                                 // BottomPaternoster
 	14: {{[]int64{47}, 100}, {[]int64{12}, 250}},                                                                                 // BottomInline
-	15: {{[]int64{47}, 100}, {[]int64{12}, 250}},                                                                                 // BottomLoop（无食笼）
+	15: {{[]int64{47}, 100}, {[]int64{12}, 250}},                                                                                 // BottomLoop (无食笼)
 	16: {{[]int64{47}, 100}, {[]int64{57}, 175}, {[]int64{31}, 200}, {[]int64{12}, 250}},                                         // BottomMethod
 	17: {{[]int64{47}, 100}, {[]int64{29}, 200}, {[]int64{13}, 150}, {[]int64{12}, 250}},                                         // BottomLiveFish
 	18: {{[]int64{38}, 200}},                                                                                                     // BottomFeedRocket
@@ -144,19 +144,19 @@ var rigSlotTemplates = map[int64][]rigSlotTemplate{
 	21: {{[]int64{28}, 125}, {[]int64{13}, 150}, {[]int64{12}, 250}},                                                             // FloatWaggler
 	22: {{[]int64{13}, 150}},                                                                                                     // JerkbaitRig
 	23: {{[]int64{28}, 125}, {[]int64{29}, 200}},                                                                                 // BottomMarker
-	24: {{[]int64{47}, 100}, {[]int64{57}, 175}, {[]int64{29}, 200}, {[]int64{29}, 200}, {[]int64{13}, 150}, {[]int64{12}, 250}}, // BottomHair（鲤族）
+	24: {{[]int64{47}, 100}, {[]int64{57}, 175}, {[]int64{29}, 200}, {[]int64{29}, 200}, {[]int64{13}, 150}, {[]int64{12}, 250}}, // BottomHair (鲤族)
 	25: {{[]int64{47}, 100}, {[]int64{57}, 175}, {[]int64{29}, 200}, {[]int64{29}, 200}, {[]int64{13}, 150}, {[]int64{12}, 250}}, // BottomSnowman
 	26: {{[]int64{47}, 100}, {[]int64{57}, 175}, {[]int64{29}, 200}, {[]int64{29}, 200}, {[]int64{13}, 150}, {[]int64{12}, 250}}, // BottomPopup
 	27: {{[]int64{47}, 100}, {[]int64{57}, 175}, {[]int64{29}, 200}, {[]int64{29}, 200}, {[]int64{13}, 150}, {[]int64{12}, 250}}, // BottomHingedStiff
 	28: {{[]int64{47}, 100}, {[]int64{57}, 175}, {[]int64{29}, 200}, {[]int64{29}, 200}, {[]int64{13}, 150}, {[]int64{12}, 250}}, // BottomChod
 	29: {{[]int64{47}, 100}, {[]int64{57}, 175}, {[]int64{29}, 200}, {[]int64{29}, 200}, {[]int64{13}, 150}, {[]int64{12}, 250}}, // BottomMaggot
-	30: {{[]int64{28}, 125}, {[]int64{12}, 250}},                                                                                 // （30 簇）
+	30: {{[]int64{28}, 125}, {[]int64{12}, 250}},                                                                                 //  (30 簇)
 	31: {{[]int64{28}, 125}, {[]int64{12}, 250}},                                                                                 // FloatCarpPopUp
 	32: {{[]int64{47}, 100}, {[]int64{57}, 175}, {[]int64{31}, 200}, {[]int64{12}, 250}},                                         // BottomMethodPopUp
-	33: {{[]int64{11}, 0}, {[]int64{69}, 150}, {[]int64{70}, 151}, {[]int64{13}, 152}},                                           // （33 簇，海竿三钩位）
-	34: {{[]int64{47}, 100}, {[]int64{57}, 175}, {[]int64{29}, 200}, {[]int64{29}, 200}, {[]int64{13}, 150}, {[]int64{12}, 250}}, // （34 簇）
-	35: {{[]int64{13}, 150}},                                                                                                     // （35 簇）
-	50: {{[]int64{13}, 175}, {[]int64{17}, 300}, {[]int64{17}, 325}, {[]int64{17}, 326}, {[]int64{12}, 250}},                     // 海竿：柳叶亮片 300 + 基本吸引成分 325 + 钓钩吸引成分 326
+	33: {{[]int64{11}, 0}, {[]int64{69}, 150}, {[]int64{70}, 151}, {[]int64{13}, 152}},                                           //  (33 簇, 海竿三钩位)
+	34: {{[]int64{47}, 100}, {[]int64{57}, 175}, {[]int64{29}, 200}, {[]int64{29}, 200}, {[]int64{13}, 150}, {[]int64{12}, 250}}, //  (34 簇)
+	35: {{[]int64{13}, 150}},                                                                                                     //  (35 簇)
+	50: {{[]int64{13}, 175}, {[]int64{17}, 300}, {[]int64{17}, 325}, {[]int64{17}, 326}, {[]int64{12}, 250}},                     // 海竿: 柳叶亮片 300 + 基本吸引成分 325 + 钓钩吸引成分 326
 	51: {{[]int64{13}, 175}, {[]int64{17}, 300}, {[]int64{17}, 325}, {[]int64{17}, 326}, {[]int64{12}, 250}},
 	52: {{[]int64{13}, 175}, {[]int64{17}, 300}, {[]int64{17}, 325}, {[]int64{17}, 326}, {[]int64{12}, 250}},
 	53: {{[]int64{13}, 175}, {[]int64{17}, 300}, {[]int64{17}, 325}, {[]int64{17}, 326}},
@@ -195,7 +195,7 @@ var canonicalRigIndex = func() map[int64]int64 {
 		for _, tpl := range rigSlotTemplates[rt] {
 			for _, c := range tpl.Cats {
 				if _, special := categorySlotField[c]; special {
-					continue // 钓线/渔轮走 f3/f4，不进 f5
+					continue // 钓线/渔轮走 f3/f4, 不进 f5
 				}
 				if _, ok := m[c]; !ok {
 					m[c] = tpl.Idx
@@ -731,7 +731,7 @@ func (s *Server) saveItemFields(ctx context.Context, row *store.Item, fields []p
 // （零件列表与报价都是空）。启动时跑一遍，幂等；失败逐条告警，不再静默丢弃。
 func (s *Server) BackfillRigProjections(ctx context.Context) (int, error) {
 	if s.DB == nil {
-		return 0, fmt.Errorf("数据库未连接")
+		return 0, fmt.Errorf("База данных не подключена")
 	}
 	rows, err := s.DB.SQL.QueryContext(ctx,
 		`SELECT guid FROM item WHERE wire_class=?`, "cnolibojkao")
@@ -754,7 +754,7 @@ func (s *Server) BackfillRigProjections(ctx context.Context) (int, error) {
 	done := 0
 	for _, g := range guids {
 		if err := s.reconcileRigProjection(ctx, g); err != nil {
-			s.log.Warn("装配投影回填失败", "rod", shortGUID(g), "err", err)
+			s.log.Warn("Не удалось заполнить проекцию оснасток", "rod", shortGUID(g), "err", err)
 			continue
 		}
 		// 顺带把多钩钓组的挂饵记录校正一遍。旧记录可能落在拟饵自带的内嵌钩上
@@ -763,7 +763,7 @@ func (s *Server) BackfillRigProjections(ctx context.Context) (int, error) {
 		if comps := s.storedRigComponents(ctx, g); len(comps) > 0 &&
 			hookPositionsIn(s.rigTypeForWrite(ctx, g), comps) >= 2 {
 			if _, err := s.baitHookAssignments(ctx, g, comps, false); err != nil {
-				s.log.Warn("挂饵记录校正失败", "rod", shortGUID(g), "err", err)
+				s.log.Warn("Не удалось исправить запись наживки", "rod", shortGUID(g), "err", err)
 			}
 		}
 		done++
@@ -785,7 +785,7 @@ func (s *Server) reconcileRigProjection(ctx context.Context, rodGUID string, col
 	}
 	idx := fieldIdxByCS(row.WireClass, csRigObject)
 	if idx < 0 || idx >= len(fields) {
-		return nil // 非竿容器：由调用方走各自旧投影逻辑
+		return nil // 非竿容器: 由调用方走各自旧投影逻辑
 	}
 	stored := fields[idx].Val
 	name, rigType, _ := rigIdentity(stored)
@@ -809,7 +809,7 @@ func rigProjection(wireClass string, fields []proto.Field, rig *proto.Value) []s
 		}
 		cat, ordinal := rigCompCategory(key), rigCompOrdinal(key)
 		if _, special := categorySlotField[cat]; special {
-			continue // 线/轮从 f3/f4 补，保持与客户端 153 结构一致
+			continue // 线/轮从 f3/f4 补, 保持与客户端 153 结构一致
 		}
 		out = append(out, store.RigComponent{
 			Slot: cat, Ordinal: ordinal, GUID: c.GUID,
@@ -1048,7 +1048,7 @@ func (s *Server) splitMountableChild(ctx context.Context, uid int64, parentGUID,
 		return itemGUID, ""
 	}
 	if !s.stackableItem(ctx, row) {
-		return itemGUID, "" // 非计件物品（钓线的同名字段是"米数"）不拆，整件挂装
+		return itemGUID, "" // 非计件物品 (钓线的同名字段是"米数")不拆, 整件挂装
 	}
 	count := s.stackCountOf(ctx, row)
 	if count <= 1 {
@@ -1078,7 +1078,7 @@ func (s *Server) splitMountableChild(ctx context.Context, uid int64, parentGUID,
 	}
 	if si := fieldIdxByCS(row.WireClass, csSplitSource); si >= 0 && si < len(childFields) {
 		if fullTake {
-			childFields[si].Hex = "" // 整堆上钩不写来源堆引用（见函数头注）
+			childFields[si].Hex = "" // 整堆上钩不写来源堆引用 (见函数头注)
 		} else {
 			childFields[si].Hex = itemGUID // f2=来源堆 guid
 		}
@@ -1101,7 +1101,7 @@ func (s *Server) splitMountableChild(ctx context.Context, uid int64, parentGUID,
 		CreatedTS: float64(time.Now().Unix()),
 	}
 	if err := s.DB.InsertItem(ctx, child); err != nil {
-		s.log.Warn("计件挂载拆分失败", "item", shortGUID(itemGUID), "err", err)
+		s.log.Warn("Не удалось разделить штучное крепление", "item", shortGUID(itemGUID), "err", err)
 		return itemGUID, ""
 	}
 	if err := s.cloneGroundbaitRecipe(ctx, itemGUID, childGUID); err != nil {
@@ -1110,13 +1110,13 @@ func (s *Server) splitMountableChild(ctx context.Context, uid int64, parentGUID,
 	}
 	if fullTake {
 		_ = s.DB.DeleteItems(ctx, []string{itemGUID})
-		s.log.Info("计件物品整堆上钩", "item", shortGUID(itemGUID), "count", count,
+		s.log.Info("Вся стопка штучных предметов насажена на крючок", "item", shortGUID(itemGUID), "count", count,
 			"child", shortGUID(childGUID), "parent", shortGUID(parentGUID))
 		return childGUID, itemGUID
 	}
 	// 来源堆数量减 n，剩余留在背包（调用方负责推更新树）。
 	s.setStackCount(ctx, row, count-n)
-	s.log.Info("计件物品挂载拆分", "item", shortGUID(itemGUID), "count", count, "take", n,
+	s.log.Info("Разделение крепления штучного предмета", "item", shortGUID(itemGUID), "count", count, "take", n,
 		"child", shortGUID(childGUID), "parent", shortGUID(parentGUID))
 	return childGUID, ""
 }
@@ -1135,7 +1135,7 @@ func (s *Server) materializeHanditemChild(ctx context.Context, uid int64, parent
 		return itemGUID, ""
 	}
 	if !s.stackableItem(ctx, row) {
-		return itemGUID, "" // 非计件（单件工具）：就地挂，没有可搬的堆
+		return itemGUID, "" // 非计件 (单件工具): 就地挂, 没有可搬的堆
 	}
 	count := s.stackCountOf(ctx, row)
 	if count < 1 {
@@ -1143,7 +1143,7 @@ func (s *Server) materializeHanditemChild(ctx context.Context, uid int64, parent
 	}
 	load := count
 	if s.tunableF("handitem_load_one", 1) != 0 {
-		load = 1 // 弹弓只装 1 颗 ready 球，剩余留背包，抛完自动补 1
+		load = 1 // 弹弓只装 1 颗 ready 球, 剩余留背包, 抛完自动补 1
 	}
 	fields, err := FieldsFromJSON(row.FieldsJSON)
 	if err != nil {
@@ -1155,13 +1155,13 @@ func (s *Server) materializeHanditemChild(ctx context.Context, uid int64, parent
 	}
 	childGUID := NewItemGUID()
 	if q := stackQtyFieldIdx(row.WireClass); q >= 0 && q < len(childFields) {
-		childFields[q].Num = ptrU64(uint64(load)) // 装填份数（缺省 1，整堆模式为 count）
+		childFields[q].Num = ptrU64(uint64(load)) // 装填份数 (缺省 1, 整堆模式为 count)
 	}
 	if p := fieldIdxByCS(row.WireClass, csParent); p >= 0 && p < len(childFields) {
 		childFields[p].Hex = parentGUID
 	}
 	if si := fieldIdxByCS(row.WireClass, csSplitSource); si >= 0 && si < len(childFields) {
-		childFields[si].Hex = "" // ⚠️ 不写 f2 来源堆引用（来源堆已删除，见上）
+		childFields[si].Hex = "" // ⚠️ 不写 f2 来源堆引用 (来源堆已删除, 见上)
 	}
 	if c := fieldIdxByCS(row.WireClass, csCreated); c >= 0 && c < len(childFields) {
 		childFields[c].Num = ptrU64(uint64(netTicksNow()))
@@ -1181,7 +1181,7 @@ func (s *Server) materializeHanditemChild(ctx context.Context, uid int64, parent
 		CreatedTS: float64(time.Now().Unix()),
 	}
 	if err := s.DB.InsertItem(ctx, child); err != nil {
-		s.log.Warn("手持物装填失败", "item", shortGUID(itemGUID), "err", err)
+		s.log.Warn("Не удалось зарядить предмет в руке", "item", shortGUID(itemGUID), "err", err)
 		return itemGUID, ""
 	}
 	if err := s.cloneGroundbaitRecipe(ctx, itemGUID, childGUID); err != nil {
@@ -1192,13 +1192,13 @@ func (s *Server) materializeHanditemChild(ctx context.Context, uid int64, parent
 		// 整堆搬走（整堆模式，或来源堆只剩这一份）：删除来源堆，
 		// 否则同一批饵会显示两次。
 		_ = s.DB.DeleteItems(ctx, []string{itemGUID})
-		s.log.Info("手持物装填：整堆搬进新子实例", "src", shortGUID(itemGUID),
+		s.log.Info("Зарядка предмета в руке: вся стопка перенесена в новый дочерний экземпляр", "src", shortGUID(itemGUID),
 			"count", count, "child", shortGUID(childGUID), "parent", shortGUID(parentGUID))
 		return childGUID, itemGUID
 	}
 	// 只装 1 份：剩余留在背包，数量减 load（调用方负责推更新树刷新计数）。
 	s.setStackCount(ctx, row, count-load)
-	s.log.Info("手持物装填：只装一份，剩余留背包", "src", shortGUID(itemGUID),
+	s.log.Info("Зарядка предмета в руке: заряжена одна порция, остаток в инвентаре", "src", shortGUID(itemGUID),
 		"count", count, "load", load, "child", shortGUID(childGUID), "parent", shortGUID(parentGUID))
 	return childGUID, ""
 }
@@ -1218,7 +1218,7 @@ func (s *Server) setHanditemLoadedRef(ctx context.Context, parentGUID, itemGUID 
 		return
 	}
 	if fields[handitemLoadedIdx].Op != "OPTGUID" {
-		s.log.Warn("手持物装填引用未写：布局与预期不符", "item", row.ItemID, "wire", row.WireClass)
+		s.log.Warn("Ссылка зарядки предмета в руке не записана: структура не совпадает с ожидаемой", "item", row.ItemID, "wire", row.WireClass)
 		return
 	}
 	fields[handitemLoadedIdx].Hex = itemGUID
@@ -1249,28 +1249,28 @@ func (s *Server) handitemLoadedGuid(ctx context.Context, parentGUID string) stri
 
 // rigSetOpts 保存装配操作的选项。
 type rigSetOpts struct {
-	KeepRebait        bool // 自动补挂成功后由调用方删除原请求。
-	ParentType        int  // 命令族号（13/15/16/17），不是钓组种类
-	EnforceCategory   bool // 显式槽位 ≠ 物品品类时用 fits_slot 校验（17/3/单测路径）
-	SplitStack        bool // 计件物品挂载拆分（钓竿必须拆分；手持工具例外）
-	HanditemFullStack bool // 手持工具 13/x：创建装填子实例（缺省只装 1 份）
+	KeepRebait        bool // 自动补挂成功后由调用方删除原请求.
+	ParentType        int  // 命令族号 (13/15/16/17), 不是钓组种类
+	EnforceCategory   bool // 显式槽位 ≠ 物品品类时用 fits_slot 校验 (17/3/单测路径)
+	SplitStack        bool // 计件物品挂载拆分 (钓竿必须拆分; 手持工具例外)
+	HanditemFullStack bool // 手持工具 13/x: 创建装填子实例 (缺省只装 1 份)
 }
 
 // rigSetResult 保存装配结果和 800 快照素材。
 type rigSetResult struct {
 	Rejected     bool
-	MountedGUID  string // 实际挂进钓组的 guid（计件拆分时 = 子实例，非调用方原 guid）
+	MountedGUID  string // 实际挂进钓组的 guid (计件拆分时 = 子实例, 非调用方原 guid)
 	ReplacedGUID string // 被替换卸下的旧组件 guid
 	// ReplacedToBackpack 是被替换后退回背包的旧组件 guid（仅退回背包分支赋值）。
 	// 手持工具换弹需要它做「移除+重加」；不复用 ReplacedGUID 是为了不影响
 	// 17/2 等既有读者。
 	ReplacedToBackpack string
-	AddedTrees         []*proto.Value // nil 表示无新增段（非拆分挂载时 f0 为 null）
+	AddedTrees         []*proto.Value // nil 表示无新增段 (非拆分挂载时 f0 为 null)
 	UpdatedTrees       []*proto.Value
 	RemovedGUIDs       []string
-	SourceGUID         string         // 拆分挂载后的来源堆 guid（回包后强制刷新客户端计数）
+	SourceGUID         string         // 拆分挂载后的来源堆 guid (回包后强制刷新客户端计数)
 	SourceTree         *proto.Value   // 来源堆减一后的新树
-	Released           []*rigReleased // 去重清理退回的组件（树已并入 UpdatedTrees，来源堆刷新走 queueReleasedStackRefresh）
+	Released           []*rigReleased // 去重清理退回的组件 (树已并入 UpdatedTrees, 来源堆刷新走 queueReleasedStackRefresh)
 }
 
 // hasMaterials 判断装配是否产生了新增、更新或移除。
@@ -1282,20 +1282,20 @@ func (r *rigSetResult) hasMaterials() bool {
 func (s *Server) rigSetComponent(ctx context.Context, uid int64, parentGUID string, slot int64, itemGUID string, extra int64, opts rigSetOpts) *rigSetResult {
 	res := &rigSetResult{UpdatedTrees: []*proto.Value{}}
 	if !validRigGUID(itemGUID) {
-		s.log.Warn("装配被拒：物品 guid 缺失/全零", "parent", shortGUID(parentGUID))
+		s.log.Warn("Сборка отклонена: guid предмета отсутствует или нулевой", "parent", shortGUID(parentGUID))
 		res.Rejected = true
 		return res
 	}
 	it, err := s.DB.GetItemByGUID(ctx, itemGUID)
 	if err != nil || it == nil {
-		s.log.Warn("装配被拒：物品不在库中", "item", shortGUID(itemGUID), "parent", shortGUID(parentGUID))
+		s.log.Warn("Сборка отклонена: предмета нет в базе", "item", shortGUID(itemGUID), "parent", shortGUID(parentGUID))
 		res.Rejected = true
 		return res
 	}
 
 	itemCat, hasCat := s.itemCategoryOf(ctx, it)
 	if s.itemBrokenForMount(ctx, it) {
-		s.log.Warn("装配被拒：物品已损坏或鱼线长度耗尽", "item", shortGUID(itemGUID),
+		s.log.Warn("Сборка отклонена: предмет сломан или леска закончилась", "item", shortGUID(itemGUID),
 			"durability", it.Durability, "category", itemCat)
 		res.Rejected = true
 		return res
@@ -1303,20 +1303,20 @@ func (s *Server) rigSetComponent(ctx context.Context, uid int64, parentGUID stri
 	// 断竿不能继续装配：竿耐久归零后须先修理，再重组线组。
 	if prow, perr := s.DB.GetItemByGUID(ctx, parentGUID); perr == nil && prow != nil {
 		if pcat, _ := s.itemCategoryOf(ctx, prow); pcat == gearCatRod && prow.Durability <= 0 {
-			s.log.Warn("装配被拒：父竿已损坏", "parent", shortGUID(parentGUID),
+			s.log.Warn("Сборка отклонена: родительское удилище сломано", "parent", shortGUID(parentGUID),
 				"durability", prow.Durability)
 			res.Rejected = true
 			return res
 		}
 	}
 	if slot <= 0 && hasCat {
-		slot = itemCat // 槽位 = 物品品类（17/2 请求无槽位，见模块头注）
+		slot = itemCat // 槽位 = 物品品类 (17/2 请求无槽位, 见模块头注)
 	}
 
 	// 显式槽位与物品品类不同时执行 fits_slot 校验；不兼容则不写库。
 	// 17/2 不带显式槽位，因此无法执行这项兼容性拒绝。
 	if opts.EnforceCategory && hasCat && slot > 0 && slot != itemCat && !fitsSlot(itemCat, hasCat, slot) {
-		s.log.Warn("装配被拒：品类不能装入槽位", "item", shortGUID(itemGUID),
+		s.log.Warn("Сборка отклонена: эту категорию нельзя установить в слот", "item", shortGUID(itemGUID),
 			"cat", itemCat, "slot", slot)
 		res.Rejected = true
 		return res
@@ -1335,7 +1335,7 @@ func (s *Server) rigSetComponent(ctx context.Context, uid int64, parentGUID stri
 	if hasCat && !templateExemptCats[itemCat] {
 		if prow, perr := s.DB.GetItemByGUID(ctx, parentGUID); perr == nil && prow != nil {
 			if rt := s.rigTypeOfItem(ctx, prow); rt > 0 && len(slotIndicesFor(rt, itemCat)) == 0 {
-				s.log.Warn("钓组模板提示：该类型槽位表里没有此品类（组件仍按请求安装）",
+				s.log.Warn("Подсказка шаблона оснастки: в таблице слотов этого типа нет такой категории (компонент всё равно установлен по запросу)",
 					"rig_type", rt, "cat", itemCat)
 			}
 		}
@@ -1403,7 +1403,7 @@ func (s *Server) rigSetComponent(ctx context.Context, uid int64, parentGUID stri
 		g, srcRemoved := s.materializeHanditemChild(ctx, uid, parentGUID, itemGUID)
 		itemGUID = g
 		if itemGUID != sourceGUID {
-			materialized = true // 新子实例必须进 f0，客户端才建立父子归属
+			materialized = true // 新子实例必须进 f0, 客户端才建立父子归属
 			if srcRemoved != "" {
 				removed = append(removed, srcRemoved)
 			} else if src, serr := s.DB.GetItemByGUID(ctx, sourceGUID); serr == nil && src != nil {
@@ -1479,7 +1479,7 @@ func (s *Server) rigSetComponent(ctx context.Context, uid int64, parentGUID stri
 
 	if slot == catBait || slot == catLure {
 		if err := s.rememberMountedBaitHook(ctx, parentGUID, itemGUID, oldHook, slot, ordinal); err != nil {
-			s.log.Warn("钩饵关联保存失败", "err", err)
+			s.log.Warn("Не удалось сохранить связь крючка и наживки", "err", err)
 		}
 	}
 
@@ -1488,7 +1488,7 @@ func (s *Server) rigSetComponent(ctx context.Context, uid int64, parentGUID stri
 		s.setHanditemLoadedRef(ctx, parentGUID, itemGUID)
 	}
 
-	s.log.Info("装配", "parent", shortGUID(parentGUID), "slot", slot, "ordinal", ordinal,
+	s.log.Info("Сборка", "parent", shortGUID(parentGUID), "slot", slot, "ordinal", ordinal,
 		"item", shortGUID(itemGUID), "extra", extra)
 
 	// 快照素材规则：
@@ -1692,7 +1692,7 @@ func (s *Server) mutateRodRig(ctx context.Context, rodGUID string, slot *int64, 
 	// 按字段名查找钓组对象，不能假定固定字段位置。
 	idx := fieldIdxByCS(row.WireClass, csRigObject)
 	if idx < 0 || idx >= len(fields) {
-		return false // 不是竿类（无钓组字段）：不动它
+		return false // 不是竿类 (无钓组字段): 不动它
 	}
 
 	// 钓线和渔轮写入专用字段 f3/f4，不进入 f5。
@@ -1735,7 +1735,7 @@ func (s *Server) mutateRodRig(ctx context.Context, rodGUID string, slot *int64, 
 		case comp == nil:
 			keys := rigCompKeysOfCategory(comps, *slot)
 			if len(keys) == 0 {
-				return false // rod_rig_del：确无该槽位
+				return false // rod_rig_del: 确无该槽位
 			}
 			delete(comps, keys[0])
 		default:
@@ -1874,11 +1874,11 @@ func (s *Server) rigItemDeleteComponentAt(ctx context.Context, rodGUID string, s
 //   - 整条删除的拆分子实例 GUID 进入 f2，来源堆增加后的树放入 f1。
 type rigDetachResult struct {
 	CompGUID     string       // 被拆下的组件 guid
-	DeletedGUID  string       // 整条删除的子实例 guid（f2 移除段素材；退回路径为空）
-	ReturnedTree *proto.Value // 退回背包物品的新树（f1 更新段素材）
-	RefundTree   *proto.Value // 拆出厂钩物化退包的新物品树（新 guid → f0 新增段素材）
-	SourceTree   *proto.Value // 拆分子实例来源堆 +1 后的新树（f1 更新段素材）
-	SourceGUID   string       // 拆分子实例的来源堆 guid（回包后强制刷新客户端计数）
+	DeletedGUID  string       // 整条删除的子实例 guid (f2 移除段素材; 退回路径为空)
+	ReturnedTree *proto.Value // 退回背包物品的新树 (f1 更新段素材)
+	RefundTree   *proto.Value // 拆出厂钩物化退包的新物品树 (新 guid → f0 新增段素材)
+	SourceTree   *proto.Value // 拆分子实例来源堆 +1 后的新树 (f1 更新段素材)
+	SourceGUID   string       // 拆分子实例的来源堆 guid (回包后强制刷新客户端计数)
 }
 
 // trees 是应进入 f1 的物品树。
@@ -1941,7 +1941,7 @@ func (s *Server) rigRemoveComponentInstance(ctx context.Context, uid int64, pare
 			}
 		}
 	}
-	s.log.Info("拆卸：槽位无组件（忽略）", "parent", shortGUID(parentGUID), "slot", slot)
+	s.log.Info("Снятие: в слоте нет компонента (пропущено)", "parent", shortGUID(parentGUID), "slot", slot)
 	return nil
 }
 
@@ -1970,7 +1970,7 @@ func (s *Server) rigRemoveItemComponent(ctx context.Context, uid int64, parentGU
 			}
 		}
 	}
-	s.log.Info("拆组件：父对象上未找到该物品（忽略）",
+	s.log.Info("Снятие компонента: предмет не найден на родительском объекте (пропущено)",
 		"parent", shortGUID(parentGUID), "item", shortGUID(itemGUID))
 	return nil
 }
@@ -2028,7 +2028,7 @@ func (s *Server) rigDetachAt(ctx context.Context, parentGUID string, slot, ordin
 	}
 	// 手持工具拆下装填物时同时清空 f1 的装填引用。
 	s.setHanditemLoadedRef(ctx, parentGUID, "")
-	s.log.Info("拆卸", "parent", shortGUID(parentGUID), "slot", slot, "ordinal", ordinal,
+	s.log.Info("Снятие", "parent", shortGUID(parentGUID), "slot", slot, "ordinal", ordinal,
 		"item", shortGUID(compGUID), "deleted", res.DeletedGUID != "")
 	return res
 }
@@ -2087,7 +2087,7 @@ func (s *Server) rigSetType(ctx context.Context, uid int64, rodGUID string, rigT
 		return false
 	}
 	if allowed, known := rodRigAllowed[rodDefRodType(def)]; known && len(allowed) > 0 && !allowedContains(allowed, rigType) {
-		s.log.Warn("竿钓组类型被拒绝：与竿型不兼容", "rod", shortGUID(rodGUID), "rig_type", rigType)
+		s.log.Warn("Тип оснастки удилища отклонён: несовместим с типом удилища", "rod", shortGUID(rodGUID), "rig_type", rigType)
 		return false
 	}
 	// 玩家显式选择优先。已装组件与新类型不完全匹配时也不拒绝，
@@ -2100,7 +2100,7 @@ func (s *Server) rigSetType(ctx context.Context, uid int64, rodGUID string, rigT
 	_ = s.DB.UpsertRodSetting(ctx, rodGUID, "rig_type_explicit", "1")
 	_ = s.DB.UpsertRig(ctx, rodGUID, uid, rigType, "", "{}")
 	_ = s.DB.UpdateRigType(ctx, rodGUID, rigType)
-	s.log.Info("竿钓组类型更新", "rod", shortGUID(rodGUID), "rig_type", rigType)
+	s.log.Info("Обновление типа оснастки удилища", "rod", shortGUID(rodGUID), "rig_type", rigType)
 	return true
 }
 
@@ -2138,7 +2138,7 @@ func (s *Server) transitionRigComponents(ctx context.Context, uid int64, parentG
 				if comp.Extra == 175 && extraIsTargetIndex(catLead, 175, toType) {
 					continue
 				}
-			case catLine, catReel, reelPartCatRodBlank, reelPartCatRodHandle, reelPartCatGuides, 56, 55: // 灵敏梢、包装盒
+			case catLine, catReel, reelPartCatRodBlank, reelPartCatRodHandle, reelPartCatGuides, 56, 55: // 灵敏梢, 包装盒
 				continue
 			}
 		} else if !hookSlotIndexNamespace(category, comp.Extra) && rigComponentSharedByTypes(fromType, toType, category) {
@@ -2192,7 +2192,7 @@ func (s *Server) correctStaleRigType(ctx context.Context, rigGUID string) {
 	}
 	allowed, ok := rodRigAllowed[rodDefRodType(def)]
 	if !ok || len(allowed) == 0 {
-		return // 未知竿型不过滤（与矩阵口径一致）
+		return // 未知竿型不过滤 (与矩阵口径一致)
 	}
 	rowType := int64(0)
 	if rt, found, gerr := s.DB.GetRigType(ctx, rigGUID); gerr == nil && found {
@@ -2218,7 +2218,7 @@ func (s *Server) correctStaleRigType(ctx context.Context, rigGUID string) {
 	} else {
 		newType = s.defaultRigTypeForRod(ctx, row.ItemID)
 		if !allowedContains(allowed, newType) {
-			newType = allowed[0] // 双保险：派生值也必须合法
+			newType = allowed[0] // 双保险: 派生值也必须合法
 		}
 	}
 	if badInst {
@@ -2226,9 +2226,9 @@ func (s *Server) correctStaleRigType(ctx context.Context, rigGUID string) {
 		s.rigItemMutate(ctx, rigGUID, nil, nil, &newType)
 	}
 	if badRow || rowType != newType {
-		_ = s.DB.UpdateRigType(ctx, rigGUID, newType) // rig 表（rigSetType 同款写法）
+		_ = s.DB.UpdateRigType(ctx, rigGUID, newType) // rig 表 (rigSetType 同款写法)
 	}
-	s.log.Info("竿陈旧钓组类型矫正", "rod", shortGUID(rigGUID),
+	s.log.Info("Исправление устаревшего типа оснастки удилища", "rod", shortGUID(rigGUID),
 		"row_type", rowType, "inst_type", instType, "new_type", newType)
 }
 
@@ -2564,7 +2564,7 @@ func (s *Server) rigItem157Fallback(ctx context.Context, uid int64, rigGUID stri
 		3:  proto.Guid(lineGUID),
 		5:  f5,
 		10: proto.Guid(rigGUID),
-		12: proto.U32(0), // f12 容器枚举：0=背包
+		12: proto.U32(0), // f12 容器枚举: 0=背包
 		13: proto.U32(uint32(rigNID)),
 		14: proto.F32(float32(work)),
 		15: proto.F32(float32(dur)),
@@ -2621,22 +2621,22 @@ func shortGUID(g string) string {
 // ---- 命令处理器（13/x、15/x、16/x、17/x）----
 
 func registerRigHandlers(d *Dispatch) {
-	d.Register(13, 1, hHanditemSetComp)    // handitem/set_comp 装填（fire-and-forget+推送）
+	d.Register(13, 1, hHanditemSetComp)    // handitem/set_comp 装填 (fire-and-forget+推送)
 	d.Register(13, 2, hHanditemRemoveComp) // handitem/remove_comp 按物品 guid 拆
 	d.Register(13, 3, hHanditemRemoveAll)  // handitem/remove_all 全拆
 	d.Register(15, 1, hLureSetComp)        // lure/set_comp
-	d.Register(15, 2, hLureRemoveComp)     // lure/remove_comp（显式槽位）
+	d.Register(15, 2, hLureRemoveComp)     // lure/remove_comp (显式槽位)
 	d.Register(16, 1, hReelSetComp)        // reel/set_comp
-	d.Register(16, 2, hReelRemoveComp)     // reel/remove_comp（显式槽位）
+	d.Register(16, 2, hReelRemoveComp)     // reel/remove_comp (显式槽位)
 	d.Register(17, 1, hRigSetType)         // rod/set_rig 钓组类型
-	d.Register(17, 2, hRodSetComp)         // rod/set_comp 安装配件（无槽位）
-	d.Register(17, 3, hRodRemoveComp)      // rod/remove_comp 拆卸（显式槽位）
+	d.Register(17, 2, hRodSetComp)         // rod/set_comp 安装配件 (无槽位)
+	d.Register(17, 3, hRodRemoveComp)      // rod/remove_comp 拆卸 (显式槽位)
 	d.Register(17, 4, hRigRemoveAll)       // rod/remove_all 全拆
 	d.Register(17, 6, hRigBaitMount)       // rod/set_baitmount 挂饵方式
-	d.Register(17, 7, hRodTake)            // rod/take 取竿到手上（158 手持上下文）
-	d.Register(17, 8, hRodPut)             // rod/put 放竿，不结束这根竿的抛投
-	d.Register(13, 4, hHanditemPrepare)    // handitem/prepare 手持物拿到手上（158）
-	d.Register(13, 7, hHanditemSetDist)    // handitem/set_dist 手持物距离（158）
+	d.Register(17, 7, hRodTake)            // rod/take 取竿到手上 (158 手持上下文)
+	d.Register(17, 8, hRodPut)             // rod/put 放竿, 不结束这根竿的抛投
+	d.Register(13, 4, hHanditemPrepare)    // handitem/prepare 手持物拿到手上 (158)
+	d.Register(13, 7, hHanditemSetDist)    // handitem/set_dist 手持物距离 (158)
 }
 
 // hRodPut 是 fire-and-forget。竿仍在水中，继续保留自己的鱼和计时器；
@@ -2650,7 +2650,7 @@ func hRodPut(ctx *Ctx) ([]byte, bool) {
 	if pending != nil {
 		fish = shortGUID(pending.FishGUID)
 	}
-	ctx.Log.Info("放竿：保留水中状态", "rod", shortGUID(gear), "fish", fish, "hooked", hooked)
+	ctx.Log.Info("Удилище отложено: состояние в воде сохранено", "rod", shortGUID(gear), "fish", fish, "hooked", hooked)
 	return nil, true
 }
 
@@ -2669,7 +2669,7 @@ func hHanditemPrepare(ctx *Ctx) ([]byte, bool) {
 	st := srv.selectFishingRod(ctx.Sess.Userid, gear)
 	st.mu.Lock()
 	if gear != "" {
-		st.GearGuid = gear // 13/7 读它，不写会让后续 set_dist 回全零
+		st.GearGuid = gear // 13/7 读它, 不写会让后续 set_dist 回全零
 	}
 	cur := st.GearGuid
 	depthCM := st.DepthCM
@@ -2687,7 +2687,7 @@ func hHanditemPrepare(ctx *Ctx) ([]byte, bool) {
 	if body == nil {
 		return nil, false
 	}
-	ctx.Log.Info("手持物准备", "gear", shortGUID(cur))
+	ctx.Log.Info("Подготовка предмета в руке", "gear", shortGUID(cur))
 	return body, true
 }
 
@@ -2746,7 +2746,7 @@ func castReady158(ctx *Ctx, gear string, depthCM int64, rigType int64) []byte {
 	if profile.RodTestMaxG > 0 {
 		payloadTestRatio = profile.PayloadWeightG / profile.RodTestMaxG
 	}
-	ctx.Log.Info("抛投距离计算", "rod", shortGUID(gear), "reel", shortGUID(profile.ReelGUID),
+	ctx.Log.Info("Расчёт дальности заброса", "rod", shortGUID(gear), "reel", shortGUID(profile.ReelGUID),
 		"distance_m", math.Round(profile.DistanceM*100)/100,
 		"base_m", math.Round(profile.BaseM*100)/100,
 		"action", profile.CastAction, "power", profile.CastPower,
@@ -2810,7 +2810,7 @@ func (s *Server) prepareCastRodLocked(ctx *Ctx, st *FishState, gear string) (row
 		if depth, ok := storedRodDepth(row); ok && depth == 0 {
 			// 旧库只有每竿快照保存过钓深，ensureRig 创建默认 f5 前先补回。
 			if !s.rodRigSetDepthRow(dbCtx, row, st.DepthCM) {
-				ctx.Log.Warn("旧档钓深未能写回竿实例", "竿", shortGUID(gear))
+				ctx.Log.Warn("Глубину из старого сохранения не удалось записать в удилище", "Удилище", shortGUID(gear))
 			}
 		}
 	}
@@ -2883,7 +2883,7 @@ func hRodTake(ctx *Ctx) ([]byte, bool) {
 		st.mu.Lock()
 		st.GearGuid = ""
 		st.mu.Unlock()
-		ctx.Log.Info("取竿被拒：鱼竿无效或已损坏", "rod", shortGUID(gear))
+		ctx.Log.Info("Взять удилище отклонено: удилище неверное или сломано", "rod", shortGUID(gear))
 		if body := castReady158(ctx, "", depthCM, 0); body != nil {
 			return body, true
 		}
@@ -2895,7 +2895,7 @@ func hRodTake(ctx *Ctx) ([]byte, bool) {
 		st.mu.Lock()
 		st.GearGuid = ""
 		st.mu.Unlock()
-		ctx.Log.Info("17/7 被拒：装备限制", "rod", shortGUID(gear), "reason", reason)
+		ctx.Log.Info("17/7 Отклонено: ограничение снаряжения", "rod", shortGUID(gear), "reason", reason)
 		if body := castReady158(ctx, "", depthCM, 0); body != nil {
 			return body, true
 		}
@@ -2907,7 +2907,7 @@ func hRodTake(ctx *Ctx) ([]byte, bool) {
 	depthCM, rigType = st.DepthCM, st.RigType
 	st.mu.Unlock()
 	if err != nil || row == nil {
-		ctx.ReplyFailure("System.IO.IOException", "鱼竿状态未能读取，请重试")
+		ctx.ReplyFailure("System.IO.IOException", "Не удалось прочитать состояние удилища, попробуйте ещё раз")
 		return nil, true
 	}
 	if tipRepaired {
@@ -2917,7 +2917,7 @@ func hRodTake(ctx *Ctx) ([]byte, bool) {
 	if body == nil {
 		return nil, false
 	}
-	ctx.Log.Info("取竿", "rod", shortGUID(gear), "hook", shortGUID(srv.mountedHookGuid(ctx.Sess.pushCtx(), gear)))
+	ctx.Log.Info("Взять удилище", "rod", shortGUID(gear), "hook", shortGUID(srv.mountedHookGuid(ctx.Sess.pushCtx(), gear)))
 	return body, true
 }
 
@@ -2932,7 +2932,7 @@ func hRodSetComp(ctx *Ctx) ([]byte, bool) {
 	guids, ints := rigCompArgs(ctx.Tree)
 	if len(guids) < 2 {
 		// 参数缺失时记录原始 body，便于核对请求形状。
-		ctx.Log.Warn("17/2 guid 不足", "guids", len(guids), "ints", len(ints),
+		ctx.Log.Warn("17/2 guid Недостаточно", "guids", len(guids), "ints", len(ints),
 			"tree_nil", ctx.Tree == nil, "body", hexHead(ctx.Body, 64))
 		return emptyArgsBody(), true
 	}
@@ -2983,7 +2983,7 @@ func hRodRemoveComp(ctx *Ctx) ([]byte, bool) {
 	}
 	guids, ints := rigCompArgs(ctx.Tree)
 	if len(guids) < 1 {
-		ctx.Log.Warn("17/3 guid 不足", "guids", len(guids), "body", hexHead(ctx.Body, 64))
+		ctx.Log.Warn("17/3 guid Недостаточно", "guids", len(guids), "body", hexHead(ctx.Body, 64))
 		return emptyArgsBody(), true
 	}
 	slot := int64(0)
@@ -3085,7 +3085,7 @@ func hRigSetType(ctx *Ctx) ([]byte, bool) {
 	cctx := ctx.Sess.pushCtx()
 	var released []*rigReleased
 	if !srv.rigSetType(cctx, ctx.Sess.Userid, rodGUID, rigType, &released) {
-		ctx.Log.Warn("17/1 竿不属于当前玩家，已忽略", "竿", shortGUID(rodGUID))
+		ctx.Log.Warn("17/1 Удилище не принадлежит текущему игроку, пропущено", "Удилище", shortGUID(rodGUID))
 		return emptyArgsBody(), true
 	}
 	body, err := proto.EncodeValue(
@@ -3112,15 +3112,15 @@ func hRigBaitMount(ctx *Ctx) ([]byte, bool) {
 	if len(ints) > 1 {
 		rodGUID := guids[0]
 		if srv.ownedRodRow(cctx, ctx.Sess.Userid, rodGUID) == nil {
-			ctx.Log.Warn("17/6 竿不属于当前玩家，已忽略", "竿", shortGUID(rodGUID))
+			ctx.Log.Warn("17/6 Удилище не принадлежит текущему игроку, пропущено", "Удилище", shortGUID(rodGUID))
 			return emptyArgsBody(), true
 		}
 		mask := clampBaitMount(int64(ints[len(ints)-1]))
 		// 客户端 17/6 只带一个整数，没有语义名；落库前先记一条。
-		ctx.Log.Info("17/6 挂饵方式", "rod", shortGUID(rodGUID), "mask", mask, "guids", len(guids), "ints", len(ints))
+		ctx.Log.Info("17/6 Способ насаживания", "rod", shortGUID(rodGUID), "mask", mask, "guids", len(guids), "ints", len(ints))
 		_ = srv.DB.UpsertRodSetting(cctx, rodGUID, baitMountSettingKey, strconv.FormatInt(mask, 10))
 		if err := srv.applyRigBaitMount(cctx, rodGUID, mask); err != nil {
-			ctx.Log.Warn("写入挂饵方式失败", "rod", shortGUID(rodGUID), "mask", mask, "err", err)
+			ctx.Log.Warn("Не удалось записать способ насаживания", "rod", shortGUID(rodGUID), "mask", mask, "err", err)
 		}
 	}
 	body, err := proto.EncodeValue(srv.buildRigSnapshotFull(cctx, ctx.Sess.Userid), ctx.Sess.Table())
@@ -3149,7 +3149,7 @@ func hLureSetComp(ctx *Ctx) ([]byte, bool) {
 	if len(ints) > 0 {
 		extra = int64(ints[len(ints)-1])
 	}
-	ctx.Log.Info("15/1 拟饵换钩请求", "lure", shortGUID(guids[0]), "hook", shortGUID(guids[1]), "ints", ints)
+	ctx.Log.Info("15/1 Запрос замены крючка приманки", "lure", shortGUID(guids[0]), "hook", shortGUID(guids[1]), "ints", ints)
 	cctx := ctx.Sess.pushCtx()
 	res := srv.rigSetComponent(cctx, ctx.Sess.Userid, guids[0], 0, guids[1], extra,
 		rigSetOpts{ParentType: familyLure, EnforceCategory: true, SplitStack: true})
@@ -3233,7 +3233,7 @@ func hRigRemoveCompFamily(ctx *Ctx, refreshRodModel bool) ([]byte, bool) {
 	}
 	guids, ints := rigCompArgs(ctx.Tree)
 	if len(guids) < 1 {
-		ctx.Log.Warn("17/3 guid 不足", "guids", len(guids), "body", hexHead(ctx.Body, 64))
+		ctx.Log.Warn("17/3 guid Недостаточно", "guids", len(guids), "body", hexHead(ctx.Body, 64))
 		return emptyArgsBody(), true
 	}
 	slot := int64(0)
@@ -3359,7 +3359,7 @@ func hHanditemSetComp(ctx *Ctx) ([]byte, bool) {
 			if prev, perr := srv.DB.GetItemByGUID(cctx, res.ReplacedToBackpack); perr == nil && prev != nil {
 				if t, terr := srv.itemTree(cctx, prev); terr == nil {
 					srv.queueStackRefresh(ctx, []string{res.ReplacedToBackpack}, []*proto.Value{t})
-					srv.log.Info("13/1 替换旧弹药：回包后移除+重加", "old", shortGUID(res.ReplacedToBackpack),
+					srv.log.Info("13/1 Замена старого заряда: после ответа удалить и добавить заново", "old", shortGUID(res.ReplacedToBackpack),
 						"parent", shortGUID(parentGUID))
 				}
 			}
@@ -3394,7 +3394,7 @@ func (s *Server) pushHanditemInventory(ctx *Ctx, res *rigSetResult, sourceGUID s
 	if len(rem) > 0 {
 		ctx.Sess.Push(4, 21, proto.Args(proto.S("524"), proto.GuidArr(rem)))
 	}
-	ctx.Log.Info("13/1 推背包增量", "added", len(add), "updated", len(upd), "removed", len(rem))
+	ctx.Log.Info("13/1 Отправка изменений инвентаря", "added", len(add), "updated", len(upd), "removed", len(rem))
 }
 
 // hHanditemRemoveComp 处理 13/2：[容器, 父 GUID, 物品 GUID]。

@@ -44,6 +44,6 @@ func TestStartTicketRentIgnoresRentMinutesTunable(t *testing.T) {
 		t.Fatalf("船票缺少时效对象: %#v", fields)
 	}
 	if got := u64Of(fields[ri].Val.Fields[3].Num); got != want {
-		t.Fatalf("时效对象时长=%d，期望使用定义值 %d（boat_rent_minutes 不应生效）", got, want)
+		t.Fatalf("时效对象时长=%d, 期望使用定义值 %d (boat_rent_minutes 不应生效)", got, want)
 	}
 }

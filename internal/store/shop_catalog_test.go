@@ -132,7 +132,7 @@ func TestShopCatalogStoreShelfPrecedenceAndCopies(t *testing.T) {
 	}
 	exact, source, _, _ := resolveShopBase("tungus_015", catalog, recorded)
 	if source != shopShelfSourceRecorded || len(exact) != 3 || exact[0].Gold != 25 || exact[0].Stock != 3 {
-		t.Fatalf("逐店目录只补缺失商品，不得覆盖实录价格库存: source=%s base=%+v", source, exact)
+		t.Fatalf("逐店目录只补缺失商品, 不得覆盖实录价格库存: source=%s base=%+v", source, exact)
 	}
 	if p := findShopPrice(t, exact, "shad_2556"); p.Silver != 9950 || p.Gold != 0 || p.Stock != 9999 {
 		t.Fatalf("上游原有商品不得替换: %+v", p)
@@ -194,7 +194,7 @@ func TestTungusShopAdminAndPurchaseShelvesAgree(t *testing.T) {
 		t.Fatal(err)
 	}
 	if recordedCount != 93 || totalStock != recordedStock+1001 {
-		t.Fatalf("后台应保留上游库存，仅对蜜饮自动补货: recorded=%d total=%d want=%d", recordedCount, totalStock, recordedStock+1001)
+		t.Fatalf("后台应保留上游库存, 仅对蜜饮自动补货: recorded=%d total=%d want=%d", recordedCount, totalStock, recordedStock+1001)
 	}
 	stores, err := db.ListAdminStores(ctx)
 	if err != nil {
@@ -310,8 +310,8 @@ func TestShopCatalogUnknownStoreDoesNotFabricateShelf(t *testing.T) {
 		t.Fatal("未知店不应命中全局价目")
 	}
 	if err := db.SetAdminShopOverride(ctx, "not_a_catalog_store", "global_only", 100, 1, 99, "test"); err == nil ||
-		!strings.Contains(err.Error(), "生效货架") {
-		t.Fatalf("未知店覆盖应被拒绝，得到 %v", err)
+		!strings.Contains(err.Error(), "действующей полке") {
+		t.Fatalf("未知店覆盖应被拒绝, 得到 %v", err)
 	}
 }
 
@@ -423,7 +423,7 @@ func TestAdminStoreBookShelvesByRegion(t *testing.T) {
 					continue
 				}
 				if !ok {
-					t.Fatalf("%s 缺少 %s", tc.store, id)
+					t.Fatalf("%s Отсутствует %s", tc.store, id)
 				}
 			}
 		})
@@ -472,7 +472,7 @@ func TestCafeStoreShelfComesFromStoreDefinition(t *testing.T) {
 	}
 	want := map[string]bool{"small_coffee": true, "big_coffee": true, "hd_box": true}
 	if len(rows) != len(want) {
-		t.Fatalf("咖啡馆生效货架应只含 3 件本店商品，实际 %d 件", len(rows))
+		t.Fatalf("咖啡馆生效货架应只含 3 件本店商品, 实际 %d 件", len(rows))
 	}
 	for _, row := range rows {
 		if !want[row.ItemID] {

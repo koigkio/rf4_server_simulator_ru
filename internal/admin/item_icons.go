@@ -62,7 +62,7 @@ func (s *Server) handleIcons(w http.ResponseWriter, r *http.Request) {
 	kind, name, ok := strings.Cut(strings.TrimPrefix(r.URL.Path, "/icons/"), "/")
 	spec, known := iconKinds[kind]
 	if !ok || !known || !validIconName(name, spec.exts) {
-		httpError(w, 404, "图标名不合法")
+		httpError(w, 404, "Недопустимое имя значка")
 		return
 	}
 	if p, found := findRefAsset(spec.dir, name); found {
@@ -84,18 +84,18 @@ func (s *Server) handleIcons(w http.ResponseWriter, r *http.Request) {
 	})
 	f := s.icons.files[spec.dir+"/"+name]
 	if f == nil {
-		httpError(w, 404, "图标未部署")
+		httpError(w, 404, "Значки не установлены")
 		return
 	}
 	rc, err := f.Open()
 	if err != nil {
-		httpError(w, 500, "图标读取失败")
+		httpError(w, 500, "Не удалось прочитать значок")
 		return
 	}
 	defer rc.Close()
 	data, err := io.ReadAll(io.LimitReader(rc, int64(maxIconFileBytes)+1))
 	if err != nil || len(data) == 0 || uint64(len(data)) > maxIconFileBytes {
-		httpError(w, 500, "图标读取失败")
+		httpError(w, 500, "Не удалось прочитать значок")
 		return
 	}
 	setIconHeaders(w, name)
@@ -131,7 +131,7 @@ func readIconArchiveLimit(filename string, maxArchiveBytes int64, maxEntries int
 		return nil, err
 	}
 	if info.IsDir() || info.Size() <= 0 || info.Size() > maxArchiveBytes {
-		return nil, fmt.Errorf("图标包大小不合法")
+		return nil, fmt.Errorf("Недопустимый размер пакета значков")
 	}
 	fh, err := os.Open(filename)
 	if err != nil {
@@ -143,14 +143,14 @@ func readIconArchiveLimit(filename string, maxArchiveBytes int64, maxEntries int
 		return nil, err
 	}
 	if int64(len(raw)) > maxArchiveBytes {
-		return nil, fmt.Errorf("图标包超过大小上限")
+		return nil, fmt.Errorf("Пакет значков превышает допустимый размер")
 	}
 	zr, err := zip.NewReader(bytes.NewReader(raw), int64(len(raw)))
 	if err != nil {
 		return nil, err
 	}
 	if len(zr.File) > maxEntries {
-		return nil, fmt.Errorf("图标包条目过多")
+		return nil, fmt.Errorf("Слишком много записей в пакете значков")
 	}
 	files := make(map[string]*zip.File, len(zr.File))
 	for _, f := range zr.File {
@@ -163,7 +163,7 @@ func readIconArchiveLimit(filename string, maxArchiveBytes int64, maxEntries int
 		files[f.Name] = f
 	}
 	if len(files) == 0 {
-		return nil, fmt.Errorf("图标包没有有效条目")
+		return nil, fmt.Errorf("В пакете значков нет корректных записей")
 	}
 	return files, nil
 }

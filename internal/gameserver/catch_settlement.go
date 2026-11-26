@@ -62,7 +62,7 @@ func (s *Server) prepareCatchWear(ctx context.Context, uid int64, rigGUID string
 			return err
 		}
 		if row != nil && row.UID != uid {
-			return fmt.Errorf("钓组物品不属于当前玩家")
+			return fmt.Errorf("Предмет оснастки не принадлежит текущему игроку")
 		}
 		amount := wearPerCatch[key]
 		if row == nil || amount <= 0 || row.Durability <= 0 {
@@ -75,7 +75,7 @@ func (s *Server) prepareCatchWear(ctx context.Context, uid int64, rigGUID string
 		}
 		idx := fieldIdxByCS(row.WireClass, csDurability)
 		if idx >= 0 && !setWireFloat(fields, row.WireClass, idx, durability) {
-			return fmt.Errorf("耐久字段写入失败: %s", row.WireClass)
+			return fmt.Errorf("Ошибка записи поля прочности: %s", row.WireClass)
 		}
 		bumpCreatedTicks(fields, row.WireClass)
 		encoded, err := FieldsToJSON(fields)
@@ -118,7 +118,7 @@ func (s *Server) settleCatchOnce(ctx context.Context, uid int64, f *RolledFish, 
 // 变化，重放可补发丢失的增量响应，且按鱼 GUID 去重不会重复计数。
 func (s *Server) settleCatchOnceWithQualification(ctx context.Context, uid int64, f *RolledFish, rigType int64, ev *qualificationEvent) (*settleXpResult, error) {
 	if f == nil || f.FishGUID == "" {
-		return nil, fmt.Errorf("缺少钓获鱼标识")
+		return nil, fmt.Errorf("Нет идентификатора пойманной рыбы")
 	}
 	key := fmt.Sprintf("catch-settlement:%d:%s", uid, strings.ToLower(f.FishGUID))
 	decodeReceipt := func(raw string) (*settleXpResult, error) {
@@ -208,7 +208,7 @@ func (s *Server) settleCatchOnceWithQualification(ctx context.Context, uid int64
 		premiumXP = xp
 	}
 	if xp > math.MaxInt64-premiumXP {
-		return nil, fmt.Errorf("钓获经验超出范围")
+		return nil, fmt.Errorf("Опыт за улов вне допустимого диапазона")
 	}
 	totalXP := xp + premiumXP
 	if bonus, err := s.drinkXPBonusTx(ctx, tx, uid, xp, time.Now()); err != nil {
@@ -218,12 +218,12 @@ func (s *Server) settleCatchOnceWithQualification(ctx context.Context, uid int64
 	}
 	for _, bonus := range bonuses {
 		if bonus.XP > math.MaxInt64-totalXP {
-			return nil, fmt.Errorf("钓获经验超出范围")
+			return nil, fmt.Errorf("Опыт за улов вне допустимого диапазона")
 		}
 		totalXP += bonus.XP
 	}
 	if oldXP > math.MaxInt64-totalXP {
-		return nil, fmt.Errorf("累计经验超出范围")
+		return nil, fmt.Errorf("Накопленный опыт вне допустимого диапазона")
 	}
 	newXP := oldXP + totalXP
 	level := levelForXp(newXP)
@@ -249,7 +249,7 @@ func (s *Server) settleCatchOnceWithQualification(ctx context.Context, uid int64
 	// 后台填了固定百分比时按该百分比判定，不再叠加幸运时刻对原版概率的修正。
 	// f.Grade 叠加档位倍数：合格/奖杯/蓝冠按 skill_grade_mult_<grade> 放大增量。
 	gain := math.Min(s.proficiencyGainForCatchGrade(r.SkillID, f.Grade, oldSkill, happy), math.Max(0, profCap-oldSkill))
-	gain = store.QuantizeSkillPoints(gain) // 钳位残渣（如 3.6e-14）归零，增量对齐 0.1 显示格
+	gain = store.QuantizeSkillPoints(gain) // 钳位残渣 (如 3.6e-14)归零, 增量对齐 0.1 显示格
 	r.SkillGain = &gain
 	if err := tx.QueryRowContext(ctx, `SELECT COALESCE(MAX(weight_g),0) FROM catch_log WHERE uid=? AND fish_key=?`, uid, f.Species).Scan(&r.PreviousBest); err != nil {
 		return nil, err
@@ -292,7 +292,7 @@ func (s *Server) settleCatchOnceWithQualification(ctx context.Context, uid int64
 			return nil, err
 		}
 		if count, err := updated.RowsAffected(); err != nil || count != 1 {
-			return nil, fmt.Errorf("钓组物品已变化，请重试结算")
+			return nil, fmt.Errorf("Предмет оснастки изменился, повторите расчёт")
 		}
 		if err := store.AddItemDamageLog(ctx, tx, change.log); err != nil {
 			return nil, err
@@ -339,7 +339,7 @@ func (s *Server) settleCatchOnceWithQualification(ctx context.Context, uid int64
 	// 与 801.f8 奖励列表，客户端结算界面当场弹卡 —— 这正是官方的表现。
 	// 图鉴同口径：catch_log 也已在同一事务里写下本尾鱼，放生不回收。
 	if rare, super, rerr := s.rarityMilestoneAfterCatch(ctx, uid); rerr != nil {
-		s.log.Warn("稀有鱼里程碑判定失败", "uid", uid, "err", rerr)
+		s.log.Warn("Ошибка проверки вехи редкой рыбы", "uid", uid, "err", rerr)
 	} else {
 		res.rarityGifts = rare.Items
 		res.raritySpeciesCount = rare.Count

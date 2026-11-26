@@ -59,10 +59,10 @@ func (s *Server) initializeTradingItem(ctx context.Context, def *store.ItemDef, 
 		Fish string `json:"okppoalfakf"`
 	}
 	if err := json.Unmarshal([]byte(def.AttrsJSON), &attrs); err != nil || attrs.Fish == "" {
-		return fmt.Errorf("卡片缺少鱼种定义：%s", def.ItemID)
+		return fmt.Errorf("У карточки нет определения вида рыбы: %s", def.ItemID)
 	}
 	if s.rollGradeDB(ctx, attrs.Fish, 1) != 1 {
-		return fmt.Errorf("%s：没有普通鱼档位", attrs.Fish)
+		return fmt.Errorf("%s: нет категории обычной рыбы", attrs.Fish)
 	}
 	k, p := s.DB.SpeciesLengthKP(ctx, attrs.Fish)
 	k, _ = calibratedLengthKP(attrs.Fish, k, p)
@@ -103,11 +103,11 @@ func tradingInventory(ctx context.Context, q tradingQueryer, uid int64) ([]*stor
 
 func cardsInDeck(it *store.Item) ([]*proto.Value, error) {
 	if it.WireClass != deckClass {
-		return nil, fmt.Errorf("卡册类型待修复，请先重启服务")
+		return nil, fmt.Errorf("Тип альбома требует исправления, сначала перезапустите сервис")
 	}
 	fields, err := FieldsFromJSON(it.FieldsJSON)
 	if err != nil || len(fields) == 0 {
-		return nil, fmt.Errorf("卡册数据损坏")
+		return nil, fmt.Errorf("Данные альбома повреждены")
 	}
 	v := fields[0].Val
 	if v == nil || v.Kind == proto.KindNull {
@@ -115,11 +115,11 @@ func cardsInDeck(it *store.Item) ([]*proto.Value, error) {
 	}
 	// Accept the stored legacy code; outgoing projections use the instance code.
 	if v.Kind != proto.KindArgs || v.Code == nil || (*v.Code != tradingCardArrayCode && *v.Code != "363") {
-		return nil, fmt.Errorf("卡册数组类型不正确")
+		return nil, fmt.Errorf("Неверный тип массива альбома")
 	}
 	for _, card := range v.Items {
 		if card == nil || card.Class != cardClass || len(card.Fields) != 14 {
-			return nil, fmt.Errorf("卡册包含无效卡片")
+			return nil, fmt.Errorf("В альбоме есть неверные карточки")
 		}
 	}
 	return v.Items, nil

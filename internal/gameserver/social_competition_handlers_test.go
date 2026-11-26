@@ -172,13 +172,13 @@ func TestSocialHandlersUseRequestedUIDAndWater(t *testing.T) {
 		t.Fatalf("24/19 card=%+v", card)
 	}
 	// 24/19.f5 与 307.f16 同字段：按稀有鱼种去重，而不是按稀有渔获条数。
-	if err := env.db.CatchLogInsert(ctx, 200, "level_a", 1, "rare_a", "稀有 A", 900, 0.3, "keep", "worm", 3, 10, 20, "level_a"); err != nil {
+	if err := env.db.CatchLogInsert(ctx, 200, "level_a", 1, "rare_a", "Редкая A", 900, 0.3, "keep", "worm", 3, 10, 20, "level_a"); err != nil {
 		t.Fatal(err)
 	}
-	if err := env.db.CatchLogInsert(ctx, 200, "level_a", 1, "rare_a", "稀有 A", 950, 0.31, "keep", "worm", 3, 10, 20, "level_a"); err != nil {
+	if err := env.db.CatchLogInsert(ctx, 200, "level_a", 1, "rare_a", "Редкая A", 950, 0.31, "keep", "worm", 3, 10, 20, "level_a"); err != nil {
 		t.Fatal(err)
 	}
-	if err := env.db.CatchLogInsert(ctx, 200, "level_a", 1, "rare_b", "稀有 B", 1200, 0.35, "release", "worm", 4, 10, 20, "level_a"); err != nil {
+	if err := env.db.CatchLogInsert(ctx, 200, "level_a", 1, "rare_b", "Редкая B", 1200, 0.35, "release", "worm", 4, 10, 20, "level_a"); err != nil {
 		t.Fatal(err)
 	}
 	v = env.invoke(t, 24, 19, proto.Args524(proto.U32(200)))

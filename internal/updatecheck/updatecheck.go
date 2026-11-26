@@ -43,7 +43,7 @@ var DefaultSources = []string{
 }
 
 // ErrUnknownLocalBuildTs 表示本地构建没有可比键（dev 构建），不应检测。
-var ErrUnknownLocalBuildTs = errors.New("本地构建缺少 BuildTs，跳过更新检测")
+var ErrUnknownLocalBuildTs = errors.New("У локальной сборки нет BuildTs, проверка обновлений пропущена")
 
 // maxManifestBytes 防御性限制远端响应体积。
 const maxManifestBytes = 1 << 20
@@ -141,7 +141,7 @@ func (c *Checker) Result() *Result {
 func (c *Checker) Dismiss(version string) error {
 	version = strings.TrimSpace(version)
 	if version == "" {
-		return errors.New("version 不能为空")
+		return errors.New("version не может быть пустым")
 	}
 	if err := c.saveState(version); err != nil {
 		return err
@@ -253,10 +253,10 @@ func (c *Checker) fetchOne(ctx context.Context, src string) (*Manifest, error) {
 	}
 	var manifest Manifest
 	if err := json.Unmarshal(raw, &manifest); err != nil {
-		return nil, fmt.Errorf("JSON 解析失败: %w", err)
+		return nil, fmt.Errorf("JSON Ошибка разбора: %w", err)
 	}
 	if manifest.Schema != 1 {
-		return nil, fmt.Errorf("不支持的 schema=%d", manifest.Schema)
+		return nil, fmt.Errorf("Неподдерживаемый schema=%d", manifest.Schema)
 	}
 	return &manifest, nil
 }

@@ -14,7 +14,7 @@ type Ctx struct {
 	Main, Sub      int
 	CallID         uint32
 	Body           []byte
-	Tree           *proto.Value // 惰性解码（解码失败为 nil）
+	Tree           *proto.Value // 惰性解码 (解码失败为 nil)
 	DecodeOK       bool
 	ExpectResponse bool
 	Log            *slog.Logger
@@ -164,7 +164,7 @@ func (s *Server) handleEnvelopePayload(sess *Session, payload []byte) {
 		if len(payload) > 0 {
 			magic = payload[0]
 		}
-		sess.log.Warn("信封解析失败", "len", len(payload), "magic", magic,
+		sess.log.Warn("Ошибка разбора конверта", "len", len(payload), "magic", magic,
 			"hex", traceHexHead(payload, traceHexMax))
 		return
 	}
@@ -189,7 +189,7 @@ func (s *Server) handleEnvelopePayload(sess *Session, payload []byte) {
 	expect := env.Expect == nil || *env.Expect == 0
 	ctx.ExpectResponse = expect
 	if traceCmds && !traceSkip[cmd] {
-		sess.log.Info("TRACE 收", "cmd", cmd, "expect", expect,
+		sess.log.Info("TRACE Получено", "cmd", cmd, "expect", expect,
 			"len", len(env.Body), "hex", traceHexHead(env.Body, traceHexMax))
 	}
 

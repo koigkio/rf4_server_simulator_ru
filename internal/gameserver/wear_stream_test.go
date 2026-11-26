@@ -20,7 +20,7 @@ func TestFightWearComponentTreesPassContractWhitelist(t *testing.T) {
 	if err != nil {
 		t.Fatalf("造竿失败: %v", err)
 	}
-	reel, err := srv.CreateItem(ctx, uid, "elcon_5968", "backpack", 1) // 电轮：带电机与非部件辅助子件
+	reel, err := srv.CreateItem(ctx, uid, "elcon_5968", "backpack", 1) // 电轮: 带电机与非部件辅助子件
 	if err != nil {
 		t.Fatalf("造电轮失败: %v", err)
 	}
@@ -61,14 +61,14 @@ func TestFightWearComponentTreesPassContractWhitelist(t *testing.T) {
 			t.Fatalf("子树 %d 解析不出部件定义", len(got))
 		}
 		if !fightWearPartCategories[def.Category] {
-			t.Fatalf("子树品类 %d 不在 fightWearPartCategories 白名单内，树里只准出现官服帧实际出现的部件品类", def.Category)
+			t.Fatalf("子树品类 %d 不在 fightWearPartCategories 白名单内, 树里只准出现官服帧实际出现的部件品类", def.Category)
 		}
 		got[def.Category] = true
 	}
 	for _, category := range []int64{reelPartCatOil, reelPartCatGear, reelPartCatBearing,
 		reelPartCatSpool, reelPartCatWasher, reelPartCatRodBlank, reelPartCatGuides} {
 		if !got[category] {
-			t.Fatalf("部件品类 %d 应出现在下发集合，实得 %v", category, got)
+			t.Fatalf("部件品类 %d 应出现在下发集合, 实得 %v", category, got)
 		}
 	}
 }

@@ -19,7 +19,7 @@ func TestKVListEncode(t *testing.T) {
 		t.Fatal(err)
 	}
 	if raw[0] != 0x03 {
-		t.Fatalf("容器 marker 必须是 0x03（对象数组）: % x", raw)
+		t.Fatalf("容器 marker 必须是 0x03 (对象数组): % x", raw)
 	}
 	if raw[1] != 11 { // "dejdolfnooh".len
 		t.Fatalf("元素类型名长度字节错误: %d", raw[1])

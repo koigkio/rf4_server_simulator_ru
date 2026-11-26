@@ -48,7 +48,7 @@ func TestRollBaitDigLootKinds(t *testing.T) {
 		}
 	}
 	if multi < 100 {
-		t.Fatalf("500 次只有 %d 次出多饵，随机分布异常", multi)
+		t.Fatalf("500 次只有 %d 次出多饵, 随机分布异常", multi)
 	}
 }
 
@@ -69,16 +69,16 @@ func TestBaitDigKindCountGrowsWithMastery(t *testing.T) {
 		{100, 4, 7},
 	} {
 		if got := baitDigKindCount(tc.mastery, lowest); got != tc.minKinds {
-			t.Fatalf("熟练度 %.1f 最小种类=%d，want %d", tc.mastery, got, tc.minKinds)
+			t.Fatalf("熟练度 %.1f 最小种类=%d, want %d", tc.mastery, got, tc.minKinds)
 		}
 		if got := baitDigKindCount(tc.mastery, highest); got != tc.maxKnd {
-			t.Fatalf("熟练度 %.1f 最大种类=%d，want %d", tc.mastery, got, tc.maxKnd)
+			t.Fatalf("熟练度 %.1f 最大种类=%d, want %d", tc.mastery, got, tc.maxKnd)
 		}
 	}
 	// 任何熟练度、任何 rng 都不能少于 1 种或超过上限。
 	for m := 0.0; m <= 100; m += 0.5 {
 		if got := baitDigKindCount(m, highest); got < 1 || got > baitMaxKinds {
-			t.Fatalf("熟练度 %.1f 种类=%d，越界 1..%d", m, got, baitMaxKinds)
+			t.Fatalf("熟练度 %.1f 种类=%d, 越界 1..%d", m, got, baitMaxKinds)
 		}
 	}
 	// 上界随熟练度单调不减。
@@ -377,7 +377,7 @@ func TestBaitDigInventoryPushKeepsStackTotal(t *testing.T) {
 		}
 		inventory := baitDigItems(t, decodeTreeValue(t, srv, env.Body))
 		if len(inventory) != 1 {
-			t.Fatalf("4/22 应只带一件物品，实际 %d", len(inventory))
+			t.Fatalf("4/22 应只带一件物品, 实际 %d", len(inventory))
 		}
 		item := inventory[0]
 		guid := fieldGuidHex(item, fieldIdxByCS(item.Class, csGUID))
@@ -491,20 +491,20 @@ func TestBaitDigPoolsAreToolExclusive(t *testing.T) {
 			}
 			seen[entry.Key] = true
 			if entry.Weight <= 0 {
-				t.Fatalf("%s 的 %s 权重=%d，必须为正", tc.tool, entry.Key, entry.Weight)
+				t.Fatalf("%s 的 %s 权重=%d, 必须为正", tc.tool, entry.Key, entry.Weight)
 			}
 			anchor, ok := baitUnlockAnchor[entry.Key]
 			if !ok {
 				t.Fatalf("%s 的 %s 未在测试锚点表登记", tc.tool, entry.Key)
 			}
 			if entry.Unlock != anchor {
-				t.Fatalf("%s 的 %s 锚点=%d，want %d", tc.tool, entry.Key, entry.Unlock, anchor)
+				t.Fatalf("%s 的 %s 锚点=%d, want %d", tc.tool, entry.Key, entry.Unlock, anchor)
 			}
 		}
 		// 池子必须完全一致：既不能少（饵挖不出来），也不能多（池外饵混入）。
 		for key := range tc.want {
 			if !seen[key] {
-				t.Fatalf("%s 的饵池缺少 %s，该饵永远挖不出来", tc.tool, key)
+				t.Fatalf("%s 的饵池缺少 %s, 该饵永远挖不出来", tc.tool, key)
 			}
 		}
 		for key := range seen {
@@ -515,7 +515,7 @@ func TestBaitDigPoolsAreToolExclusive(t *testing.T) {
 		// 满熟练度必须能解析出整池。
 		table := baitLootTableFor(tc.tool, baitMasteryCap)
 		if len(table) != len(tc.want) {
-			t.Fatalf("%s 满熟练度可用饵种=%d，want %d", tc.tool, len(table), len(tc.want))
+			t.Fatalf("%s 满熟练度可用饵种=%d, want %d", tc.tool, len(table), len(tc.want))
 		}
 		for _, entry := range table {
 			if !tc.want[entry.Key] {
@@ -530,7 +530,7 @@ func TestBaitDigPoolsAreToolExclusive(t *testing.T) {
 	alias := baitLootTableFor("shovel_ny25", baitMasteryCap)
 	shovel := baitLootTableFor(baitShovelItemID, baitMasteryCap)
 	if len(alias) != len(shovel) {
-		t.Fatalf("新年铲别名解析=%d 种，铲子=%d 种", len(alias), len(shovel))
+		t.Fatalf("新年铲别名解析=%d 种, 铲子=%d 种", len(alias), len(shovel))
 	}
 }
 
@@ -546,14 +546,14 @@ func TestBaitDigRollStaysInToolPoolWithoutDuplicates(t *testing.T) {
 			if len(table) == 0 {
 				// 未达任何解锁锚点：不得产出任何饵。
 				if loot := rollBaitDigLoot(tool, mastery, randIntnFromSeed(1)); len(loot) != 0 {
-					t.Fatalf("%s 熟练度 %.1f 未解锁任何饵，却挖出 %+v", tool, mastery, loot)
+					t.Fatalf("%s 熟练度 %.1f 未解锁任何饵, 却挖出 %+v", tool, mastery, loot)
 				}
 				continue
 			}
 			for seed := int64(1); seed <= 200; seed++ {
 				loot := rollBaitDigLoot(tool, mastery, randIntnFromSeed(seed))
 				if len(loot) < 1 || len(loot) > baitMaxKinds || len(loot) > len(table) {
-					t.Fatalf("%s 熟练度 %.1f seed=%d 种类=%d（表内 %d 种），want 1..%d",
+					t.Fatalf("%s 熟练度 %.1f seed=%d 种类=%d (表内 %d 种), want 1..%d",
 						tool, mastery, seed, len(loot), len(table), baitMaxKinds)
 				}
 				seen := map[string]bool{}
@@ -567,7 +567,7 @@ func TestBaitDigRollStaysInToolPoolWithoutDuplicates(t *testing.T) {
 					}
 					seen[drop.Key] = true
 					if drop.Qty < 1 || drop.Qty > 3 {
-						t.Fatalf("%s 熟练度 %.1f seed=%d %s 数量=%d，want 1..3",
+						t.Fatalf("%s 熟练度 %.1f seed=%d %s 数量=%d, want 1..3",
 							tool, mastery, seed, drop.Key, drop.Qty)
 					}
 				}
@@ -588,7 +588,7 @@ func TestBaitDigUnlockAnchors(t *testing.T) {
 			if anchor > 0 {
 				below := baitLootTableFor(tool, float64(anchor)-0.1)
 				if baitTableHasKey(below, key) {
-					t.Fatalf("%s 的 %s 在熟练度 %.1f 就出现了，锚点是 %d", tool, key, float64(anchor)-0.1, anchor)
+					t.Fatalf("%s 的 %s 在熟练度 %.1f 就出现了, 锚点是 %d", tool, key, float64(anchor)-0.1, anchor)
 				}
 			}
 			at := baitLootTableFor(tool, float64(anchor))
@@ -599,13 +599,13 @@ func TestBaitDigUnlockAnchors(t *testing.T) {
 	}
 	// 铲子在 0 就有两种（蚯蚓、红蚯蚓）；勺子锚点从 45 起，44.9 时无饵可挖。
 	if got := baitLootTableFor(baitShovelItemID, 0); len(got) != 2 {
-		t.Fatalf("铲子熟练度 0 应有 2 种饵，实得 %d", len(got))
+		t.Fatalf("铲子熟练度 0 应有 2 种饵, 实得 %d", len(got))
 	}
 	if got := baitLootTableFor(baitScoopItemID, 44.9); len(got) != 0 {
-		t.Fatalf("长柄勺熟练度 44.9 时饵表应为空，实得 %d 种", len(got))
+		t.Fatalf("长柄勺熟练度 44.9 时饵表应为空, 实得 %d 种", len(got))
 	}
 	if got := baitLootTableFor(baitScoopItemID, 45); len(got) != 2 {
-		t.Fatalf("长柄勺熟练度 45 应有 2 种饵（红虫、一束藻类），实得 %d", len(got))
+		t.Fatalf("长柄勺熟练度 45 应有 2 种饵 (红虫, 一束藻类), 实得 %d", len(got))
 	}
 }
 
@@ -645,7 +645,7 @@ func TestBaitDigAchievementBaitsAreReachable(t *testing.T) {
 	for id, key := range achievementBaits {
 		tools := owners[key]
 		if len(tools) != 1 {
-			t.Fatalf("成就 %d 依赖的饵 %s 出现在 %v，want 恰好一个工具", id, key, tools)
+			t.Fatalf("成就 %d 依赖的饵 %s 出现在 %v, want 恰好一个工具", id, key, tools)
 		}
 		found := false
 		for _, entry := range baitLootTableFor(tools[0], baitMasteryCap) {

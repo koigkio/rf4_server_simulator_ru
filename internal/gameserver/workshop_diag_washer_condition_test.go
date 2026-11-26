@@ -65,7 +65,7 @@ func TestWorkshopDiagWasherConditionFollowsDragForce(t *testing.T) {
 		got := proto.F32FromBits(condField.U32())
 		// 制动力 0 / 额定 → 完好度 0。旧实现读镜像会报 1.0。
 		if math.Abs(float64(got)-0) > 1e-3 {
-			t.Fatalf("摩擦片完好度 f1=%v，期望 0（按制动力报告）", got)
+			t.Fatalf("摩擦片完好度 f1=%v, 期望 0 (按制动力报告)", got)
 		}
 		// 报价应反映该摩擦片的实际磨损，与修理结算一致。
 		price := item.Field(3).Val
@@ -114,7 +114,7 @@ func TestWorkshopDiagWasherConditionHealthyUnchanged(t *testing.T) {
 		condField := item.Field(1)
 		got := proto.F32FromBits(condField.U32())
 		if math.Abs(float64(got)-1) > 1e-3 {
-			t.Fatalf("完好摩擦片 f1=%v，期望 1", got)
+			t.Fatalf("完好摩擦片 f1=%v, 期望 1", got)
 		}
 		return
 	}
@@ -159,7 +159,7 @@ func TestWorkshopDiagWasherConditionHonorsReelWorkmanship(t *testing.T) {
 		condField := item.Field(1)
 		got := proto.F32FromBits(condField.U32())
 		if math.Abs(float64(got)-1) > 1e-3 {
-			t.Fatalf("工艺 0.8 的正常摩擦片 f1=%v，期望 1", got)
+			t.Fatalf("工艺 0.8 的正常摩擦片 f1=%v, 期望 1", got)
 		}
 		return
 	}

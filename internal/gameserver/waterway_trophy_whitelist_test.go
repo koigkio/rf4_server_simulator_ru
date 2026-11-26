@@ -24,7 +24,7 @@ func TestWaterwayTrophyUsesPanelWhitelistAsDenominator(t *testing.T) {
 	}
 	cells := trophyFishWhitelist[water]
 	if len(cells) < 2 {
-		t.Fatalf("测试依赖 level_001_lake 的白名单，实得 %d 条", len(cells))
+		t.Fatalf("测试依赖 level_001_lake 的白名单, 实得 %d 条", len(cells))
 	}
 	wl := make([]string, 0, len(cells))
 	for _, c := range cells {
@@ -60,7 +60,7 @@ func TestWaterwayTrophyUsesPanelWhitelistAsDenominator(t *testing.T) {
 		t.Fatal(err)
 	}
 	if p.Total != int64(len(wl)) || p.Done != int64(len(wl)-1) {
-		t.Fatalf("进度应为 %d/%d，实得 %d/%d", len(wl)-1, len(wl), p.Done, p.Total)
+		t.Fatalf("进度应为 %d/%d, 实得 %d/%d", len(wl)-1, len(wl), p.Done, p.Total)
 	}
 	if it, err := s.grantWaterwayTrophy(ctx, uid, water); err != nil {
 		t.Fatal(err)
@@ -77,7 +77,7 @@ func TestWaterwayTrophyUsesPanelWhitelistAsDenominator(t *testing.T) {
 		t.Fatal("面板集齐后没有发放奖杯")
 	}
 	if it.ItemID != "trophy_level_001_lake" {
-		t.Fatalf("奖杯 item_id=%q", it.ItemID)
+		t.Fatalf("Трофей item_id=%q", it.ItemID)
 	}
 }
 
@@ -125,12 +125,12 @@ func TestBuildFishTrophiesFiltersByPanelWhitelist(t *testing.T) {
 	}
 	for _, key := range wl {
 		if !got[key] {
-			t.Fatalf("白名单鱼种 %s 没出现在 3/17 面板里：%v", key, got)
+			t.Fatalf("白名单鱼种 %s 没出现在 3/17 面板里: %v", key, got)
 		}
 	}
 	for _, key := range []string{"asp", "bream"} {
 		if got[key] {
-			t.Fatalf("清单外鱼种 %s 被下发了，面板与奖杯判定口径不一致", key)
+			t.Fatalf("清单外鱼种 %s 被下发了, 面板与奖杯判定口径不一致", key)
 		}
 	}
 }
@@ -144,7 +144,7 @@ func TestTrophyFishWhitelistStructure(t *testing.T) {
 			t.Fatalf("家园不该出现在面板收录清单里: %s", water)
 		}
 		if len(cells) == 0 {
-			t.Fatalf("%s 的清单是空的，应直接不建条目", water)
+			t.Fatalf("%s 的清单是空的, 应直接不建条目", water)
 		}
 		seen := make(map[string]bool, len(cells))
 		for _, c := range cells {
@@ -168,7 +168,7 @@ func TestTrophyFishWhitelistStructure(t *testing.T) {
 		}
 		for _, key := range keys {
 			if !present[key] {
-				t.Fatalf("%s 的 unspawnable key %q 不在清单里（拼错了？）", water, key)
+				t.Fatalf("%s 的 unspawnable key %q 不在清单里 (拼错了? )", water, key)
 			}
 		}
 	}
@@ -196,16 +196,16 @@ func TestWaterwayTrophySuraAllPanelCellsReachable(t *testing.T) {
 	const water = "level_008_sura_river"
 	wl := trophyFishWhitelistSet(water)
 	if len(wl) != 16 {
-		t.Fatalf("苏拉河面板应为 16 格可生成鱼种，实得 %d", len(wl))
+		t.Fatalf("苏拉河面板应为 16 格可生成鱼种, 实得 %d", len(wl))
 	}
 	if _, ok := wl["s_carp"]; !ok {
 		t.Fatal("苏拉河面板那一格应是鲢鱼 s_carp")
 	}
 	if _, bad := wl["k_salmon"]; bad {
-		t.Fatal("苏拉河派不出 k_salmon，不该留在判定集合里")
+		t.Fatal("苏拉河派不出 k_salmon, 不该留在判定集合里")
 	}
 	if total := trophyFishWhitelistTotal(water); total != 16 {
-		t.Fatalf("苏拉河分母应为 16，实得 %d", total)
+		t.Fatalf("苏拉河分母应为 16, 实得 %d", total)
 	}
 	logCatch := func(key string) {
 		t.Helper()
@@ -230,7 +230,7 @@ func TestWaterwayTrophySuraAllPanelCellsReachable(t *testing.T) {
 		t.Fatal(err)
 	}
 	if p.Done != 15 || p.Total != 16 {
-		t.Fatalf("差一格时进度应为 15/16，实得 %d/%d", p.Done, p.Total)
+		t.Fatalf("差一格时进度应为 15/16, 实得 %d/%d", p.Done, p.Total)
 	}
 	if it, err := s.grantWaterwayTrophy(ctx, uid, water); err != nil {
 		t.Fatal(err)
@@ -243,7 +243,7 @@ func TestWaterwayTrophySuraAllPanelCellsReachable(t *testing.T) {
 		t.Fatal(err)
 	}
 	if p.Done != 16 || p.Total != 16 {
-		t.Fatalf("全部上星后进度应为 16/16，实得 %d/%d", p.Done, p.Total)
+		t.Fatalf("全部上星后进度应为 16/16, 实得 %d/%d", p.Done, p.Total)
 	}
 	if it, err := s.grantWaterwayTrophy(ctx, uid, water); err != nil {
 		t.Fatal(err)
@@ -259,7 +259,7 @@ func TestWaterwayTrophySuraAllPanelCellsReachable(t *testing.T) {
 func TestTrophyFishWhitelistMissingCellsResolved(t *testing.T) {
 	t.Parallel()
 	if len(trophyFishWhitelistMissing) != 0 {
-		t.Fatalf("缺格表应为空（两格已确认真 key），实得 %v", trophyFishWhitelistMissing)
+		t.Fatalf("缺格表应为空 (两格已确认真 key), 实得 %v", trophyFishWhitelistMissing)
 	}
 	const northSea = "level_012_north_sea"
 	wl := trophyFishWhitelistSet(northSea)
@@ -267,7 +267,7 @@ func TestTrophyFishWhitelistMissingCellsResolved(t *testing.T) {
 		t.Fatal("挪威海面板那一格应是魣鳕 m_molva")
 	}
 	if got := trophyFishWhitelistTotal(northSea); got != 34 {
-		t.Fatalf("挪威海分母应为面板 34 格，实得 %d", got)
+		t.Fatalf("挪威海分母应为面板 34 格, 实得 %d", got)
 	}
 	// 面板末尾四格顺序（核对时按游戏内面板逐格报的位置）：31 魣鳕、32 鲽鱼、33 黑线鳕、34 黑长鲳。
 	cells := trophyFishWhitelist[northSea]
@@ -278,7 +278,7 @@ func TestTrophyFishWhitelistMissingCellsResolved(t *testing.T) {
 	want := []string{"m_molva", "sea_kambala", "piksha", "centroloph_n"}
 	for i := range want {
 		if tail[i].key != want[i] {
-			t.Fatalf("挪威海第 %d 格应为 %s，实得 %s", len(cells)-4+i+1, want[i], tail[i].key)
+			t.Fatalf("挪威海第 %d 格应为 %s, 实得 %s", len(cells)-4+i+1, want[i], tail[i].key)
 		}
 	}
 
@@ -288,7 +288,7 @@ func TestTrophyFishWhitelistMissingCellsResolved(t *testing.T) {
 		t.Fatal("下通古斯卡河面板那一格应是鳟鱼 riv_brown_trout")
 	}
 	if got := trophyFishWhitelistTotal(tunguska); got != 23 {
-		t.Fatalf("下通古斯卡河分母应为面板 23 格，实得 %d", got)
+		t.Fatalf("下通古斯卡河分母应为面板 23 格, 实得 %d", got)
 	}
 }
 
@@ -319,7 +319,7 @@ func TestTrophyFishWhitelistDisplayNamesReviewedByPlayer(t *testing.T) {
 			}
 			found = true
 			if cell.zh != c.zh {
-				t.Errorf("%s 的 %s 显示名应为 %q，实得 %q", c.water, c.key, c.zh, cell.zh)
+				t.Errorf("%s 的 %s 显示名应为 %q, 实得 %q", c.water, c.key, c.zh, cell.zh)
 			}
 		}
 		if !found {

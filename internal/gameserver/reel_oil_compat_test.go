@@ -24,7 +24,7 @@ func TestReelOilCompatibilityTiers(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			if got := reelOilMatchFactor(tc.reelID, tc.brand, tc.oilID); math.Abs(got-tc.want) > 1e-12 {
-				t.Fatalf("适配倍率=%f，期望 %f", got, tc.want)
+				t.Fatalf("适配倍率=%f, 期望 %f", got, tc.want)
 			}
 		})
 	}

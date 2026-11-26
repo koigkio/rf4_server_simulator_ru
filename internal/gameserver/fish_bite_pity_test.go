@@ -29,7 +29,7 @@ func TestPityDistributionFloor(t *testing.T) {
 		}
 	}
 	if zeroKey == "" {
-		t.Fatal("64 小时×2 鱼种内无散布为 0 的组合：散布模型已变，需修本测试")
+		t.Fatal("64 小时×2 鱼种内无散布为 0 的组合: 散布模型已变, 需修本测试")
 	}
 	// 同杆里另一款饵承担绝大部分权重，目标鱼份额 1/101，才会命中缺席判定线。
 	base := []string{zeroKey, "c.roach"}

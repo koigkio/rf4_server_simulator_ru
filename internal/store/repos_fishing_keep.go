@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-var ErrKeepnetFull = errors.New("护网已满")
+var ErrKeepnetFull = errors.New("Садок полон")
 
 // KeepFishingCatch 护网、钓获记录和待处理鱼一起提交，失败时全部保留原状。
 func (d *DB) KeepFishingCatch(ctx context.Context, e *KeepnetEntry, xp, silver int64) error {
@@ -19,7 +19,7 @@ func (d *DB) KeepFishingCatch(ctx context.Context, e *KeepnetEntry, xp, silver i
 // 已处理后移除的鱼只消费残留 pending，不会再次入护。
 func (d *DB) KeepFishingCatchWithCapacity(ctx context.Context, e *KeepnetEntry, xp, silver, capacity int64) (bool, error) {
 	if e == nil || e.UID == 0 || e.EchoGUID == "" {
-		return false, fmt.Errorf("入护缺少玩家或鱼标识")
+		return false, fmt.Errorf("Для садка не указан игрок или рыба")
 	}
 	tx, err := d.SQL.BeginTx(ctx, nil)
 	if err != nil {
@@ -29,7 +29,7 @@ func (d *DB) KeepFishingCatchWithCapacity(ctx context.Context, e *KeepnetEntry, 
 	var owner int64
 	err = tx.QueryRowContext(ctx, `SELECT uid FROM keepnet_items WHERE echo_guid=?`, e.EchoGUID).Scan(&owner)
 	if err == nil && owner != e.UID {
-		return false, fmt.Errorf("鱼标识已属于其他玩家")
+		return false, fmt.Errorf("Рыба уже принадлежит другому игроку")
 	}
 	if err != nil && err != sql.ErrNoRows {
 		return false, err

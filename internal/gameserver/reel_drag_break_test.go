@@ -41,7 +41,7 @@ func TestReportedReelBreakDamagesReel(t *testing.T) {
 		t.Fatalf("UI 29 档制动力应低于竿身承力: drag=%f rod=%f", spec.ReelCurrentDragKg, spec.RodPowerKg)
 	}
 	if !(spec.RodPowerKg < spec.ReelDragKg && spec.LineStrengthKg > spec.RodPowerKg) {
-		t.Fatalf("测试钓组应满足 线>锁轮>竿: line=%f lock=%f rod=%f",
+		t.Fatalf("测试钓组应满足 线>锁轮>Удилище: line=%f lock=%f rod=%f",
 			spec.LineStrengthKg, spec.ReelDragKg, spec.RodPowerKg)
 	}
 	outcome, err := srv.breakLineOrRod(ctx, uid, rod.GUID, reel.GUID)
@@ -68,7 +68,7 @@ func TestReportedReelBreakDamagesReel(t *testing.T) {
 		t.Fatalf("渔轮损坏不应摘除任何组件: %+v", outcome.RemovedGUIDs)
 	}
 	if !outcome.KeepFight {
-		t.Fatalf("渔轮损坏应保持搏鱼（鱼仍挂钩）: %+v", outcome)
+		t.Fatalf("渔轮损坏应保持搏鱼 (鱼仍挂钩): %+v", outcome)
 	}
 }
 
@@ -134,7 +134,7 @@ func TestReelSettingsDefaultWhenMissing(t *testing.T) {
 	mountGearForTest(t, srv, sess, rod.GUID, line.GUID)
 
 	if got, ok := srv.rodReelDragSetting(ctx, rod.GUID); !ok || got != defaultReelDragSetting {
-		t.Fatalf("缺省摩擦档位=%d ok=%v，期望 %d", got, ok, defaultReelDragSetting)
+		t.Fatalf("缺省摩擦档位=%d ok=%v, 期望 %d", got, ok, defaultReelDragSetting)
 	}
 	spec := srv.loadGearSpecForRig(ctx, srv.rigGearIDs(ctx, uid, rod.GUID), rod.GUID)
 	if !(spec.ReelCurrentDragKg > 0 && spec.ReelCurrentDragKg < spec.RodPowerKg) {
@@ -162,7 +162,7 @@ func TestLineBreakReportHonoredBelowLockDrag(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	line, err := srv.CreateItem(ctx, uid, "mono_15065", "backpack", 1) // 3.1kg，比竿弱
+	line, err := srv.CreateItem(ctx, uid, "mono_15065", "backpack", 1) // 3.1kg, 比竿弱
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -243,6 +243,6 @@ func TestReelDragWorkmanshipAppliedOnce(t *testing.T) {
 	want := reelDragMaxKg(def) * reel.Workmanship
 	got := srv.reelBaseDragFromRow(ctx, reel)
 	if math.Abs(got-want) > 0.01 {
-		t.Fatalf("制动力=%f，期望只乘一次母轮成色后的 %f", got, want)
+		t.Fatalf("制动力=%f, 期望只乘一次母轮成色后的 %f", got, want)
 	}
 }

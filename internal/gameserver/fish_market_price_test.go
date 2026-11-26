@@ -19,7 +19,7 @@ func TestMarketOverlayAppliesMapMultiplier(t *testing.T) {
 		t.Fatalf("水域倍率未生效: low=%v mid=%v base=%v", low, mid, base)
 	}
 	if got, want := low/base, marketMapPct("level_001_lake"); math.Abs(got-want) > 0.01 {
-		t.Fatalf("低倍率折算 = %.4f，期望 %.4f", got, want)
+		t.Fatalf("低倍率折算 = %.4f, 期望 %.4f", got, want)
 	}
 }
 

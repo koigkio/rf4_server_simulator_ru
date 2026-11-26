@@ -34,36 +34,36 @@ const (
 // qualificationEvent 只携带判断需要的本次事件数据。
 type qualificationEvent struct {
 	Kind           qualificationEventKind
-	Species        string  // 鱼种 key（去重计数用）
-	NameZh         string  // 中文名（鱼记录渲染用）
-	WeightG        int64   // 体重（克）
-	LengthM        float64 // 体长（米）
-	RigType        int64   // 本杆钓组类型（rigmeta.go:rigTypeNames）
-	RodType        int64   // 竿型（celffbjpmma）
-	RodPower       string  // 竿硬度档尾缀（UL/L/ML/…，rodPowerClass）
+	Species        string  // 鱼种 key (去重计数用)
+	NameZh         string  // 中文名 (鱼记录渲染用)
+	WeightG        int64   // 体重 (克)
+	LengthM        float64 // 体长 (米)
+	RigType        int64   // 本杆钓组类型 (rigmeta.go:rigTypeNames)
+	RodType        int64   // 竿型 (celffbjpmma)
+	RodPower       string  // 竿硬度档尾缀 (UL/L/ML/…, rodPowerClass)
 	Bait           string  // 钩上饵/拟饵 item_id
-	BaitCat        int64   // 饵品类（17 拟饵 / 27 天然饵）
-	BaitClass      int64   // 天然饵饵类（item_def fopbhlmkcpe：2/7=昆虫，9=颗粒，13=面团）
-	BaitFlavor     int64   // item_def acclagajcdn：实为可用钩号上限（下限 kpopjffooed），不是味型；字段名沿用以兼容已存快照
-	LureType       int64   // 拟饵类型（item_def mbemakijdeh），拟饵族判定用
-	LureLenCM      float64 // 拟饵长度（厘米，item_def bbhhojphpfa）
-	BaitSizeMM     float64 // 饵尺寸/直径（毫米，item_def hkgndoipdlc）
-	Grade          int64   // 档位（1..4，4=蓝冠）
+	BaitCat        int64   // 饵品类 (17 拟饵 / 27 天然饵)
+	BaitClass      int64   // 天然饵饵类 (item_def fopbhlmkcpe: 2/7=昆虫, 9=颗粒, 13=面团)
+	BaitFlavor     int64   // item_def acclagajcdn: 实为可用钩号上限 (下限 kpopjffooed), 不是味型; 字段名沿用以兼容已存快照
+	LureType       int64   // 拟饵类型 (item_def mbemakijdeh), 拟饵族判定用
+	LureLenCM      float64 // 拟饵长度 (厘米, item_def bbhhojphpfa)
+	BaitSizeMM     float64 // 饵尺寸/直径 (毫米, item_def hkgndoipdlc)
+	Grade          int64   // 档位 (1..4, 4=蓝冠)
 	CatchGUID      string  // 本尾鱼 echo GUID
-	Rarity         int64   // 物种稀有度（species_rarity：0 普通 1 稀有 2 超稀有）
-	DepthCM        int64   // 钓深（厘米）
-	IsShore        bool    // 岸钓（非船上）
-	IsNight        bool    // 夜间（19:00–06:00，worldDayAndHour）
-	BiteUnix       int64   // 咬钩时间；精确时段任务不使用宽泛的 IsNight 代替。
-	Drift          bool    // 咬钩时钓组处于顺流移动（14/7 0x40 StreamMoving）
-	LocLevel       string  // 水域 key（地点过滤用）
-	XP             int64   // 本尾鱼结算总经验（含加成，settleCatchXP 写入）。
-	BaseXP         int64   // 结算基础经验，不含会员、装备、饮品和欢乐时光加成。
-	MainLine       int64   // 主线材质（1 尼龙 2 碳线 3 编织…）
-	LeaderMat      int64   // 前导线材质（1 尼龙 2 碳线…）
-	CastM          float64 // 本杆抛投距离（米）
-	RodTestMax     float64 // 竿测试上限（克，rodTestG）
-	LineStrengthKG float64 // 鱼线强度（公斤，主线/前导线已装配最小值，kngaaefkpka）
+	Rarity         int64   // 物种稀有度 (species_rarity: 0 普通 1 稀有 2 超稀有)
+	DepthCM        int64   // 钓深 (厘米)
+	IsShore        bool    // 岸钓 (非船上)
+	IsNight        bool    // 夜间 (19:00–06:00, worldDayAndHour)
+	BiteUnix       int64   // 咬钩时间; 精确时段任务不使用宽泛的 IsNight 代替.
+	Drift          bool    // 咬钩时钓组处于顺流移动 (14/7 0x40 StreamMoving)
+	LocLevel       string  // 水域 key (地点过滤用)
+	XP             int64   // 本尾鱼结算总经验 (含加成, settleCatchXP 写入).
+	BaseXP         int64   // 结算基础经验, 不含会员, 装备, 饮品和欢乐时光加成.
+	MainLine       int64   // 主线材质 (1 尼龙 2 碳线 3 编织…)
+	LeaderMat      int64   // 前导线材质 (1 尼龙 2 碳线…)
+	CastM          float64 // 本杆抛投距离 (米)
+	RodTestMax     float64 // 竿测试上限 (克, rodTestG)
+	LineStrengthKG float64 // 鱼线强度 (公斤, 主线/前导线已装配最小值, kngaaefkpka)
 }
 
 type qualificationRuleDef struct {
@@ -151,10 +151,10 @@ func qualificationRodPowerFor(ruleID int64) []int64 {
 	}
 	switch ruleID {
 	case 3003, 3202, 3203, 3301, 3303, 3401, 3402, 3403,
-		3502, 3503, 3601, 3602, 3603, // 分支 3：文案只写「超轻/超轻型」
-		4303, 4502: // 分支 4：文案只写「超轻钓具」
+		3502, 3503, 3601, 3602, 3603, // 分支 3: 文案只写«超轻/超轻型»
+		4303, 4502: // 分支 4: 文案只写«超轻钓具»
 		return []int64{1}
-	case 3001, 3002, 3101, 3102, 3103, 3201, 3302, 3501: // 「轻型渔具」/「轻型或超轻型」
+	case 3001, 3002, 3101, 3102, 3103, 3201, 3302, 3501: // «轻型渔具»/«轻型或超轻型»
 		return []int64{1, 2}
 	default:
 		return nil
@@ -500,17 +500,17 @@ func (s *Server) evaluateQualifications(ctx *Ctx, ev qualificationEvent) map[int
 	activeEvents := s.activeQualificationEventBranches(time.Now().Unix())
 	tx, err := beginEconomyTx(s.dbCtx(), s.DB)
 	if err != nil {
-		ctx.Log.Error("资格进度事务开启失败", "uid", uid, "err", err)
+		ctx.Log.Error("Не удалось начать транзакцию прогресса квалификации", "uid", uid, "err", err)
 		return changed
 	}
 	defer tx.Rollback()
 	out, err := evaluateQualificationsTx(s.dbCtx(), tx, uid, ev, float64(time.Now().Unix()), activeEvents)
 	if err != nil {
-		ctx.Log.Error("资格进度判定失败", "uid", uid, "err", err)
+		ctx.Log.Error("Ошибка проверки прогресса квалификации", "uid", uid, "err", err)
 		return changed
 	}
 	if err := tx.Commit(); err != nil {
-		ctx.Log.Error("资格进度提交失败", "uid", uid, "err", err)
+		ctx.Log.Error("Не удалось зафиксировать прогресс квалификации", "uid", uid, "err", err)
 		return changed
 	}
 	return out
@@ -531,17 +531,17 @@ func evaluateQualificationsTx(ctx context.Context, tx *sql.Tx, uid int64, ev qua
 		}
 		branch := r.ID / 1000
 		if branch >= 9 && !activeEvents[branch] {
-			continue // 未开启、未选择或已结束的活动不推进。
+			continue // 未开启, 未选择或已结束的活动不推进.
 		}
 		if branch == 4 && (ev.RodType != rodTypeTelescope || !floatRigTypes[ev.RigType]) {
-			continue // 未知竿型也不能满足真实规则表的伸缩竿限制。
+			continue // 未知竿型也不能满足真实规则表的伸缩竿限制.
 		}
 		if !qualificationRodAllowed(qualificationRodTypesFor(r.ID), ev.RodType) {
-			continue // 竿型不符（事件未带竿型时不拦）
+			continue // 竿型不符 (事件未带竿型时不拦)
 		}
 		st := states[r.ID]
 		if st.CompletedTS > 0 {
-			continue // 已达标封顶，不再计数
+			continue // 已达标封顶, 不再计数
 		}
 		if r.AlternateCounted != nil {
 			counted, advanced, err := countQualificationAlternativesTx(ctx, tx, uid, r, st, ev)
@@ -564,7 +564,7 @@ func evaluateQualificationsTx(ctx context.Context, tx *sql.Tx, uid int64, ev qua
 			st.CompletedTS = now
 		}
 		if err := store.UpsertQualificationStateTx(ctx, tx, uid, st); err != nil {
-			return nil, fmt.Errorf("资格进度写入失败 id=%d: %w", r.ID, err)
+			return nil, fmt.Errorf("Не удалось записать прогресс квалификации id=%d: %w", r.ID, err)
 		}
 		changed[r.ID] = st
 	}
@@ -638,7 +638,7 @@ type qualificationBait struct {
 	Cat      int64
 	Class    int64
 	Flavor   int64
-	LureType int64 // 拟饵类型（item_def mbemakijdeh），拟饵族判定的权威来源
+	LureType int64 // 拟饵类型 (item_def mbemakijdeh), 拟饵族判定的权威来源
 	LenCM    float64
 	SizeMM   float64
 }

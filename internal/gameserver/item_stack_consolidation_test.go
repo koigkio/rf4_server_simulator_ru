@@ -141,7 +141,7 @@ func TestConsolidateNonReturnableItemStacksPreservesBoundariesAndReferences(t *t
 		t.Fatal(err)
 	}
 	if removed != 3 {
-		t.Fatalf("删除重复堆=%d，期望 3", removed)
+		t.Fatalf("删除重复堆=%d, 期望 3", removed)
 	}
 	for _, tc := range []struct {
 		item, container, guid string
@@ -155,7 +155,7 @@ func TestConsolidateNonReturnableItemStacksPreservesBoundariesAndReferences(t *t
 	} {
 		rows, qty, guid := stackingTestStats(t, db, uid, tc.item, tc.container)
 		if rows != tc.rows || qty != tc.qty || tc.guid != "" && guid != tc.guid {
-			t.Errorf("%s/%s: rows=%d qty=%d guid=%s，期望 %d/%d/%s", tc.item, tc.container, rows, qty, guid, tc.rows, tc.qty, tc.guid)
+			t.Errorf("%s/%s: rows=%d qty=%d guid=%s, 期望 %d/%d/%s", tc.item, tc.container, rows, qty, guid, tc.rows, tc.qty, tc.guid)
 		}
 	}
 	var shortcut, source string
@@ -227,12 +227,12 @@ func TestConsolidateNonReturnableItemStacksPreservesRecipeBackedGroundbaitInstan
 	for _, itemID := range []string{feedID, pvaID} {
 		rows, _, _ := stackingTestStats(t, db, uid, itemID, "backpack")
 		if rows != 2 {
-			t.Fatalf("测试前置错误：%s 实例数=%d，期望 2", itemID, rows)
+			t.Fatalf("测试前置错误: %s 实例数=%d, 期望 2", itemID, rows)
 		}
 	}
 	var recipeRows int64
 	if err := db.SQL.QueryRow(`SELECT COUNT(*) FROM groundbait_recipe`).Scan(&recipeRows); err != nil || recipeRows != 4 {
-		t.Fatalf("测试前置错误：配方行=%d err=%v", recipeRows, err)
+		t.Fatalf("测试前置错误: 配方行=%d err=%v", recipeRows, err)
 	}
 
 	removed, err := srv.ConsolidateNonReturnableItemStacks(context.Background())

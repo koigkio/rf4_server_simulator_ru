@@ -18,7 +18,7 @@ func TestSocialMoveReturnsNullAndRecordsChannel(t *testing.T) {
 		t.Fatal("24/1 未处理")
 	}
 	if !bytes.Equal(body, []byte{0x00}) {
-		t.Fatalf("24/1 响应应为 null，实得 %x", body)
+		t.Fatalf("24/1 响应应为 null, 实得 %x", body)
 	}
 	v, exists := sess.GetState("channel")
 	if !exists {

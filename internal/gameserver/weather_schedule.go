@@ -25,8 +25,8 @@ var weatherKindWeights = [weatherKindCount]int{3, 2, 1, 1, 1, 1}
 // WeatherScheduleOptions 控制进程启动时生成的逐日天气 kind 序列。
 // 序列在进程内固定；关闭随机时沿用地图模板的固定顺序。
 type WeatherScheduleOptions struct {
-	Randomize bool // true=按天气权重重抽 kind；false=沿用模板顺序
-	CycleDays int  // 每图序列长度；<=0 用默认 64，小于 8 时按 8 处理
+	Randomize bool // true=按天气权重重抽 kind; false=沿用模板顺序
+	CycleDays int  // 每图序列长度; <=0 用默认 64, 小于 8 时按 8 处理
 }
 
 // weatherDaySlot 是序列中的一天：kind 决定晴雨，template 指向该图模板中
@@ -43,7 +43,7 @@ type mapWeatherProfile struct {
 	days   []irNode
 	hours  [24]irNode
 	rangeC float64
-	seed   uint64 // 图 key 的稳定哈希，用于降雨过程中心
+	seed   uint64 // 图 key 的稳定哈希, 用于降雨过程中心
 	offset int64  // 关闭随机时保留模板的日偏移
 	random bool   // true=kind 与最高温由启动随机序列提供
 	slots  []weatherDaySlot
@@ -85,12 +85,12 @@ func initWeatherSchedule(opts WeatherScheduleOptions, seed uint64) (uint64, erro
 		var err error
 		seed, err = randomWeatherSeed()
 		if err != nil {
-			return 0, fmt.Errorf("生成天气 seed: %w", err)
+			return 0, fmt.Errorf("Генерация погоды seed: %w", err)
 		}
 	}
 	profiles := buildWeatherProfilesWithSeed(opts, seed)
 	if len(profiles) == 0 {
-		return 0, fmt.Errorf("地图天气模板不可用")
+		return 0, fmt.Errorf("Шаблон погоды карты недоступен")
 	}
 	weatherProfilesMu.Lock()
 	weatherProfiles = profiles

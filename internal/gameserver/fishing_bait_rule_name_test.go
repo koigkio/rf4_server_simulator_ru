@@ -18,10 +18,10 @@ func TestLookupFishBaitRuleToleratesNameVariants(t *testing.T) {
 		a, okA := lookupFishBaitRule(p[0])
 		b, okB := lookupFishBaitRule(p[1])
 		if !okA || !okB {
-			t.Fatalf("%s/%s：命中最少一边失败 ok=%v/%v", p[0], p[1], okA, okB)
+			t.Fatalf("%s/%s: 命中最少一边失败 ok=%v/%v", p[0], p[1], okA, okB)
 		}
 		if len(a.allow) != len(b.allow) || len(a.allow) == 0 {
-			t.Fatalf("%s/%s：允许列表不一致 %v vs %v", p[0], p[1], a.allow, b.allow)
+			t.Fatalf("%s/%s: 允许列表不一致 %v vs %v", p[0], p[1], a.allow, b.allow)
 		}
 	}
 	if _, ok := lookupFishBaitRule("完全不存在的鱼"); ok {
@@ -42,7 +42,7 @@ func TestResolveBaitRuleUsesNameVariants(t *testing.T) {
 	for _, name := range []string{"泥鳅鱼", "泥鳅"} {
 		r, _ := s.resolveBaitRule(context.Background(), name)
 		if len(r.allow) == 0 {
-			t.Fatalf("%s：resolveBaitRule 丢了规则（allow 为空）", name)
+			t.Fatalf("%s: resolveBaitRule 丢了规则 (allow 为空)", name)
 		}
 	}
 }

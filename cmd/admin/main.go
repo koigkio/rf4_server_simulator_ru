@@ -23,8 +23,8 @@ import (
 )
 
 func main() {
-	configPath := flag.String("config", "config.yaml", "配置文件路径")
-	initAdmin := flag.String("init-admin", "", "初始化管理员: -init-admin user:password（表空时生效）")
+	configPath := flag.String("config", "config.yaml", "Путь к файлу конфигурации")
+	initAdmin := flag.String("init-admin", "", "Создать администратора: -init-admin user:password (действует, если таблица пуста)")
 	flag.Parse()
 
 	cfg, err := config.Load(*configPath)
@@ -33,7 +33,7 @@ func main() {
 		os.Exit(2)
 	}
 	log := logging.New(cfg.Log.Level, cfg.Log.Format)
-	log.Info("admin 启动",
+	log.Info("admin Запуск",
 		"version", buildinfo.Version, "commit", buildinfo.GitCommit,
 		"env", cfg.Env, "http", cfg.Admin.HTTPAddr)
 
@@ -45,12 +45,12 @@ func main() {
 
 	db, err := store.OpenWithStatic(cfg.SQLite.Path, cfg.SQLite.StaticPath)
 	if err != nil {
-		log.Error("SQLite 打开失败", "path", cfg.SQLite.Path, "static", cfg.SQLite.StaticPath, "err", err)
+		log.Error("SQLite Не удалось открыть", "path", cfg.SQLite.Path, "static", cfg.SQLite.StaticPath, "err", err)
 		os.Exit(1)
 	}
 	defer db.Close()
 	if err := db.Migrate(); err != nil {
-		log.Error("迁移失败", "err", err)
+		log.Error("Ошибка миграции", "err", err)
 		os.Exit(1)
 	}
 	// 管理员凭据以配置为准：账号不存在则创建，密码哈希不一致则更新。
@@ -58,14 +58,14 @@ func main() {
 	if *initAdmin != "" {
 		user, pass, ok := splitColon(*initAdmin)
 		if !ok {
-			log.Error("init-admin 格式应为 user:password")
+			log.Error("init-admin Ожидаемый формат user:password")
 			os.Exit(2)
 		}
 		if err := db.EnsureAdmin(ctx, user, pass); err != nil {
-			log.Error("初始化管理员失败", "err", err)
+			log.Error("Не удалось создать администратора", "err", err)
 			os.Exit(1)
 		}
-		log.Info("管理员已确保存在（仅表空时创建）", "user", user)
+		log.Info("Администратор существует (создаётся только при пустой таблице)", "user", user)
 	}
 	adminUser := cfg.Admin.Username
 	adminPass := cfg.Admin.Password
@@ -74,22 +74,22 @@ func main() {
 	}
 	created, err := db.UpsertAdminPassword(ctx, adminUser, adminPass)
 	if err != nil {
-		log.Error("管理员凭据同步失败", "err", err)
+		log.Error("Не удалось синхронизировать учётные данные администратора", "err", err)
 		os.Exit(1)
 	}
 	if created {
-		log.Info("管理员已创建", "user", adminUser)
+		log.Info("Администратор создан", "user", adminUser)
 	} else {
-		log.Info("管理员凭据已同步", "user", adminUser)
+		log.Info("Учётные данные администратора синхронизированы", "user", adminUser)
 	}
 
 	srv := admin.NewServer(cfg.Admin, db, log, admin.WebFS())
 	adminErrCh, err := srv.Start()
 	if err != nil {
-		log.Error("管理后台监听失败", "err", err)
+		log.Error("Админ-панель не смогла открыть порт", "err", err)
 		os.Exit(1)
 	}
-	log.Info("admin 就绪", "addr", srv.Addr())
+	log.Info("admin Готово", "addr", srv.Addr())
 	obs.SetReady(true)
 
 	// 在线会话数：读共享 KV（gameserver 每 5s 刷新）
@@ -107,9 +107,9 @@ func main() {
 	select {
 	case <-ctx.Done():
 	case err := <-obsErrCh:
-		log.Error("观测端口异常退出", "err", err)
+		log.Error("Порт наблюдения неожиданно завершился", "err", err)
 	case err := <-adminErrCh:
-		log.Error("管理后台异常退出", "err", err)
+		log.Error("Админ-панель неожиданно завершилась", "err", err)
 	}
 
 	obs.SetReady(false)
@@ -118,7 +118,7 @@ func main() {
 	_ = srv.Shutdown(shutdownCtx)
 	_ = obs.Shutdown(shutdownCtx)
 	db.Close()
-	log.Info("admin 已退出")
+	log.Info("admin Завершено")
 }
 
 func splitColon(s string) (string, string, bool) {

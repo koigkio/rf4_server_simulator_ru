@@ -198,7 +198,7 @@ const (
 	baitMountSetBottom    = 126                                       // 2|4|8|16|32|64
 	baitMountPopupFamily  = 1024 | 2048 | 4096 | 8192 | 16384 | 32768 // Pop-up/人造玉米族
 	baitMountMaggotFamily = 65536 | 131072 | 262144                   // 玉米浮+蛆5/10/15
-	baitMountFoamFamily   = 524288 | 1048576 | 2097152                // 泡沫族（Zig 专用）
+	baitMountFoamFamily   = 524288 | 1048576 | 2097152                // 泡沫族 (Zig 专用)
 )
 
 // rigBaitMountAvail 钓组类型 → 可选挂饵方式掩码（153.f9）。

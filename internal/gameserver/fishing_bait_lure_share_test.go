@@ -174,7 +174,7 @@ func TestLureGateAnyZeroThresholdDisablesWholeGate(t *testing.T) {
 			for _, fish := range []string{"n.pike", "freshwater_mussel"} {
 				keys, _ := s.filterFishBaitSet("rules-test", []string{"rule_lure"}, []string{fish}, []float64{1}, time.Now())
 				if len(keys) != 1 {
-					t.Fatalf("任一项为 0 时 %s 应回旧行为（含硬排除解除）: %v", fish, keys)
+					t.Fatalf("任一项为 0 时 %s 应回旧行为 (含硬排除解除): %v", fish, keys)
 				}
 			}
 		})

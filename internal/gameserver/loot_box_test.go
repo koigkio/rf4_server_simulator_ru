@@ -36,7 +36,7 @@ func waitLootItemCount(t *testing.T, db *store.DB, uid int64, itemID string, wan
 			return
 		}
 		if time.Now().After(deadline) {
-			t.Fatalf("礼包物品数量=%d，期望 %d", got, want)
+			t.Fatalf("礼包物品数量=%d, 期望 %d", got, want)
 		}
 		time.Sleep(20 * time.Millisecond)
 	}
@@ -62,14 +62,14 @@ func TestLootBoxAlwaysOpensWhenChanceOne(t *testing.T) {
 
 	got := srv.rollLootBox(ctx, sess, &RolledFish{Species: "c.roach"})
 	if got != "loot_worm" {
-		t.Fatalf("应开出 loot_worm，实得 %q", got)
+		t.Fatalf("应开出 loot_worm, 实得 %q", got)
 	}
 	var n int
 	if err := db.SQL.QueryRow(`SELECT COUNT(*) FROM item WHERE uid=? AND item_id='loot_worm'`, sess.Userid).Scan(&n); err != nil {
 		t.Fatal(err)
 	}
 	if n != 1 {
-		t.Fatalf("奖励应落库 1 件，实得 %d", n)
+		t.Fatalf("奖励应落库 1 件, 实得 %d", n)
 	}
 }
 
@@ -93,14 +93,14 @@ func TestLootBoxUsesConfiguredRewards(t *testing.T) {
 
 	got := srv.rollLootBox(ctx, sess, nil)
 	if got != "loot_bait" {
-		t.Fatalf("应开出 loot_bait，实得 %q", got)
+		t.Fatalf("应开出 loot_bait, 实得 %q", got)
 	}
 	var qty int64
 	if err := db.SQL.QueryRow(`SELECT qty FROM item WHERE uid=? AND item_id='loot_bait'`, sess.Userid).Scan(&qty); err != nil {
 		t.Fatal(err)
 	}
 	if qty != 2 {
-		t.Fatalf("数量应为 2，实得 %d", qty)
+		t.Fatalf("数量应为 2, 实得 %d", qty)
 	}
 }
 
@@ -116,7 +116,7 @@ func TestLootBoxDisabledByTunable(t *testing.T) {
 	srv.tunCache = nil
 	srv.tunMu.Unlock()
 	if got := srv.rollLootBox(ctx, sess, nil); got != "" {
-		t.Fatalf("关闭后不应开箱，实得 %q", got)
+		t.Fatalf("关闭后不应开箱, 实得 %q", got)
 	}
 }
 
@@ -144,7 +144,7 @@ func TestLootBoxShopPickFiltersUnsupportedCategories(t *testing.T) {
 	for i := 0; i < 60; i++ {
 		id, _, _ := srv.pickRandomShopItem(ctx)
 		if id != "loot_allowed" {
-			t.Fatalf("随机池只能返回可物化商品，实得 %q", id)
+			t.Fatalf("随机池只能返回可物化商品, 实得 %q", id)
 		}
 	}
 }
@@ -168,7 +168,7 @@ func TestLootBoxConfiguredRewardsFilterUnsupportedItems(t *testing.T) {
 	mustExec(`INSERT INTO kv(k,v) VALUES('loot_box_defs','[{"id":"b","name":"礼包","chance":1.0,"carrier_item":"loot_bad_gift","rewards":[{"item_id":"loot_bad_gift","qty":1,"weight":100},{"item_id":"loot_bad_wallet","qty":1,"weight":100},{"item_id":"loot_good_bait","qty":1,"weight":1}]}]')`)
 
 	if got := srv.rollLootBox(ctx, sess, nil); got != "loot_good_bait" {
-		t.Fatalf("应跳过不可发放配置并开出 loot_good_bait，实得 %q", got)
+		t.Fatalf("应跳过不可发放配置并开出 loot_good_bait, 实得 %q", got)
 	}
 	for _, itemID := range []string{"loot_bad_gift", "loot_bad_wallet"} {
 		var n int
@@ -176,7 +176,7 @@ func TestLootBoxConfiguredRewardsFilterUnsupportedItems(t *testing.T) {
 			t.Fatal(err)
 		}
 		if n != 0 {
-			t.Fatalf("不可发放物品 %s 不应落库，实得 %d 件", itemID, n)
+			t.Fatalf("不可发放物品 %s 不应落库, 实得 %d 件", itemID, n)
 		}
 	}
 }
@@ -202,7 +202,7 @@ func TestLootBoxAwardsOnceOnKeptReplay(t *testing.T) {
 		WeightG: 186, LengthM: 0.1981, LocLevel: "level_019_american_pond",
 	}
 	if r := srv.settleCatchXP(ctx, uid, fish, 1); r == nil {
-		t.Fatal("settleCatchXP 返回 nil")
+		t.Fatal("settleCatchXP назад nil")
 	}
 	st := srv.stateFor(uid)
 	st.mu.Lock()
@@ -230,7 +230,7 @@ func TestLootBoxAwardsOnceOnKeptReplay(t *testing.T) {
 		t.Fatal(err)
 	}
 	if got != 1 {
-		t.Fatalf("重复 14/5 后礼包物品应为 1 件，实得 %d", got)
+		t.Fatalf("重复 14/5 后礼包物品应为 1 件, 实得 %d", got)
 	}
 }
 
@@ -292,7 +292,7 @@ func TestLootBoxPushesEveryCouponRow(t *testing.T) {
 	box := lootBoxDef{ID: "coupon_box", Name: "券礼包", Chance: 1.0,
 		Rewards: []lootBoxReward{{ItemID: couponChucheloItemID, Qty: 3, Weight: 100}}}
 	if got := srv.grantLootBox(ctx, sess, box, nil, "测试"); got != couponChucheloItemID {
-		t.Fatalf("应开出券，实得 %q", got)
+		t.Fatalf("应开出券, 实得 %q", got)
 	}
 
 	// grantLootBox 末尾还有一条 24/27 聊天推送，只数 4/22 背包增量。
@@ -313,9 +313,9 @@ func TestLootBoxPushesEveryCouponRow(t *testing.T) {
 		}
 	}
 	if updates != 3 {
-		t.Fatalf("应推 3 条 4/22（每张券一行），实得 %d", updates)
+		t.Fatalf("应推 3 条 4/22 (每张券一行), 实得 %d", updates)
 	}
 	if r, q := couponRowCount(t, srv, uid); r != 3 || q != 3 {
-		t.Fatalf("应落 3 行 3 张，实得 %d 行 %d 张", r, q)
+		t.Fatalf("应落 3 行 3 张, 实得 %d 行 %d 张", r, q)
 	}
 }

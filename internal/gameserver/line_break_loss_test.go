@@ -91,7 +91,7 @@ func TestMainLineBreakLosesReportedLineOutMeters(t *testing.T) {
 		t.Fatal("17/9 断主线未处理")
 	}
 	if got := lineLengthOfTestItem(t, srv, lineGUID); got != 45 {
-		t.Fatalf("应只扣上报的 5 米（剩 45），实得剩余 %d 米", got)
+		t.Fatalf("应只扣上报的 5 米 (剩 45), 实得剩余 %d 米", got)
 	}
 }
 
@@ -110,7 +110,7 @@ func TestMainLineBreakReportedMetersClampToLineLength(t *testing.T) {
 		t.Fatal("17/9 断主线未处理")
 	}
 	if row, _ := db.GetItemByGUID(context.Background(), lineGUID); row != nil {
-		t.Fatalf("上报 200 米 > 线长 50 米，应封顶扣光并删除主线，实得 %+v", row)
+		t.Fatalf("上报 200 米 > 线长 50 米, 应封顶扣光并删除主线, 实得 %+v", row)
 	}
 }
 
@@ -126,7 +126,7 @@ func TestMainLineBreakFallsBackToTunableMeters(t *testing.T) {
 	srv.tunCache = nil
 	srv.tunMu.Unlock()
 	if got := srv.tunableF("line_break_loss_m", -1); got != 20 {
-		t.Fatalf("tunable 未生效：读回 %v（期望 20）", got)
+		t.Fatalf("tunable 未生效: 读回 %v (期望 20)", got)
 	}
 	sess, rodGUID, lineGUID := mountMonoFifty(t, srv)
 
@@ -139,7 +139,7 @@ func TestMainLineBreakFallsBackToTunableMeters(t *testing.T) {
 		t.Fatal("17/9 断主线未处理")
 	}
 	if got := lineLengthOfTestItem(t, srv, lineGUID); got != 30 {
-		t.Fatalf("tunable 20 米应扣掉 20（剩 30），实得剩余 %d 米", got)
+		t.Fatalf("tunable 20 米应扣掉 20 (剩 30), 实得剩余 %d 米", got)
 	}
 }
 
@@ -159,7 +159,7 @@ func TestMainLineBreakSubMeterReportCostsOneMeter(t *testing.T) {
 		t.Fatal("17/9 断主线未处理")
 	}
 	if got := lineLengthOfTestItem(t, srv, lineGUID); got != 49 {
-		t.Fatalf("上报 0.3 米应钳到扣 1 米（剩 49），实得剩余 %d 米", got)
+		t.Fatalf("上报 0.3 米应钳到扣 1 米 (剩 49), 实得剩余 %d 米", got)
 	}
 }
 
@@ -183,7 +183,7 @@ func TestRodBreakDeductsReportedLineOutKeepsLineMounted(t *testing.T) {
 		t.Fatal("17/9 断竿未处理")
 	}
 	if got := lineLengthOfTestItem(t, srv, lineGUID); got != 37 {
-		t.Fatalf("断竿应只扣上报的 13 米（剩 37），实得剩余 %d 米", got)
+		t.Fatalf("断竿应只扣上报的 13 米 (剩 37), 实得剩余 %d 米", got)
 	}
 	// 线仍在竿上：f3 引用与 catLine 投影行都保留。
 	rodRow := mustItem(t, db, rodGUID)
@@ -195,7 +195,7 @@ func TestRodBreakDeductsReportedLineOutKeepsLineMounted(t *testing.T) {
 		t.Fatalf("断竿后竿 f3 应保留主线 %s", lineGUID)
 	}
 	if got := rigSlotGUIDs(t, srv, rodGUID)[catLine]; got != lineGUID {
-		t.Fatalf("断竿后 catLine 投影应保留主线，实得 %q", got)
+		t.Fatalf("断竿后 catLine 投影应保留主线, 实得 %q", got)
 	}
 	// 11028：线不进移除列表，更新段带线树。
 	dec, _, err := proto.DecodeValue(body, 0, srv.Table())
@@ -237,7 +237,7 @@ func TestRodBreakLineExhaustedWhenReportedOverRemaining(t *testing.T) {
 		t.Fatal("17/9 断竿未处理")
 	}
 	if row, _ := db.GetItemByGUID(context.Background(), lineGUID); row != nil {
-		t.Fatalf("上报 200 米 > 线长 50 米，应封顶扣光并删除主线，实得 %+v", row)
+		t.Fatalf("上报 200 米 > 线长 50 米, 应封顶扣光并删除主线, 实得 %+v", row)
 	}
 	rodRow := mustItem(t, db, rodGUID)
 	rodFields, err := FieldsFromJSON(rodRow.FieldsJSON)
@@ -248,7 +248,7 @@ func TestRodBreakLineExhaustedWhenReportedOverRemaining(t *testing.T) {
 		t.Fatal("主线耗尽后竿 f3 应清空")
 	}
 	if got := rigSlotGUIDs(t, srv, rodGUID)[catLine]; got != "" {
-		t.Fatalf("主线耗尽后 catLine 投影应清空，实得 %q", got)
+		t.Fatalf("主线耗尽后 catLine 投影应清空, 实得 %q", got)
 	}
 }
 
@@ -267,7 +267,7 @@ func TestRodBreakKeepsLineFullyWithoutLineOutReport(t *testing.T) {
 		t.Fatal("17/9 断竿未处理")
 	}
 	if got := lineLengthOfTestItem(t, srv, lineGUID); got != 50 {
-		t.Fatalf("未上报放线米数时主线应一米不扣（剩 50），实得剩余 %d 米", got)
+		t.Fatalf("未上报放线米数时主线应一米不扣 (剩 50), 实得剩余 %d 米", got)
 	}
 	logs, err := db.ListItemDamageLogs(context.Background(), 1000001, 20)
 	if err != nil {
@@ -295,7 +295,7 @@ func TestRodBreakSubMeterLineOutCostsOneMeter(t *testing.T) {
 		t.Fatal("17/9 断竿未处理")
 	}
 	if got := lineLengthOfTestItem(t, srv, lineGUID); got != 49 {
-		t.Fatalf("断竿上报 0.5 米应钳到扣 1 米（剩 49），实得剩余 %d 米", got)
+		t.Fatalf("断竿上报 0.5 米应钳到扣 1 米 (剩 49), 实得剩余 %d 米", got)
 	}
 }
 
@@ -314,7 +314,7 @@ func makeLineLengthUnreadable(t *testing.T, srv *Server, lineGUID string) {
 	}
 	idx := fieldIdxByCS(row.WireClass, csQty)
 	if idx < 0 || idx >= len(fields) {
-		t.Fatalf("主线没有长度字段，用例前置不成立（idx=%d）", idx)
+		t.Fatalf("主线没有长度字段, 用例前置不成立 (idx=%d)", idx)
 	}
 	fields = append(fields[:idx], fields[idx+1:]...)
 	fj, err := FieldsToJSON(fields)
@@ -360,7 +360,7 @@ func TestRodBreakKeepsLineWhenLengthUnreadable(t *testing.T) {
 		t.Fatalf("线保留时竿 f3 应仍指向 %s", lineGUID)
 	}
 	if got := rigSlotGUIDs(t, srv, rodGUID)[catLine]; got != lineGUID {
-		t.Fatalf("线保留时 catLine 投影应保留，实得 %q", got)
+		t.Fatalf("线保留时 catLine 投影应保留, 实得 %q", got)
 	}
 	logs, err := db.ListItemDamageLogs(context.Background(), 1000001, 20)
 	if err != nil {
@@ -404,10 +404,10 @@ func TestRodBreakStaleLineRefSparesBackpackLine(t *testing.T) {
 	// 背包里的线原封不动：50 米一米没扣，也没被删除。
 	staleRow := mustItem(t, db, lineGUID)
 	if staleRow.Container != "backpack" {
-		t.Fatalf("陈旧引用的线应留在背包，实得 container=%s", staleRow.Container)
+		t.Fatalf("陈旧引用的线应留在背包, 实得 container=%s", staleRow.Container)
 	}
 	if got := lineLengthOfTestItem(t, srv, lineGUID); got != 50 {
-		t.Fatalf("陈旧引用的线不应被扣长度（应剩 50），实得 %d", got)
+		t.Fatalf("陈旧引用的线不应被扣长度 (应剩 50), 实得 %d", got)
 	}
 	// 竿侧：f3 清空、投影行清掉。
 	rodRow := mustItem(t, db, rodGUID)
@@ -419,7 +419,7 @@ func TestRodBreakStaleLineRefSparesBackpackLine(t *testing.T) {
 		t.Fatal("陈旧引用断竿后竿 f3 应清空")
 	}
 	if got := rigSlotGUIDs(t, srv, rodGUID)[catLine]; got != "" {
-		t.Fatalf("陈旧引用断竿后 catLine 投影应清空，实得 %q", got)
+		t.Fatalf("陈旧引用断竿后 catLine 投影应清空, 实得 %q", got)
 	}
 }
 
@@ -439,18 +439,18 @@ func TestRodBreakLineDetachableAfterBreak(t *testing.T) {
 		t.Fatal("17/9 断竿未处理")
 	}
 	if got := lineLengthOfTestItem(t, srv, lineGUID); got != 37 {
-		t.Fatalf("断竿应扣 13 米剩 37，实得 %d", got)
+		t.Fatalf("断竿应扣 13 米剩 37, 实得 %d", got)
 	}
 
 	// 17/3 拆线（slot 11 = catLine）：断竿状态不拦截。
 	runRodRemove(t, srv, sess, rodGUID, 11, lineGUID, 0)
 	lineRow := mustItem(t, db, lineGUID)
 	if lineRow.Container != "backpack" || lineRow.RigGUID != "" {
-		t.Fatalf("拆下后应退回背包并清父引用，实得 container/rig_guid=%s/%s",
+		t.Fatalf("拆下后应退回背包并清父引用, 实得 container/rig_guid=%s/%s",
 			lineRow.Container, lineRow.RigGUID)
 	}
 	if got := lineLengthOfTestItem(t, srv, lineGUID); got != 37 {
-		t.Fatalf("拆下后线长应保持 37 米，实得 %d", got)
+		t.Fatalf("拆下后线长应保持 37 米, 实得 %d", got)
 	}
 	rodRow := mustItem(t, db, rodGUID)
 	rodFields, err := FieldsFromJSON(rodRow.FieldsJSON)
@@ -461,6 +461,6 @@ func TestRodBreakLineDetachableAfterBreak(t *testing.T) {
 		t.Fatal("拆下后竿 f3 应清空")
 	}
 	if got := rigSlotGUIDs(t, srv, rodGUID)[catLine]; got != "" {
-		t.Fatalf("拆下后 catLine 投影应清空，实得 %q", got)
+		t.Fatalf("拆下后 catLine 投影应清空, 实得 %q", got)
 	}
 }

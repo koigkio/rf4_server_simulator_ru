@@ -108,8 +108,8 @@ export async function api(path, { preserveSession = false, ...opt } = {}) {
     const isWrite = String(opt.method || 'GET').toUpperCase() !== 'GET';
     if (!preserveSession && r.status === 401 && !isWrite && requestToken && token === requestToken) setToken('');
     if (r.status === 401 && isWrite && editingSide && sidePages.includes(editingSide)) editingSide.offerLogin();
-    const msg = r.status === 401 && isWrite ? '这一步需要登录，登录后请重新保存。'
-      : (data.error || ('请求失败（HTTP ' + r.status + '）'));
+    const msg = r.status === 401 && isWrite ? 'Для этого действия нужен вход; после входа сохраните ещё раз.'
+      : (data.error || ('Ошибка запроса (HTTP ' + r.status + ')'));
     const err = new Error(msg);
     err.status = r.status;
     err.data = data;
@@ -150,10 +150,10 @@ export function relTime(ts) {
   const t = tsNum(ts) * 1000;
   if (!t) return '—';
   const d = (Date.now() - t) / 1000;
-  if (d < 60) return '刚刚';
-  if (d < 3600) return Math.floor(d / 60) + ' 分钟前';
-  if (d < 86400) return Math.floor(d / 3600) + ' 小时前';
-  if (d < 86400 * 7) return Math.floor(d / 86400) + ' 天前';
+  if (d < 60) return 'только что';
+  if (d < 3600) return Math.floor(d / 60) + ' мин назад';
+  if (d < 86400) return Math.floor(d / 3600) + ' ч назад';
+  if (d < 86400 * 7) return Math.floor(d / 86400) + ' дн. назад';
   return timeText(ts);
 }
 
@@ -194,7 +194,7 @@ function mountOverlay(overlay, close) {
   };
 }
 function closeButton(close, back = false) {
-  const label = back ? '返回' : '关闭';
+  const label = back ? 'Назад' : 'Закрыть';
   return h('button', {type:'button', class:'btn ghost icon sm panel-dismiss', title:label, 'aria-label':label, onclick:close}, icon(back ? 'back' : 'x',16));
 }
 export function dialog({ title, desc, body, actions = [], size = '', onClose } = {}) {
@@ -219,14 +219,14 @@ export function dialog({ title, desc, body, actions = [], size = '', onClose } =
   const unmount = mountOverlay(overlay, close);
   return { close, box };
 }
-export function confirmDialog({ title, desc, confirm = '确定', danger = false }) {
+export function confirmDialog({ title, desc, confirm = 'OK', danger = false }) {
   return new Promise((resolve) => {
     let done = false;
     dialog({
       title, desc,
       onClose: () => { if (!done) resolve(false); },
       actions: [
-        { label: '取消', kind: 'ghost' },
+        { label: 'Отмена', kind: 'ghost' },
         { label: confirm, kind: danger ? 'danger solid' : 'primary', onClick: () => { done = true; resolve(true); } },
       ],
     });
@@ -240,28 +240,28 @@ export function loginDialog({ desc, onDone } = {}) {
   const err = h('p', { class: 'alert', role: 'alert', hidden: true });
   const body = h('div', {},
     err,
-    h('label', { class: 'field' }, h('span', { text: '账号' }), user),
-    h('label', { class: 'field', style: { marginTop: '10px' } }, h('span', { text: '密码' }), pass),
-    h('p', { class: 'hint', html: '账号和密码在服务器目录的 <code>config.yaml</code> 里（<code>admin.username</code> / <code>admin.password</code>）。发布包默认是 <code>admin</code> / <code>admin123</code>。' }));
+    h('label', { class: 'field' }, h('span', { text: 'Логин' }), user),
+    h('label', { class: 'field', style: { marginTop: '10px' } }, h('span', { text: 'Пароль' }), pass),
+    h('p', { class: 'hint', html: 'Логин и пароль находятся в файле <code>config.yaml</code> в папке сервера (<code>admin.username</code> / <code>admin.password</code>). В сборке по умолчанию: <code>admin</code> / <code>admin123</code>. ' }));
   dialog({
-    title: '登录管理后台',
-    desc: desc || '不登录也能看各页现状；登录后才能改玩家数据、保存设置。',
+    title: 'Вход в админ-панель',
+    desc: desc || 'Без входа можно смотреть все страницы; изменять данные игроков и сохранять настройки можно только после входа.',
     body,
     actions: [
-      { label: '取消', kind: 'ghost' },
+      { label: 'Отмена', kind: 'ghost' },
       {
-        label: '登录', kind: 'primary',
+        label: 'Войти', kind: 'primary',
         onClick: async () => {
           err.hidden = true;
           try {
             const d = await post('/api/login', { username: user.value.trim(), password: pass.value });
             setToken(d.token);
-            toast('已登录');
+            toast('Вход выполнен');
             onDone && onDone();
             return false;
           } catch (ex) {
             err.hidden = false;
-            err.textContent = ex.status === 401 || ex.status === 403 ? '账号或密码不对。' : errText(ex);
+            err.textContent = ex.status === 401 || ex.status === 403 ? 'Неверный логин или пароль.' : errText(ex);
             return true;
           }
         },
@@ -320,7 +320,7 @@ export function sidePage({ title, sub, desc, body, actions = [], foot, effect, b
     catch (e) { toast(errText(e), 'bad'); }
     finally { pending = false; if (sidePages.at(-1) === entry) panel.inert = false; }
   }}, a.label));
-  const signin = h('button', {class:'btn ghost',type:'button',hidden:!!getToken(), onclick:() => loginDialog({onDone:() => { signin.hidden = true; }})}, '登录管理后台');
+  const signin = h('button', {class:'btn ghost',type:'button',hidden:!!getToken(), onclick:() => loginDialog({onDone:() => { signin.hidden = true; }})}, 'Вход в админ-панель');
   const panel = h('section', {class:'side-page', 'aria-label':title},
     h('header', {class:'side-page-head'}, h('div', {}, h('h2', {text:title}), (sub || desc) ? h('small', {text:sub || desc}) : null),
       signin, closeButton(close, !!parent)),
@@ -378,10 +378,10 @@ export function pageHead(title, desc, a3, a4, a5) {
   const cells = Array.isArray(opts.nums) && opts.nums.length
     ? opts.nums.map(([v, u]) => [String(v), u])
     : [
-      [fmt(s.sessions), '在线玩家'],
-      [fmt(s.players), '档案'],
-      [fmt(s.tunables), '可调参数'],
-      [String(port), '后台端口'],
+      [fmt(s.sessions), 'Игроки онлайн'],
+      [fmt(s.players), 'Профили'],
+      [fmt(s.tunables), 'Настраиваемые параметры'],
+      [String(port), 'Порт админки'],
     ];
   const strip = Array.isArray(opts.facts) ? opts.facts : [];
   const route = currentRoute() || 'dashboard';
@@ -392,7 +392,7 @@ export function pageHead(title, desc, a3, a4, a5) {
         h('h1', { id: 'title', text: title }),
         desc ? h('p', { class: 'lede', id: 'lede', text: desc }) : null,
         opts.actions ? h('div', { class: 'hero-acts' }, ...[].concat(opts.actions)) : null),
-      h('div', { class: 'hero-side', 'aria-label': '服务器要点' },
+      h('div', { class: 'hero-side', 'aria-label': 'Главное о сервере' },
         ...cells.map(([v, u], i) => h('div', { class: i === 0 ? 'k1' : '' }, h('b', { text: v }), h('i', { text: u })))),
       strip.length ? h('div', { class: 'factbar' },
         h('dl', { class: 'facts' },
@@ -404,7 +404,7 @@ export function pageHead(title, desc, a3, a4, a5) {
 export function pageTabs(items, active, onSelect) {
   if (!Array.isArray(items) || !items.length) return null;
   const route = currentRoute() || 'dashboard';
-  const nav = h('nav', { class: 'tabs', 'aria-label': '二级分类' },
+  const nav = h('nav', { class: 'tabs', 'aria-label': 'Подкатегория' },
     ...items.map(([key, label]) => h('a', {
       href: '#' + route + '/' + key,
       'aria-current': key === active ? 'page' : false,
@@ -442,7 +442,7 @@ export function pblock(index, title, desc, body, opts = {}) {
     h('div', { class: 'pblock-head' },
       h('b', { class: 'pno', text: no }),
       h('span', { class: 'ptitle' }, h('b', { text: title }), desc ? h('small', { text: desc }) : null),
-      h('span', { class: 'pill', text: opts.pill || '未改动' })),
+      h('span', { class: 'pill', text: opts.pill || 'Без изменений' })),
     h('div', { class: 'two gapped' }, body));
 }
 
@@ -608,9 +608,9 @@ export class Form {
     const control = buildControl(this, f);
     const metaBits = [];
     if (spec.kind === 'int' || spec.kind === 'float') {
-      if (spec.max !== undefined) metaBits.push('范围 ' + (spec.min ?? 0) + ' – ' + spec.max + (spec.unit ? ' ' + spec.unit : ''));
+      if (spec.max !== undefined) metaBits.push('Диапазон ' + (spec.min ?? 0) + ' – ' + spec.max + (spec.unit ? ' ' + spec.unit : ''));
     }
-    if (spec.def !== undefined && spec.def !== '') metaBits.push('默认 ' + (spec.kind === 'bool' ? (String(spec.def) === '1' || spec.def === true ? '开' : '关') : spec.def + (spec.unit && spec.kind !== 'bool' ? ' ' + spec.unit : '')));
+    if (spec.def !== undefined && spec.def !== '') metaBits.push('По умолчанию ' + (spec.kind === 'bool' ? (String(spec.def) === '1' || spec.def === true ? 'Вкл' : 'Выкл') : spec.def + (spec.unit && spec.kind !== 'bool' ? ' ' + spec.unit : '')));
     f.errEl = h('div', { class: 's-error', hidden: true });
     const subBits = [spec.help || '', ...metaBits].filter(Boolean).join(' · ');
     f.row = h('label', { class: 'row' + (opts.wide ? ' wide' : '') },
@@ -698,17 +698,17 @@ function writeInput(f, v) {
 }
 function validate(spec, raw) {
   if (spec.kind !== 'int' && spec.kind !== 'float') {
-    if (spec.required && !raw) return '请填写' + spec.label;
-    if (spec.pattern && raw && !spec.pattern.test(raw)) return spec.patternMsg || '格式不正确';
+    if (spec.required && !raw) return 'Заполните' + spec.label;
+    if (spec.pattern && raw && !spec.pattern.test(raw)) return spec.patternMsg || 'Неверный формат';
     return '';
   }
-  if (raw === '') return spec.optional ? '' : '请填写数值';
+  if (raw === '') return spec.optional ? '' : 'Введите значение';
   const n = Number(raw);
-  if (!Number.isFinite(n)) return '请填写数字';
-  if (spec.kind === 'int' && !Number.isInteger(n)) return '请填写整数';
+  if (!Number.isFinite(n)) return 'Введите число';
+  if (spec.kind === 'int' && !Number.isInteger(n)) return 'Введите целое число';
   const lo = spec.min ?? (spec.max !== undefined ? 0 : undefined);
-  if (lo !== undefined && n < lo) return '不能小于 ' + lo;
-  if (spec.max !== undefined && n > spec.max) return '不能大于 ' + spec.max;
+  if (lo !== undefined && n < lo) return 'Не может быть меньше ' + lo;
+  if (spec.max !== undefined && n > spec.max) return 'Не может быть больше ' + spec.max;
   return '';
 }
 function setError(f, msg) {
@@ -733,22 +733,22 @@ export function savebar(form, { onSave, label, inline, effect } = {}) {
   }
   const count = h('span');
   let saving = false;
-  const saveBtn = btn('保存修改', async () => {
+  const saveBtn = btn('Сохранить изменения', async () => {
     const keys = form.dirtyKeys();
     if (saving || !keys.length || !live()) return;
-    if (!form.validate(keys)) { toast('有填写不正确的项，请检查标红的输入框', 'bad'); return; }
+    if (!form.validate(keys)) { toast('Есть неверно заполненные поля, проверьте выделенные красным', 'bad'); return; }
     const values = form.values(keys);
     saving = saveBtn.disabled = true;
-    try { await onSave(values, keys); form.commit(values); toast(effect ? '已保存。' + effect : '已保存'); }
+    try { await onSave(values, keys); form.commit(values); toast(effect ? 'Сохранено. ' + effect : 'Сохранено'); }
     catch (e) { toast(errText(e), 'bad'); }
     finally { saving = false; update(); }
   }, 'primary sm');
-  bar.replaceChildren(count, btn('放弃', () => form.reset(), 'ghost sm'), saveBtn);
+  bar.replaceChildren(count, btn('Отменить', () => form.reset(), 'ghost sm'), saveBtn);
   const update = () => {
     if (!live()) return;
     const n = form.dirtyKeys().length;
-    if (inline && n === 0) count.replaceChildren(h('span', { class: 'hint', text: '没有改动' }));
-    else count.replaceChildren((label || ''), h('b', { text: n }), ' 项修改尚未保存');
+    if (inline && n === 0) count.replaceChildren(h('span', { class: 'hint', text: 'Изменений нет' }));
+    else count.replaceChildren((label || ''), h('b', { text: n }), ' изм. не сохранено');
     if (effect) count.append(h('small', {style:{display:'block'}, text:effect}));
     saveBtn.disabled = saving || n === 0;
     bar.classList.toggle('on', n > 0);
@@ -798,7 +798,7 @@ export async function render() {
   const { name, params } = parseHash();
   const def = routes.get(name) || routes.get('dashboard');
   const key = routes.has(name) ? name : 'dashboard';
-  if (!$('#view')) return; // 还在登录页或框架未建好，boot 完成后会再渲染
+  if (!$('#view')) return; // 还在登录页或框架未建好, boot 完成后会再渲染
   if (!leaveSidePages()) return;
   const id = ++renderID;
   cleanupPage();
@@ -840,7 +840,7 @@ export async function render() {
     root.inert = false;
     root.classList.remove('is-busy');
     if (e && e.status === 401) return;
-    root.replaceChildren(h('div', { class: 'work solo' }, h('section', {}, callout('bad', ['页面加载失败：', errText(e)]))));
+    root.replaceChildren(h('div', { class: 'work solo' }, h('section', {}, callout('bad', ['Не удалось загрузить страницу:', errText(e)]))));
   }
 }
 let unloadConfirmed = false;
@@ -852,13 +852,13 @@ window.addEventListener('beforeunload', (e) => {
 // 「刷新本页」：主页面和侧页的未保存修改都要先确认，确认过后不再弹浏览器自带的离开提示。
 export function reloadPage() {
   if (!sidePages.every(p => p.canLeave())) return;
-  if (guardFn && guardFn() && !confirm('有修改还没保存，确定刷新吗？')) return;
+  if (guardFn && guardFn() && !confirm('Есть несохранённые изменения. Всё равно обновить?')) return;
   unloadConfirmed = true;
   location.reload();
 }
 let lastHash = location.hash;
 window.addEventListener('hashchange', () => {
-  if (guardFn && guardFn() && !confirm('有修改还没保存，确定离开吗？')) {
+  if (guardFn && guardFn() && !confirm('Есть несохранённые изменения. Всё равно уйти?')) {
     history.replaceState(null, '', lastHash);
     return;
   }

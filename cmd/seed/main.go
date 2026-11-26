@@ -17,10 +17,10 @@ import (
 )
 
 func main() {
-	configPath := flag.String("config", "config.yaml", "配置文件路径")
-	staticDB := flag.String("static-db", "", "静态配置库路径（默认取 sqlite.static_path）")
-	adminUser := flag.String("init-admin", "", "初始化管理员（表空时生效）")
-	adminPass := flag.String("init-admin-pass", "", "初始管理员密码（配合 -init-admin）")
+	configPath := flag.String("config", "config.yaml", "Путь к файлу конфигурации")
+	staticDB := flag.String("static-db", "", "Путь к статической базе (по умолчанию sqlite.static_path)")
+	adminUser := flag.String("init-admin", "", "Создать администратора (действует, если таблица пуста)")
+	adminPass := flag.String("init-admin-pass", "", "Пароль первого администратора (вместе с -init-admin)")
 	flag.Parse()
 
 	cfg, err := config.Load(*configPath)
@@ -36,10 +36,10 @@ func main() {
 	ctx := context.Background()
 	res, err := seed.Ensure(ctx, cfg, *staticDB, *adminUser, *adminPass, log)
 	if err != nil {
-		log.Error("初始化失败: " + err.Error())
+		log.Error("Ошибка инициализации: " + err.Error())
 		os.Exit(1)
 	}
-	log.Info(fmt.Sprintf("seed 完成 seeded=%v tables=%d admin_created=%v elapsed=%s",
+	log.Info(fmt.Sprintf("seed Готово seeded=%v tables=%d admin_created=%v elapsed=%s",
 		res.Seeded, res.Tables, res.AdminCreated, res.Elapsed.Round(time.Millisecond)))
 }
 

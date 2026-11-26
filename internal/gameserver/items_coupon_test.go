@@ -19,21 +19,21 @@ func TestCouponChucheloUsesVoucherClass(t *testing.T) {
 	t.Parallel()
 	entry, ok := categoryWireClass[74]
 	if !ok {
-		t.Fatal("categoryWireClass 缺少 74（梦鱼优惠券）")
+		t.Fatal("categoryWireClass 缺少 74 (梦鱼优惠券)")
 	}
 	if entry.Class != "ahgeldclmdj" || entry.TypeID != 13018 {
-		t.Fatalf("梦鱼优惠券映射 = %s/%d，期望 ahgeldclmdj/13018", entry.Class, entry.TypeID)
+		t.Fatalf("梦鱼优惠券映射 = %s/%d, 期望 ahgeldclmdj/13018", entry.Class, entry.TypeID)
 	}
 	if got := wiregen.ClassTypeID["ahgeldclmdj"]; got != 13018 {
-		t.Fatalf("ahgeldclmdj type_id = %d，期望 13018", got)
+		t.Fatalf("ahgeldclmdj type_id = %d, 期望 13018", got)
 	}
 	if !reclassifyCategories[74] {
-		t.Fatal("reclassifyCategories 缺少 74：存量券不会在启动修复时改写")
+		t.Fatal("reclassifyCategories 缺少 74: 存量券不会在启动修复时改写")
 	}
 	// 合同守卫 itemTypeIDs 从 categoryWireClass 派生：新 tid 必须能被 4/22
 	// 物品增量下发，否则背包同步仍会把券拒掉。
 	if !isItemTypeID(13018) {
-		t.Fatal("itemTypeIDs 缺少 13018：4/22 增量会拒发梦鱼优惠券")
+		t.Fatal("itemTypeIDs 缺少 13018: 4/22 增量会拒发梦鱼优惠券")
 	}
 }
 
@@ -49,21 +49,21 @@ func TestCreateCouponUsesVoucherClass(t *testing.T) {
 		t.Fatal(err)
 	}
 	if it.WireClass != "ahgeldclmdj" || it.TypeID != 13018 {
-		t.Fatalf("新发梦鱼优惠券 = %s/%d，期望 ahgeldclmdj/13018", it.WireClass, it.TypeID)
+		t.Fatalf("新发梦鱼优惠券 = %s/%d, 期望 ahgeldclmdj/13018", it.WireClass, it.TypeID)
 	}
 	fresh, err := db.GetItemByGUID(ctx, it.GUID)
 	if err != nil || fresh == nil {
 		t.Fatal("读取新发券失败: ", err)
 	}
 	if fresh.WireClass != "ahgeldclmdj" || fresh.TypeID != 13018 {
-		t.Fatalf("入库后 = %s/%d，期望 ahgeldclmdj/13018", fresh.WireClass, fresh.TypeID)
+		t.Fatalf("入库后 = %s/%d, 期望 ahgeldclmdj/13018", fresh.WireClass, fresh.TypeID)
 	}
 	fields, err := FieldsFromJSON(fresh.FieldsJSON)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if len(fields) != len(wiregen.ClassOps["ahgeldclmdj"]) {
-		t.Fatalf("字段数 = %d，期望 %d", len(fields), len(wiregen.ClassOps["ahgeldclmdj"]))
+		t.Fatalf("字段数 = %d, 期望 %d", len(fields), len(wiregen.ClassOps["ahgeldclmdj"]))
 	}
 }
 
@@ -80,7 +80,7 @@ func TestReclassifyCouponFromFallback(t *testing.T) {
 		t.Skip("静态库缺 coupon_chuchelo 定义: ", err)
 	}
 	if def.Category != 74 {
-		t.Fatalf("coupon_chuchelo 品类 = %d，期望 74", def.Category)
+		t.Fatalf("coupon_chuchelo 品类 = %d, 期望 74", def.Category)
 	}
 
 	guid := "fedcba9876543210fedcba9876543210"
@@ -120,7 +120,7 @@ func TestReclassifyCouponFromFallback(t *testing.T) {
 		t.Fatal("改写后读取失败: ", err)
 	}
 	if fresh.WireClass != "ahgeldclmdj" || fresh.TypeID != 13018 {
-		t.Fatalf("改写后 = %s/%d，期望 ahgeldclmdj/13018", fresh.WireClass, fresh.TypeID)
+		t.Fatalf("改写后 = %s/%d, 期望 ahgeldclmdj/13018", fresh.WireClass, fresh.TypeID)
 	}
 	if fresh.Container != "backpack" || fresh.Qty != 1 || fresh.GUID != guid {
 		t.Fatalf("容器/数量/guid 被改动: %+v", fresh)
@@ -130,7 +130,7 @@ func TestReclassifyCouponFromFallback(t *testing.T) {
 		t.Fatal(err)
 	}
 	if len(freshFields) != len(wiregen.ClassOps["ahgeldclmdj"]) {
-		t.Fatalf("字段数 = %d，期望 %d", len(freshFields), len(wiregen.ClassOps["ahgeldclmdj"]))
+		t.Fatalf("字段数 = %d, 期望 %d", len(freshFields), len(wiregen.ClassOps["ahgeldclmdj"]))
 	}
 	if idx := fieldIdxByCS("ahgeldclmdj", csGUID); freshFields[idx].Hex != guid {
 		t.Errorf("guid 未保留: %s", freshFields[idx].Hex)
@@ -141,6 +141,6 @@ func TestReclassifyCouponFromFallback(t *testing.T) {
 	// 券已退出 countableCategories；reclassify 必须显式把权威数量槽 dnmfciolgep
 	// 写回 1，否则改写后该槽保持 0，客户端读不出这一张。
 	if n, ok := itemQtyValue("ahgeldclmdj", freshFields); !ok || n != 1 {
-		t.Errorf("改写后券数量槽应为 1，实得 %d ok=%v", n, ok)
+		t.Errorf("改写后券数量槽应为 1, 实得 %d ok=%v", n, ok)
 	}
 }

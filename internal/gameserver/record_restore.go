@@ -13,7 +13,7 @@ import (
 func PrepareRestoredRecord(ctx context.Context, db *store.DB, key string, grade, weight int64) (store.CatchRecord, error) {
 	r := store.CatchRecord{FishKey: key, Grade: grade}
 	if grade < 0 || grade > 4 {
-		return r, fmt.Errorf("无效档位")
+		return r, fmt.Errorf("Неверная категория")
 	}
 	if grade == 0 {
 		return r, nil
@@ -28,7 +28,7 @@ func PrepareRestoredRecord(ctx context.Context, db *store.DB, key string, grade,
 		}
 	}
 	if weight <= 0 || weight > math.MaxUint32 || s.rollGradeDB(ctx, key, weight) != grade {
-		return r, fmt.Errorf("%s：重量不在所选档位内，或该鱼种没有此档位", key)
+		return r, fmt.Errorf("%s: вес не входит в выбранную категорию, или у этого вида нет такой категории", key)
 	}
 	k, p := db.SpeciesLengthKP(ctx, key)
 	k, p = calibratedLengthKP(key, k, p)

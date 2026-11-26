@@ -22,16 +22,16 @@ type FishState struct {
 	mu          fishStateMutex
 	finishMu    sync.Mutex
 	GearGuid    string
-	RigType     int64 // jppmjnahbpo 钓组种类（on_cast 记录；路亚族单独节奏）
+	RigType     int64 // jppmjnahbpo 钓组种类 (on_cast 记录; 路亚族单独节奏)
 	Loc         string
 	Spot        uint64
-	DepthCM     int64 // 玩家设钓深（17/12 记入；14/1 的 158.f2 透传用）
-	ReelSetting int64 // 17/15 收线速度档（路亚族）；摩擦档位见 rod_setting.reel_drag_setting
+	DepthCM     int64 // 玩家设钓深 (17/12 记入; 14/1 的 158.f2 透传用)
+	ReelSetting int64 // 17/15 收线速度档 (路亚族); 摩擦档位见 rod_setting.reel_drag_setting
 	// reelWear 是本竿搏鱼期间的渔轮磨损账（泄力打滑 + 锁轮过载）。仅进程内，
 	// 落库后清零；口径见 specs/changes/reel-friction-life-model/spec.md。
 	reelWear   fightReelWear
 	CastActive bool
-	CastM      float64 // 本杆 14/2 上报的实际落点距离（米），不是钓具理论最大值
+	CastM      float64 // 本杆 14/2 上报的实际落点距离 (米), 不是钓具理论最大值
 	InWater    bool
 	NeedBite   bool
 	PosX       float64
@@ -52,13 +52,13 @@ type FishState struct {
 	FallSeen        bool
 	RigSettled      bool
 	TickSeen        bool
-	TickSeq         uint64  // 14/7 f14 客户端 tick 序号（诊断/恢复）
-	LastAnim        uint32  // 14/7 f5 上一次的动画位（仅在变更时打日志）
-	LureMotionMask  uint32  // 14/7 f5 原始拟饵运动位，保留给完整状态映射
-	LureAction      string  // 已识别的运动状态；未知时为空
-	LureLayer       float64 // 0=水面，1=水底；路亚实时水层
-	LureDive        float64 // 仅进程内：当前拟饵名义泳层（loadLureAttributes 的 DiveDepth），0=未知；钳制运动推导值并作抛竿种子
-	LureType        string  // 仅进程内：当前拟饵类型名（loadLureAttributes 的 Type，如 jerkbait/pilker），pace 复合分用；随 14/1 播种，换饵不刷新（与 PaceScore 同口径）
+	TickSeq         uint64  // 14/7 f14 客户端 tick 序号 (诊断/恢复)
+	LastAnim        uint32  // 14/7 f5 上一次的动画位 (仅在变更时打日志)
+	LureMotionMask  uint32  // 14/7 f5 原始拟饵运动位, 保留给完整状态映射
+	LureAction      string  // 已识别的运动状态; 未知时为空
+	LureLayer       float64 // 0=水面, 1=水底; 路亚实时水层
+	LureDive        float64 // 仅进程内: 当前拟饵名义泳层 (loadLureAttributes 的 DiveDepth), 0=未知; 钳制运动推导值并作抛竿种子
+	LureType        string  // 仅进程内: 当前拟饵类型名 (loadLureAttributes 的 Type, 如 jerkbait/pilker), pace 复合分用; 随 14/1 播种, 换饵不刷新 (与 PaceScore 同口径)
 	LureStateAt     time.Time
 	LureLayerAt     time.Time
 	LurePulseAt     time.Time
@@ -86,7 +86,7 @@ type FishState struct {
 	BottomCycle          int
 
 	PushSent bool
-	pushing  *RolledFish // 仅进程内：防止同一尾鱼并发重推
+	pushing  *RolledFish // 仅进程内: 防止同一尾鱼并发重推
 	Hooked   bool
 	Resolved bool
 	Pending  *RolledFish
@@ -110,12 +110,12 @@ type FishState struct {
 	biteTicket     uint64
 	pendingTicket  uint64
 	PendingRepush  int           // 14/12 f0=3/5/6 连续拒收鱼实体时的重推次数
-	EmptyStreak    int           // 连续空轮计数（保底杂口 bite_gate_pity_rounds 用；出鱼即清零，不持久化）
-	BiteAt         time.Time     // 原定咬钩绝对时刻；硬重启后据此恢复 timer
-	Keepnet        []*RolledFish // 回退缓存（DB 权威）
+	EmptyStreak    int           // 连续空轮计数 (保底杂口 bite_gate_pity_rounds 用; 出鱼即清零, 不持久化)
+	BiteAt         time.Time     // 原定咬钩绝对时刻; 硬重启后据此恢复 timer
+	Keepnet        []*RolledFish // 回退缓存 (DB 权威)
 	Bait           string
-	LastSkill      int64       // 本次钓鱼大类（1 浮钓 / 2 纺车）
-	Armed          *RolledFish // GM 武装"下一杆必上"（唯一绕过重量上限的路径）
+	LastSkill      int64       // 本次钓鱼大类 (1 浮钓 / 2 纺车)
+	Armed          *RolledFish // GM 武装"下一杆必上" (唯一绕过重量上限的路径)
 	Bonus          fishingSkillBonus
 	persist        fishPersistMeta
 
@@ -136,7 +136,7 @@ type FishState struct {
 	// PaceRearmAt 是上次「动作改善重排」的时刻（2 秒防抖），仅进程内。
 	PaceRearmAt time.Time
 
-	hookedChatFishGUID string // 仅进程内：同一尾鱼的确认与拒收重推共用播报标记。
+	hookedChatFishGUID string // 仅进程内: 同一尾鱼的确认与拒收重推共用播报标记.
 	// 仅进程内：耐力播报的节流时间与鱼标识，不进持久化快照。
 	lastStaminaReportAt time.Time
 	lastStaminaFishGUID string
@@ -321,18 +321,18 @@ const maxPendingRepush = 2
 
 // RolledFish 待结算/已结算的鱼。
 type RolledFish struct {
-	GearGUID       string // 发鱼时的原竿；切手持竿不能改变这尾鱼的归属。
+	GearGUID       string // 发鱼时的原竿; 切手持竿不能改变这尾鱼的归属.
 	HookGUID       string
 	HappyHour      bool
 	HappyHourKnown bool
 	BaitGUIDs      string
 	BaitsKnown     bool
-	BaitItem       string  // 本次咬钩实际使用的饵（多钩取选中钩位的真实饵）
+	BaitItem       string  // 本次咬钩实际使用的饵 (多钩取选中钩位的真实饵)
 	BiteQuality    string  // solid / nibble
-	HookHoldP      float64 // 钩型保持率；蓝冠天命鱼固定 1
+	HookHoldP      float64 // 钩型保持率; 蓝冠天命鱼固定 1
 	LuckProtected  bool    // 蓝冠天命保护
-	HookConfirmed  bool    // 本尾鱼已经通过首次中钩确认，后续重放不再抽样/扣饵
-	HuntStage      int     // 发鱼时的鱼猎阶段；用于结算保底，不随入护时状态变化
+	HookConfirmed  bool    // 本尾鱼已经通过首次中钩确认, 后续重放不再抽样/扣饵
+	HuntStage      int     // 发鱼时的鱼猎阶段; 用于结算保底, 不随入护时状态变化
 	HuntStageKnown bool
 
 	FishGUID string
@@ -343,8 +343,8 @@ type RolledFish struct {
 	XP       int64
 	Silver   int64
 	LocLevel string
-	Stamina  float64 // obj27#05 搏鱼体力池；0=按体重和已验证兜底比例计算
-	Force    float64 // obj27#08 拉力；0=按体重和已验证比例计算
+	Stamina  float64 // obj27#05 搏鱼体力池; 0=按体重和已验证兜底比例计算
+	Force    float64 // obj27#08 拉力; 0=按体重和已验证比例计算
 	NamedID  string  // 被命名鱼
 	Name     string
 	// DepthCM/OnBoat 是咬钩瞬间的钓深与船只状态，只供资格判定读取；随
@@ -361,7 +361,7 @@ type RolledFish struct {
 	// 时刻判定，避免搏鱼跨过 06:00/19:00 后改用结算时间。
 	CastM    float64
 	IsNight  bool
-	BiteUnix int64 // 精确时段资格使用的咬钩时间，随鱼持久化。
+	BiteUnix int64 // 精确时段资格使用的咬钩时间, 随鱼持久化.
 	// ModelVariant 这尾鱼在客户端用的 FishFamily 族名（a_salmon_f2 等）；
 	// 空=用鱼种默认族。溜鱼 / 结算弹窗 / 渔护 / 鱼卡共用这一个值。
 	ModelVariant string
@@ -774,16 +774,16 @@ var fishPullK0 = map[string]fishPullParam{
 	"crucian": {K0: 15.05, Slope: 0.35}, // 6 样本 193~743g
 	"c.carp":  {K0: 13.84, Slope: 0.45}, // 4 样本 140~1574g
 	"c.roach": {K0: 16.36, Slope: 0.23}, // 3 样本 150~713g
-	"rudd":    {K0: 19.24, Slope: 0.53}, // 4 样本 195~402g（2026-11-16 新实测）
+	"rudd":    {K0: 19.24, Slope: 0.53}, // 4 样本 195~402g (2026-11-16 新实测)
 	"g_carp":  {K0: 18.79, Slope: 0.23}, // 5 样本 4880~21742g
-	"m_carp":  {K0: 16.27, Slope: 0.59}, // 4 样本 2312~5370g；v2.2 已恢复 4 个单样本 f8 锚点
+	"m_carp":  {K0: 16.27, Slope: 0.59}, // 4 样本 2312~5370g; v2.2 已恢复 4 个单样本 f8 锚点
 	// —— 单样本（Slope<0 → 全局 0.35；鲤科按鲤科先验）——
-	"carp_ghost": {K0: 16.73, Slope: -1}, // 4513g（新）
-	"n_carp":     {K0: 16.53, Slope: -1}, // 4405g（新）
-	"kw_tench":   {K0: 18.68, Slope: -1}, // 987g（新）
-	"c_bleak":    {K0: 18.81, Slope: -1}, // 24g（新；ln 外推远，低置信）
-	"a_char":     {K0: 20.07, Slope: -1}, // 415g（鲑科首测，旧路亚包流 3 补挖）
-	"gc_smelt":   {K0: 20.15, Slope: -1}, // 772g（同上）
+	"carp_ghost": {K0: 16.73, Slope: -1}, // 4513g (新)
+	"n_carp":     {K0: 16.53, Slope: -1}, // 4405g (新)
+	"kw_tench":   {K0: 18.68, Slope: -1}, // 987g (新)
+	"c_bleak":    {K0: 18.81, Slope: -1}, // 24g (新; ln 外推远, 低置信)
+	"a_char":     {K0: 20.07, Slope: -1}, // 415g (鲑科首测, 旧路亚包流 3 补挖)
+	"gc_smelt":   {K0: 20.15, Slope: -1}, // 772g (同上)
 	"n.pike":     {K0: 17.30, Slope: -1},
 	"din_l_carp": {K0: 16.94, Slope: -1},
 	"b_carp":     {K0: 18.00, Slope: -1},
@@ -794,40 +794,40 @@ var fishPullK0 = map[string]fishPullParam{
 	"m_scorpius":    {K0: 17.66, Slope: 0}, // 5 样本 205~1142g
 	"shemaya_cha":   {K0: 18.64, Slope: 0}, // 4 样本 117~237g
 	"tiulka":        {K0: 18.64, Slope: 0}, // 6 样本 10~13g
-	"pumps_sunfish": {K0: 19.62, Slope: 0}, // 2 样本 52g（与 b_gill 同离散值）
+	"pumps_sunfish": {K0: 19.62, Slope: 0}, // 2 样本 52g (与 b_gill 同离散值)
 	"menek":         {K0: 18.64, Slope: 0}, // 6117g
 	"pollachius":    {K0: 22.56, Slope: 0}, // 2387g
 	"atl_herring":   {K0: 22.57, Slope: 0}, // 560g
 	"makrel":        {K0: 23.54, Slope: 0}, // 1891g
-	"cha_herring":   {K0: 25.53, Slope: 0}, // 114g（全表最高）
-	"taran":         {K0: 18.64, Slope: 0}, // 611g 实测 k 与离散值精确重合，v2 重估
+	"cha_herring":   {K0: 25.53, Slope: 0}, // 114g (全表最高)
+	"taran":         {K0: 18.64, Slope: 0}, // 611g 实测 k 与离散值精确重合, v2 重估
 	"piksha":        {K0: 18.64, Slope: 0}, // 2975g 同上
 	"b_gill":        {K0: 19.62, Slope: 0}, // 113g 同上
-	"merlang":       {K0: 20.60, Slope: 0}, // 252g 实测 k=20.60=2.1×9.81，落恒 k 离散档
+	"merlang":       {K0: 20.60, Slope: 0}, // 252g 实测 k=20.60=2.1×9.81, 落恒 k 离散档
 }
 
 // fishPullGroupK0 是未实测鱼种的习性组拉力参数（v2：组值按组内实测成员标定，
 // 海鱼类组继承恒 k（Slope=0），鲤科组继承成员自拟合斜率；纯估计组保持全局
 // 斜率先验 0.35。离散 k 证据见 fish-pull-k-table spec「v2 增补」。
 var fishPullGroupK0 = map[string]fishPullParam{
-	"marine_gadid":    {K0: 21.58, Slope: 0},    // 鳕形目（恒k锚 coalfish/atl_cod 21.58；组员无须鳕/蓝鳕/魣鳕/长尾鳕/白姑鱼）
-	"marine_pelagic":  {K0: 22.57, Slope: 0},    // 鲱鲭中上层（恒k锚 atl_herring 22.57；组员西鲱/沙丁/竹刀/带鱼/月鱼）
-	"marine_rock":     {K0: 17.66, Slope: 0},    // 礁岩底栖/鮋杜父/鳗鳃类（恒k锚 m_scorpius 17.66；鳗/七鳃鳗/蟹虾/pinagor 低置信归入）
-	"small_forage":    {K0: 18.64, Slope: 0},    // 小型饵料鱼（恒k锚 tiulka/shemaya_cha 18.64；刺鱼/鮈/鱥/泥鳅/胡瓜鱼）
-	"apex":            {K0: 25.53, Slope: 0},    // 鲨/剑鱼/金枪鱼顶级（纯推断取离散上界 25.53，无实测）
-	"sunfish":         {K0: 19.62, Slope: 0},    // 太阳鱼科（恒k锚 b_gill/pumps_sunfish 19.62）
-	"migratory_roach": {K0: 18.64, Slope: 0},    // 洄游速游拟鲤（恒k锚 taran 18.64）
-	"herb_carp":       {K0: 18.79, Slope: 0.23}, // 大型草食/滤食鲤科（变k锚 g_carp 斜率 0.23；鳙鲢/胭脂鱼/鲃）
-	"roach_run":       {K0: 16.36, Slope: 0.23}, // 拟鲤族速游（变k锚 c.roach 斜率 0.23）
-	"still_carp":      {K0: 15.05, Slope: 0.35}, // 静水鳊鲫（变k锚 crucian {15.05, 0.35}）
-	"carp_mid":        {K0: 16.50, Slope: -1},   // 中型力量鲤科（K0 锚 carp 16.50，斜率先验 0.35；锦鲤系/丁鱥/鼓鱼）
-	"pond_carp":       {K0: 13.84, Slope: 0.45}, // 小型池塘鲤（变k锚 c.carp {13.84, 0.45}）
-	"predator":        {K0: 17.30, Slope: -1},   // 梭形掠食者（K0 锚 n.pike 17.30，斜率先验 0.35）
-	"weak_silver":     {K0: 13.00, Slope: -1},   // 小型银色弱鱼/贝类/虾蛙（变k锚 s.bream {13.00, 0.35}；crawfish 无拉力数据按体型归入）
-	"salmonid":        {K0: 20.11, Slope: -1},   // 鲑科（按实测成员 a_char/gc_smelt 的 K0 均值标定，斜率仍为先验；crawfish/pinagor 已按习性移出，见 spec v2.1 修正）
-	"sturgeon":        {K0: 17.00, Slope: -1},   // 鲟科（纯估计 17.0）
-	"catfish":         {K0: 16.00, Slope: -1},   // 鲶科（纯估计 16.0）
-	"flatfish":        {K0: 16.00, Slope: -1},   // 比目鱼（纯估计 16.0）
+	"marine_gadid":    {K0: 21.58, Slope: 0},    // 鳕形目 (恒k锚 coalfish/atl_cod 21.58; 组员无须鳕/蓝鳕/魣鳕/长尾鳕/白姑鱼)
+	"marine_pelagic":  {K0: 22.57, Slope: 0},    // 鲱鲭中上层 (恒k锚 atl_herring 22.57; 组员西鲱/沙丁/竹刀/带鱼/月鱼)
+	"marine_rock":     {K0: 17.66, Slope: 0},    // 礁岩底栖/鮋杜父/鳗鳃类 (恒k锚 m_scorpius 17.66; 鳗/七鳃鳗/蟹虾/pinagor 低置信归入)
+	"small_forage":    {K0: 18.64, Slope: 0},    // 小型饵料鱼 (恒k锚 tiulka/shemaya_cha 18.64; 刺鱼/鮈/鱥/泥鳅/胡瓜鱼)
+	"apex":            {K0: 25.53, Slope: 0},    // 鲨/剑鱼/金枪鱼顶级 (纯推断取离散上界 25.53, 无实测)
+	"sunfish":         {K0: 19.62, Slope: 0},    // 太阳鱼科 (恒k锚 b_gill/pumps_sunfish 19.62)
+	"migratory_roach": {K0: 18.64, Slope: 0},    // 洄游速游拟鲤 (恒k锚 taran 18.64)
+	"herb_carp":       {K0: 18.79, Slope: 0.23}, // 大型草食/滤食鲤科 (变k锚 g_carp 斜率 0.23; 鳙鲢/胭脂鱼/鲃)
+	"roach_run":       {K0: 16.36, Slope: 0.23}, // 拟鲤族速游 (变k锚 c.roach 斜率 0.23)
+	"still_carp":      {K0: 15.05, Slope: 0.35}, // 静水鳊鲫 (变k锚 crucian {15.05, 0.35})
+	"carp_mid":        {K0: 16.50, Slope: -1},   // 中型力量鲤科 (K0 锚 carp 16.50, 斜率先验 0.35; 锦鲤系/丁鱥/鼓鱼)
+	"pond_carp":       {K0: 13.84, Slope: 0.45}, // 小型池塘鲤 (变k锚 c.carp {13.84, 0.45})
+	"predator":        {K0: 17.30, Slope: -1},   // 梭形掠食者 (K0 锚 n.pike 17.30, 斜率先验 0.35)
+	"weak_silver":     {K0: 13.00, Slope: -1},   // 小型银色弱鱼/贝类/虾蛙 (变k锚 s.bream {13.00, 0.35}; crawfish 无拉力数据按体型归入)
+	"salmonid":        {K0: 20.11, Slope: -1},   // 鲑科 (按实测成员 a_char/gc_smelt 的 K0 均值标定, 斜率仍为先验; crawfish/pinagor 已按习性移出, 见 spec v2.1 修正)
+	"sturgeon":        {K0: 17.00, Slope: -1},   // 鲟科 (纯估计 17.0)
+	"catfish":         {K0: 16.00, Slope: -1},   // 鲶科 (纯估计 16.0)
+	"flatfish":        {K0: 16.00, Slope: -1},   // 比目鱼 (纯估计 16.0)
 }
 
 // fishPullAlias 皮肤/变种鱼种 → 宿主实测种：变种与宿主同属性，直接继承
@@ -1114,7 +1114,7 @@ func fightGroupKeyFromPullGroup(species string) (string, bool) {
 // 先验组 Slope=-1 回落全局 fishPullLnSlope；fallback Slope=-1 同。
 func (s *Server) fishPullParamFor(species string) fishPullParam {
 	if host := fishPullAliasHost(species); host != species {
-		return s.fishPullParamFor(host) // 皮肤变种继承宿主实测参数（一层别名，无环）
+		return s.fishPullParamFor(host) // 皮肤变种继承宿主实测参数 (一层别名, 无环)
 	}
 	if p, ok := fishPullK0[species]; ok {
 		return p
@@ -1292,7 +1292,7 @@ func (s *Server) rollFishForRig(ctx context.Context, uid int64, gearGUID, loc, b
 			case strengthOn:
 				capRule = "strength"
 			}
-			s.log.Info("派鱼重量上限", "rod", ids.Rod, "reel", ids.Reel, "line", ids.Line,
+			s.log.Info("Предел веса выдаваемой рыбы", "rod", ids.Rod, "reel", ids.Reel, "line", ids.Line,
 				"leader", ids.Leader, "weakest", weakest, "cap_kg", capKg, "rule", capRule)
 		}
 		return s.rollFishWithRules(loc, bait, capKg, bonus, c)
@@ -1508,7 +1508,7 @@ func (s *Server) rollFishFromDBWithRules(loc, bait string, gearCapKg float64, bo
 	if gate := s.biteGateConfig(); gate.enabled {
 		keys, wts = s.applyBiteGates(cctx, keys, wts, c, gate, statLoc)
 		if len(keys) == 0 {
-			markEmpty("食性/水层硬门")
+			markEmpty("Жёсткий фильтр питания/горизонта")
 			if c.gateBlocked != nil {
 				*c.gateBlocked = true
 			}
@@ -1520,7 +1520,7 @@ func (s *Server) rollFishFromDBWithRules(loc, bait string, gearCapKg float64, bo
 	if zk, zw, hit := s.applyFishZoneRoster(cctx, statLoc, keys, wts, c); hit {
 		keys, wts = zk, zw
 		if len(keys) == 0 {
-			markEmpty("区域名册（独占区无交集）")
+			markEmpty("Список зоны (нет пересечения с исключительной зоной)")
 			if c.gateBlocked != nil {
 				*c.gateBlocked = true
 			}
@@ -1535,7 +1535,7 @@ func (s *Server) rollFishFromDBWithRules(loc, bait string, gearCapKg float64, bo
 		}
 		keys, wts = s.filterFishBaitSet(statLoc, c.baits, keys, wts, c.now, c)
 		if len(keys) == 0 {
-			markEmpty("饵料规则（strict）")
+			markEmpty("Правила наживки (strict)")
 			return nil
 		}
 		for i, key := range keys {
@@ -1547,7 +1547,7 @@ func (s *Server) rollFishFromDBWithRules(loc, bait string, gearCapKg float64, bo
 	if distribution && (c.query == nil || !c.query.regional) {
 		applyFishDistribution(statLoc, keys, wts, c)
 		if !slices.ContainsFunc(wts, func(w float64) bool { return w > 0 }) {
-			markEmpty("分布散布（本时段本格无鱼）")
+			markEmpty("Распределение стай (в этой клетке сейчас нет рыбы)")
 			return nil
 		}
 	}
@@ -1667,15 +1667,15 @@ func (s *Server) rollFishFromDBWithRules(loc, bait string, gearCapKg float64, bo
 		}
 		s.applyHookBiteQuality(f, c.hook)
 		if baitHit {
-			s.log.Info("roll_from_db 命中饵效", "鱼种", key, "重量", w, "tier", tiers[key])
+			s.log.Info("roll_from_db Сработала наживка", "species", key, "weight", w, "tier", tiers[key])
 		}
 		// 咬钩落点审计：世界坐标 + 40m 网格 + 命中的区域名册（后台划区对账用）。
 		// resolveFishZone 与 applyFishZoneRoster 同源（缓存复用），纯查不改判鱼结果。
-		s.log.Info("咬钩落点", "鱼种", key, "x", math.Round(c.x), "z", math.Round(c.z),
-			"网格", fishArea(statLoc, c), "名册区域", zoneHitNote(s.fishZonesFor(cctx, statLoc), c),
-			"海图区号", c.runtime.chartZoneLabel(), "攻略标深", c.runtime.guideSpotLabel())
+		s.log.Info("Точка поклёвки", "species", key, "x", math.Round(c.x), "z", math.Round(c.z),
+			"grid", fishArea(statLoc, c), "zone", zoneHitNote(s.fishZonesFor(cctx, statLoc), c),
+			"chart_zone", c.runtime.chartZoneLabel(), "guide_depth", c.runtime.guideSpotLabel())
 		if s.huntStateEnabled() && c.uid > 0 {
-			s.log.Info("发鱼阶段", "uid", c.uid, "loc", c.loc, "spot", c.spot,
+			s.log.Info("Этап выдачи", "uid", c.uid, "loc", c.loc, "spot", c.spot,
 				"stage", s.fishHuntStageName(huntReady.Mode, huntReady.Stage), "A", roundTo(huntReady.A, 3),
 				"E", roundTo(huntReady.E, 3), "G", roundTo(huntReady.G, 3),
 				"P", roundTo(huntReady.P, 3), "Q", roundTo(huntReady.Q, 3),
@@ -1944,7 +1944,7 @@ func (s *Server) gradeRatioModel(l cachedGradeLines, modeMult, scale, capG float
 		3: s.tunableF("grade_pct_trophy", 9),
 		4: s.tunableF("grade_pct_super", 0.5),
 	}
-	usable := make([]gradeRatioBand, 0, len(bands)) // 档位比例是后台配置的绝对占比：饵效倍率只影响鱼种和体重分布，
+	usable := make([]gradeRatioBand, 0, len(bands)) // 档位比例是后台配置的绝对占比: 饵效倍率只影响鱼种和体重分布,
 	// 不得再把“合格”份额挪给“奖杯”，否则实际上星率会高于面板显示值。
 	_ = modeMult
 
@@ -2268,8 +2268,8 @@ type fishStatics struct {
 	f14 map[int64]float64
 	f15 map[int64]float64
 	f17 map[int64]float64
-	f16 float64 // 激进度/挣脱概率：官方逐鱼种常数（0.13~1.0）
-	f18 float64 // 官方逐鱼种常数（既有种落表时未采到差异，显式 1 维持现行为）
+	f16 float64 // 激进度/挣脱概率: 官方逐鱼种常数 (0.13~1.0)
+	f18 float64 // 官方逐鱼种常数 (既有种落表时未采到差异, 显式 1 维持现行为)
 	f20 float64
 	f9  [2]float64 // A, p
 	f10 [2]float64
@@ -2479,7 +2479,7 @@ func (s *Server) reloadMarineFishKeys(ctx context.Context) (int, error) {
 		return 0, err
 	}
 	if len(keys) == 0 {
-		return 0, fmt.Errorf("loc_fish/loc_alias 无海图鱼种，海水组回退词表判定")
+		return 0, fmt.Errorf("loc_fish/loc_alias Нет видов морской карты, морская группа определяется по словарю")
 	}
 	s.marineFishMu.Lock()
 	s.marineFishKeys = keys
@@ -3020,7 +3020,7 @@ func (s *Session) Push14_14(f *RolledFish, hookGUID, gearGuid string, rigType in
 	}
 	// 同一尾鱼短时间内重复推送会让客户端重建鱼实体，出现"溜的是一条、结算是另一条"。
 	if !s.claimFishPush(f.FishGUID) {
-		s.log.Info("忽略重复的 14/14 推送", "guid", shortGUID(f.FishGUID))
+		s.log.Info("Повторная отправка 14/14 пропущена", "guid", shortGUID(f.FishGUID))
 		return false
 	}
 	if gearGuid == "" {
@@ -3039,11 +3039,11 @@ func (s *Session) Push14_14(f *RolledFish, hookGUID, gearGuid string, rigType in
 	}
 	initialStamina := s.Srv.fishF6For(f)
 	force := s.Srv.fishFightPullFor(f)
-	s.log.Info("14/14 发鱼",
+	s.log.Info("14/14 Выдача рыбы",
 		"rod", shortGUID(gearGuid), "fish", shortGUID(f.FishGUID), "hook", shortGUID(hookGUID),
-		"鱼种", f.Species, "重量_g", f.WeightG, "体力池", stamina,
-		"初始体力", initialStamina, "拉力", force, "体型比例", profile.SizeRatio,
-		"拉力K0", s.Srv.fishPullK0For(f.Species), "耐力倍率", profile.StaminaScale)
+		"Вид рыбы", f.Species, "Вес_g", f.WeightG, "Запас сил", stamina,
+		"Начальные силы", initialStamina, "Тяга", force, "Пропорции", profile.SizeRatio,
+		"ТягаK0", s.Srv.fishPullK0For(f.Species), "Множитель выносливости", profile.StaminaScale)
 	return s.Push(14, 14, proto.Args524(
 		proto.Guid(gearGuid),
 		s.Srv.buildFish27(f, hookGUID, gearGuid, rigType),
@@ -3123,7 +3123,7 @@ func (s *Server) scheduleBiteState(sess *Session, st *FishState, preserveHooked,
 	st.mu.Unlock()
 	if reelGUID := s.rigBrokenReelGUID(sess.pushCtx(), sess.Userid, gear); reelGUID != "" {
 		if s.log != nil {
-			s.log.Info("排咬钩被拒：渔线轮已损坏", "rod", shortGUID(gear), "reel", shortGUID(reelGUID))
+			s.log.Info("Поклёвка отклонена: катушка сломана", "rod", shortGUID(gear), "reel", shortGUID(reelGUID))
 		}
 		return false
 	}
@@ -3338,7 +3338,7 @@ func (s *Server) onRodBiteTimerTicket(uid int64, st *FishState, ticket fishingTi
 		probability *= s.rodPaceProb(st)
 	}
 	if rand.Float64() >= probability {
-		s.log.Info("鱼口未命中，继续等待", "rod", shortGUID(st.GearGuid), "rig_type", st.RigType)
+		s.log.Info("Не клюнуло, ждём дальше", "rod", shortGUID(st.GearGuid), "rig_type", st.RigType)
 		s.emptyWeatherBiteLocked(sess, st, now)
 		st.mu.Unlock()
 		return
@@ -3370,7 +3370,7 @@ func (s *Server) onRodBiteTimerTicket(uid int64, st *FishState, ticket fishingTi
 			rollCtx = buildRollCtx(true)
 			if f = s.rollFishForRig(s.dbCtx(), uid, st.GearGuid, st.Loc, st.Bait, st.Bonus, rollCtx); f != nil {
 				st.EmptyStreak = 0
-				s.log.Info("保底杂口", "rod", shortGUID(st.GearGuid), "鱼种", f.Species, "连续空轮", pityN)
+				s.log.Info("Гарантированная поклёвка", "rod", shortGUID(st.GearGuid), "Вид рыбы", f.Species, "Пустых раундов подряд", pityN)
 			}
 		}
 	}
@@ -3385,12 +3385,12 @@ func (s *Server) onRodBiteTimerTicket(uid int64, st *FishState, ticket fishingTi
 		zoneNote := zoneHitNote(s.fishZonesFor(s.dbCtx(), audit.statLoc), rollCtx)
 		reason := audit.emptyReason
 		if reason == "" {
-			reason = "概率/权重全零"
+			reason = "Все вероятности/веса нулевые"
 		}
-		s.log.Info("本轮无符合条件的鱼，继续等待", "rod", shortGUID(st.GearGuid), "rig_type", st.RigType,
-			"x", math.Round(rollCtx.x), "z", math.Round(rollCtx.z), "有饵落点", rollCtx.hasPos, "场景", st.Loc, "网格", fishArea(gridLoc, rollCtx),
-			"名册区域", zoneNote, "海图区号", audit.runtime.chartZoneLabel(), "攻略标深", audit.runtime.guideSpotLabel(),
-			"空因", reason, "连续空轮", st.EmptyStreak)
+		s.log.Info("В этом раунде подходящей рыбы нет, ждём дальше", "rod", shortGUID(st.GearGuid), "rig_type", st.RigType,
+			"x", math.Round(rollCtx.x), "z", math.Round(rollCtx.z), "has_pos", rollCtx.hasPos, "scene", st.Loc, "grid", fishArea(gridLoc, rollCtx),
+			"zone", zoneNote, "chart_zone", audit.runtime.chartZoneLabel(), "guide_depth", audit.runtime.guideSpotLabel(),
+			"empty_reason", reason, "empty_streak", st.EmptyStreak)
 		s.emptyWeatherBiteLocked(sess, st, now)
 		st.mu.Unlock()
 		return
@@ -3420,7 +3420,7 @@ func (s *Server) onRodBiteTimerTicket(uid int64, st *FishState, ticket fishingTi
 	if len(extras) > 0 {
 		s.applyMultiHookPullBudget(append([]*RolledFish{f}, extras...),
 			s.multiHookStrengthKg(s.dbCtx(), uid, st.GearGuid), cfg.PullK)
-		s.log.Info("多钩同杆出鱼", "rod", shortGUID(st.GearGuid), "主鱼_g", f.WeightG,
+		s.log.Info("Несколько рыб на одной снасти", "rod", shortGUID(st.GearGuid), "Основная рыба_g", f.WeightG,
 			"额外", len(extras), "额外_g", extraWeights(extras))
 	}
 	st.Extra = extras
@@ -3499,7 +3499,7 @@ func (s *Server) pushPendingBite(sess *Session, st *FishState, f *RolledFish, ge
 	}
 	if reelGUID := s.rigBrokenReelGUID(sess.pushCtx(), sess.Userid, gear); reelGUID != "" {
 		if s.log != nil {
-			s.log.Info("14/14 被拒：渔线轮已损坏", "rod", shortGUID(gear),
+			s.log.Info("14/14 Отклонено: катушка сломана", "rod", shortGUID(gear),
 				"reel", shortGUID(reelGUID), "fish", shortGUID(f.FishGUID))
 		}
 		return
@@ -3524,7 +3524,7 @@ func (s *Server) pushPendingBite(sess *Session, st *FishState, f *RolledFish, ge
 	}
 	st.pushing = nil
 	if !st.CastActive || st.Resolved || st.Pending != f || st.GearGuid != gear {
-		return // 发送期间已收竿或重抛，不能覆盖新状态。
+		return // 发送期间已收竿或重抛, 不能覆盖新状态.
 	}
 	st.PushSent = sent
 	if sent {
@@ -3566,13 +3566,13 @@ func formatWeightG(g int64) string {
 func gradeZhName(grade int64) string {
 	switch grade {
 	case 2:
-		return "达标"
+		return "зачётная"
 	case 3:
-		return "奖杯"
+		return "трофейная"
 	case 4:
-		return "蓝冠"
+		return "с синей короной"
 	}
-	return "普通"
+	return "обычная"
 }
 
 // fishLandedText 钓获结算提示文本（KV 模板未启用时的降级文案）：
@@ -3586,9 +3586,9 @@ func (s *Server) fishLandedText(f *RolledFish, newRecord bool) string {
 	weight := formatWeightG(f.WeightG)
 	switch {
 	case f.Grade >= 2:
-		text := fmt.Sprintf("钓获%s：%s %s", gradeZhName(f.Grade), name, weight)
+		text := fmt.Sprintf("Поймана %s: %s %s", gradeZhName(f.Grade), name, weight)
 		if newRecord {
-			text += "（新纪录）"
+			text += " (новый рекорд)"
 		}
 		return text
 	}
@@ -3600,7 +3600,7 @@ func (s *Server) fishKeptText(f *RolledFish) string {
 	if s == nil || f == nil {
 		return ""
 	}
-	return fmt.Sprintf("入护：%s %s", s.speciesZhName(s.dbCtx(), f.Species), formatWeightG(f.WeightG))
+	return fmt.Sprintf("В садок: %s %s", s.speciesZhName(s.dbCtx(), f.Species), formatWeightG(f.WeightG))
 }
 
 // fishReleasedText 放生提示文本；奖杯/蓝冠附档位。
@@ -3611,9 +3611,9 @@ func (s *Server) fishReleasedText(f *RolledFish) string {
 	name := s.speciesZhName(s.dbCtx(), f.Species)
 	weight := formatWeightG(f.WeightG)
 	if f.Grade >= 3 {
-		return fmt.Sprintf("放生%s：%s %s", gradeZhName(f.Grade), name, weight)
+		return fmt.Sprintf("Отпущена %s: %s %s", gradeZhName(f.Grade), name, weight)
 	}
-	return fmt.Sprintf("放生：%s %s", name, weight)
+	return fmt.Sprintf("Отпущена: %s %s", name, weight)
 }
 
 // fishEscapeText 跑鱼提示文本；f 为 nil 时只提示原因。
@@ -3622,9 +3622,9 @@ func (s *Server) fishEscapeText(f *RolledFish, reason string) string {
 		return ""
 	}
 	if f == nil {
-		return "跑鱼（" + reason + "）"
+		return "Сход (" + reason + ")"
 	}
-	return fmt.Sprintf("跑鱼：%s %s（%s）",
+	return fmt.Sprintf("Сход: %s %s (%s)",
 		s.speciesZhName(s.dbCtx(), f.Species), formatWeightG(f.WeightG), reason)
 }
 
@@ -3697,27 +3697,27 @@ func (s *Server) notifyFishReleased(sess *Session, f *RolledFish) {
 // 当前跑鱼提示统一改用 kind3 蓝色自由文案（见 notifyFishEscape），
 // 本映射保留备查；恢复官方分原因文案时改回对应 pushChatProbe 即可。
 var escapeTemplateKind = map[string]int{
-	"脱钩离开": 7,
-	"断主线":  6, "断子线": 30,
-	"断竿":     5,
-	"渔线轮超载":  4,
-	"钓组组件断裂": 10,
-	"牙齿咬断钓组": 10,
+	"сошла с крючка":       7,
+	"обрыв основной лески": 6, "обрыв поводка": 30,
+	"поломка удилища":                 5,
+	"перегрузка катушки":              4,
+	"поломка элемента оснастки":       10,
+	"Рыба перекусила оснастку зубами": 10,
 }
 
 // fishEscapeTaunts 跑鱼语气词池：随机抽一条拼进跑鱼提示。
 var fishEscapeTaunts = []string{
-	"真是FW啊",
-	"这都能跑",
-	"煮熟的鸭子飞了",
-	"手滑了吧",
-	"竿子太拉了",
-	"鱼比人聪明",
-	"白忙活一场",
-	"差亿点点",
-	"又给跑了",
-	"空军预定",
-	"打龟佬",
+	"Ну это провал",
+	"Как она вообще ушла",
+	"Уже почти в садке была",
+	"Рука дрогнула?",
+	"Удилище подвело",
+	"Рыба оказалась умнее",
+	"Всё впустую",
+	"Чуть-чуть не хватило",
+	"Опять ушла",
+	"Кажется, сегодня без рыбы",
+	"Рыбалка — дело терпеливых",
 }
 
 // notifyFishEscape 跑鱼提示：类型3（蓝色 KV 模板），文案带随机语气词，
@@ -3747,16 +3747,16 @@ func (s *Server) notifyFishEscape(sess *Session, f *RolledFish, reason string) {
 			name = f.Species
 		}
 		if f.Grade >= 4 {
-			tier = "超级稀有 "
+			tier = "Сверхредкая "
 		} else if f.Grade == 3 {
-			tier = "稀有 "
+			tier = "Редкая "
 		}
 	}
 	taunt := fishEscapeTaunts[rand.Intn(len(fishEscapeTaunts))]
 	// 客户端 KV 模板恒在文案末尾追加“X 克/公斤”（缺键2 显示“0 克”），
 	// 服务端无法把重量插到句子中间。想让重量紧跟鱼名，只能把鱼名放到句尾：
 	//   "这都能跑！你的 稀有 丁鱵" + 客户端追加 " 1.5 千克"
-	text := "你的 " + tier + name + "，跑掉了，" + taunt + "！"
+	text := "Ваша " + tier + name + ", сошла, " + taunt + "！"
 	sess.pushChatProbe(27, 3, "", fishTVKv(text, weight))
 }
 

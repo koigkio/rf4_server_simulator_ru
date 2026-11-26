@@ -23,7 +23,7 @@ func (s *Server) releaseCatchOnce(ctx context.Context, uid int64, fishGUID strin
 	var result releaseReceipt
 	var gifts []*store.Item
 	if fishGUID == "" {
-		return result, nil, false, fmt.Errorf("缺少放生鱼标识")
+		return result, nil, false, fmt.Errorf("Нет идентификатора отпускаемой рыбы")
 	}
 	if _, err := s.DB.EnsureProfile(ctx, uid); err != nil {
 		return result, nil, false, err

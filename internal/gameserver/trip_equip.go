@@ -46,18 +46,18 @@ type tripEquipItem struct {
 // item_catalog 品牌字段逐一核对）。
 var tripEquipmentBundles = map[string][]tripEquipItem{
 	"level_018_moskitnoe": {
-		{"feeder_10050_FD360M", 3}, // Syberia Model Two FD360M（brand=syb_modeltwofeeder）
-		{"spin_5126", 3},           // Beluga Natora 6000（brand=beluga_natora）
-		{"fluoro_15822", 3},        // Snake Power Carbon 61LB 300m（brand=snake_power_carbon_300）
+		{"feeder_10050_FD360M", 3}, // Syberia Model Two FD360M (brand=syb_modeltwofeeder)
+		{"spin_5126", 3},           // Beluga Natora 6000 (brand=beluga_natora)
+		{"fluoro_15822", 3},        // Snake Power Carbon 61LB 300m (brand=snake_power_carbon_300)
 		{"feeder_bell", 3},         // Express Fishing 双铃铛 - FA
 		{"sqpsinker_30546", 3},     // Simmons C-Lead SW M-CB 70
-		{"rod_pod", 1},             // 竿架（清单未指定型号，暂以 SFR-123 占位）
+		{"rod_pod", 1},             // 竿架 (清单未指定型号, 暂以 SFR-123 占位)
 		{"papermap_copper", 1},     // 铜湖地图
 	},
 	"level_012_north_sea": {
 		{"papermap_north_sea", 1},        // 挪威海地图
-		{"pilkr_10208_os88", 1},          // WTA Saltmaster - Offshore 88（brand=wta_Saltmaster）
-		{"spin_5319", 1},                 // SAT Azimut 10000（brand=sat_Azimut）
+		{"pilkr_10208_os88", 1},          // WTA Saltmaster - Offshore 88 (brand=wta_Saltmaster)
+		{"spin_5319", 1},                 // SAT Azimut 10000 (brand=sat_Azimut)
 		{"braid_40888", 1},               // Solid Materials HiPower Braid 80LB MC 600m
 		{"sh_leader_40815", 1},           // Solid Materials HiPower Shock Leader 80LB 2m
 		{"pilkerlures_2513", 1},          // Jax Bond 125-01
@@ -80,7 +80,7 @@ var tripEquipmentBundles = map[string][]tripEquipItem{
 		{"pilkerlures_2698", 1},          // Zeiman Dapper Pilk 150-07
 		{"pilkerlures_2699", 1},          // Zeiman Dapper Pilk 150-08
 		{"pilkerlures_2700", 1},          // Zeiman Dapper Pilk 150-09
-		{"ticket_boat_norw_sea_a_24", 1}, // 五小时船票（目录无 5h 票种，暂以挪威海 A 船票代替）
+		{"ticket_boat_norw_sea_a_24", 1}, // 五小时船票 (目录无 5h 票种, 暂以挪威海 A 船票代替)
 	},
 }
 
@@ -98,7 +98,7 @@ func (s *Server) grantTripEquipment(ctx context.Context, uid int64, place string
 	}
 	has, err := s.DB.HasUnrecalledTripGrant(ctx, uid, place)
 	if err != nil {
-		s.log.Warn("钓鱼游装备包发放检查失败", "place", place, "err", err)
+		s.log.Warn("Путёвка: ошибка проверки выдачи набора снаряжения", "place", place, "err", err)
 		return 0
 	}
 	if has {
@@ -120,7 +120,7 @@ func (s *Server) grantTripEquipment(ctx context.Context, uid int64, place string
 		for i := int64(0); i < e.Units; i++ {
 			row, err := s.CreateItem(ctx, uid, e.ItemID, "backpack", 1)
 			if err != nil || row == nil {
-				s.log.Warn("钓鱼游装备发放失败", "place", place, "item", e.ItemID, "err", err)
+				s.log.Warn("Путёвка: не удалось выдать снаряжение", "place", place, "item", e.ItemID, "err", err)
 				continue
 			}
 			// 注：apaibhmcopp（铃铛类型枚举 {1 基础型, 2 BiteAlarmBell, 3 电子报警器}）
@@ -140,10 +140,10 @@ func (s *Server) grantTripEquipment(ctx context.Context, uid int64, place string
 			// 登记失败必须回滚已发放物品：物品已在背包而 trip_grant 无记录，
 			// 回收永远扫不到，等于永久白送（审查 P2）。发放与登记并非单事务，
 			// 这里用补偿删除兜底；补偿失败时行虽残留但告警可见。
-			s.log.Warn("钓鱼游装备发放登记失败，回滚已发放物品", "place", place, "err", gerr)
+			s.log.Warn("Путёвка: не удалось зарегистрировать выдачу снаряжения, выданные предметы откатаны", "place", place, "err", gerr)
 			for _, g := range guids {
 				if derr := s.DB.DeleteItemCascade(ctx, g); derr != nil {
-					s.log.Warn("钓鱼游装备回滚删除失败", "place", place, "guid", guidShort(g), "err", derr)
+					s.log.Warn("Путёвка: не удалось удалить снаряжение при откате", "place", place, "guid", guidShort(g), "err", derr)
 				}
 			}
 			for _, sess := range s.sessionsForUID(uid) {
@@ -151,7 +151,7 @@ func (s *Server) grantTripEquipment(ctx context.Context, uid int64, place string
 			}
 			return 0
 		}
-		s.log.Info("钓鱼游装备包发放", "place", place, "count", len(guids))
+		s.log.Info("Путёвка: выдача набора снаряжения", "place", place, "count", len(guids))
 	}
 	return len(guids)
 }
@@ -186,7 +186,7 @@ func (s *Server) markTripTourFlag(ctx context.Context, row *store.Item) {
 	}
 	if uerr := s.DB.UpdateItemFields(ctx, row.GUID, fj, row.Qty,
 		row.Durability, row.Workmanship, row.RigGUID); uerr != nil {
-		s.log.Warn("钓鱼游装备 f12 标志落库失败", "guid", guidShort(row.GUID), "err", uerr)
+		s.log.Warn("Путёвка: не удалось сохранить флаг снаряжения f12", "guid", guidShort(row.GUID), "err", uerr)
 		return
 	}
 	row.FieldsJSON = fj
@@ -207,7 +207,7 @@ func (s *Server) recallTripEquipment(ctx context.Context, uid int64, place strin
 	for _, g := range grants {
 		row, err := s.DB.GetItemByGUID(ctx, g.GUID)
 		if err != nil || row == nil || row.UID != uid {
-			removed = append(removed, g.GUID) // 物品已不存在（消耗/手动删除）
+			removed = append(removed, g.GUID) // 物品已不存在 (消耗/手动删除)
 			continue
 		}
 		if row.RigGUID != "" || row.Container == "rig" {
@@ -218,7 +218,7 @@ func (s *Server) recallTripEquipment(ctx context.Context, uid int64, place strin
 			}
 		}
 		if err := s.DB.DeleteItemCascade(ctx, row.GUID); err != nil {
-			s.log.Warn("钓鱼游装备回收删除失败", "place", place, "guid", guidShort(row.GUID), "err", err)
+			s.log.Warn("Путёвка: не удалось удалить снаряжение при отзыве", "place", place, "guid", guidShort(row.GUID), "err", err)
 			continue
 		}
 		removed = append(removed, row.GUID)
@@ -227,14 +227,14 @@ func (s *Server) recallTripEquipment(ctx context.Context, uid int64, place strin
 		return 0
 	}
 	if merr := s.DB.MarkTripGrantsRecalled(ctx, uid, place, removed); merr != nil {
-		s.log.Warn("钓鱼游装备回收标记失败", "place", place, "err", merr)
+		s.log.Warn("Путёвка: не удалось отметить отзыв снаряжения", "place", place, "err", merr)
 	}
 	s.clearFishingStateRefs(ctx, uid, removed)
 	for _, sess := range s.sessionsForUID(uid) {
 		sess.Push4_21(removed)
 		sess.Push2_1()
 	}
-	s.log.Info("钓鱼游装备包回收", "place", place, "count", len(removed))
+	s.log.Info("Путёвка: отзыв набора снаряжения", "place", place, "count", len(removed))
 	return len(removed)
 }
 
@@ -302,7 +302,7 @@ func (s *Server) syncTripEquipment(ctx context.Context, uid int64, current strin
 	}
 	places, err := s.DB.UnrecalledTripGrantPlaces(ctx, uid)
 	if err != nil {
-		s.log.Warn("钓鱼游装备同步读发放地点失败", "err", err)
+		s.log.Warn("Путёвка: синхронизация снаряжения — не удалось прочитать место выдачи", "err", err)
 		return
 	}
 	for _, p := range places {

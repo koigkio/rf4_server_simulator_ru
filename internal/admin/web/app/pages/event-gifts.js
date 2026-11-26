@@ -2,19 +2,19 @@ import { h, api, webURL, post, btn, note, pblock, empty, confirmDialog, errText 
 import { itemIcon, pickItem } from '../widgets.js';
 
 const GROUPS = [
-  ['2024 新年', 9, 'MMXXIV', 'MMXXIV EXTRA'], ['七周年', 11, 'VII', 'VII EXTRA'],
-  ['2025 新年', 13, 'MMXXV', '2025 EXTRA'], ['八周年', 15, 'VIII', 'VIII EXTRA'],
-  ['2026 新年', 17, 'MMXXVI', '2026 特别奖'], ['九周年', 19, 'IX', 'IX EXTRA'],
+  ['2024 Новый год', 9, 'MMXXIV', 'MMXXIV EXTRA'], ['7-летие', 11, 'VII', 'VII EXTRA'],
+  ['2025 Новый год', 13, 'MMXXV', '2025 EXTRA'], ['8-летие', 15, 'VIII', 'VIII EXTRA'],
+  ['2026 Новый год', 17, 'MMXXVI', '2026 Особый приз'], ['9-летие', 19, 'IX', 'IX EXTRA'],
 ];
 const labels = Object.fromEntries(GROUPS.flatMap(([year, id, a, b]) => [[id, `${year} · ${a}`], [id + 1, `${year} · ${b}`]]));
 const PRESETS = [
-  ['anniversary-2024', '七周年（2024）', 11], ['anniversary-2025', '八周年（2025）', 15],
-  ['anniversary-2026', '九周年（2026）', 19], ['newyear-2025', '2025 新年', 13], ['newyear-2026', '2026 新年', 17],
+  ['anniversary-2024', '7-летие (2024)', 11], ['anniversary-2025', '8-летие (2025)', 15],
+  ['anniversary-2026', '9-летие (2026)', 19], ['newyear-2025', '2025 Новый год', 13], ['newyear-2026', '2026 Новый год', 17],
 ];
-const modes = [['off', '不开启'], ['newyear', '新年活动'], ['anniversary', '周年活动']];
+const modes = [['off', 'Не включать'], ['newyear', 'Новогоднее событие'], ['anniversary', 'Юбилейное событие']];
 const B = 'event_branches', T = 'event_anniversary_end_unix', G = 'event_stage_gifts';
-const restartHint = '请重启游戏客户端并重新登录。';
-const eventTiming = '服务端最多 30 秒生效；' + restartHint;
+const restartHint = 'Игрокам нужно перезайти в игру.';
+const eventTiming = 'Сервер применит до 30 с; ' + restartHint;
 const stageCount = b => [14, 18].includes(Number(b)) ? 10 : 7;
 const validQty = n => Number.isInteger(n) && n >= 1 && n <= 99;
 const modeOf = t => String(t.event_newyear_enabled ?? 1) === '1' ? 'newyear' : String(t.event_anniversary_enabled ?? 0) === '1' ? 'anniversary' : 'off';
@@ -26,7 +26,7 @@ const localDate = ts => {
 const snapshot = t => ({ [B]: ids(t[B] ?? Object.keys(labels).join(',')).join(','), [T]: String(t[T] ?? 1825632000), [G]: JSON.parse(t[G] || '{}') ?? {} });
 const rewardVersion = (settings, mode) => JSON.stringify([settings[G], settings[B], mode]);
 const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
-const keyNames = { [B]: '活动分支', [T]: '结束时间', [G]: '阶段奖励' };
+const keyNames = { [B]: 'Ветки события', [T]: 'Время окончания', [G]: 'Награды за этапы' };
 const wide = () => h('div', { class: 'stack', style: { gridColumn: '1 / -1', minWidth: '0' } });
 function select(label, options, value, change) {
   return h('label', {}, label, h('select', { class: 'select', onchange: e => change(e.target.value) },
@@ -35,11 +35,11 @@ function select(label, options, value, change) {
 
 async function loadPreset([id, name, first]) {
   const r = await fetch(webURL(`/event-reward-presets/${id}.json`));
-  if (!r.ok) throw new Error(`${name}：HTTP ${r.status}`);
+  if (!r.ok) throw new Error(`${name}: HTTP ${r.status}`);
   const data = await r.json();
   for (const b of [first, first + 1]) for (let s = 0; s <= stageCount(b); s++) {
     const list = data?.[b]?.[s];
-    if (!Array.isArray(list) || !list.length || !list.every(g => g?.item && validQty(g.qty))) throw new Error(`${name}：分支 ${b} 阶段 ${s} 的资源不完整`);
+    if (!Array.isArray(list) || !list.length || !list.every(g => g?.item && validQty(g.qty))) throw new Error(`${name}: ветка ${b} этап ${s} — ресурсы неполные`);
   }
   return { [first]: data[first], [first + 1]: data[first + 1] };
 }
@@ -52,25 +52,25 @@ export function eventView(t) {
   const names = new Map();
   const modeBox = wide(), branchBox = wide(), timeBox = wide(), giftsBox = wide();
   const message = h('p', { role: 'status', class: 'hint' });
-  const preview = h('pre', { 'aria-label': '奖励保存内容', style: { whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' } });
-  const details = h('details', {}, h('summary', { text: '预览奖励保存内容' }), preview);
-  const saveBtn = btn('保存修改', save, 'primary'), discard = btn('放弃', reset, 'ghost');
-  const retry = btn('重新读取活动', () => refresh(true), 'ghost');
+  const preview = h('pre', { 'aria-label': 'Сохраняемые награды', style: { whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' } });
+  const details = h('details', {}, h('summary', { text: 'Предпросмотр сохраняемых наград' }), preview);
+  const saveBtn = btn('Сохранить изменения', save, 'primary'), discard = btn('Отменить', reset, 'ghost');
+  const retry = btn('Перечитать событие', () => refresh(true), 'ghost');
   const actions = h('div', { class: 'row' }, discard, saveBtn, retry);
   const blocks = [
-    note('活动开关、分支和结束时间：', eventTiming),
-    pblock(1, '当前活动', '同一时间只能开一个活动，点击即提交切换。', modeBox),
-    pblock(2, '活动分支', '勾选要下发的任务线；全部取消表示不下发任务。', branchBox, { id: 'pg-branch' }),
-    pblock(3, '时间', '按本地时区显示结束时间。', timeBox, { id: 'pg-time' }),
-    pblock(4, '阶段奖励', '只编辑已保存启用的分支。阶段 0 是整条任务线完成后的额外奖励，不是奖杯。', giftsBox, { id: 'pg-gifts' }),
-    note('阶段奖励：', '填入预设只修改草稿。保存或清空后，' + restartHint), message, actions,
+    note('Событие, ветки и срок:', eventTiming),
+    pblock(1, 'Текущее событие', 'Активно только одно событие; щелчок сразу переключает.', modeBox),
+    pblock(2, 'Ветки события', 'Отметьте линии заданий для выдачи; если снять все — задания не выдаются.', branchBox, { id: 'pg-branch' }),
+    pblock(3, 'Время', 'Время окончания показано в местном часовом поясе.', timeBox, { id: 'pg-time' }),
+    pblock(4, 'Награды за этапы', 'Редактируются только сохранённые включённые ветки. Этап 0 — дополнительная награда за прохождение всей линии, а не трофей.', giftsBox, { id: 'pg-gifts' }),
+    note('Награды за этапы:', 'Заполнение из шаблона меняет только черновик. После сохранения или очистки' + restartHint), message, actions,
   ];
   const dirty = key => JSON.stringify(draft[key]) !== JSON.stringify(saved[key]);
   const changed = () => [G, T, B].filter(dirty);
   const enabled = () => !unknown && mode !== 'off' ? ids(saved[B]) : [];
   function update() {
     const keys = changed();
-    for (const [i, key] of [[2, B], [3, T], [4, G]]) blocks[i].querySelector('.pblock-head .pill').textContent = keys.includes(key) ? '未保存' : '未改动';
+    for (const [i, key] of [[2, B], [3, T], [4, G]]) blocks[i].querySelector('.pblock-head .pill').textContent = keys.includes(key) ? 'Не сохранено' : 'Без изменений';
     saveBtn.disabled = busy || unknown || !keys.length;
     discard.disabled = busy || !keys.length;
     retry.hidden = !unknown;
@@ -81,18 +81,18 @@ export function eventView(t) {
   function reset() {
     draft = structuredClone(saved);
     rewardBase = rewardVersion(saved, mode);
-    message.textContent = '已放弃修改。';
+    message.textContent = 'Изменения отменены.';
     draw();
   }
   // 单键接口：成功的键立即推进基线，后续键失败时仍可核对和重试剩余草稿。
   async function save() {
     if (busy || unknown) return;
     const keys = changed();
-    if (dirty(T) && !(Number(draft[T]) > 0)) { message.textContent = '请填写有效的结束时间。'; return; }
+    if (dirty(T) && !(Number(draft[T]) > 0)) { message.textContent = 'Укажите корректное время окончания.'; return; }
     if (dirty(G)) {
-      if (!enabled().length) { message.textContent = '请先开启活动并保存分支。'; return; }
+      if (!enabled().length) { message.textContent = 'Сначала включите событие и сохраните ветки.'; return; }
       for (const [b, stages] of Object.entries(draft[G])) for (const [s, list] of Object.entries(stages)) {
-        if (list.some(g => !validQty(g.qty))) { message.textContent = `分支 ${b} 阶段 ${s} 的物品数量须为 1–99 的整数。`; return; }
+        if (list.some(g => !validQty(g.qty))) { message.textContent = `Ветка ${b} этап ${s} : количество предмета должно быть 1–99 целым числом.`; return; }
       }
     }
     busy = true; update();
@@ -110,7 +110,7 @@ export function eventView(t) {
         todo.splice(todo.indexOf(G), 1); conflicts.push(G);
       }
       if (conflicts.length) {
-        message.textContent = `${conflicts.map(k => keyNames[k]).join('、')}已被其他操作修改。本次未写入；请复制奖励预览后刷新并核对。`;
+        message.textContent = `${conflicts.map(k => keyNames[k]).join(', ')}Уже изменено другим действием. Ничего не записано; скопируйте предпросмотр наград, обновите страницу и сверьте.`;
         return;
       }
       for (const key of todo) {
@@ -119,11 +119,11 @@ export function eventView(t) {
         saved[key] = structuredClone(draft[key]);
         if (key === G || key === B) rewardBase = rewardVersion(saved, mode);
       }
-      await refresh(false, '已保存并回读。' + (keys.some(k => k !== G) ? eventTiming : restartHint));
-    } catch (e) { message.textContent = `保存失败：${errText(e)}`; }
+      await refresh(false, 'Сохранено и перечитано. ' + (keys.some(k => k !== G) ? eventTiming : restartHint));
+    } catch (e) { message.textContent = `Не удалось сохранить: ${errText(e)}`; }
     finally { busy = false; update(); }
   }
-  async function refresh(keepDraft, success = '已回读活动设置。') {
+  async function refresh(keepDraft, success = 'Настройки события перечитаны.') {
     busy = true; update();
     try {
       const actual = await api('/api/tunables');
@@ -131,25 +131,25 @@ export function eventView(t) {
       saved = snapshot(actual); draft = Object.assign(structuredClone(saved), keep);
       mode = modeOf(actual); unknown = false; message.textContent = success;
       if (!Object.hasOwn(keep, G)) rewardBase = rewardVersion(saved, mode);
-    } catch (e) { unknown = true; message.textContent = `无法回读，当前活动设置待确认：${errText(e)}`; }
+    } catch (e) { unknown = true; message.textContent = `Не удалось перечитать, текущие настройки события требуют проверки: ${errText(e)}`; }
     finally { busy = false; draw(); }
   }
   async function switchMode(next) {
     if (busy || unknown || next === mode) return;
-    if (changed().length && !await confirmDialog({ title: '有修改还没保存', desc: '切换活动将放弃未保存的分支、时间和奖励。', confirm: '放弃并切换' })) return;
+    if (changed().length && !await confirmDialog({ title: 'Есть несохранённые изменения', desc: 'При переключении события несохранённые ветки, время и награды будут потеряны.', confirm: 'Отменить и переключить' })) return;
     busy = true; update();
     try {
       if (next === 'off') {
         for (const k of ['newyear', 'anniversary']) await post('/api/tunables', { key: `event_${k}_enabled`, value: '0' });
       } else await post('/api/tunables', { key: `event_${next}_enabled`, value: '1' });
-    } catch (e) { await refresh(true, `切换失败：${errText(e)}`); return; }
-    await refresh(false, '活动已切换。' + eventTiming);
+    } catch (e) { await refresh(true, `Не удалось переключить: ${errText(e)}`); return; }
+    await refresh(false, 'Событие переключено. ' + eventTiming);
   }
   async function fill() {
     if (busy) return;
     const branches = enabled();
     const selected = PRESETS.filter(([id, , first]) => (preset === 'all' || preset === id) && [first, first + 1].some(b => branches.includes(String(b))));
-    if (!selected.length) { message.textContent = '已启用分支不在所选预设中。'; return; }
+    if (!selected.length) { message.textContent = 'Включённая ветка отсутствует в выбранном шаблоне.'; return; }
     busy = true; update();
     try {
       const files = await Promise.all(selected.map(loadPreset));
@@ -158,14 +158,14 @@ export function eventView(t) {
         const stages = draft[G][b] ??= {};
         if (!stages[s]?.length) { stages[s] = gifts; added++; }
       }
-      message.textContent = `已填入 ${added} 个空白阶段。` + (dirty(G) ? '奖励尚未保存。' : '没有改动。');
-    } catch (e) { message.textContent = `预设读取失败，草稿未变：${errText(e)}`; }
+      message.textContent = `Заполнено ${added} пустых этапов.` + (dirty(G) ? 'Награды ещё не сохранены.' : 'Изменений нет.');
+    } catch (e) { message.textContent = `Не удалось прочитать шаблон, черновик не изменён: ${errText(e)}`; }
     finally { busy = false; drawGifts(); update(); }
   }
   function drawGifts() {
     const branches = enabled();
     if (!branches.length) {
-      giftsBox.replaceChildren(empty(unknown ? '活动状态未取得' : mode === 'off' ? '还没有开启活动' : '还没有选择活动分支', '开启活动并保存至少一个分支后才能编辑奖励。'));
+      giftsBox.replaceChildren(empty(unknown ? 'Состояние события не получено' : mode === 'off' ? 'Событие ещё не включено' : 'Ветка события ещё не выбрана', 'Награды можно редактировать после включения события и сохранения хотя бы одной ветки.'));
       return;
     }
     if (!branches.includes(branch)) branch = branches.includes('13') ? '13' : branches[0];
@@ -187,26 +187,26 @@ export function eventView(t) {
       const title = h('b', { text: g.item });
       Promise.resolve(names.get(g.item)).then(name => { title.textContent = name; });
       return h('div', { class: 'list-item' }, itemIcon(g.item), h('div', { class: 'grow' }, title, h('div', { class: 'sub mono', text: g.item })),
-        h('label', {}, '数量', h('input', { class: 'input num', type: 'number', min: 1, max: 99, value: g.qty, style: { width: '72px' }, oninput: e => {
+        h('label', {}, 'Количество', h('input', { class: 'input num', type: 'number', min: 1, max: 99, value: g.qty, style: { width: '72px' }, oninput: e => {
           g.qty = e.target.value === '' ? '' : Number(e.target.value); message.textContent = ''; update();
-        } })), btn('移除', () => setList(list.filter((_, j) => i !== j)), 'ghost sm reward-remove', {
-          icon: 'trash', 'aria-label': `移除物品 ${g.item}`, title: `从当前阶段移除 ${g.item}，保存修改后生效`,
+        } })), btn('Убрать', () => setList(list.filter((_, j) => i !== j)), 'ghost sm reward-remove', {
+          icon: 'trash', 'aria-label': `Убрать предмет ${g.item}`, title: `Убрать из текущего этапа ${g.item}; вступит в силу после сохранения`,
         }));
     });
-    const stageOptions = Array.from({ length: stageCount(branch) + 1 }, (_, s) => [s, s === 0 ? '阶段 0 · 整条任务线完成奖励' : `阶段 ${s}`]);
-    const add = btn('添加物品', () => pickItem({ title: '选择奖励物品', completeOnly: true, onPick: x => {
+    const stageOptions = Array.from({ length: stageCount(branch) + 1 }, (_, s) => [s, s === 0 ? 'Этап 0 · награда за всю линию заданий' : `этап ${s}`]);
+    const add = btn('Добавить предмет', () => pickItem({ title: 'Выберите предмет награды', completeOnly: true, onPick: x => {
       // 选择器打开期间，桌面主栏仍可切换阶段或放弃草稿。
       if (!add.isConnected || busy || unknown) return;
       names.set(x.item_id, x.name); setList([...list, { item: x.item_id, qty: 1 }]);
     } }), '', { icon: 'plus' });
-    giftsBox.replaceChildren(h('div', { class: 'row' }, select('奖励预设', [['all', '全部预设'], ...PRESETS], preset, v => { preset = v; }), btn('填入所选预设', fill)),
-      h('div', { class: 'row' }, select('奖励分支', branches.map(b => [b, `${b} · ${labels[b]}`]), branch, b => choose(b, stage)), select('奖励阶段', stageOptions, stage, s => choose(branch, s))),
-      rows.length ? h('div', { class: 'list' }, rows) : empty('这个阶段没有额外奖励'),
+    giftsBox.replaceChildren(h('div', { class: 'row' }, select('Шаблон наград', [['all', 'Все шаблоны'], ...PRESETS], preset, v => { preset = v; }), btn('Заполнить из выбранного шаблона', fill)),
+      h('div', { class: 'row' }, select('Ветка наград', branches.map(b => [b, `${b} · ${labels[b]}`]), branch, b => choose(b, stage)), select('Этап наград', stageOptions, stage, s => choose(branch, s))),
+      rows.length ? h('div', { class: 'list' }, rows) : empty('На этом этапе нет дополнительных наград'),
       h('div', { class: 'row' }, add,
-        btn('清空可选分支奖励', () => { for (const b of branches) delete draft[G][b]; message.textContent = '已清空可选分支的奖励草稿。'; drawGifts(); update(); }, 'ghost')), details);
+        btn('Очистить награды необязательных веток', () => { for (const b of branches) delete draft[G][b]; message.textContent = 'Черновики наград необязательных веток очищены.'; drawGifts(); update(); }, 'ghost')), details);
   }
   function draw() {
-    modeBox.replaceChildren(h('div', { class: 'seg event-mode-options', role: 'radiogroup', 'aria-label': '当前活动' }, modes.map(([v, text]) => h('button', {
+    modeBox.replaceChildren(h('div', { class: 'seg event-mode-options', role: 'radiogroup', 'aria-label': 'Текущее событие' }, modes.map(([v, text]) => h('button', {
       type: 'button', role: 'radio', 'aria-checked': String(!unknown && mode === v), class: !unknown && mode === v ? 'on' : '', text, onclick: () => switchMode(v),
     }))));
     const chosen = new Set(ids(draft[B]));
@@ -217,7 +217,7 @@ export function eventView(t) {
         draft[B] = [...chosen].sort((a, b) => a - b).join(','); message.textContent = ''; update();
       } }), h('span', { text: name }));
     })))));
-    timeBox.replaceChildren(h('label', {}, '活动结束时间', h('input', { type: 'datetime-local', class: 'input', value: localDate(draft[T]), oninput: e => {
+    timeBox.replaceChildren(h('label', {}, 'Время окончания события', h('input', { type: 'datetime-local', class: 'input', value: localDate(draft[T]), oninput: e => {
       draft[T] = e.target.value === localDate(saved[T]) ? saved[T] : e.target.value ? String(Date.parse(e.target.value) / 1000) : ''; message.textContent = ''; update();
     } })));
     drawGifts(); update();

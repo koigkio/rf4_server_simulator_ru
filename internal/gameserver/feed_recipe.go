@@ -160,7 +160,7 @@ func (s *Server) savePVARecipeTx(ctx context.Context, tx *sql.Tx, row *store.Ite
 		return err
 	}
 	if len(fields) < 2 {
-		return fmt.Errorf("PVA 物品缺少配方字段")
+		return fmt.Errorf("PVA У предмета нет поля рецепта")
 	}
 	fields[1].Val = feed
 	row.FieldsJSON, err = FieldsToJSON(fields)

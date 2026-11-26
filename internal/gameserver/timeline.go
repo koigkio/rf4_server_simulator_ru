@@ -10,16 +10,16 @@ import (
 	"rf4server/internal/wiregen"
 )
 
-func registerTimelineHandlers(d *Dispatch) { // fire-and-forget：客户端不等响应，绝不回包
+func registerTimelineHandlers(d *Dispatch) { // fire-and-forget: 客户端不等响应, 绝不回包
 	d.Register(1, 7, hNoReply)        // game/locale 区域上报
 	d.Register(1, 15, hNoReply)       // game/enter_place_notify 进入地图单向通知
-	d.Register(3, 10, hBoatUse)       // boat_use 上船/下船单向上报，据此维护在船状态
-	d.Register(3, 11, hCampfireStart) // campfire_start：保存到期时间并返回有效篝火状态
+	d.Register(3, 10, hBoatUse)       // boat_use 上船/下船单向上报, 据此维护在船状态
+	d.Register(3, 11, hCampfireStart) // campfire_start: 保存到期时间并返回有效篝火状态
 	d.Register(1, 18, hBoolTrue)      // game/telemetry 设备指纹 → bool true
 
 	// 空集/无数据语义
 	d.Register(6, 2, hNull)           // comp/load 无竞赛 → null
-	d.Register(24, 3, hSocialCurrent) // social/current：返回当前公共聊天频道
+	d.Register(24, 3, hSocialCurrent) // social/current: 返回当前公共聊天频道
 	d.Register(24, 12, hU32ArrEmpty)  // social/bl_get 黑名单 → 空 u32 数组
 	d.Register(9, 5, hCraftTemplates)
 	d.Register(3, 18, hPlayerWarnings)
@@ -73,7 +73,7 @@ func craftTemplatesTree(ctx *Ctx) *proto.Value {
 	cctx := ctx.Sess.pushCtx()
 	rows, err := srv.DB.ListCraftTemplates(cctx, ctx.Sess.Userid)
 	if err != nil {
-		ctx.Log.Warn("9/5 模板列表读取失败", "err", err)
+		ctx.Log.Warn("9/5 Не удалось прочитать список шаблонов", "err", err)
 		return proto.Args(proto.S("97"))
 	}
 	items := make([]*proto.Value, 0, len(rows))
@@ -81,7 +81,7 @@ func craftTemplatesTree(ctx *Ctx) *proto.Value {
 	for _, row := range rows {
 		if srv.resolveRecipe(cctx, row.RecipeID) == nil {
 			skipped++
-			ctx.Log.Warn("9/5 跳过配方已失效的模板",
+			ctx.Log.Warn("9/5 Пропущен шаблон с недействительным рецептом",
 				"guid", row.GUID, "recipe", row.RecipeID, "name", row.Name)
 			continue
 		}
@@ -92,7 +92,7 @@ func craftTemplatesTree(ctx *Ctx) *proto.Value {
 		))
 	}
 	if skipped > 0 {
-		ctx.Log.Info("9/5 模板列表", "total", len(rows), "served", len(items), "skipped", skipped)
+		ctx.Log.Info("9/5 Список шаблонов", "total", len(rows), "served", len(items), "skipped", skipped)
 	}
 	return proto.Args(proto.S(craftTemplateListCode), items...)
 }
@@ -160,7 +160,7 @@ func hEnvironment(ctx *Ctx) ([]byte, bool) {
 func qualificationBranchNode(branch uint64) *proto.Value {
 	return proto.Obj("bibmoppiacg", 5009,
 		proto.Field{Op: "BYTE", Num: ptrU64(branch)},                // Idx0 分支 ID
-		proto.Field{Op: "BYTE", Num: ptrU64(0)},                     // Idx1 常驻（资格面板只收 0）
+		proto.Field{Op: "BYTE", Num: ptrU64(0)},                     // Idx1 常驻 (资格面板只收 0)
 		proto.Field{Op: "BYTE", Num: ptrU64(0)},                     // Idx2 解锁模式
 		proto.Field{Op: "VAL", Val: qualificationStageList(branch)}, // Idx3 coljdmbcknh[]
 		proto.Field{Op: "VAL", Val: nullVal()},                      // Idx4 string[]
@@ -195,7 +195,7 @@ func qualificationTaskList(branch, stage uint64) *proto.Value {
 			rule.Fields[9].Val = proto.U32Arr([]uint32{})
 		}
 		tasks = append(tasks, proto.Obj("gjbbiokohda", 5019,
-			proto.Field{Op: "BYTE", Num: ptrU64(0)}, // Idx0 枚举 fidehpgfmmo（仅成员 0）
+			proto.Field{Op: "BYTE", Num: ptrU64(0)}, // Idx0 枚举 fidehpgfmmo (仅成员 0)
 			proto.Field{Op: "VAL", Val: proto.Args(proto.S("204"), rule)},
 		))
 	}
@@ -365,7 +365,7 @@ func hBoatUse(ctx *Ctx) ([]byte, bool) {
 		if board {
 			ctx.Log.Info("3/10 boat_use 已上船")
 		} else {
-			ctx.Log.Info("3/10 boat_use 已下船")
+			ctx.Log.Info("3/10 boat_use Сошёл с лодки")
 		}
 	}
 	return nil, true

@@ -28,14 +28,14 @@ func TestResumeSameSessionDoesNotRearmExpiredBiteTimer(t *testing.T) {
 	st.PushSent = false
 	st.Pending = nil
 	st.pushing = nil
-	st.cancelBiteTimerLocked() // 咬钩已到点自毁：NeedBite 等待态
+	st.cancelBiteTimerLocked() // 咬钩已到点自毁: NeedBite 等待态
 	st.BiteAt = time.Now().Add(-time.Second)
 	st.mu.Unlock()
 	srv.resumeFishingState(st)
 	st.mu.Lock()
 	if st.biteTimer != nil {
 		st.mu.Unlock()
-		t.Fatal("同一会话的 NeedBite 等待态不得用过期 BiteAt 重排（会立即触发并与 14/7 补排赛跑）")
+		t.Fatal("同一会话的 NeedBite 等待态不得用过期 BiteAt 重排 (会立即触发并与 14/7 补排赛跑)")
 	}
 	// 重连（会话转移）仍要恢复 timer。
 	st.persist.sessionID = 0

@@ -9,16 +9,43 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"unicode"
 
 	"gopkg.in/yaml.v3"
 )
 
-const defaultGameRegion = "CN"
+const (
+	defaultGameRegion = "RU"
+	defaultSteamAppID = 766570
+
+	launchDirect = "direct"
+	launchSteam  = "steam"
+)
 
 type gameConfigRequest struct {
-	Path string `json:"path"`
+	Path      string  `json:"path"`
+	LaunchVia *string `json:"launch_via,omitempty"`
+}
+
+// launchState возвращает способ запуска (direct/steam) и AppID игры в Steam.
+func (a *app) launchState() (string, int) {
+	a.gameMu.RLock()
+	defer a.gameMu.RUnlock()
+	via := normalizeLaunchVia(a.cfg.Launcher.LaunchVia)
+	appID := a.cfg.Launcher.SteamAppID
+	if appID <= 0 {
+		appID = defaultSteamAppID
+	}
+	return via, appID
+}
+
+func normalizeLaunchVia(raw string) string {
+	if strings.EqualFold(strings.TrimSpace(raw), launchSteam) {
+		return launchSteam
+	}
+	return launchDirect
 }
 
 func (a *app) gameState() (string, string) {
@@ -41,15 +68,26 @@ func (a *app) handleGameConfig(w http.ResponseWriter, r *http.Request) {
 	dec := json.NewDecoder(r.Body)
 	dec.DisallowUnknownFields()
 	if err := dec.Decode(&req); err != nil {
-		writeJSONStatus(w, http.StatusBadRequest, map[string]string{"error": "参数错误: " + err.Error()})
+		writeJSONStatus(w, http.StatusBadRequest, map[string]string{"error": "Неверные параметры: " + err.Error()})
 		return
 	}
-	gamePath, region, err := a.saveGamePath(req.Path)
-	if err != nil {
-		writeJSONStatus(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
-		return
+	if req.LaunchVia != nil {
+		if err := a.saveLaunchVia(*req.LaunchVia); err != nil {
+			writeJSONStatus(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
+			return
+		}
 	}
-	writeJSON(w, map[string]any{"path": gamePath, "region": region})
+	gamePath, region := a.gameState()
+	if req.LaunchVia == nil || strings.TrimSpace(req.Path) != "" {
+		var err error
+		gamePath, region, err = a.saveGamePath(req.Path)
+		if err != nil {
+			writeJSONStatus(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
+			return
+		}
+	}
+	via, _ := a.launchState()
+	writeJSON(w, map[string]any{"path": gamePath, "region": region, "launch_via": via})
 }
 
 func (a *app) handleGameLaunch(w http.ResponseWriter, r *http.Request) {
@@ -57,17 +95,26 @@ func (a *app) handleGameLaunch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	gamePath, region := a.gameState()
-	cmd, err := buildGameCommand(gamePath, region)
+	via, appID := a.launchState()
+	var (
+		cmd *exec.Cmd
+		err error
+	)
+	if via == launchSteam {
+		cmd, err = buildSteamCommand(gamePath, region, appID)
+	} else {
+		cmd, err = buildGameCommand(gamePath, region)
+	}
 	if err != nil {
 		writeJSONStatus(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
 		return
 	}
 	if err := a.startGameProcess(cmd); err != nil {
-		writeJSONStatus(w, http.StatusInternalServerError, map[string]string{"error": "启动游戏失败: " + err.Error()})
+		writeJSONStatus(w, http.StatusInternalServerError, map[string]string{"error": "Не удалось запустить игру: " + err.Error()})
 		return
 	}
-	a.log.Info("已启动游戏: " + gamePath + " -region " + region)
-	writeJSON(w, map[string]any{"ok": true, "path": gamePath, "region": region})
+	a.log.Info("Игра запущена: " + strings.Join(cmd.Args, " "))
+	writeJSON(w, map[string]any{"ok": true, "path": gamePath, "region": region, "launch_via": via})
 }
 
 func (a *app) saveGamePath(rawPath string) (string, string, error) {
@@ -81,16 +128,33 @@ func (a *app) saveGamePath(rawPath string) (string, string, error) {
 		return "", "", err
 	}
 	if a.cfgPath == "" {
-		return "", "", fmt.Errorf("未指定配置文件路径")
+		return "", "", fmt.Errorf("Не указан путь к файлу конфигурации")
 	}
 	if err := persistLauncherConfig(a.cfgPath, gamePath, region); err != nil {
-		return "", "", fmt.Errorf("写入配置文件失败: %w", err)
+		return "", "", fmt.Errorf("Не удалось записать конфигурацию: %w", err)
 	}
 	a.gameMu.Lock()
 	a.cfg.Launcher.GamePath = gamePath
 	a.cfg.Launcher.GameRegion = region
 	a.gameMu.Unlock()
 	return gamePath, region, nil
+}
+
+func (a *app) saveLaunchVia(raw string) error {
+	v := strings.ToLower(strings.TrimSpace(raw))
+	if v != launchDirect && v != launchSteam {
+		return fmt.Errorf("launch_via должен быть %q или %q", launchDirect, launchSteam)
+	}
+	if a.cfgPath == "" {
+		return fmt.Errorf("Не указан путь к файлу конфигурации")
+	}
+	if err := persistLauncherValues(a.cfgPath, map[string]string{"launch_via": v}); err != nil {
+		return fmt.Errorf("Не удалось записать конфигурацию: %w", err)
+	}
+	a.gameMu.Lock()
+	a.cfg.Launcher.LaunchVia = v
+	a.gameMu.Unlock()
+	return nil
 }
 
 func (a *app) startGameProcess(cmd *exec.Cmd) error {
@@ -112,6 +176,55 @@ func buildGameCommand(rawPath, rawRegion string) (*exec.Cmd, error) {
 	cmd := exec.Command(gamePath, "-region", region)
 	cmd.Dir = filepath.Dir(gamePath)
 	return cmd, nil
+}
+
+// buildSteamCommand запускает игру через клиент Steam:
+//
+//	steam.exe -applaunch <appid> -region <region>
+//
+// Так игра стартует с авторизацией Steam (оверлей, время в игре и т.д.),
+// а вход всё равно идёт на локальный сервер через hosts. Если steam.exe не
+// найден, используется протокол steam://run/<appid>//-region <region>/.
+func buildSteamCommand(rawGamePath, rawRegion string, appID int) (*exec.Cmd, error) {
+	region, err := normalizeGameRegion(rawRegion)
+	if err != nil {
+		return nil, err
+	}
+	if appID <= 0 {
+		appID = defaultSteamAppID
+	}
+	if steamExe := findSteamExe(sanitizeGamePath(rawGamePath)); steamExe != "" {
+		cmd := exec.Command(steamExe, "-applaunch", strconv.Itoa(appID), "-region", region)
+		cmd.Dir = filepath.Dir(steamExe)
+		return cmd, nil
+	}
+	uri := fmt.Sprintf("steam://run/%d//-region%%20%s/", appID, region)
+	return exec.Command("rundll32.exe", "url.dll,FileProtocolHandler", uri), nil
+}
+
+// findSteamExe ищет steam.exe: сначала в реестре (HKCU\Software\Valve\Steam),
+// затем по пути игры (…\steamapps\common\<игра>\rf4_x64.exe → …\steam.exe).
+func findSteamExe(gamePath string) string {
+	candidates := []string{steamExeFromRegistry()}
+	if gamePath != "" {
+		dir := filepath.Dir(gamePath)
+		for i := 0; i < 6 && dir != filepath.Dir(dir); i++ {
+			if strings.EqualFold(filepath.Base(dir), "steamapps") {
+				candidates = append(candidates, filepath.Join(filepath.Dir(dir), "steam.exe"))
+				break
+			}
+			dir = filepath.Dir(dir)
+		}
+	}
+	for _, c := range candidates {
+		if c == "" {
+			continue
+		}
+		if info, err := os.Stat(c); err == nil && info.Mode().IsRegular() {
+			return filepath.Clean(c)
+		}
+	}
+	return ""
 }
 
 // sanitizeGamePath 清理粘贴路径里的干扰字符：Unicode 格式字符（BOM、
@@ -137,24 +250,24 @@ func sanitizeGamePath(rawPath string) string {
 func normalizeGameExecutable(rawPath string) (string, error) {
 	gamePath := sanitizeGamePath(rawPath)
 	if gamePath == "" {
-		return "", fmt.Errorf("请填写 rf4_x64.exe 的完整路径")
+		return "", fmt.Errorf("Укажите полный путь к rf4_x64.exe")
 	}
 	if !filepath.IsAbs(gamePath) {
-		return "", fmt.Errorf("必须填写绝对路径（当前识别为 %q，请检查路径首尾是否混入了空格、引号或不可见字符）", gamePath)
+		return "", fmt.Errorf("Нужен абсолютный путь (распознано как %q — проверьте, нет ли в начале или конце пробелов, кавычек или невидимых символов)", gamePath)
 	}
 	gamePath = filepath.Clean(gamePath)
 	if !strings.EqualFold(filepath.Base(gamePath), "rf4_x64.exe") {
-		return "", fmt.Errorf("文件名必须是 rf4_x64.exe")
+		return "", fmt.Errorf("Имя файла должно быть rf4_x64.exe")
 	}
 	info, err := os.Stat(gamePath)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return "", fmt.Errorf("文件不存在: %s", gamePath)
+			return "", fmt.Errorf("Файл не существует: %s", gamePath)
 		}
-		return "", fmt.Errorf("无法检查文件: %w", err)
+		return "", fmt.Errorf("Не удалось проверить файл: %w", err)
 	}
 	if !info.Mode().IsRegular() {
-		return "", fmt.Errorf("路径不是普通文件: %s", gamePath)
+		return "", fmt.Errorf("Путь указывает не на обычный файл: %s", gamePath)
 	}
 	return gamePath, nil
 }
@@ -168,12 +281,16 @@ func normalizeGameRegion(rawRegion string) (string, error) {
 		if (ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') || (ch >= '0' && ch <= '9') || ch == '_' || ch == '-' {
 			continue
 		}
-		return "", fmt.Errorf("game_region 只能包含字母、数字、下划线或连字符")
+		return "", fmt.Errorf("game_region может содержать только буквы, цифры, подчёркивание или дефис")
 	}
 	return region, nil
 }
 
 func persistLauncherConfig(configPath, gamePath, region string) error {
+	return persistLauncherValues(configPath, map[string]string{"game_path": gamePath, "game_region": region})
+}
+
+func persistLauncherValues(configPath string, values map[string]string) error {
 	data, err := os.ReadFile(configPath)
 	if err != nil {
 		return err
@@ -196,7 +313,7 @@ func persistLauncherConfig(configPath, gamePath, region string) error {
 	}
 	root := doc.Content[0]
 	if root.Kind != yaml.MappingNode {
-		return fmt.Errorf("配置根节点不是 YAML 映射")
+		return fmt.Errorf("Корень конфигурации не является YAML-картой")
 	}
 	launcher := mappingValue(root, "launcher")
 	if launcher == nil {
@@ -207,10 +324,13 @@ func persistLauncherConfig(configPath, gamePath, region string) error {
 		launcher = root.Content[len(root.Content)-1]
 	}
 	if launcher.Kind != yaml.MappingNode {
-		return fmt.Errorf("配置项 launcher 不是 YAML 映射")
+		return fmt.Errorf("Раздел launcher не является YAML-картой")
 	}
-	setMappingValue(launcher, "game_path", gamePath)
-	setMappingValue(launcher, "game_region", region)
+	for _, key := range []string{"game_path", "game_region", "launch_via"} {
+		if v, ok := values[key]; ok {
+			setMappingValue(launcher, key, v)
+		}
+	}
 	out, err := yaml.Marshal(&doc)
 	if err != nil {
 		return err
@@ -247,22 +367,22 @@ func setMappingValue(mapping *yaml.Node, key, value string) {
 func requireLocalJSONPost(w http.ResponseWriter, r *http.Request) bool {
 	if r.Method != http.MethodPost {
 		w.Header().Set("Allow", http.MethodPost)
-		writeJSONStatus(w, http.StatusMethodNotAllowed, map[string]string{"error": "仅支持 POST"})
+		writeJSONStatus(w, http.StatusMethodNotAllowed, map[string]string{"error": "Поддерживается только POST"})
 		return false
 	}
 	if !strings.HasPrefix(strings.ToLower(r.Header.Get("Content-Type")), "application/json") {
-		writeJSONStatus(w, http.StatusUnsupportedMediaType, map[string]string{"error": "Content-Type 必须是 application/json"})
+		writeJSONStatus(w, http.StatusUnsupportedMediaType, map[string]string{"error": "Content-Type должен быть application/json"})
 		return false
 	}
 	host, _, err := net.SplitHostPort(r.RemoteAddr)
 	if err != nil || !net.ParseIP(host).IsLoopback() {
-		writeJSONStatus(w, http.StatusForbidden, map[string]string{"error": "仅允许本机控制中心调用"})
+		writeJSONStatus(w, http.StatusForbidden, map[string]string{"error": "Разрешены вызовы только из локального центра управления"})
 		return false
 	}
 	if origin := r.Header.Get("Origin"); origin != "" {
 		u, err := url.Parse(origin)
 		if err != nil || !strings.EqualFold(u.Host, r.Host) {
-			writeJSONStatus(w, http.StatusForbidden, map[string]string{"error": "拒绝跨站请求"})
+			writeJSONStatus(w, http.StatusForbidden, map[string]string{"error": "Межсайтовый запрос отклонён"})
 			return false
 		}
 	}

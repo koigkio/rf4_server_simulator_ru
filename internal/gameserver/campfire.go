@@ -131,8 +131,8 @@ func hCampfireStart(ctx *Ctx) ([]byte, bool) {
 
 	existing, err := srv.DB.GetCampfireState(cctx, ctx.Sess.Userid)
 	if err != nil {
-		ctx.Log.Warn("读取篝火状态失败", "err", err)
-		ctx.ReplyFailure("System.InvalidOperationException", "篝火状态读取失败，请重试")
+		ctx.Log.Warn("Не удалось прочитать состояние костра", "err", err)
+		ctx.ReplyFailure("System.InvalidOperationException", "Не удалось прочитать состояние костра, попробуйте ещё раз")
 		return nil, true
 	}
 	if reusableCampfire(existing, nowFT) {
@@ -140,15 +140,15 @@ func hCampfireStart(ctx *Ctx) ([]byte, bool) {
 		if err != nil {
 			return nil, false
 		}
-		ctx.Log.Info("篝火仍在燃烧，复用到期状态", "loc", existing.Loc, "spot", existing.Spot,
+		ctx.Log.Info("Костёр ещё горит, используется текущий срок", "loc", existing.Loc, "spot", existing.Spot,
 			"expires_ft", existing.ExpiresFT, "duration_game_min", existing.DurationMin)
 		return body, true
 	}
 
 	tx, err := beginEconomyTx(cctx, srv.DB)
 	if err != nil {
-		ctx.Log.Warn("点火材料事务开启失败", "err", err)
-		ctx.ReplyFailure("System.InvalidOperationException", "点火未完成，请重试")
+		ctx.Log.Warn("Не удалось начать транзакцию материалов для розжига", "err", err)
+		ctx.ReplyFailure("System.InvalidOperationException", "Розжиг не завершён, попробуйте ещё раз")
 		return nil, true
 	}
 	defer tx.Rollback()
@@ -156,8 +156,8 @@ func hCampfireStart(ctx *Ctx) ([]byte, bool) {
 	// 事务内重新读一次，避免两个会话同时通过上面的读检查后重复扣料。
 	existing, err = store.GetCampfireStateTx(cctx, tx, ctx.Sess.Userid)
 	if err != nil {
-		ctx.Log.Warn("事务内读取篝火状态失败", "err", err)
-		ctx.ReplyFailure("System.InvalidOperationException", "点火未完成，请重试")
+		ctx.Log.Warn("Не удалось прочитать состояние костра в транзакции", "err", err)
+		ctx.ReplyFailure("System.InvalidOperationException", "Розжиг не завершён, попробуйте ещё раз")
 		return nil, true
 	}
 	if reusableCampfire(existing, nowFT) {
@@ -173,13 +173,13 @@ func hCampfireStart(ctx *Ctx) ([]byte, bool) {
 	for _, itemID := range fireMaterialItemIDs {
 		row, err := fireMaterialRowTx(cctx, tx, ctx.Sess.Userid, itemID)
 		if err != nil {
-			ctx.Log.Warn("读取点火材料失败", "item_id", itemID, "err", err)
-			ctx.ReplyFailure("System.InvalidOperationException", "点火未完成，请重试")
+			ctx.Log.Warn("Не удалось прочитать материалы для розжига", "item_id", itemID, "err", err)
+			ctx.ReplyFailure("System.InvalidOperationException", "Розжиг не завершён, попробуйте ещё раз")
 			return nil, true
 		}
 		if row == nil {
-			ctx.Log.Info("3/11 点火被拒：缺少材料", "item_id", itemID)
-			ctx.ReplyFailure("System.InvalidOperationException", "缺少木柴或火柴")
+			ctx.Log.Info("3/11 Розжиг отклонён: не хватает материалов", "item_id", itemID)
+			ctx.ReplyFailure("System.InvalidOperationException", "Нет дров или спичек")
 			return nil, true
 		}
 		rows = append(rows, row)
@@ -193,8 +193,8 @@ func hCampfireStart(ctx *Ctx) ([]byte, bool) {
 	for _, row := range rows {
 		remaining, err := consumeItemQtyTx(cctx, tx, row, 1)
 		if err != nil {
-			ctx.Log.Warn("扣减点火材料失败", "item", row.ItemID, "err", err)
-			ctx.ReplyFailure("System.InvalidOperationException", "点火未完成，请重试")
+			ctx.Log.Warn("Не удалось списать материалы для розжига", "item", row.ItemID, "err", err)
+			ctx.ReplyFailure("System.InvalidOperationException", "Розжиг не завершён, попробуйте ещё раз")
 			return nil, true
 		}
 		results = append(results, fireMaterialResult{guid: row.GUID, removed: remaining == 0})
@@ -205,13 +205,13 @@ func hCampfireStart(ctx *Ctx) ([]byte, bool) {
 		DurationMin: duration, ExpiresFT: defaultExpiry,
 	}
 	if err := store.UpsertCampfireStateTx(cctx, tx, state); err != nil {
-		ctx.Log.Warn("保存篝火状态失败", "err", err)
-		ctx.ReplyFailure("System.InvalidOperationException", "点火未完成，请重试")
+		ctx.Log.Warn("Не удалось сохранить состояние костра", "err", err)
+		ctx.ReplyFailure("System.InvalidOperationException", "Розжиг не завершён, попробуйте ещё раз")
 		return nil, true
 	}
 	if err := tx.Commit(); err != nil {
-		ctx.Log.Warn("点火事务提交失败", "err", err)
-		ctx.ReplyFailure("System.InvalidOperationException", "点火未完成，请重试")
+		ctx.Log.Warn("Не удалось зафиксировать транзакцию розжига", "err", err)
+		ctx.ReplyFailure("System.InvalidOperationException", "Розжиг не завершён, попробуйте ещё раз")
 		return nil, true
 	}
 
@@ -253,7 +253,7 @@ func hCampfireStart(ctx *Ctx) ([]byte, bool) {
 			items = append(items, row.ItemID)
 		}
 	}
-	ctx.Log.Info("篝火点火", "loc", loc, "spot", spot, "duration_game_min", duration,
+	ctx.Log.Info("Разжигание костра", "loc", loc, "spot", spot, "duration_game_min", duration,
 		"client_now_min", math.Floor(float64(worldTotalGameMin(now))*10)/10,
 		"client_expires_min", campfireExpiryMinute(now, nowFT, defaultExpiry), "expires_ft", defaultExpiry,
 		"request_items", items, "expect_response", ctx.ExpectResponse)

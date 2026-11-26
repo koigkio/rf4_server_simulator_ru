@@ -32,11 +32,11 @@ var (
 )
 
 func initMetrics(reg *prometheus.Registry) {
-	gsSessionsActive = metrics.NewGauge(reg, "gameserver_sessions_active", "在线会话数")
-	gsRequests = metrics.NewLabeledCounter(reg, "gameserver_requests_total", "请求数", "cmd")
-	gsPushes = metrics.NewCounter(reg, "gameserver_pushes_total", "服务器推送数")
-	gsPushRejected = metrics.NewCounter(reg, "gameserver_push_rejected_total", "被守卫拒发的推送数")
-	gsFallbacks = metrics.NewLabeledCounter(reg, "gameserver_fallbacks_total", "兜底响应数", "kind")
+	gsSessionsActive = metrics.NewGauge(reg, "gameserver_sessions_active", "Онлайн-сессий")
+	gsRequests = metrics.NewLabeledCounter(reg, "gameserver_requests_total", "Запросов", "cmd")
+	gsPushes = metrics.NewCounter(reg, "gameserver_pushes_total", "Отправок от сервера")
+	gsPushRejected = metrics.NewCounter(reg, "gameserver_push_rejected_total", "Отправок, заблокированных защитой")
+	gsFallbacks = metrics.NewLabeledCounter(reg, "gameserver_fallbacks_total", "Ответов-заглушек", "kind")
 }
 
 // Server 主服务器。
@@ -45,11 +45,11 @@ type Server struct {
 	log      *slog.Logger
 	table    *proto.OpsTable
 	dispatch *Dispatch
-	DB       *store.DB // 可空：模板兜底降级（生产由 cmd 装配）
+	DB       *store.DB // 可空: 模板兜底降级 (生产由 cmd 装配)
 
 	mu       sync.Mutex
 	sessions map[uint64]*Session // 网关 sid -> 会话
-	byToken  map[string]*Session // 活跃会话（重连接管）
+	byToken  map[string]*Session // 活跃会话 (重连接管)
 
 	callMu  sync.Mutex
 	callSeq map[string]uint64 // token -> 已分配的最大推送 call_id
@@ -60,7 +60,7 @@ type Server struct {
 	fishMu                 sync.Mutex
 	overloadProtectionMu   sync.RWMutex     // 在线开关与断件/负载判定同步
 	gearMenuMu             sync.Mutex       // 钓具助手二级菜单状态同步
-	gearMenuState          map[int64]string // 钓具助手二级菜单：""=一级，"overload"/"stamina"=二级
+	gearMenuState          map[int64]string // 钓具助手二级菜单: ""=一级, "overload"/"stamina"=二级
 	levelMap               map[int64]string
 	levelMu                sync.Mutex
 	fishEcologyMu          sync.RWMutex
@@ -156,9 +156,9 @@ func NewServer(cfg config.Game, log *slog.Logger, obs *metrics.Server) *Server {
 			CycleDays: cfg.Weather.CycleDays,
 		})
 		if err != nil {
-			log.Warn("天气序列初始化失败，沿用地图模板", "err", err)
+			log.Warn("Не удалось инициализировать последовательность погоды, используется шаблон карты", "err", err)
 		} else {
-			log.Info("天气序列已随机生成",
+			log.Info("Последовательность погоды сгенерирована случайно",
 				"seed", seed, "cycle_days", normalizeWeatherCycleDays(cfg.Weather.CycleDays))
 		}
 	} else {
@@ -204,11 +204,11 @@ func (s *Server) Serve(ln net.Listener) error {
 		go func() {
 			c, err := tunnel.HandshakeServer(nc, s.cfg.Tunnel.PSK)
 			if err != nil {
-				s.log.Warn("隧道握手失败", "remote", nc.RemoteAddr(), "err", err)
+				s.log.Warn("Ошибка рукопожатия туннеля", "remote", nc.RemoteAddr(), "err", err)
 				_ = nc.Close()
 				return
 			}
-			s.log.Info("隧道连接建立", "remote", c.RemoteAddr())
+			s.log.Info("Соединение туннеля установлено", "remote", c.RemoteAddr())
 			s.handleTunnel(c)
 		}()
 	}
@@ -223,7 +223,7 @@ func (s *Server) handleTunnel(c *tunnel.Conn) {
 	for {
 		rt, sid, payload, err := c.ReadRecord()
 		if err != nil {
-			s.log.Info("隧道断开", "remote", c.RemoteAddr(), "err", err)
+			s.log.Info("Туннель разорван", "remote", c.RemoteAddr(), "err", err)
 			return
 		}
 		switch rt {
@@ -233,7 +233,7 @@ func (s *Server) handleTunnel(c *tunnel.Conn) {
 			if sess := s.byID(sid); sess != nil {
 				s.handleEnvelopePayload(sess, payload)
 			} else {
-				s.log.Warn("未知会话的数据", "sid", sid)
+				s.log.Warn("Данные неизвестной сессии", "sid", sid)
 			}
 		case tunnel.TypeClose:
 			if sess := s.byID(sid); sess != nil {
@@ -264,7 +264,7 @@ func (s *Server) closeTunnelSessions(c *tunnel.Conn) {
 func (s *Server) openSession(c *tunnel.Conn, sid uint64, payload []byte) {
 	var op tunnel.OpenPayload
 	if err := json.Unmarshal(payload, &op); err != nil {
-		s.log.Warn("OPEN payload 解析失败", "err", err)
+		s.log.Warn("OPEN payload Ошибка разбора", "err", err)
 		return
 	}
 	userid := op.Userid
@@ -278,7 +278,7 @@ func (s *Server) openSession(c *tunnel.Conn, sid uint64, payload []byte) {
 	s.mu.Lock()
 	var superseded *Session
 	if old, ok := s.byToken[op.Token]; ok && old != nil {
-		s.log.Info("同 token 旧会话被接管", "old_sid", old.ID, "new_sid", sid)
+		s.log.Info("Старая сессия с тем же токеном перехвачена", "old_sid", old.ID, "new_sid", sid)
 		superseded = old
 		delete(s.sessions, old.ID)
 	}
@@ -290,7 +290,7 @@ func (s *Server) openSession(c *tunnel.Conn, sid uint64, payload []byte) {
 		superseded.Close("superseded")
 	}
 
-	sess.log.Info("会话开启", "reconnect", op.Reconnect, "client_ip", op.ClientIP)
+	sess.log.Info("Сессия открыта", "reconnect", op.Reconnect, "client_ip", op.ClientIP)
 	go s.CheckBanned(sess)
 
 	// 仅新连接发送 boot 0/1；重连沿用既有流程。
@@ -299,7 +299,7 @@ func (s *Server) openSession(c *tunnel.Conn, sid uint64, payload []byte) {
 	if !op.Reconnect {
 		// 新玩家初始化（档案/starter 物品/快捷栏）
 		if err := s.EnsurePlayer(context.Background(), userid); err != nil {
-			sess.log.Warn("玩家初始化失败", "err", err)
+			sess.log.Warn("Ошибка инициализации игрока", "err", err)
 		}
 		s.recoverCompletedCatchOnLogin(sess)
 		sess.Push(0, 1, proto.Args524())
@@ -318,7 +318,7 @@ func (s *Server) byID(sid uint64) *Session {
 
 // removeSession 移除会话注册。
 func (s *Server) removeSession(sess *Session) {
-	s.gearMenuClear(sess.Userid) // 二级菜单状态只在会话内有效，断线即回一级
+	s.gearMenuClear(sess.Userid) // 二级菜单状态只在会话内有效, 断线即回一级
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if s.sessions[sess.ID] == sess {

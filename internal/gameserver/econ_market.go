@@ -36,8 +36,8 @@ func registerEconMarket(d *Dispatch) {
 	d.Register(20, 4, hMarketSellOffer)
 	d.Register(21, 1, hWorkshopList)
 	d.Register(21, 2, hWorkshopDiag)
-	d.Register(21, 3, hWorkshopPreview) // 选择配件后的预览，不落库、不扣费
-	d.Register(21, 4, hWorkshopOrder)   // 确认支付；币种由请求 f2 指定
+	d.Register(21, 3, hWorkshopPreview) // 选择配件后的预览, 不落库, 不扣费
+	d.Register(21, 4, hWorkshopOrder)   // 确认支付; 币种由请求 f2 指定
 	d.Register(17, 12, hRodSetDepth)
 	d.Register(17, 13, hRodSetClip)
 	d.Register(17, 14, hRodSetDrag)
@@ -350,7 +350,7 @@ func hMarketRate(ctx *Ctx) ([]byte, bool) {
 			2: proto.U32(uint32(flag)),
 		}))
 	}
-	ctx.Log.Info("20/1 询价", "条数", len(out.Items), "腐败", rotten)
+	ctx.Log.Info("20/1 Запрос цены", "Количество", len(out.Items), "Испорчена", rotten)
 	body, err := proto.EncodeValue(out, ctx.Sess.Table())
 	if err != nil {
 		return nil, false
@@ -385,7 +385,7 @@ func hMarketSell(ctx *Ctx) ([]byte, bool) {
 	var sold []soldPair
 	tx, err := beginEconomyTx(cctx, srv.DB)
 	if err != nil {
-		ctx.Log.Warn("20/2 开启事务失败", "err", err)
+		ctx.Log.Warn("20/2 Не удалось начать транзакцию", "err", err)
 		return []byte{0x0F}, true
 	}
 	defer func() { _ = tx.Rollback() }()
@@ -405,18 +405,18 @@ func hMarketSell(ctx *Ctx) ([]byte, bool) {
 			continue
 		}
 		if err != nil {
-			ctx.Log.Warn("20/2 读取护网失败", "guid", g, "err", err)
+			ctx.Log.Warn("20/2 Не удалось прочитать садок", "guid", g, "err", err)
 			return []byte{0x0F}, true
 		}
 		var locked int
 		err = tx.QueryRowContext(cctx, `
 			SELECT 1 FROM market_offer WHERE fish_guid=? AND status='open' LIMIT 1`, g).Scan(&locked)
 		if err == nil {
-			ctx.Log.Warn("20/2 拒绝出售已挂单鱼", "guid", g)
+			ctx.Log.Warn("20/2 Нельзя продать рыбу, выставленную на продажу", "guid", g)
 			return []byte{0x0F}, true
 		}
 		if err != sql.ErrNoRows {
-			ctx.Log.Warn("20/2 读取挂单锁失败", "guid", g, "err", err)
+			ctx.Log.Warn("20/2 Не удалось прочитать блокировку лота", "guid", g, "err", err)
 			return []byte{0x0F}, true
 		}
 		mapKey := sellMapKey
@@ -428,13 +428,13 @@ func hMarketSell(ctx *Ctx) ([]byte, bool) {
 	if len(sold) > 0 {
 		if err := applyWalletTx(cctx, tx, uid, total, 0, "sell_fish", "", "",
 			fmt.Sprintf("%d fish", len(sold))); err != nil {
-			ctx.Log.Warn("20/2 入账失败", "err", err)
+			ctx.Log.Warn("20/2 Ошибка зачисления", "err", err)
 			return []byte{0x0F}, true
 		}
 		for _, g := range removed {
 			deleted, derr := srv.DB.DeleteKeepnetTx(cctx, tx, uid, g)
 			if derr != nil {
-				ctx.Log.Warn("20/2 移除护网失败", "guid", g, "err", derr)
+				ctx.Log.Warn("20/2 Не удалось убрать из садка", "guid", g, "err", derr)
 				return []byte{0x0F}, true
 			}
 			if !deleted {
@@ -443,7 +443,7 @@ func hMarketSell(ctx *Ctx) ([]byte, bool) {
 		}
 	}
 	if err := tx.Commit(); err != nil {
-		ctx.Log.Warn("20/2 提交失败", "err", err)
+		ctx.Log.Warn("20/2 Ошибка фиксации", "err", err)
 		return []byte{0x0F}, true
 	}
 
@@ -461,7 +461,7 @@ func hMarketSell(ctx *Ctx) ([]byte, bool) {
 		ctx.Sess.Push2_1()
 		ctx.Sess.Push4_21(removed)
 		srv.retryCompletedCatchRecovery(ctx.Sess)
-		ctx.Log.Info("20/2 卖出", "条数", len(sold), "银分", total)
+		ctx.Log.Info("20/2 Продано", "Количество", len(sold), "серебро (коп.)", total)
 	}
 	out := proto.Args(proto.S("112"))
 	for _, sp := range sold {
@@ -500,7 +500,7 @@ func (s *Server) openMarketOfferFishSet(ctx context.Context, uid int64) map[stri
 		SellerUID: uid, Status: store.MarketOfferOpen, Limit: 1000,
 	})
 	if err != nil {
-		s.log.Warn("读取鱼市挂单锁失败", "uid", uid, "err", err)
+		s.log.Warn("Не удалось прочитать блокировку лота рыбного рынка", "uid", uid, "err", err)
 		return out
 	}
 	for _, offer := range offers {
@@ -687,9 +687,9 @@ func hWorkshopList(ctx *Ctx) ([]byte, bool) {
 // repairPart 是修理面板要展示的一个可修零件。
 type repairPart struct {
 	GUID string
-	NID  uint32  // 零件定义 numeric_id（内嵌子件，item 表里没有行）
-	Cat  uint32  // oinpmjophkh 物品品类（客户端按类别渲染零件行）
-	Cond float64 // 完好度 0..1，1=全新；只影响报价，不影响是否展示
+	NID  uint32  // 零件定义 numeric_id (内嵌子件, item 表里没有行)
+	Cat  uint32  // oinpmjophkh 物品品类 (客户端按类别渲染零件行)
+	Cond float64 // 完好度 0..1, 1=全新; 只影响报价, 不影响是否展示
 }
 
 // repairPartsOf 从物品树里收集可修零件：
@@ -891,20 +891,20 @@ func (s *Server) partPrice(ctx context.Context, itemID string, category int64) (
 			return 0, false
 		}
 		switch def.Category {
-		case 9: // 摩擦片：制动力，价格按平方放大（26 × kg²，5.4kg≈758 银）
+		case 9: // 摩擦片: 制动力, 价格按平方放大 (26 × kg², 5.4kg≈758 银)
 			if b, ok := num("omghfmdfjpc"); ok {
 				d := float64(proto.F32FromBits(uint32(b)))
 				silver = 26 * d * d
 			}
-		case 7: // 轴承：品质百分比
+		case 7: // 轴承: 品质百分比
 			if q, ok := num("obifdihmcfn"); ok {
 				silver = q * 10
 			}
-		case 8: // 线杯：容量
+		case 8: // 线杯: 容量
 			if c, ok := num("boejfeemeej"); ok {
 				silver = c * 12
 			}
-		case 52: // 齿轮：传动比
+		case 52: // 齿轮: 传动比
 			if b, ok := num("dpgbopbanal"); ok {
 				silver = float64(proto.F32FromBits(uint32(b))) * 480
 			}
@@ -1499,13 +1499,13 @@ func workshopOrder(ctx *Ctx, preview bool) ([]byte, bool) {
 				continue
 			}
 			if hasPartOrder || cond < 1 {
-				ctx.Log.Warn("工坊修理：本体修理与未修内件冲突", "guid", shortGUID(row.GUID))
+				ctx.Log.Warn("Ремонт в мастерской: ремонт корпуса конфликтует с неотремонтированными деталями", "guid", shortGUID(row.GUID))
 				return nil, false
 			}
 		}
 	}
 	if !preview && useGold && hasRepair {
-		ctx.Log.Warn("工坊修理：同型号修理仅支持银币支付", "guid", shortGUID(row.GUID))
+		ctx.Log.Warn("Ремонт в мастерской: ремонт той же модели оплачивается только серебром", "guid", shortGUID(row.GUID))
 		return nil, false
 	}
 	wholeItemRepair := bodyRepair || (hasPartOrder && allRepairs)
@@ -1528,11 +1528,11 @@ func workshopOrder(ctx *Ctx, preview bool) ([]byte, bool) {
 	if !preview {
 		if useGold {
 			if costGold <= 0 {
-				ctx.Log.Warn("工坊换件：金币价格为 0，拒绝零金额交易", "item", shortGUID(itemGUID))
+				ctx.Log.Warn("Замена деталей: цена в золоте 0, сделка на нулевую сумму отклонена", "item", shortGUID(itemGUID))
 				return nil, false
 			}
 		} else if costSilver <= 0 {
-			ctx.Log.Warn("工坊换件：银币价格为 0，拒绝零金额交易", "item", shortGUID(itemGUID))
+			ctx.Log.Warn("Замена деталей: цена в серебре 0, сделка на нулевую сумму отклонена", "item", shortGUID(itemGUID))
 			return nil, false
 		}
 		if clientCost > 0 {
@@ -1541,7 +1541,7 @@ func workshopOrder(ctx *Ctx, preview bool) ([]byte, bool) {
 				quotedCost = costGold
 			}
 			if !workshopQuoteMatches(clientCost, quotedCost) {
-				ctx.Log.Warn("工坊换件：客户端报价异常", "item", shortGUID(itemGUID),
+				ctx.Log.Warn("Замена деталей: неверная цена от клиента", "item", shortGUID(itemGUID),
 					"client", clientCost, "server", quotedCost, "gold", useGold)
 				return nil, false
 			}
@@ -1552,12 +1552,12 @@ func workshopOrder(ctx *Ctx, preview bool) ([]byte, bool) {
 		}
 		if useGold {
 			if p.Gold < costGold {
-				ctx.Log.Info("工坊换件：金币不足", "balance", p.Gold, "cost", costGold)
+				ctx.Log.Info("Замена деталей: недостаточно золота", "balance", p.Gold, "cost", costGold)
 				return nil, false
 			}
 		} else {
 			if p.Silver < costSilver {
-				ctx.Log.Info("工坊换件：银币不足", "balance", p.Silver, "cost", costSilver)
+				ctx.Log.Info("Замена деталей: недостаточно серебра", "balance", p.Silver, "cost", costSilver)
 				return nil, false
 			}
 		}
@@ -1601,7 +1601,7 @@ func workshopOrder(ctx *Ctx, preview bool) ([]byte, bool) {
 		var perfErr error
 		preparedPerf, perfErr = srv.buildReelPerformance(cctx, &snapshot)
 		if perfErr != nil {
-			ctx.Log.Warn("工坊换件：轮子物理参数计算失败", "guid", shortGUID(row.GUID), "err", perfErr)
+			ctx.Log.Warn("Замена деталей: ошибка расчёта физики катушки", "guid", shortGUID(row.GUID), "err", perfErr)
 			return nil, false
 		}
 	}
@@ -1615,7 +1615,7 @@ func workshopOrder(ctx *Ctx, preview bool) ([]byte, bool) {
 	}
 	tx, terr := beginEconomyTx(cctx, srv.DB)
 	if terr != nil {
-		ctx.Log.Warn("工坊换件：事务启动失败", "guid", shortGUID(row.GUID), "err", terr)
+		ctx.Log.Warn("Замена деталей: не удалось начать транзакцию", "guid", shortGUID(row.GUID), "err", terr)
 		return nil, false
 	}
 	committed := false
@@ -1630,22 +1630,22 @@ func workshopOrder(ctx *Ctx, preview bool) ([]byte, bool) {
 	}
 	if err := applyWalletTx(cctx, tx, ctx.Sess.Userid, silverDelta, goldDelta,
 		"workshop_part", "", itemGUID, ""); err != nil {
-		ctx.Log.Warn("工坊换件：扣费失败", "guid", shortGUID(row.GUID), "err", err)
+		ctx.Log.Warn("Замена деталей: не удалось списать оплату", "guid", shortGUID(row.GUID), "err", err)
 		return nil, false
 	}
 	if err := srv.DB.UpdateItemFieldsTx(cctx, tx, row.GUID, fj, row.Qty,
 		newDurability, row.Workmanship, row.RigGUID); err != nil {
-		ctx.Log.Warn("工坊换件：物品写库失败", "guid", shortGUID(row.GUID), "err", err)
+		ctx.Log.Warn("Замена деталей: не удалось записать предмет", "guid", shortGUID(row.GUID), "err", err)
 		return nil, false
 	}
 	if preparedPerf != nil {
 		if err := srv.DB.UpsertReelPerformanceTx(cctx, tx, *preparedPerf); err != nil {
-			ctx.Log.Warn("工坊换件：轮子物理参数保存失败", "guid", shortGUID(row.GUID), "err", err)
+			ctx.Log.Warn("Замена деталей: не удалось сохранить физику катушки", "guid", shortGUID(row.GUID), "err", err)
 			return nil, false
 		}
 	}
 	if err := tx.Commit(); err != nil {
-		ctx.Log.Warn("工坊换件：事务提交失败", "guid", shortGUID(row.GUID), "err", err)
+		ctx.Log.Warn("Замена деталей: не удалось зафиксировать транзакцию", "guid", shortGUID(row.GUID), "err", err)
 		return nil, false
 	}
 	committed = true
@@ -1665,7 +1665,7 @@ func workshopOrder(ctx *Ctx, preview bool) ([]byte, bool) {
 		ctx.Sess.Push(4, 22, proto.Args(proto.S("61"), out))
 		ctx.Sess.Push2_1()
 	})
-	ctx.Log.Info("21/4 工坊换件完成", "item", row.ItemID, "guid", shortGUID(row.GUID),
+	ctx.Log.Info("21/4 Замена деталей завершена", "item", row.ItemID, "guid", shortGUID(row.GUID),
 		"parts", len(orders), "silver", costSilver, "gold", costGold)
 	return bodyOut, true
 }
@@ -1686,12 +1686,12 @@ func hWorkshopRepair(useGold bool) Handler {
 		}
 		row, err := srv.DB.GetItemByGUID(cctx, guid)
 		if err != nil || row == nil || row.UID != ctx.Sess.Userid {
-			ctx.Log.Info("修理：物品不存在", "guid", shortGUID(guid))
+			ctx.Log.Info("Ремонт: предмет не существует", "guid", shortGUID(guid))
 			return nil, false
 		}
 		// 已完好则不必修理（避免白扣费）：回原物品状态
 		if row.Durability >= 1.0 {
-			ctx.Log.Info("修理：物品耐久已满", "guid", shortGUID(guid))
+			ctx.Log.Info("Ремонт: прочность предмета уже полная", "guid", shortGUID(guid))
 			tree, terr := srv.ItemToTree(cctx, row)
 			if terr != nil {
 				return nil, false
@@ -1706,7 +1706,7 @@ func hWorkshopRepair(useGold bool) Handler {
 		mapMult := repairMultiplierForStore(storeID, srv.currentLevel(ctx.Sess.Userid))
 		cost := repairCost(len(slots), useGold, wear, mapMult)
 		if clientCost > 0 && !workshopQuoteMatches(clientCost, cost) {
-			ctx.Log.Warn("修理：客户端报价异常", "guid", shortGUID(guid),
+			ctx.Log.Warn("Ремонт: неверная цена от клиента", "guid", shortGUID(guid),
 				"client", clientCost, "server", cost, "gold", useGold)
 			return nil, false
 		}
@@ -1719,7 +1719,7 @@ func hWorkshopRepair(useGold bool) Handler {
 			balance = p.Gold
 		}
 		if balance < cost {
-			ctx.Log.Info("修理余额不足", "gold", useGold, "balance", balance, "cost", cost)
+			ctx.Log.Info("Недостаточно средств для ремонта", "gold", useGold, "balance", balance, "cost", cost)
 			if useGold {
 				return nil, false // 金币不足时交给兜底链
 			}
@@ -1748,7 +1748,7 @@ func hWorkshopRepair(useGold bool) Handler {
 			}
 			changed, ierr := srv.restoreReelInternalsInFields(cctx, row, fields)
 			if ierr != nil {
-				ctx.Log.Warn("修理：轮内零件恢复失败，本次修理未生效", "guid", shortGUID(guid), "err", ierr)
+				ctx.Log.Warn("Ремонт: не удалось восстановить детали катушки, ремонт не выполнен", "guid", shortGUID(guid), "err", ierr)
 				return nil, false
 			}
 			if changed {
@@ -1768,13 +1768,13 @@ func hWorkshopRepair(useGold bool) Handler {
 			snapshot.FieldsJSON = fieldsJSON
 			preparedPerf, perr = srv.buildReelPerformance(cctx, &snapshot)
 			if perr != nil {
-				ctx.Log.Warn("修理：轮子物理参数计算失败", "guid", shortGUID(row.GUID), "err", perr)
+				ctx.Log.Warn("Ремонт: ошибка расчёта физики катушки", "guid", shortGUID(row.GUID), "err", perr)
 				return nil, false
 			}
 		}
 		tx, terr := beginEconomyTx(cctx, srv.DB)
 		if terr != nil {
-			ctx.Log.Warn("修理：事务启动失败", "guid", shortGUID(guid), "err", terr)
+			ctx.Log.Warn("Ремонт: не удалось начать транзакцию", "guid", shortGUID(guid), "err", terr)
 			return nil, false
 		}
 		committed := false
@@ -1789,22 +1789,22 @@ func hWorkshopRepair(useGold bool) Handler {
 		}
 		if err := applyWalletTx(cctx, tx, ctx.Sess.Userid, silverDelta, goldDelta,
 			"repair", "", guid, ""); err != nil {
-			ctx.Log.Warn("修理：扣费失败", "guid", shortGUID(guid), "err", err)
+			ctx.Log.Warn("Ремонт: не удалось списать оплату", "guid", shortGUID(guid), "err", err)
 			return nil, false
 		}
 		if err := srv.DB.UpdateItemFieldsTx(cctx, tx, guid, fieldsJSON, row.Qty,
 			1.0, row.Workmanship, row.RigGUID); err != nil {
-			ctx.Log.Warn("修理耐久写库失败", "guid", shortGUID(guid), "err", err)
+			ctx.Log.Warn("Ремонт: не удалось записать прочность", "guid", shortGUID(guid), "err", err)
 			return nil, false
 		}
 		if preparedPerf != nil {
 			if err := srv.DB.UpsertReelPerformanceTx(cctx, tx, *preparedPerf); err != nil {
-				ctx.Log.Warn("修理：轮子物理参数保存失败", "guid", shortGUID(row.GUID), "err", err)
+				ctx.Log.Warn("Ремонт: не удалось сохранить физику катушки", "guid", shortGUID(row.GUID), "err", err)
 				return nil, false
 			}
 		}
 		if err := tx.Commit(); err != nil {
-			ctx.Log.Warn("修理：事务提交失败", "guid", shortGUID(guid), "err", err)
+			ctx.Log.Warn("Ремонт: не удалось зафиксировать транзакцию", "guid", shortGUID(guid), "err", err)
 			return nil, false
 		}
 		committed = true
@@ -1815,7 +1815,7 @@ func hWorkshopRepair(useGold bool) Handler {
 			BeforeDurability: ptrFloat64(beforeDurability), AfterDurability: ptrFloat64(1.0),
 			DetailJSON: damageDetailJSON(map[string]any{"store": storeID, "cost": cost, "gold": useGold}),
 		}); err != nil {
-			ctx.Log.Warn("修理历史写库失败", "guid", shortGUID(guid), "err", err)
+			ctx.Log.Warn("Ремонт: не удалось записать историю", "guid", shortGUID(guid), "err", err)
 		}
 		tree, terr := srv.ItemToTree(cctx, row)
 		if terr != nil {
@@ -1825,9 +1825,9 @@ func hWorkshopRepair(useGold bool) Handler {
 		if berr != nil {
 			return nil, false
 		}
-		ctx.Log.Info("修理完成", "guid", shortGUID(guid), "槽位数", len(slots),
-			"费用", cost, "金", useGold, "磨损前", 1.0-wear,
-			"店铺", storeID, "倍率", mapMult)
+		ctx.Log.Info("Ремонт завершён", "guid", shortGUID(guid), "Слотов", len(slots),
+			"Стоимость", cost, "Золото", useGold, "До износа", 1.0-wear,
+			"Магазин", storeID, "Множитель", mapMult)
 		return body, true
 	}
 }
@@ -1913,12 +1913,12 @@ func deepInts(v *proto.Value) []int64 {
 // wearPerCatch 定义每次成功钓获对各组件造成的耐久下降量。
 // 主线/前导没有按尾离散磨损；只保留断线/剪线按米数损耗和前导的搏鱼受力秒通道。
 var wearPerCatch = map[string]float64{
-	"rod":     0.0002, // 竿本体：结构件，磨损慢于线/钩
-	"line":    0.0,    // 主线/前导：官服对拍未见按尾扣耐久
+	"rod":     0.0002, // 竿本体: 结构件, 磨损慢于线/钩
+	"line":    0.0,    // 主线/前导: 官服对拍未见按尾扣耐久
 	"hook":    0.0012, // 鱼钩
-	"bait":    0.0,    // 鱼饵是消耗品，由数量扣减而非耐久
+	"bait":    0.0,    // 鱼饵是消耗品, 由数量扣减而非耐久
 	"float":   0.0004, // 浮漂
-	"lure":    0.0008, // 路亚（反复抛投磨损）
+	"lure":    0.0008, // 路亚 (反复抛投磨损)
 	"default": 0.0006, // 其它组件
 }
 
@@ -1959,8 +1959,8 @@ func (s *Server) wearRigForCatch(ctx context.Context, rigGUID string) {
 			continue
 		}
 		if err := s.DB.SetItemDurability(ctx, row.GUID, newD); err == nil {
-			s.log.Info("钓获磨损", "guid", shortGUID(row.GUID),
-				"类别", key, "耐久", fmt.Sprintf("%.4f->%.4f", row.Durability, newD))
+			s.log.Info("Износ при ловле", "guid", shortGUID(row.GUID),
+				"Категория", key, "Прочность", fmt.Sprintf("%.4f->%.4f", row.Durability, newD))
 		}
 	}
 }
@@ -1981,7 +1981,7 @@ func hRodSetDepth(ctx *Ctx) ([]byte, bool) {
 	if srv.DB != nil {
 		row = srv.ownedRodRow(ctx.Sess.pushCtx(), ctx.Sess.Userid, rodGUID)
 		if row == nil {
-			ctx.Log.Warn("17/12 竿不属于当前玩家，已忽略", "竿", shortGUID(rodGUID))
+			ctx.Log.Warn("17/12 Удилище не принадлежит текущему игроку, пропущено", "Удилище", shortGUID(rodGUID))
 			return nil, true
 		}
 	}
@@ -1992,13 +1992,13 @@ func hRodSetDepth(ctx *Ctx) ([]byte, bool) {
 		row = srv.ownedRodRow(ctx.Sess.pushCtx(), ctx.Sess.Userid, rodGUID)
 		if row == nil || !srv.rodRigSetDepthRow(ctx.Sess.pushCtx(), row, depthCM) {
 			st.mu.Unlock()
-			ctx.Log.Warn("17/12 竿钓深写入失败", "竿", shortGUID(rodGUID))
+			ctx.Log.Warn("17/12 Не удалось записать глубину ловли удилища", "Удилище", shortGUID(rodGUID))
 			return nil, true
 		}
 	}
 	st.DepthCM = depthCM
 	st.mu.Unlock()
-	ctx.Log.Info("17/12 设置钓深", "竿", shortGUID(rodGUID), "深度cm", depthCM)
+	ctx.Log.Info("17/12 Установка глубины", "Удилище", shortGUID(rodGUID), "Глубинаcm", depthCM)
 	return nil, true
 }
 
@@ -2012,10 +2012,10 @@ func hRodSetDrag(ctx *Ctx) ([]byte, bool) {
 	if rodGUID == "" {
 		return nil, true
 	}
-	ctx.Log.Info("17/14 设置摩擦", "竿", shortGUID(rodGUID), "值", value)
+	ctx.Log.Info("17/14 Установка фрикциона", "Удилище", shortGUID(rodGUID), "Значение", value)
 	if srv.DB != nil && !srv.setOwnedRodSetting(ctx.Sess.pushCtx(), ctx.Sess.Userid,
 		rodGUID, reelDragSettingKey, value, 6) {
-		ctx.Log.Warn("17/14 竿不属于当前玩家，已忽略", "竿", shortGUID(rodGUID))
+		ctx.Log.Warn("17/14 Удилище не принадлежит текущему игроку, пропущено", "Удилище", shortGUID(rodGUID))
 	}
 	// 摩擦档位变了：本竿缓存的泄力/锁轮承力必须重取，当前锁轮过载段也从头重新爬升。
 	if st := srv.fishingStateForRod(ctx.Sess.Userid, rodGUID); st != nil {
@@ -2036,11 +2036,11 @@ func hRodSetSpeed(ctx *Ctx) ([]byte, bool) {
 	if rodGUID == "" {
 		return nil, true
 	}
-	ctx.Log.Info("17/15 设置收线速度", "竿", shortGUID(rodGUID), "值", value)
+	ctx.Log.Info("17/15 Установка скорости подмотки", "Удилище", shortGUID(rodGUID), "Значение", value)
 	if srv.DB != nil {
 		if !srv.setOwnedRodSetting(ctx.Sess.pushCtx(), ctx.Sess.Userid,
 			rodGUID, reelSpeedSettingKey, value, 7) {
-			ctx.Log.Warn("17/15 竿不属于当前玩家，已忽略", "竿", shortGUID(rodGUID))
+			ctx.Log.Warn("17/15 Удилище не принадлежит текущему игроку, пропущено", "Удилище", shortGUID(rodGUID))
 			return nil, true
 		}
 	}
@@ -2109,16 +2109,16 @@ func hRodSetClip(ctx *Ctx) ([]byte, bool) {
 		return nil, true
 	}
 	clipM = clampReelClipM(clipM)
-	ctx.Log.Info("17/13 设置轮管卡", "竿", shortGUID(rodGUID), "卡米", clipM)
+	ctx.Log.Info("17/13 Установка клипсы шпули", "Удилище", shortGUID(rodGUID), "Клипса, м", clipM)
 	if srv.DB != nil {
 		row := srv.ownedRodRow(ctx.Sess.pushCtx(), ctx.Sess.Userid, rodGUID)
 		if row == nil {
-			ctx.Log.Warn("17/13 竿不属于当前玩家，已忽略", "竿", shortGUID(rodGUID))
+			ctx.Log.Warn("17/13 Удилище не принадлежит текущему игроку, пропущено", "Удилище", shortGUID(rodGUID))
 			return nil, true
 		}
 		_ = srv.DB.UpsertRodSetting(ctx.Sess.pushCtx(), rodGUID, reelClipSettingKey, strconv.FormatInt(clipM, 10))
 		if !srv.rodRigSetClipRow(ctx.Sess.pushCtx(), row, clipM) {
-			ctx.Log.Info("17/13 竿实例无钓组字段，仅记竿设置", "竿", shortGUID(rodGUID))
+			ctx.Log.Info("17/13 У экземпляра удилища нет поля оснастки, записаны только настройки удилища", "Удилище", shortGUID(rodGUID))
 		} else {
 			// 客户端贴卡截停读竿树 153.f5：设卡后必须把更新后的竿树推回，
 			// 否则客户端拿着登录时的陈旧卡米数，卡线形同虚设
@@ -2199,7 +2199,7 @@ func (s *Server) rodRigSetDepthRow(ctx context.Context, row *store.Item, depthCM
 	}
 	idx := fieldIdxByCS(row.WireClass, csRigObject)
 	if idx < 0 || idx >= len(fields) {
-		return false // 不是竿类（无钓组字段）：不动它
+		return false // 不是竿类 (无钓组字段): 不动它
 	}
 	stored := fields[idx].Val
 	if stored == nil || stored.Kind != proto.KindObj {
@@ -2238,30 +2238,30 @@ var (
 // 去掉 . -_ 空格 数字 后，剩余字符必须全拉丁或全西里尔。返回 (ok, 原因)。
 func validateFishName(name string) (bool, string) {
 	if name == "" {
-		return false, "空名字"
+		return false, "Пустое имя"
 	}
 	s := strings.TrimSpace(name)
 	if s == "" {
-		return false, "空名字"
+		return false, "Пустое имя"
 	}
 	if utf8.RuneCountInString(s) > maxFishNameLen {
-		return false, fmt.Sprintf("名字过长（>%d）", maxFishNameLen)
+		return false, fmt.Sprintf("Имя слишком длинное (>%d)", maxFishNameLen)
 	}
 	core := fishNameStripRe.ReplaceAllString(s, "")
 	if core == "" {
-		return false, "名字里没有字母"
+		return false, "В имени нет букв"
 	}
 	hasLatin := fishNameLatinRe.MatchString(core)
 	hasCyr := fishNameCyrillic.MatchString(core)
 	if hasLatin && hasCyr {
-		return false, "拉丁字母与西里尔字母不能混用"
+		return false, "Нельзя смешивать латиницу и кириллицу"
 	}
 	if !hasLatin && !hasCyr {
-		return false, "只能使用拉丁或西里尔字母（可带数字/空格/.-_）"
+		return false, "Можно использовать только латиницу или кириллицу (допускаются цифры, пробел и .-_)"
 	}
 	rest := fishNameLatinRe.ReplaceAllString(fishNameCyrillic.ReplaceAllString(core, ""), "")
 	if rest != "" {
-		return false, "含有不允许的字符"
+		return false, "Содержит недопустимые символы"
 	}
 	return true, ""
 }
@@ -2269,10 +2269,10 @@ func validateFishName(name string) (bool, string) {
 // canNameFish 判断鱼是否可以命名：必须是蓝冠且尚未命名。
 func canNameFish(ctx context.Context, db *store.DB, grade int64, fishID string) (bool, string) {
 	if grade != superTrophyGrade {
-		return false, fmt.Sprintf("只有蓝冠（超级奖杯）鱼可以命名（当前 grade=%d）", grade)
+		return false, fmt.Sprintf("Имя можно дать только рыбе с синей короной (супертрофею) (текущий grade=%d)", grade)
 	}
 	if fishID != "" && db.NamedFishIsNamed(ctx, fishID) {
-		return false, "这条鱼已经被命名过，不能改名"
+		return false, "Эта рыба уже названа, переименовать нельзя"
 	}
 	return true, ""
 }
@@ -2293,7 +2293,7 @@ func releaseFishName(tree *proto.Value) string {
 // named_fish 行（已命名冲突时 ON CONFLICT DO NOTHING = 保留原名）。
 func (s *Server) insertNamedFish(ctx context.Context, uid int64, f *RolledFish, fishID, name, place string) (bool, string) {
 	if fishID == "" {
-		return false, "缺少鱼 id"
+		return false, "Нет рыбы id"
 	}
 	if ok, why := validateFishName(name); !ok {
 		return false, why
@@ -2315,7 +2315,7 @@ func (s *Server) insertNamedFish(ctx context.Context, uid int64, f *RolledFish, 
 		TS:      float64(time.Now().Unix()),
 	})
 	if err != nil {
-		return false, fmt.Sprintf("存储失败：%v", err)
+		return false, fmt.Sprintf("Ошибка сохранения: %v", err)
 	}
 	return true, ""
 }

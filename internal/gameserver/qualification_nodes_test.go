@@ -19,23 +19,23 @@ func TestEnvironmentEmitsQualificationTree(t *testing.T) {
 		t.Fatalf("28/1 解码失败: %v", err)
 	}
 	if root.TypeID != 5011 {
-		t.Fatalf("根对象应为 5011，实得 %d", root.TypeID)
+		t.Fatalf("根对象应为 5011, 实得 %d", root.TypeID)
 	}
 	nodes := root.Fields[1].Val
 	if nodes == nil || len(nodes.Items) != qualificationBranches {
-		t.Fatalf("分支数应为 %d，实得 %v", qualificationBranches, nodes)
+		t.Fatalf("分支数应为 %d, 实得 %v", qualificationBranches, nodes)
 	}
 	for bi, node := range nodes.Items {
 		branch := uint64(bi + 1)
 		if node.TypeID != 5009 {
-			t.Fatalf("分支节点应为 5009，实得 %d", node.TypeID)
+			t.Fatalf("分支节点应为 5009, 实得 %d", node.TypeID)
 		}
 		if got := *node.Fields[0].Num; got != branch {
-			t.Fatalf("Idx0 分支 ID 应为 %d，实得 %d", branch, got)
+			t.Fatalf("Idx0 分支 ID 应为 %d, 实得 %d", branch, got)
 		}
 		// 资格面板只接受 Idx1 == 0 的节点。
 		if got := *node.Fields[1].Num; got != 0 {
-			t.Fatalf("分支 %d 的 Idx1 必须为 0，实得 %d", branch, got)
+			t.Fatalf("分支 %d 的 Idx1 必须为 0, 实得 %d", branch, got)
 		}
 		stages := node.Fields[3].Val
 		if stages == nil || len(stages.Items) != qualificationStages {
@@ -44,10 +44,10 @@ func TestEnvironmentEmitsQualificationTree(t *testing.T) {
 		for si, stage := range stages.Items {
 			stageNo := uint64(si + 1)
 			if stage.TypeID != 5008 {
-				t.Fatalf("阶段对象应为 5008，实得 %d", stage.TypeID)
+				t.Fatalf("阶段对象应为 5008, 实得 %d", stage.TypeID)
 			}
 			if got := *stage.Fields[0].Num; got != stageNo {
-				t.Fatalf("阶段号应为 %d，实得 %d", stageNo, got)
+				t.Fatalf("阶段号应为 %d, 实得 %d", stageNo, got)
 			}
 			tasks := stage.Fields[1].Val
 			if tasks == nil || len(tasks.Items) != qualificationTasks {
@@ -55,7 +55,7 @@ func TestEnvironmentEmitsQualificationTree(t *testing.T) {
 			}
 			for ti, task := range tasks.Items {
 				if task.TypeID != 5019 {
-					t.Fatalf("任务对象应为 5019，实得 %d", task.TypeID)
+					t.Fatalf("任务对象应为 5019, 实得 %d", task.TypeID)
 				}
 				rules := task.Fields[1].Val
 				// 每条任务必须至少带 1 条规则，否则进度 0/0 → NaN，面板永久转圈。
@@ -64,16 +64,16 @@ func TestEnvironmentEmitsQualificationTree(t *testing.T) {
 				}
 				rule := rules.Items[0]
 				if rule.TypeID != 5007 {
-					t.Fatalf("规则对象应为 5007，实得 %d", rule.TypeID)
+					t.Fatalf("规则对象应为 5007, 实得 %d", rule.TypeID)
 				}
 				want := qualificationRuleID(branch, stageNo, uint64(ti+1))
 				if got := *rule.Fields[0].Num; got != want {
-					t.Fatalf("规则类型应为 %d，实得 %d", want, got)
+					t.Fatalf("规则类型应为 %d, 实得 %d", want, got)
 				}
 				// 进度分母必须等于官服静态规则值且 > 0，否则进度除零。
 				wantTarget := qualificationRuleWireByID[want].F3
 				if got := *rule.Fields[3].Num; got != uint64(wantTarget) || got == 0 {
-					t.Fatalf("分支 %d 阶段 %d 任务 %d 进度分母应为 %d，实得 %d",
+					t.Fatalf("分支 %d 阶段 %d 任务 %d 进度分母应为 %d, 实得 %d",
 						branch, stageNo, ti+1, wantTarget, got)
 				}
 			}
@@ -93,7 +93,7 @@ func TestQualificationRuleIDLadder(t *testing.T) {
 	}
 	for _, c := range cases {
 		if got := qualificationRuleID(c.branch, c.stage, c.task); got != c.want {
-			t.Fatalf("qualificationRuleID(%d,%d,%d)=%d，期望 %d", c.branch, c.stage, c.task, got, c.want)
+			t.Fatalf("qualificationRuleID(%d,%d,%d)=%d, 期望 %d", c.branch, c.stage, c.task, got, c.want)
 		}
 	}
 	seen := make(map[uint64]bool, 168)
@@ -109,6 +109,6 @@ func TestQualificationRuleIDLadder(t *testing.T) {
 		}
 	}
 	if len(seen) != 168 {
-		t.Fatalf("任务总数应为 168，实得 %d", len(seen))
+		t.Fatalf("任务总数应为 168, 实得 %d", len(seen))
 	}
 }

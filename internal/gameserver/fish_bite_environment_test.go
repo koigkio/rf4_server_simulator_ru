@@ -18,7 +18,7 @@ func TestFishEcologyAssetCoversAllSpeciesAndActions(t *testing.T) {
 		t.Fatal(err)
 	}
 	if len(profiles) != 253 {
-		t.Fatalf("生态资产=%d，期望 253", len(profiles))
+		t.Fatalf("生态资产=%d, 期望 253", len(profiles))
 	}
 	seen := map[string]bool{}
 	for _, profile := range profiles {
@@ -50,7 +50,7 @@ func TestFishEcologyAssetCoversAllSpeciesAndActions(t *testing.T) {
 		}
 		actions := fishEcologyJSONMap(profile.ActionJSON)
 		if len(actions) != len(actionNamesForTest()) {
-			t.Errorf("%s 动作数=%d，期望 %d", profile.FishKey, len(actions), len(actionNamesForTest()))
+			t.Errorf("%s 动作数=%d, 期望 %d", profile.FishKey, len(actions), len(actionNamesForTest()))
 		}
 	}
 }
@@ -79,7 +79,7 @@ func TestEveryLureMotionBitHasDistinctAction(t *testing.T) {
 		seen[action] = mask
 	}
 	if want := 23 - len(unknown); len(seen) != want {
-		t.Fatalf("已识别动作=%d，期望 %d", len(seen), want)
+		t.Fatalf("已识别动作=%d, 期望 %d", len(seen), want)
 	}
 }
 
@@ -343,14 +343,14 @@ func TestSeaGuideSpotLabelDistinguishesUnknownAndOutside(t *testing.T) {
 		r    *fishRollRuntime
 		want string
 	}{
-		{"无上下文", nil, "未知"},
-		{"只有声呐区", &fishRollRuntime{chartKnown: true, zone: 170, zoneKnown: true}, "未知"},
-		{"纸图已知但无标注", &fishRollRuntime{chartKnown: true, guideKnown: true}, "标注范围外"},
+		{"无上下文", nil, "Неизвестно"},
+		{"只有声呐区", &fishRollRuntime{chartKnown: true, zone: 170, zoneKnown: true}, "Неизвестно"},
+		{"纸图已知但无标注", &fishRollRuntime{chartKnown: true, guideKnown: true}, "Вне размеченной области"},
 		{"纸图命中", &fishRollRuntime{chartKnown: true, guideKnown: true, guideSpot: 75}, "75"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			if got := tc.r.guideSpotLabel(); got != tc.want {
-				t.Fatalf("label=%q，期望 %q", got, tc.want)
+				t.Fatalf("label=%q, 期望 %q", got, tc.want)
 			}
 		})
 	}
@@ -383,20 +383,20 @@ func TestLoadFishSpotPreferenceMatchesChartZone(t *testing.T) {
 	swordfish := fishRollContext{loc: "loc12_252", x: 3282, z: -925, hasPos: true}
 	srv.prepareFishRollRuntime(t.Context(), &swordfish, "chart-zone-test")
 	if got := swordfish.runtime.spotPref; len(got) != 1 || got["x_gladius"] != 4 {
-		t.Fatalf("80米钓点应读取标深80的16条剑鱼观测：%v", got)
+		t.Fatalf("80米钓点应读取标深80的16条剑鱼观测: %v", got)
 	}
 	legacy := &fishRollContext{runtime: &fishRollRuntime{chartKnown: true, guideKnown: true, guideSpot: 133}}
 	if got, has := srv.loadFishSpotPreference(t.Context(), "chart-zone-test", legacy); has || len(got) != 0 {
-		t.Fatalf("旧声呐网格号不能当成纸图标深观测：%v has=%v", got, has)
+		t.Fatalf("旧声呐网格号不能当成纸图标深观测: %v has=%v", got, has)
 	}
 	for _, unknown := range []fishRollContext{
 		{loc: "loc12_80"}, // 声呐80区不能归入80米钓点的观测
-		{loc: "level_012_north_sea", x: 3500, z: 700, hasPos: true}, // 声呐120号，未标定为120米钓点
-		{loc: "loc12_170"}, // 只有声呐区号，没有可核对的落点
+		{loc: "level_012_north_sea", x: 3500, z: 700, hasPos: true}, // 声呐120号, 未标定为120米钓点
+		{loc: "loc12_170"}, // 只有声呐区号, 没有可核对的落点
 	} {
 		srv.prepareFishRollRuntime(t.Context(), &unknown, "chart-zone-test")
 		if unknown.runtime.spotData {
-			t.Fatalf("无已核对的攻略点时不应给观测加权：%+v", unknown.runtime)
+			t.Fatalf("无已核对的攻略点时不应给观测加权: %+v", unknown.runtime)
 		}
 	}
 }
@@ -413,10 +413,10 @@ func TestPrepareFishRollRuntimeResolvesChartFromSceneName(t *testing.T) {
 	c := &fishRollContext{loc: "loc12_157", x: 1300, z: 100, hasPos: true, rigType: 53}
 	srv.prepareFishRollRuntime(context.Background(), c, "挪威海")
 	if !c.runtime.chartKnown {
-		t.Fatal("挪威海场景名没能定位到海图，chartKnown 仍为 false")
+		t.Fatal("挪威海场景名没能定位到海图, chartKnown 仍为 false")
 	}
 	if !c.runtime.zoneKnown || c.runtime.zone != 157 {
-		t.Fatalf("海图区号=%d known=%v，期望 157", c.runtime.zone, c.runtime.zoneKnown)
+		t.Fatalf("海图区号=%d known=%v, 期望 157", c.runtime.zone, c.runtime.zoneKnown)
 	}
 }
 

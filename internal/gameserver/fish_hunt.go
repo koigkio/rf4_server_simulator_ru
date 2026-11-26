@@ -132,7 +132,7 @@ func (s *Server) loadFishHuntState(ctx context.Context, uid int64, loc string, s
 	h.ZoneKnown = zoneKnown != 0
 	h.CompGrade = compGrade
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
-		s.log.Warn("鱼猎状态读取失败", "uid", uid, "loc", loc, "spot", spot, "err", err)
+		s.log.Warn("Не удалось прочитать состояние охоты на рыбу", "uid", uid, "loc", loc, "spot", spot, "err", err)
 	}
 	return h
 }
@@ -163,7 +163,7 @@ func (s *Server) saveFishHuntState(ctx context.Context, h *fishHuntState) {
 		h.CompUntil, h.LastCatchGUID, h.LastActiveTS, h.UpdatedTS,
 		h.Mode, h.Zone, boolInt(h.ZoneKnown))
 	if err != nil {
-		s.log.Warn("鱼猎状态保存失败", "uid", h.UID, "loc", h.Loc, "spot", h.Spot, "err", err)
+		s.log.Warn("Не удалось сохранить состояние охоты на рыбу", "uid", h.UID, "loc", h.Loc, "spot", h.Spot, "err", err)
 	}
 }
 
@@ -915,7 +915,7 @@ func (s *Server) recordHuntEscape(ctx context.Context, uid int64, loc string, sp
 		h.CompFish = 4
 	}
 	s.saveFishHuntState(ctx, h)
-	s.log.Info("大鱼脱钩补偿", "uid", uid, "loc", loc, "spot", spot,
+	s.log.Info("Компенсация за сход крупной рыбы", "uid", uid, "loc", loc, "spot", spot,
 		"grade", f.Grade, "big_miss", h.BigMiss, "until", h.CompUntil)
 }
 
@@ -936,18 +936,18 @@ func consumeFishHuntCompensation(h *fishHuntState, now int64) {
 func (s *Server) fishHuntStageName(mode, stage int) string {
 	if mode == fishHuntModeFreshwater && s.twoStageHuntEnabled() {
 		if stage == fishHuntDaily {
-			return "日常"
+			return "Обычный"
 		}
-		return "打窝"
+		return "Прикормка"
 	}
 	switch stage {
 	case fishHuntGather:
-		return "聚鱼"
+		return "Сбор рыбы"
 	case fishHuntActive:
-		return "发窝"
+		return "Активная прикормка"
 	case fishHuntGiant:
-		return "巨物发窝"
+		return "Гиганты на прикормке"
 	default:
-		return "日常"
+		return "Обычный"
 	}
 }

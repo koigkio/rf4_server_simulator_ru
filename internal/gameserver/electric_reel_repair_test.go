@@ -70,7 +70,7 @@ func TestWorkshopRepairsReelBodyWhenAllPartsLookFull(t *testing.T) {
 		break
 	}
 	if bodyQuote != 500 {
-		t.Fatalf("满磨损本体修理报价应为 500 银，实得 %d", bodyQuote)
+		t.Fatalf("满磨损本体修理报价应为 500 银, 实得 %d", bodyQuote)
 	}
 
 	c := &Ctx{
@@ -83,13 +83,13 @@ func TestWorkshopRepairsReelBodyWhenAllPartsLookFull(t *testing.T) {
 	}
 	fresh := mustItem(t, db, reel.GUID)
 	if fresh.Durability != 1 {
-		t.Fatalf("本体修理后耐久应为 1，实得 %v", fresh.Durability)
+		t.Fatalf("本体修理后耐久应为 1, 实得 %v", fresh.Durability)
 	}
 	profile, err := db.GetProfile(ctx, uid)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if profile.Silver != 500 {
-		t.Fatalf("满磨损本体修理应扣 500 银，余额=%d", profile.Silver)
+		t.Fatalf("满磨损本体修理应扣 500 银, 余额=%d", profile.Silver)
 	}
 }

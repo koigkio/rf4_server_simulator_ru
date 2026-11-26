@@ -155,7 +155,7 @@ func openStaticDBAtPath(t *testing.T, path string) *store.DB {
 	t.Helper()
 	db, err := store.OpenWithStatic(path, staticTestDBPath())
 	if err != nil {
-		t.Fatalf("打开测试 SQLite（只读静态库）: %v", err)
+		t.Fatalf("打开测试 SQLite (只读静态库): %v", err)
 	}
 	if err := db.EnableStaticReadOnly(t.Context()); err != nil {
 		_ = db.Close()

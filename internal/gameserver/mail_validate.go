@@ -20,18 +20,18 @@ import (
 // 返回 nil 表示该附件在领取路径上可以发放。
 func ValidateMailAttachment(ctx context.Context, db *store.DB, att store.MailItem) error {
 	if db == nil {
-		return fmt.Errorf("数据库不可用")
+		return fmt.Errorf("База данных недоступна")
 	}
 	itemID := strings.TrimSpace(att.ItemID)
 	if itemID == "" {
-		return fmt.Errorf("附件缺少物品 ID")
+		return fmt.Errorf("Во вложении нет предмета ID")
 	}
 	if att.Qty <= 0 {
-		return fmt.Errorf("附件 %s 数量必须大于 0", itemID)
+		return fmt.Errorf("Количество вложения %s должно быть больше 0", itemID)
 	}
 	def, err := db.GetItemDefByItemID(ctx, itemID)
 	if err != nil || def == nil {
-		return fmt.Errorf("附件 %s 物品不存在", itemID)
+		return fmt.Errorf("Предмет вложения %s не существует", itemID)
 	}
 	// 梦鱼券按张建行，领取侧 prepareCouponRows 有单次上限。发件侧必须先挡住，
 	// 否则后台能发出「领取必然失败」的券邮件；与后台直接发放共用同一判据。
@@ -44,7 +44,7 @@ func ValidateMailAttachment(ctx context.Context, db *store.DB, att store.MailIte
 	if bundleOpenable(def) {
 		// 礼盒：按包数逐件发放本体，一包一件。
 		if att.Qty > maxBundlePreparedItems {
-			return fmt.Errorf("附件 %s 数量 %d 超过单次领取上限 %d，玩家无法领取",
+			return fmt.Errorf("Количество вложения %s (%d) превышает предел получения за раз %d, игрок не сможет его забрать",
 				itemID, att.Qty, maxBundlePreparedItems)
 		}
 		return nil
@@ -55,7 +55,7 @@ func ValidateMailAttachment(ctx context.Context, db *store.DB, att store.MailIte
 		packs = 1
 	}
 	if err := validateBundleExpandable(ctx, db, itemID, packs); err != nil {
-		return fmt.Errorf("附件 %s 无法展开: %w", itemID, err)
+		return fmt.Errorf("Вложение %s нельзя развернуть: %w", itemID, err)
 	}
 	return nil
 }
@@ -64,7 +64,7 @@ func ValidateMailAttachment(ctx context.Context, db *store.DB, att store.MailIte
 // 邮件附件与后台 grant_item 共用，避免发件侧/领取侧口径漂移。
 func couponGrantQtyError(def *store.ItemDef, itemID string, qty int64) error {
 	if def.Category == couponCategory && qty > maxBundlePreparedItems {
-		return fmt.Errorf("附件 %s 数量 %d 超过单次领取上限 %d，玩家无法领取",
+		return fmt.Errorf("Количество вложения %s (%d) превышает предел получения за раз %d, игрок не сможет его забрать",
 			itemID, qty, maxBundlePreparedItems)
 	}
 	return nil
@@ -74,7 +74,7 @@ func couponGrantQtyError(def *store.ItemDef, itemID string, qty int64) error {
 // 物品定义缺失时交给领取侧处理，这里只挡「券张数越界」这一件事。
 func ValidateCouponGrantQty(ctx context.Context, db *store.DB, itemID string, qty int64) error {
 	if db == nil {
-		return fmt.Errorf("数据库不可用")
+		return fmt.Errorf("База данных недоступна")
 	}
 	itemID = strings.TrimSpace(itemID)
 	def, err := db.GetItemDefByItemID(ctx, itemID)
@@ -89,10 +89,10 @@ func ValidateCouponGrantQty(ctx context.Context, db *store.DB, itemID string, qt
 func validateBundleExpandable(ctx context.Context, db *store.DB, itemID string, packs int64) error {
 	def, err := db.GetItemDefByItemID(ctx, itemID)
 	if err != nil || def == nil {
-		return fmt.Errorf("组合包定义不存在: %s", itemID)
+		return fmt.Errorf("Определение набора не существует: %s", itemID)
 	}
 	if def.Category != bundleCategory {
-		return fmt.Errorf("不是组合包定义: %s", itemID)
+		return fmt.Errorf("Это не определение набора: %s", itemID)
 	}
 	attrs, err := bundleAttrs(def)
 	if err != nil {
@@ -100,7 +100,7 @@ func validateBundleExpandable(ctx context.Context, db *store.DB, itemID string, 
 	}
 	contents, ok := attrs["nbkhfhenbag"].([]any)
 	if !ok || len(contents) == 0 {
-		return fmt.Errorf("组合包没有内含物: %s", itemID)
+		return fmt.Errorf("В наборе нет содержимого: %s", itemID)
 	}
 	instances := int64(0)
 	totals := make(map[string]int64)
@@ -108,26 +108,26 @@ func validateBundleExpandable(ctx context.Context, db *store.DB, itemID string, 
 		entry, _ := raw.(map[string]any)
 		inner, _ := entry["cemjmlpafmc"].(string)
 		if strings.TrimSpace(inner) == "" {
-			return fmt.Errorf("组合包内含物缺少 item_id: %s", itemID)
+			return fmt.Errorf("В содержимом набора отсутствует item_id: %s", itemID)
 		}
 		quantity, qerr := bundlePositiveQuantity(entry[csQty])
 		if qerr != nil {
-			return fmt.Errorf("内含物 %s 数量非法: %w", inner, qerr)
+			return fmt.Errorf("Неверное количество содержимого %s: %w", inner, qerr)
 		}
 		if quantity > math.MaxInt64/packs {
-			return fmt.Errorf("内含物 %s 数量溢出", inner)
+			return fmt.Errorf("Переполнение количества содержимого %s", inner)
 		}
 		child, cerr := db.GetItemDefByItemID(ctx, inner)
 		if cerr != nil || child == nil {
 			// 这一条正是审查复现的问题：内含物不存在时领取必然失败。
-			return fmt.Errorf("内含物物品不存在: %s", inner)
+			return fmt.Errorf("Предмет содержимого не существует: %s", inner)
 		}
 		if child.Category == bundleCategory {
-			return fmt.Errorf("不支持嵌套组合包: %s -> %s", itemID, inner)
+			return fmt.Errorf("Вложенные наборы не поддерживаются: %s -> %s", itemID, inner)
 		}
 		class, ok := resolveWireClass(child)
 		if !ok {
-			return fmt.Errorf("内含物类别尚不支持: %s: %d", inner, child.Category)
+			return fmt.Errorf("Категория содержимого пока не поддерживается: %s: %d", inner, child.Category)
 		}
 		units := quantity * packs
 		count := units
@@ -135,7 +135,7 @@ func validateBundleExpandable(ctx context.Context, db *store.DB, itemID string, 
 			count = 1
 		}
 		if count > maxBundlePreparedItems-instances {
-			return fmt.Errorf("内含物实例数超过上限 %d: %s", maxBundlePreparedItems, inner)
+			return fmt.Errorf("Количество экземпляров содержимого превышает предел %d: %s", maxBundlePreparedItems, inner)
 		}
 		instances += count
 
@@ -143,7 +143,7 @@ func validateBundleExpandable(ctx context.Context, db *store.DB, itemID string, 
 			continue
 		}
 		if itemQtyFieldIdx(class.Class) < 0 {
-			return fmt.Errorf("组合包计件内含物缺少数量字段: %s", inner)
+			return fmt.Errorf("У штучного содержимого набора нет поля количества: %s", inner)
 		}
 		limit := bundleQuantityLimit(class.Class)
 		childAttrs, aerr := bundleAttrs(child)
@@ -154,7 +154,7 @@ func validateBundleExpandable(ctx context.Context, db *store.DB, itemID string, 
 		if rawBase, exists := childAttrs[csQty]; exists {
 			base, aerr = bundlePositiveQuantity(rawBase)
 			if aerr != nil {
-				return fmt.Errorf("组合包内含物单位量非法: %s: %w", inner, aerr)
+				return fmt.Errorf("Недопустимая единица количества в содержимом набора: %s: %w", inner, aerr)
 			}
 		}
 		absolute, _ := entry[csQtyAbsolute].(bool)
@@ -163,16 +163,16 @@ func validateBundleExpandable(ctx context.Context, db *store.DB, itemID string, 
 			// 绝对个数条目：units 即最终件数，不乘子物定义默认量。
 			total = units
 			if total > limit {
-				return fmt.Errorf("组合包内含物数量超过数量槽上限: %s", inner)
+				return fmt.Errorf("Количество содержимого набора превышает предел слота количества: %s", inner)
 			}
 		} else {
 			if base > limit/units {
-				return fmt.Errorf("组合包内含物单位换算溢出: %s", inner)
+				return fmt.Errorf("Переполнение при пересчёте единиц содержимого набора: %s", inner)
 			}
 			total = base * units
 		}
 		if totals[inner] > limit-total {
-			return fmt.Errorf("组合包内含物总量溢出: %s", inner)
+			return fmt.Errorf("Переполнение общего количества содержимого набора: %s", inner)
 		}
 		totals[inner] += total
 	}

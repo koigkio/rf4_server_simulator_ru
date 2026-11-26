@@ -55,23 +55,23 @@ func TestFishConfigCarriesBaitRotation(t *testing.T) {
 		}
 		found = true
 		if f.BaitSource != "override" {
-			t.Fatalf("bait_source=%q，期望 override（钓场页据此判断有无轮换）", f.BaitSource)
+			t.Fatalf("bait_source=%q, 期望 override (钓场页据此判断有无轮换)", f.BaitSource)
 		}
 		if !f.BaitEnabled {
 			t.Fatal("bait_enabled 应为 true")
 		}
 		if len(f.BaitGroups) != 2 {
-			t.Fatalf("bait_groups 组数=%d，期望 2（实得 %v）", len(f.BaitGroups), f.BaitGroups)
+			t.Fatalf("bait_groups 组数=%d, 期望 2 (实得 %v)", len(f.BaitGroups), f.BaitGroups)
 		}
 		if f.BaitRotSec != 600 {
-			t.Fatalf("bait_rotate_sec=%d，期望 600", f.BaitRotSec)
+			t.Fatalf("bait_rotate_sec=%d, 期望 600", f.BaitRotSec)
 		}
 		if f.BaitRotMode != "soft" {
-			t.Fatalf("bait_rotate_mode=%q，期望 soft", f.BaitRotMode)
+			t.Fatalf("bait_rotate_mode=%q, 期望 soft", f.BaitRotMode)
 		}
 	}
 	if !found {
-		t.Fatalf("鱼口配置里没有 c.roach，实际 %d 条", len(cfg.Fish))
+		t.Fatalf("鱼口配置里没有 c.roach, 实际 %d 条", len(cfg.Fish))
 	}
 }
 
@@ -92,10 +92,10 @@ func TestFishConfigWithoutOverrideHasDefaultSource(t *testing.T) {
 			continue
 		}
 		if f.BaitSource != "default" {
-			t.Fatalf("无覆盖时 bait_source=%q，期望 default", f.BaitSource)
+			t.Fatalf("无覆盖时 bait_source=%q, 期望 default", f.BaitSource)
 		}
 		if len(f.BaitGroups) != 0 {
-			t.Fatalf("无覆盖时 bait_groups 应为空，实得 %v", f.BaitGroups)
+			t.Fatalf("无覆盖时 bait_groups 应为空, 实得 %v", f.BaitGroups)
 		}
 		return
 	}
@@ -118,7 +118,7 @@ func TestActiveFishPageRendersBaitRotation(t *testing.T) {
 		"baitLine(f, baitByKey[f.fish_key])", // 钓场列表按鱼行渲染饵料摘要
 	} {
 		if !strings.Contains(string(waters), sub) {
-			t.Errorf("当前钓场模块缺少轮换同步标记：%q", sub)
+			t.Errorf("当前钓场模块缺少轮换同步标记: %q", sub)
 		}
 	}
 	for _, sub := range []string{
@@ -126,7 +126,7 @@ func TestActiveFishPageRendersBaitRotation(t *testing.T) {
 		"reload();",                   // 保存后刷新偏好列表
 	} {
 		if !strings.Contains(string(bait), sub) {
-			t.Errorf("当前鱼饵模块缺少保存后刷新标记：%q", sub)
+			t.Errorf("当前鱼饵模块缺少保存后刷新标记: %q", sub)
 		}
 	}
 }

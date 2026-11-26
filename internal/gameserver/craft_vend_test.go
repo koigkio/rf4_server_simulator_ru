@@ -32,7 +32,7 @@ func vendOK(t *testing.T, srv *Server, uid int64, recipe string, slots []craftSl
 	}
 	resp := decodeTreeValue(t, srv, body)
 	if len(resp.Fields) == 0 || resp.Fields[0].Num == nil {
-		t.Fatalf("803 缺少 f0: %+v", resp)
+		t.Fatalf("803 Отсутствует f0: %+v", resp)
 	}
 	return u64Of(resp.Fields[0].Num) != 0
 }
@@ -84,16 +84,16 @@ func TestVendCraftChargesSilverAndSkipsMaterials(t *testing.T) {
 	// 槽 GUID 全是客户端临时值（craftOK 的树里甚至没有材料槽），
 	// 背包里没有任何原料，制作应一步成功。
 	if !craftOK(t, srv, uid, "craft_feed_carp_vend", nil, 1) {
-		t.Fatal("贩卖机配方应一步成功（803.f0=1）")
+		t.Fatal("贩卖机配方应一步成功 (803.f0=1)")
 	}
 	if got := silverOf(t, srv, uid); got != 1000-630 {
-		t.Fatalf("应扣 630 银币，余额应为 370，实得 %d", got)
+		t.Fatalf("应扣 630 银币, 余额应为 370, 实得 %d", got)
 	}
 	if got := countOfItem(t, srv, ctx0, uid, "feed_karp"); got != 60 {
-		t.Fatalf("应产出 60 份鲫鱼窝料（品类 46 每套 60），实得 %d", got)
+		t.Fatalf("应产出 60 份鲫鱼窝料 (品类 46 每套 60), 实得 %d", got)
 	}
 	if got := countOfItem(t, srv, ctx0, uid, "mix_groundpeas"); got != 0 {
-		t.Fatalf("背包不应出现原料 mix_groundpeas，实得 %d", got)
+		t.Fatalf("背包不应出现原料 mix_groundpeas, 实得 %d", got)
 	}
 	// 自制窝料实例用料记录：4 种配料各 1 份（groundbait_recipe.mats_json）。
 	var matsJSON string
@@ -110,7 +110,7 @@ func TestVendCraftChargesSilverAndSkipsMaterials(t *testing.T) {
 		"feedadds_corn": true, "aroma_vanila": true,
 	}
 	if len(mats) != len(want) {
-		t.Fatalf("实例用料应记 4 条，实得 %d: %v", len(mats), mats)
+		t.Fatalf("实例用料应记 4 条, 实得 %d: %v", len(mats), mats)
 	}
 	for _, m := range mats {
 		if !want[m] {
@@ -135,10 +135,10 @@ func TestVendCraftInsufficientSilverFailsAtomic(t *testing.T) {
 		t.Fatal("余额不足时贩卖机制作必须失败")
 	}
 	if got := silverOf(t, srv, uid); got != 100 {
-		t.Fatalf("失败不应扣款，余额应为 100，实得 %d", got)
+		t.Fatalf("失败不应扣款, 余额应为 100, 实得 %d", got)
 	}
 	if got := countOfItem(t, srv, ctx0, uid, "feed_karp"); got != 0 {
-		t.Fatalf("失败不应产出，实得 %d", got)
+		t.Fatalf("失败不应产出, 实得 %d", got)
 	}
 }
 
@@ -157,16 +157,16 @@ func TestVendCraftQuotePrice(t *testing.T) {
 		}
 		resp := decodeTreeValue(t, srv, body)
 		if len(resp.Fields) < 4 || resp.Fields[1].Num == nil || resp.Fields[3].Num == nil {
-			t.Fatalf("501 缺少 f1/f3: %+v", resp)
+			t.Fatalf("501 Отсутствует f1/f3: %+v", resp)
 		}
 		return int64(u64Of(resp.Fields[1].Num)), int64(u64Of(resp.Fields[3].Num))
 	}
 	if silver, gotQty := quote(3); silver != 630*3 || gotQty != 3 {
-		t.Fatalf("qty=3 报价应为 1890/3，实得 %d/%d", silver, gotQty)
+		t.Fatalf("qty=3 报价应为 1890/3, 实得 %d/%d", silver, gotQty)
 	}
 	// 超上限（窝料单次 60 套）报价与实际扣款口径一致。
 	if silver, gotQty := quote(1000); silver != 630*60 || gotQty != 60 {
-		t.Fatalf("qty=1000 应收敛到 60 套报价 37800，实得 %d/%d", silver, gotQty)
+		t.Fatalf("qty=1000 应收敛到 60 套报价 37800, 实得 %d/%d", silver, gotQty)
 	}
 }
 
@@ -196,7 +196,7 @@ func TestVendCraftGenericDemandsTakeSlotItems(t *testing.T) {
 		t.Fatal("通用槽配方应按槽内具体物品定价并成功")
 	}
 	if got := silverOf(t, srv, uid); got != 10000-840 {
-		t.Fatalf("应扣 840 银币，余额应为 9160，实得 %d", got)
+		t.Fatalf("应扣 840 银币, 余额应为 9160, 实得 %d", got)
 	}
 }
 
@@ -234,7 +234,7 @@ func TestVendCraftPricesUnshelvedIngredientByEstimate(t *testing.T) {
 		t.Fatal("未上架配料应按估价阶梯定价并成功")
 	}
 	if got := silverOf(t, srv, uid); got != 99999-1859 {
-		t.Fatalf("应扣 1859 银币，余额应为 98140，实得 %d", got)
+		t.Fatalf("应扣 1859 银币, 余额应为 98140, 实得 %d", got)
 	}
 }
 
@@ -251,9 +251,9 @@ func TestHomeCarpCraftStillRequiresMaterials(t *testing.T) {
 	}
 	// 家用版语义不变：没有原料时即使有钱也失败。
 	if craftOK(t, srv, uid, "craft_feed_carp", nil, 1) {
-		t.Fatal("家用配方无材料必须失败（语义未变）")
+		t.Fatal("家用配方无材料必须失败 (语义未变)")
 	}
 	if got := countOfItem(t, srv, ctx0, uid, "feed_karp"); got != 0 {
-		t.Fatalf("家用失败不应产出，实得 %d", got)
+		t.Fatalf("家用失败不应产出, 实得 %d", got)
 	}
 }

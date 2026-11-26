@@ -62,10 +62,10 @@ func hGameConfigs(ctx *Ctx) ([]byte, bool) {
 	}
 	blob, err := configBlob(int(typ))
 	if err != nil {
-		ctx.Log.Info("1/4 无该类型配置，回空 args", "type", typ, "err", err)
+		ctx.Log.Info("1/4 Настроек этого типа нет, возвращаем пусто args", "type", typ, "err", err)
 		return emptyArgsBody(), true
 	}
-	ctx.Log.Info("1/4 下发配置", "type", typ, "bytes", len(blob))
+	ctx.Log.Info("1/4 Отправка настроек", "type", typ, "bytes", len(blob))
 	body := append([]byte{0x08}, proto.PackU32(uint32(len(blob)))...)
 	return append(body, blob...), true
 }
@@ -75,8 +75,8 @@ func hGameConfigs(ctx *Ctx) ([]byte, bool) {
 func hGameConfigsVersion(ctx *Ctx) ([]byte, bool) {
 	vers, err := configVersions()
 	if err != nil || len(vers) == 0 {
-		ctx.Log.Error("1/5 无配置版本表，客户端启动将失败" +
-			"（检查 assets/config_wire/index.json 是否嵌入且 versions 可解析）")
+		ctx.Log.Error("1/5 Нет таблицы версий настроек, клиент не запустится" +
+			"(проверьте, что assets/config_wire/index.json встроен и versions читается)")
 		return []byte{0x04, 0x00, 0x00}, true
 	}
 	out := []byte{0x04}
@@ -92,7 +92,7 @@ func hGameConfigsVersion(ctx *Ctx) ([]byte, bool) {
 
 func configBlob(typ int) ([]byte, error) {
 	if typ < 1 || typ > 9 {
-		return nil, fmt.Errorf("类型越界 %d", typ)
+		return nil, fmt.Errorf("Тип вне диапазона %d", typ)
 	}
 	name := fmt.Sprintf("assets/config_wire/type_%d.bin", typ)
 	return configWireFS.ReadFile(name)

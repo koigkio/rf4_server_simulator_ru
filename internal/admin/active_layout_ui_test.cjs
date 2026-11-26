@@ -59,14 +59,14 @@ for (const embedded of [false, true]) {
     let frame = page;
     if (embedded) {
       await page.goto(origin);
-      await page.getByRole('tab', {name: '管理后台'}).click();
+      await page.getByRole('tab', {name: 'Админ-панель'}).click();
       frame = page.frameLocator('#adminFrame');
     } else await page.goto(origin + '/admin/');
-    await frame.getByRole('heading', {name: '总览', exact: true}).waitFor();
+    await frame.getByRole('heading', {name: 'Обзор', exact: true}).waitFor();
     for (const route of ['dashboard', 'event']) {
       if (route === 'event') {
-        await frame.getByRole('navigation', {name:'总类导航'}).getByRole('link', {name:'游戏参数'}).click();
-        await frame.getByRole('link', {name:'限时活动', exact:true}).click();
+        await frame.getByRole('navigation', {name:'Навигация по разделам'}).getByRole('link', {name:'Параметры игры'}).click();
+        await frame.getByRole('link', {name:'События', exact:true}).click();
         await frame.locator('#pg-gifts').waitFor();
       }
       let previous;
@@ -106,7 +106,7 @@ test('desktop rail collapses without navigating, persists and leaves the mobile 
   await page.locator('#pg-gifts').waitFor();
   const before = await main.boundingBox();
   await toggle.press('Enter');
-  assert.equal(await toggle.getAttribute('aria-label'), '展开侧边栏');
+  assert.equal(await toggle.getAttribute('aria-label'), 'Развернуть боковую панель');
   assert.equal(await toggle.getAttribute('aria-expanded'), 'false');
   assert.ok(await rail.isHidden());
   assert.ok((await main.boundingBox()).width >= before.width + 210);
@@ -124,13 +124,13 @@ test('desktop rail collapses without navigating, persists and leaves the mobile 
 test('mobile: all links by Tab; theme arrows, cancel, commit and persist; account actions', async t => {
   const {page, writes} = await fixture(t, 320);
   await page.goto(origin + '/admin/');
-  const toggle = page.getByRole('button', {name:'菜单', exact:true});
+  const toggle = page.getByRole('button', {name:'Меню', exact:true});
   await toggle.waitFor();
   await page.keyboard.press('Tab');
   assert.equal(await toggle.evaluate(el => el === document.activeElement), true);
   await page.keyboard.press('Enter');
-  const nav = page.getByRole('navigation', {name:'总类导航'});
-  const names = ['总览','玩家管理','商店与库存','钓场与鱼口','水域与鱼种','钩子手感','鱼饵偏好','邮件','游戏参数','发布说明','关于','审计日志'];
+  const nav = page.getByRole('navigation', {name:'Навигация по разделам'});
+  const names = ['Обзор','Игроки','Магазин и склад','Ловля и клёв','Водоёмы и рыбы','Ощущение крючков','Предпочтения наживки','Почта','Параметры игры','Список изменений','О проекте','Журнал аудита'];
   for (const name of names) {
     await page.keyboard.press('Tab');
     assert.ok(await nav.getByRole('link', {name, exact:true}).evaluate(el => el === document.activeElement && getComputedStyle(el).outlineStyle !== 'none'), name);
@@ -150,29 +150,29 @@ test('mobile: all links by Tab; theme arrows, cancel, commit and persist; accoun
   await page.keyboard.press('Enter');
   assert.equal(await page.locator('html').getAttribute('data-theme'), 'dark');
   await page.reload();
-  assert.equal((await theme.locator('#themeNow').textContent()).trim(), '深色 · 墨黑');
+  assert.equal((await theme.locator('#themeNow').textContent()).trim(), 'Тёмная · тушь');
   await theme.click();
-  assert.equal((await page.getByRole('option', {selected:true}).textContent()).trim(), '深色 · 墨黑');
+  assert.equal((await page.getByRole('option', {selected:true}).textContent()).trim(), 'Тёмная · тушь');
   await page.keyboard.press('Escape');
   await toggle.click();
   await page.keyboard.press('Escape');
   assert.ok(await toggle.evaluate(el => el === document.activeElement && el.getAttribute('aria-expanded') === 'false'));
   await toggle.press('Enter');
-  await nav.getByRole('link', {name:'玩家管理', exact:true}).press('Enter');
-  await page.getByRole('heading', {name:'玩家管理', exact:true}).waitFor();
+  await nav.getByRole('link', {name:'Игроки', exact:true}).press('Enter');
+  await page.getByRole('heading', {name:'Игроки', exact:true}).waitFor();
   assert.equal(await toggle.getAttribute('aria-expanded'), 'false');
-  assert.equal(await page.locator('#mobilePage').innerText(), '玩家管理');
+  assert.equal(await page.locator('#mobilePage').innerText(), 'Игроки');
   await toggle.click();
   const account = page.locator('#railFoot');
-  await account.getByRole('button', {name:'登录', exact:true}).click();
-  await page.getByLabel('密码', {exact:true}).fill('fixture-password');
-  await page.locator('.overlay').getByRole('button', {name:'登录', exact:true}).click();
-  await page.waitForFunction(() => localStorage.getItem('rf4_admin_token') === 'layout-fixture' && document.querySelector('.who-out')?.textContent === '退出登录');
+  await account.getByRole('button', {name:'Войти', exact:true}).click();
+  await page.getByLabel('Пароль', {exact:true}).fill('fixture-password');
+  await page.locator('.overlay').getByRole('button', {name:'Войти', exact:true}).click();
+  await page.waitForFunction(() => localStorage.getItem('rf4_admin_token') === 'layout-fixture' && document.querySelector('.who-out')?.textContent === 'Выйти');
   await toggle.click();
-  await account.getByRole('button', {name:'退出登录'}).click();
-  await page.waitForFunction(() => !localStorage.getItem('rf4_admin_token') && document.querySelector('.who-out')?.textContent === '登录');
+  await account.getByRole('button', {name:'Выйти'}).click();
+  await page.waitForFunction(() => !localStorage.getItem('rf4_admin_token') && document.querySelector('.who-out')?.textContent === 'Войти');
   await toggle.click();
-  await account.getByRole('button', {name:'登录', exact:true}).waitFor();
+  await account.getByRole('button', {name:'Войти', exact:true}).waitFor();
   assert.deepEqual(writes, [['/api/login', {username:'admin', password:'fixture-password'}]]);
 });
 
@@ -183,8 +183,8 @@ test('320px form labels stay readable and wide shelves scroll to the action colu
   await row.waitFor();
   assert.ok((await row.locator('.lab').boundingBox()).width > 160);
   assert.ok((await geometry(page)).firstControl);
-  await page.getByRole('button', {name:'菜单'}).click();
-  await page.getByRole('navigation', {name:'总类导航'}).getByRole('link', {name:'商店与库存'}).click();
+  await page.getByRole('button', {name:'Меню'}).click();
+  await page.getByRole('navigation', {name:'Навигация по разделам'}).getByRole('link', {name:'Магазин и склад'}).click();
   const table = page.locator('.tbl.shop');
   await table.locator('tbody tr').first().waitFor();
   const last = table.locator('tbody tr').first().locator('td').last();

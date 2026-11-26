@@ -23,7 +23,7 @@ import (
 )
 
 func main() {
-	configPath := flag.String("config", "config.yaml", "配置文件路径")
+	configPath := flag.String("config", "config.yaml", "Путь к файлу конфигурации")
 	flag.Parse()
 
 	cfg, err := config.Load(*configPath)
@@ -32,7 +32,7 @@ func main() {
 		os.Exit(2)
 	}
 	log := logging.New(cfg.Log.Level, cfg.Log.Format)
-	log.Info("gameserver 启动",
+	log.Info("gameserver Запуск",
 		"version", buildinfo.Version, "commit", buildinfo.GitCommit,
 		"env", cfg.Env, "tunnel", cfg.Game.Tunnel.Addr)
 
@@ -46,64 +46,64 @@ func main() {
 	// 共享 SQLite（fail-fast）
 	db, err := store.OpenWithStatic(cfg.SQLite.Path, cfg.SQLite.StaticPath)
 	if err != nil {
-		log.Error("SQLite 打开失败", "path", cfg.SQLite.Path, "static", cfg.SQLite.StaticPath, "err", err)
+		log.Error("SQLite Не удалось открыть", "path", cfg.SQLite.Path, "static", cfg.SQLite.StaticPath, "err", err)
 		os.Exit(1)
 	}
 	defer db.Close()
 	if err := db.Migrate(); err != nil {
-		log.Error("迁移失败", "err", err)
+		log.Error("Ошибка миграции", "err", err)
 		os.Exit(1)
 	}
 	srv.SetDB(db)
-	log.Info("SQLite 已连接", "path", cfg.SQLite.Path, "static", cfg.SQLite.StaticPath)
+	log.Info("SQLite Подключено", "path", cfg.SQLite.Path, "static", cfg.SQLite.StaticPath)
 	if n, err := srv.SyncHookBiteProfiles(ctx); err != nil {
-		log.Warn("鱼钩型号咬口档案初始化失败", "profiles", n, "err", err)
+		log.Warn("Не удалось инициализировать профили засечки крючков", "profiles", n, "err", err)
 	} else {
-		log.Info("鱼钩型号咬口档案已同步", "profiles", n)
+		log.Info("Профили засечки крючков синхронизированы", "profiles", n)
 	}
 	if err := srv.RepairItemPhysics(ctx); err != nil {
-		log.Error("物品物理状态修复失败", "err", err)
+		log.Error("Не удалось исправить физическое состояние предметов", "err", err)
 		os.Exit(1)
 	}
 	if n, err := srv.BackfillRigProjections(ctx); err != nil {
-		log.Warn("装配投影回填失败", "rods", n, "err", err)
+		log.Warn("Не удалось заполнить проекцию оснасток", "rods", n, "err", err)
 	} else {
-		log.Info("装配投影回填完成", "rods", n)
+		log.Info("Проекция оснасток заполнена", "rods", n)
 	}
 	if n, err := srv.RecoverStorePurchases(ctx); err != nil {
-		log.Warn("旧商店购买凭据恢复失败", "restored", n, "err", err)
+		log.Warn("Не удалось восстановить старые квитанции покупок", "restored", n, "err", err)
 	} else {
-		log.Info("旧商店购买凭据恢复完成", "restored", n)
+		log.Info("Старые квитанции покупок восстановлены", "restored", n)
 	}
 	if n, err := srv.ConsolidateNonReturnableItemStacks(ctx); err != nil {
-		log.Warn("旧计件物品堆整理失败，已回滚", "removed", n, "err", err)
+		log.Warn("Не удалось упорядочить старые стопки предметов, изменения откатаны", "removed", n, "err", err)
 	} else if n > 0 {
-		log.Info("旧计件物品堆整理完成", "duplicates_removed", n)
+		log.Info("Старые стопки предметов упорядочены", "duplicates_removed", n)
 	}
 	if n, path, err := srv.LoadCompatTable(); err != nil {
-		log.Info("工坊兼容表未加载", "err", err)
+		log.Info("Таблица совместимости мастерской не загружена", "err", err)
 	} else {
-		log.Info("工坊兼容表已加载", "alternatives", n, "path", path)
+		log.Info("Таблица совместимости мастерской загружена", "alternatives", n, "path", path)
 	}
 	if n, err := srv.RepairReelComponents(ctx); err != nil {
-		log.Warn("渔线轮零件重建失败", "reels", n, "err", err)
+		log.Warn("Не удалось пересобрать детали катушек", "reels", n, "err", err)
 	} else {
-		log.Info("渔线轮零件重建完成", "reels", n)
+		log.Info("Детали катушек пересобраны", "reels", n)
 	}
 	if n, err := srv.RepairReelEnginePower(ctx); err != nil {
-		log.Warn("渔线轮电机参数补写失败", "reels", n, "err", err)
+		log.Warn("Не удалось дописать параметры моторов катушек", "reels", n, "err", err)
 	} else if n > 0 {
-		log.Info("渔线轮电机参数已补写", "reels", n)
+		log.Info("Параметры моторов катушек дописаны", "reels", n)
 	}
 	if n, err := srv.RebuildReelPerformance(ctx); err != nil {
-		log.Warn("渔线轮物理参数重建失败", "reels", n, "err", err)
+		log.Warn("Не удалось пересобрать физические параметры катушек", "reels", n, "err", err)
 	} else {
-		log.Info("渔线轮物理参数已同步", "reels", n)
+		log.Info("Физические параметры катушек синхронизированы", "reels", n)
 	}
 
 	ln, err := net.Listen("tcp", cfg.Game.Tunnel.Addr)
 	if err != nil {
-		log.Error("隧道监听失败", "addr", cfg.Game.Tunnel.Addr, "err", err)
+		log.Error("Туннель не смог открыть порт", "addr", cfg.Game.Tunnel.Addr, "err", err)
 		os.Exit(1)
 	}
 	srvErrCh := make(chan error, 1)
@@ -129,15 +129,15 @@ func main() {
 		}
 	}()
 
-	log.Info("gameserver 就绪，等待网关接入")
+	log.Info("gameserver Готово, ожидание подключения шлюза")
 	obs.SetReady(true)
 
 	select {
 	case <-ctx.Done():
 	case err := <-obsErrCh:
-		log.Error("观测端口异常退出", "err", err)
+		log.Error("Порт наблюдения неожиданно завершился", "err", err)
 	case err := <-srvErrCh:
-		log.Error("隧道服务异常退出", "err", err)
+		log.Error("Сервис туннеля неожиданно завершился", "err", err)
 	}
 
 	obs.SetReady(false)
@@ -145,7 +145,7 @@ func main() {
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	_ = obs.Shutdown(shutdownCtx)
-	log.Info("gameserver 已退出")
+	log.Info("gameserver Завершено")
 }
 
 // onlineUIDsSnapshot 是 stats:online_uids 的带发布时间快照。时间戳和管理端

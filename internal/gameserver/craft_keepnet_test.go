@@ -25,7 +25,7 @@ func keepnetGUIDs(t *testing.T, db *store.DB, uid int64) map[string]bool {
 	t.Helper()
 	rows, err := db.SQL.Query(`SELECT echo_guid FROM keepnet_items WHERE uid=?`, uid)
 	if err != nil {
-		t.Fatalf("读取鱼护失败: %v", err)
+		t.Fatalf("Не удалось прочитать садок: %v", err)
 	}
 	defer rows.Close()
 	out := map[string]bool{}
@@ -51,7 +51,7 @@ func craftOK(t *testing.T, srv *Server, uid int64, recipe string, slots []craftS
 	}
 	resp := decodeTreeValue(t, srv, body)
 	if len(resp.Fields) == 0 || resp.Fields[0].Num == nil {
-		t.Fatalf("803 缺少 f0: %+v", resp)
+		t.Fatalf("803 Отсутствует f0: %+v", resp)
 	}
 	return u64Of(resp.Fields[0].Num) != 0
 }
@@ -72,12 +72,12 @@ func TestCraftCrabMeatConsumesKeepnetCrab(t *testing.T) {
 
 	slots := []craftSlot{{ItemID: "fish_crab", GUID: crabGUID, Species: "ed_crab"}}
 	if !craftOK(t, srv, uid, "craft_bait_from_crab", slots, 1) {
-		t.Fatal("蟹肉制作应成功（803.f0=1），实得失败")
+		t.Fatal("蟹肉制作应成功 (803.f0=1), 实得失败")
 	}
 	if got := countOfItem(t, srv, ctx0, uid, "crab_meat"); got != 30 {
 		// item_def.ljnnpokapig=30，一次制作 = 一个定义单位量（与 bread 同语义，
 		// 见 skills_craft_test.go 的面包用例）。
-		t.Fatalf("应产出 30 份蟹肉（定义单位量），实得 %d", got)
+		t.Fatalf("应产出 30 份蟹肉 (定义单位量), 实得 %d", got)
 	}
 	if keepnetGUIDs(t, db, uid)[crabGUID] {
 		t.Fatal("被吃掉的蟹应已从鱼护移除")
@@ -100,7 +100,7 @@ func TestCraftCrabMeatWithoutKeepnetCrabFails(t *testing.T) {
 		t.Fatal("鱼护里没有蟹时制作必须失败")
 	}
 	if got := countOfItem(t, srv, ctx0, uid, "crab_meat"); got != 0 {
-		t.Fatalf("失败时不应产出蟹肉，实得 %d", got)
+		t.Fatalf("失败时不应产出蟹肉, 实得 %d", got)
 	}
 }
 
@@ -150,10 +150,10 @@ func TestCraftConsumesMultipleKeepnetFishForBatch(t *testing.T) {
 		t.Fatal("三尾蟹做三份蟹肉应成功")
 	}
 	if got := countOfItem(t, srv, ctx0, uid, "crab_meat"); got != 3*30 {
-		t.Fatalf("应产出 90 份蟹肉（3 套 × 定义单位量 30），实得 %d", got)
+		t.Fatalf("应产出 90 份蟹肉 (3 套 × 定义单位量 30), 实得 %d", got)
 	}
 	if left := keepnetGUIDs(t, db, uid); len(left) != 0 {
-		t.Fatalf("三尾蟹都应被消费，实际还剩 %d 条", len(left))
+		t.Fatalf("三尾蟹都应被消费, 实际还剩 %d 条", len(left))
 	}
 }
 

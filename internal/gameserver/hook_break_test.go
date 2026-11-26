@@ -44,7 +44,7 @@ func TestHookStrengthBreaksHookNotRod(t *testing.T) {
 			spec.HookStrengthKg, spec.RodPowerKg, spec.LineStrengthKg)
 	}
 	if got := gearWeakestPart(spec); got != "hook" {
-		t.Fatalf("最弱环=%q，期望 hook", got)
+		t.Fatalf("最弱环=%q, 期望 hook", got)
 	}
 
 	decision, err := srv.resolveGearBreak(ctx, uid, rod.GUID, hook.GUID)
@@ -65,7 +65,7 @@ func TestHookStrengthBreaksHookNotRod(t *testing.T) {
 		t.Fatalf("断件结果不是钩: %+v", outcome)
 	}
 	if row, _ := db.GetItemByGUID(ctx, hook.GUID); row != nil {
-		t.Fatalf("断钩后钩应被销毁（官服口径），实得 %+v", row)
+		t.Fatalf("断钩后钩应被销毁 (官服口径), 实得 %+v", row)
 	}
 	if row, _ := db.GetItemByGUID(ctx, rod.GUID); row == nil || row.Durability != 1 {
 		t.Fatalf("断钩不应伤到竿: %+v", row)
@@ -74,7 +74,7 @@ func TestHookStrengthBreaksHookNotRod(t *testing.T) {
 		t.Fatalf("断钩不应伤到主线: %+v", row)
 	}
 	if mounts := rigSlotGUIDs(t, srv, rod.GUID); mounts[catHook] != "" {
-		t.Fatalf("断钩后钩位应清空，实得 %q", mounts[catHook])
+		t.Fatalf("断钩后钩位应清空, 实得 %q", mounts[catHook])
 	}
 }
 

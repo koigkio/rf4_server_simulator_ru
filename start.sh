@@ -8,7 +8,7 @@ fail() {
 
 require_env() {
     eval "value=\${$1:-}"
-    [ -n "$value" ] || fail "环境变量 $1 未设置或为空"
+    [ -n "$value" ] || fail "Переменная окружения $1 не задана или пуста"
 }
 
 require_env RF4_GATEWAY_ADVERTISE_HOST
@@ -18,18 +18,18 @@ require_env RF4_TUNNEL_PSK
 require_env RF4_GAME_TUNNEL_PSK
 
 if [ "$RF4_TUNNEL_PSK" != "$RF4_GAME_TUNNEL_PSK" ]; then
-    fail "RF4_TUNNEL_PSK 与 RF4_GAME_TUNNEL_PSK 必须一致"
+    fail "RF4_TUNNEL_PSK и RF4_GAME_TUNNEL_PSK должны совпадать"
 fi
 
 if ! printf '%s\n' "$RF4_GATEWAY_ADVERTISE_HOST" | awk -F. '
   NF != 4 { exit 1 }
   { for (i = 1; i <= NF; i++) if ($i !~ /^(0|[1-9][0-9]{0,2})$/ || $i + 0 > 255) exit 1 }
 '; then
-    fail "RF4_GATEWAY_ADVERTISE_HOST='$RF4_GATEWAY_ADVERTISE_HOST' 不是合法 IPv4"
+    fail "RF4_GATEWAY_ADVERTISE_HOST='$RF4_GATEWAY_ADVERTISE_HOST' — недопустимый IPv4"
 fi
 
 CONFIG=/app/config.yaml
-[ -f "$CONFIG" ] || fail "$CONFIG 不存在"
+[ -f "$CONFIG" ] || fail "$CONFIG не существует"
 
 PID_GS=
 PID_GW=
@@ -37,7 +37,7 @@ PID_ADM=
 
 cleanup() {
     status=${1:-0}
-    echo "收到停止信号，正在优雅关闭所有服务..."
+    echo "Получен сигнал остановки, корректно завершаем все сервисы..."
     for pid in "$PID_GS" "$PID_GW" "$PID_ADM"; do
         if [ -n "$pid" ]; then
             kill -TERM "$pid" 2>/dev/null || true
@@ -48,7 +48,7 @@ cleanup() {
             wait "$pid" 2>/dev/null || true
         fi
     done
-    echo "所有服务已安全关闭。"
+    echo "Все сервисы безопасно остановлены."
     exit "$status"
 }
 trap 'cleanup 143' TERM
@@ -73,7 +73,7 @@ while [ "$RETRIES" -gt 0 ]; do
         break
     fi
     RETRIES=$((RETRIES - 1))
-    [ "$RETRIES" -gt 0 ] || fail "gameserver 启动超时或端口 9401 未就绪"
+    [ "$RETRIES" -gt 0 ] || fail "gameserver не запустился вовремя или порт 9401 не готов"
     sleep 0.5
 done
 
@@ -88,5 +88,5 @@ PID_ADM=$!
 echo "All services started, waiting..."
 wait_status=0
 wait -n || wait_status=$?
-echo "[ERROR] 检测到有服务退出，正在停止容器..."
+echo "[ERROR] Один из сервисов завершился, останавливаем контейнер..."
 cleanup "$wait_status"

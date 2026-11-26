@@ -23,7 +23,7 @@ func TestPlayerLocationRoundTrip(t *testing.T) {
 		t.Fatal(err)
 	}
 	if got != nil {
-		t.Fatalf("新玩家位置应为 nil，实得 %+v", got)
+		t.Fatalf("新玩家位置应为 nil, 实得 %+v", got)
 	}
 	if err := db.SetPlayerLocation(ctx, uid, "level_001_lake", "loc1_01", 11); err != nil {
 		t.Fatal(err)

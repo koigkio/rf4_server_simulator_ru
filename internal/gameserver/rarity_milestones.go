@@ -164,12 +164,12 @@ func (s *Server) issueRarityMilestone(ctx context.Context, uid int64, kind strin
 	}
 	row, _, err := grantPreparedItemTx(ctx, tx, it, false)
 	if err != nil {
-		return nil, fmt.Errorf("稀有鱼里程碑奖座入包失败: %w", err)
+		return nil, fmt.Errorf("Не удалось положить в инвентарь награду за веху редкой рыбы: %w", err)
 	}
 	if err := tx.Commit(); err != nil {
 		return nil, err
 	}
-	s.log.Info("发放稀有鱼里程碑奖座", "uid", uid, "kind", kind, "species", m.Species,
+	s.log.Info("Выдача награды за веху редкой рыбы", "uid", uid, "kind", kind, "species", m.Species,
 		"item", m.ItemID, "guid", row.GUID)
 	return row, nil
 }
@@ -189,7 +189,7 @@ func (s *Server) grantRarityMilestones(ctx context.Context, uid, rare, super int
 			}
 			it, err := s.issueRarityMilestone(ctx, uid, kind, m)
 			if err != nil {
-				s.log.Warn("稀有鱼里程碑发放失败", "uid", uid, "kind", kind,
+				s.log.Warn("Не удалось выдать веху редкой рыбы", "uid", uid, "kind", kind,
 					"species", m.Species, "item", m.ItemID, "err", err)
 				continue
 			}
@@ -220,12 +220,12 @@ func pushRarityMilestoneItems(sess *Session, items []*store.Item) {
 func rarityMilestoneLabel(itemID string) string {
 	for _, m := range rareSpeciesMilestones {
 		if m.ItemID == itemID {
-			return fmt.Sprintf("稀有鱼图鉴 %d 种", m.Species)
+			return fmt.Sprintf("Атлас редких рыб: %d видов", m.Species)
 		}
 	}
 	for _, m := range superRareSpeciesMilestones {
 		if m.ItemID == itemID {
-			return fmt.Sprintf("超级稀有鱼图鉴 %d 种", m.Species)
+			return fmt.Sprintf("Атлас сверхредких рыб: %d видов", m.Species)
 		}
 	}
 	return ""
@@ -247,7 +247,7 @@ func (s *Session) ensureRarityMilestonesOnce() {
 	s.SetState(stateKey, true)
 	items := s.Srv.ensureRarityMilestones(s.pushCtx(), s.Userid)
 	if len(items) > 0 {
-		s.log.Info("登录巡检补发稀有鱼里程碑奖座", "count", len(items))
+		s.log.Info("Проверка при входе: доначислены награды за вехи редкой рыбы", "count", len(items))
 	}
 }
 
@@ -260,7 +260,7 @@ func (s *Server) ensureRarityMilestones(ctx context.Context, uid int64) []*store
 	}
 	rare, super, err := s.rarityMilestoneAfterCatch(ctx, uid)
 	if err != nil {
-		s.log.Warn("稀有鱼种数巡检失败", "uid", uid, "err", err)
+		s.log.Warn("Ошибка проверки числа видов редкой рыбы", "uid", uid, "err", err)
 		return nil
 	}
 	return append(rare.Items, super.Items...)

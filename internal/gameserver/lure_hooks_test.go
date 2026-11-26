@@ -23,7 +23,7 @@ func lureTestHookSlots(t *testing.T, s *Server, lureGUID string) []*proto.Value 
 	}
 	fields, err := FieldsFromJSON(row.FieldsJSON)
 	if err != nil {
-		t.Fatalf("解析拟饵字段: %v", err)
+		t.Fatalf("Разбор полей приманки: %v", err)
 	}
 	idx := lureHookFieldIndex(row.WireClass)
 	if idx < 0 || idx >= len(fields) || fields[idx].Val == nil {
@@ -54,7 +54,7 @@ func TestLureHookSwapRewritesFactoryHookList(t *testing.T) {
 	res := s.rigSetComponent(t.Context(), 1000001, lure.GUID, catHook, hook.GUID, 250,
 		rigSetOpts{ParentType: familyLure, EnforceCategory: true, SplitStack: true})
 	if res.Rejected || res.MountedGUID != hook.GUID {
-		t.Fatalf("拟饵换钩被拒: %+v", res)
+		t.Fatalf("Замена крючка приманки отклонена: %+v", res)
 	}
 
 	after := lureTestHooks(t, s, lure.GUID)
@@ -62,7 +62,7 @@ func TestLureHookSwapRewritesFactoryHookList(t *testing.T) {
 		t.Fatalf("换钩不应改变钩位数量: before=%d after=%d", len(before), len(after))
 	}
 	if after[0] != hook.GUID {
-		t.Fatalf("钩位 0 应为新钩 %s，实得 %s", hook.GUID, after[0])
+		t.Fatalf("钩位 0 应为新钩 %s, 实得 %s", hook.GUID, after[0])
 	}
 	if before[0] == hook.GUID {
 		t.Fatal("新钩未替换原钩")
@@ -73,10 +73,10 @@ func TestLureHookSwapRewritesFactoryHookList(t *testing.T) {
 		t.Fatalf("读取钩实例: %v", err)
 	}
 	if row.Container != "rig" {
-		t.Fatalf("钩应转为已装配(rig)，实得 %q", row.Container)
+		t.Fatalf("钩应转为已装配(rig), 实得 %q", row.Container)
 	}
 	if got := s.lureActiveHookGUID(t.Context(), lure.GUID); got != hook.GUID {
-		t.Fatalf("活动钩应指向新钩 %s，实得 %s", hook.GUID, got)
+		t.Fatalf("活动钩应指向新钩 %s, 实得 %s", hook.GUID, got)
 	}
 	if len(res.UpdatedTrees) == 0 {
 		t.Fatal("换钩后应把拟饵/钩的更新树放进 800 快照")
@@ -99,7 +99,7 @@ func TestLureHookRemoveReturnsHookToBackpack(t *testing.T) {
 	before := lureTestHookSlots(t, s, lure.GUID)
 	if res := s.rigSetComponent(t.Context(), 1000001, lure.GUID, catHook, hook.GUID, 250,
 		rigSetOpts{ParentType: familyLure, EnforceCategory: true, SplitStack: true}); res.Rejected {
-		t.Fatalf("拟饵换钩被拒: %+v", res)
+		t.Fatalf("Замена крючка приманки отклонена: %+v", res)
 	}
 
 	det := s.rigRemoveComponentInstance(t.Context(), 1000001, lure.GUID, catHook, hook.GUID, 250)
@@ -108,7 +108,7 @@ func TestLureHookRemoveReturnsHookToBackpack(t *testing.T) {
 	}
 	after := lureTestHookSlots(t, s, lure.GUID)
 	if len(after) != len(before)-1 {
-		t.Fatalf("拆钩后槽数应为 %d（元素移除），实得 %d", len(before)-1, len(after))
+		t.Fatalf("拆钩后槽数应为 %d (元素移除), 实得 %d", len(before)-1, len(after))
 	}
 	for _, g := range lureHookItemGUIDs(after) {
 		if g == hook.GUID {
@@ -120,7 +120,7 @@ func TestLureHookRemoveReturnsHookToBackpack(t *testing.T) {
 		t.Fatalf("读取钩实例: %v", err)
 	}
 	if row.Container != "backpack" {
-		t.Fatalf("拆下的钩应回到背包，实得容器 %q", row.Container)
+		t.Fatalf("拆下的钩应回到背包, 实得容器 %q", row.Container)
 	}
 	if det.ReturnedTree == nil {
 		t.Fatal("拆钩应返回钩的更新树")
@@ -145,7 +145,7 @@ func TestLureHookRemoveRefundsFactoryHookOnce(t *testing.T) {
 	target := len(slots) - 1
 	targetGUID := lureHookItemGUID(slots, target)
 	if lureOriginalFactorySlot(lure.GUID, targetGUID) < 0 {
-		t.Fatalf("槽 %d 应是原装出厂钩，实得 %s", target, targetGUID)
+		t.Fatalf("槽 %d 应是原装出厂钩, 实得 %s", target, targetGUID)
 	}
 	targetObj := slots[target]
 	wantNumeric := u64Of(targetObj.Fields[fieldIdxByCS(targetObj.Class, csNumericID)].Num)
@@ -157,7 +157,7 @@ func TestLureHookRemoveRefundsFactoryHookOnce(t *testing.T) {
 		t.Fatalf("拟饵拆出厂钩失败: %+v", det)
 	}
 	if det.RefundTree == nil {
-		t.Fatal("卸下原装出厂钩应物化退包（f0 新增段）")
+		t.Fatal("卸下原装出厂钩应物化退包 (f0 新增段)")
 	}
 	rootGUID := treeRootGUID(det.RefundTree)
 	row, err := s.DB.GetItemByGUID(t.Context(), rootGUID)
@@ -165,7 +165,7 @@ func TestLureHookRemoveRefundsFactoryHookOnce(t *testing.T) {
 		t.Fatalf("出厂钩退包实例未落库: %v", err)
 	}
 	if row.UID != uid || row.Container != "backpack" || row.NumericID != int64(wantNumeric) {
-		t.Fatalf("退包实例应归原玩家、在背包、numeric=%d，实得 uid=%d container=%q numeric=%d",
+		t.Fatalf("退包实例应归原玩家, 在背包, numeric=%d, 实得 uid=%d container=%q numeric=%d",
 			wantNumeric, row.UID, row.Container, row.NumericID)
 	}
 	if got := lureBackpackHookQty(t, s, uid, int64(wantNumeric)); got != before+1 {
@@ -173,7 +173,7 @@ func TestLureHookRemoveRefundsFactoryHookOnce(t *testing.T) {
 	}
 	after := lureTestHookSlots(t, s, lure.GUID)
 	if len(after) != len(slots)-1 {
-		t.Fatalf("卸下出厂钩后槽数应为 %d，实得 %d", len(slots)-1, len(after))
+		t.Fatalf("卸下出厂钩后槽数应为 %d, 实得 %d", len(slots)-1, len(after))
 	}
 
 	// 空数组再装钩（追加）：不触发退包（槽里没有出厂钩可退）。
@@ -256,7 +256,7 @@ func TestRepairLureHookSlotsStripsLegacyArtifacts(t *testing.T) {
 		t.Fatal(err)
 	}
 	if fixed != 1 {
-		t.Fatalf("应清理 1 个拟饵，实得 %d", fixed)
+		t.Fatalf("应清理 1 个拟饵, 实得 %d", fixed)
 	}
 	after, err := s.DB.GetItemByGUID(t.Context(), lure.GUID)
 	if err != nil || after == nil {
@@ -268,14 +268,14 @@ func TestRepairLureHookSlotsStripsLegacyArtifacts(t *testing.T) {
 	}
 	got := afterFields[idx].Val.Items
 	if len(got) != len(fields[idx].Val.Items)-1 {
-		t.Fatalf("剥离后元素应为 %d，实得 %d", len(fields[idx].Val.Items)-1, len(got))
+		t.Fatalf("剥离后元素应为 %d, 实得 %d", len(fields[idx].Val.Items)-1, len(got))
 	}
 	for i, g := range lureHookItemGUIDs(got) {
 		if g == uuidLike(lure.GUID, lureRestoredHookKey(0)) {
 			t.Fatalf("残留 :r 元素仍在槽 %d", i)
 		}
 		if i == len(got)-1 && g != keepGUID {
-			t.Fatalf("健康元素应原位保留 %s，实得 %s", keepGUID, g)
+			t.Fatalf("健康元素应原位保留 %s, 实得 %s", keepGUID, g)
 		}
 	}
 	if again, err := s.repairLureHookSlots(t.Context()); err != nil || again != 0 {
@@ -300,7 +300,7 @@ func TestLureHookSwapLeavesNoRigComponentRow(t *testing.T) {
 	}
 	if res := s.rigSetComponent(t.Context(), 1000001, lure.GUID, catHook, hook.GUID, 250,
 		rigSetOpts{ParentType: familyLure, EnforceCategory: true, SplitStack: true}); res.Rejected {
-		t.Fatalf("拟饵换钩被拒: %+v", res)
+		t.Fatalf("Замена крючка приманки отклонена: %+v", res)
 	}
 	rows, err := db.ListRigComponents(t.Context(), lure.GUID)
 	if err != nil {
@@ -379,27 +379,27 @@ func TestLureHookMountTargetsRequestedSlot(t *testing.T) {
 	// A 装第二槽（extra=1）：槽 0 的出厂钩必须原位保留。
 	if res := s.rigSetComponent(t.Context(), uid, lure.GUID, catHook, hookA.GUID, 1,
 		rigSetOpts{ParentType: familyLure, EnforceCategory: true, SplitStack: true}); res.Rejected {
-		t.Fatalf("拟饵换钩被拒: %+v", res)
+		t.Fatalf("Замена крючка приманки отклонена: %+v", res)
 	}
 	got := lureTestHookSlots(t, s, lure.GUID)
 	if g := lureHookItemGUID(got, 1); g != hookA.GUID {
-		t.Fatalf("extra=1 应装到槽 1，实得 %s", g)
+		t.Fatalf("extra=1 应装到槽 1, 实得 %s", g)
 	}
 	if g := lureHookItemGUID(got, 0); g != factory0 {
-		t.Fatalf("装槽 1 不应动槽 0：原 %s 实得 %s", factory0, g)
+		t.Fatalf("装槽 1 不应动槽 0: 原 %s 实得 %s", factory0, g)
 	}
 
 	// B 装第一槽（extra=0）。
 	if res := s.rigSetComponent(t.Context(), uid, lure.GUID, catHook, hookB.GUID, 0,
 		rigSetOpts{ParentType: familyLure, EnforceCategory: true, SplitStack: true}); res.Rejected {
-		t.Fatalf("拟饵换钩被拒: %+v", res)
+		t.Fatalf("Замена крючка приманки отклонена: %+v", res)
 	}
 	got = lureTestHookSlots(t, s, lure.GUID)
 	if g := lureHookItemGUID(got, 0); g != hookB.GUID {
-		t.Fatalf("extra=0 应装到槽 0，实得 %s", g)
+		t.Fatalf("extra=0 应装到槽 0, 实得 %s", g)
 	}
 	if g := lureHookItemGUID(got, 1); g != hookA.GUID {
-		t.Fatalf("装槽 0 不应动槽 1：实得 %s", g)
+		t.Fatalf("装槽 0 不应动槽 1: 实得 %s", g)
 	}
 
 	// 拆 B 后按 250+0 规范索引重装到空槽 0，槽 1 的 A 必须保留。
@@ -408,7 +408,7 @@ func TestLureHookMountTargetsRequestedSlot(t *testing.T) {
 	}
 	if res := s.rigSetComponent(t.Context(), uid, lure.GUID, catHook, hookB.GUID, 250,
 		rigSetOpts{ParentType: familyLure, EnforceCategory: true, SplitStack: true}); res.Rejected {
-		t.Fatalf("拟饵换钩被拒: %+v", res)
+		t.Fatalf("Замена крючка приманки отклонена: %+v", res)
 	}
 	assertLureSlotReload(t, s, lure.GUID, []string{hookB.GUID, hookA.GUID})
 }
@@ -449,7 +449,7 @@ func TestLureHookMultiSlotAppendAndStaleRowGuard(t *testing.T) {
 		}
 	}
 	if got := lureTestHookSlots(t, s, lure.GUID); len(got) != 0 {
-		t.Fatalf("全卸空后数组应为空，实得 %d 个元素", len(got))
+		t.Fatalf("全卸空后数组应为空, 实得 %d 个元素", len(got))
 	}
 
 	// 装 A（extra=0，空数组追加）→ [A]。
@@ -464,10 +464,10 @@ func TestLureHookMultiSlotAppendAndStaleRowGuard(t *testing.T) {
 	}
 	got := lureTestHookSlots(t, s, lure.GUID)
 	if len(got) != 2 {
-		t.Fatalf("追加后应有 2 个元素，实得 %d", len(got))
+		t.Fatalf("追加后应有 2 个元素, 实得 %d", len(got))
 	}
 	if g0, g1 := lureHookItemGUID(got, 0), lureHookItemGUID(got, 1); g0 != hookA.GUID || g1 != hookB.GUID {
-		t.Fatalf("追加不应顶替：实得 [%s, %s]，期望 [%s, %s]", g0, g1, hookA.GUID, hookB.GUID)
+		t.Fatalf("追加不应顶替: 实得 [%s, %s], 期望 [%s, %s]", g0, g1, hookA.GUID, hookB.GUID)
 	}
 
 	// 拆 A 后按陈旧行号再拆 A（GUID 已不在数组）：拒绝，B 必须原位保留。
@@ -479,7 +479,7 @@ func TestLureHookMultiSlotAppendAndStaleRowGuard(t *testing.T) {
 	}
 	got = lureTestHookSlots(t, s, lure.GUID)
 	if len(got) != 1 || lureHookItemGUID(got, 0) != hookB.GUID {
-		t.Fatalf("拒绝陈旧行后 B 应原位保留，实得 %v", lureHookItemGUIDs(got))
+		t.Fatalf("拒绝陈旧行后 B 应原位保留, 实得 %v", lureHookItemGUIDs(got))
 	}
 
 	// 先将 A 装回空槽 0；两槽占满后，越界安装 C 应被拒。
@@ -521,14 +521,14 @@ func TestLureHookSelectionTracksSwapAndRemove(t *testing.T) {
 	}
 	if res := s.rigSetComponent(t.Context(), uid, lure.GUID, catHook, hook.GUID, 250,
 		rigSetOpts{ParentType: familyLure, EnforceCategory: true, SplitStack: true}); res.Rejected {
-		t.Fatalf("拟饵换钩被拒: %+v", res)
+		t.Fatalf("Замена крючка приманки отклонена: %+v", res)
 	}
 	var selected string
 	if err := db.SQL.QueryRow(`SELECT value FROM rod_setting WHERE guid=? AND key=?`, rodGUID, key).Scan(&selected); err != nil {
 		t.Fatal(err)
 	}
 	if selected != hook.GUID {
-		t.Fatalf("换钩后 bait_hook 应指向新钩 %s，实得 %s", hook.GUID, selected)
+		t.Fatalf("换钩后 bait_hook 应指向新钩 %s, 实得 %s", hook.GUID, selected)
 	}
 
 	if det := s.rigRemoveComponentInstance(t.Context(), uid, lure.GUID, catHook, hook.GUID, 250); det == nil {
@@ -539,7 +539,7 @@ func TestLureHookSelectionTracksSwapAndRemove(t *testing.T) {
 		t.Fatal(err)
 	}
 	if n != 0 {
-		t.Fatalf("拆钩后 bait_hook 关联应删除，实存 %d 行", n)
+		t.Fatalf("拆钩后 bait_hook 关联应删除, 实存 %d 行", n)
 	}
 }
 
@@ -575,14 +575,14 @@ func TestLureHookNonActiveSlotPreservesBaitHookSelection(t *testing.T) {
 		t.Fatalf("非活动槽装钩改变了活动钩: got=%s want=%s", got, active)
 	}
 	if got := lureTestRodSetting(t, db, rodGUID, key); got != active {
-		t.Fatalf("非活动槽装钩后 bait_hook=%s，期望仍为 %s", got, active)
+		t.Fatalf("非活动槽装钩后 bait_hook=%s, 期望仍为 %s", got, active)
 	}
 
 	if det := s.rigRemoveComponentInstance(t.Context(), uid, lure.GUID, catHook, hook.GUID, 1); det == nil {
 		t.Fatal("拆非活动槽钩失败")
 	}
 	if got := lureTestRodSetting(t, db, rodGUID, key); got != active {
-		t.Fatalf("非活动槽拆钩后 bait_hook=%s，期望仍为 %s", got, active)
+		t.Fatalf("非活动槽拆钩后 bait_hook=%s, 期望仍为 %s", got, active)
 	}
 }
 
@@ -616,7 +616,7 @@ func TestLureHookMountUsesCommitTimeHookState(t *testing.T) {
 		t.Fatal("拟饵没有钩槽")
 	}
 	if got := lureTestHookDurability(t, slots[0]); math.Abs(got-0.25) > 0.001 {
-		t.Fatalf("拟饵内嵌钩耐久=%v，期望事务内最新值 0.25", got)
+		t.Fatalf("拟饵内嵌钩耐久=%v, 期望事务内最新值 0.25", got)
 	}
 }
 
@@ -702,7 +702,7 @@ func TestLureHookOriginalRefundAfterShortenDrift(t *testing.T) {
 		t.Fatal("卸槽 0 失败")
 	}
 	if got := lureBackpackHookQty(t, s, uid, int64(wantNumeric)); got != before+1 {
-		t.Fatalf("卸槽 0 应退包 +1（两槽同型号时按同 numeric 计）: before=%d got=%d", before, got)
+		t.Fatalf("卸槽 0 应退包 +1 (两槽同型号时按同 numeric 计): before=%d got=%d", before, got)
 	}
 
 	// 替换槽 1 的原装钩；存储下标虽变为 0，请求仍使用稳定槽位 1。
@@ -716,7 +716,7 @@ func TestLureHookOriginalRefundAfterShortenDrift(t *testing.T) {
 		t.Fatalf("替换剩余原装钩被拒: %+v", res)
 	}
 	if got := lureBackpackHookQty(t, s, uid, int64(wantNumeric)); got != before+2 {
-		t.Fatalf("短缩漂移后替换原装钩应再退包 +1（共 +2）: got=%d want=%d", got, before+2)
+		t.Fatalf("短缩漂移后替换原装钩应再退包 +1 (共 +2): got=%d want=%d", got, before+2)
 	}
 }
 
@@ -780,7 +780,7 @@ func lureTestActiveOrdinal(t *testing.T, s *Server, lureGUID string) int {
 	}
 	fields, err := FieldsFromJSON(row.FieldsJSON)
 	if err != nil {
-		t.Fatalf("解析拟饵字段: %v", err)
+		t.Fatalf("Разбор полей приманки: %v", err)
 	}
 	k := fieldIdxByCS(row.WireClass, "nkogmkobfng")
 	if k < 0 || k >= len(fields) || fields[k].Num == nil {
@@ -838,7 +838,7 @@ func TestLureHookRemoveRecalculatesActiveOrdinal(t *testing.T) {
 		t.Fatal("卸槽 1 失败")
 	}
 	if got := lureTestActiveOrdinal(t, s, lure.GUID); got != 1 {
-		t.Fatalf("卸中间槽后活动钩应随迁到 1，实得 %d", got)
+		t.Fatalf("卸中间槽后活动钩应随迁到 1, 实得 %d", got)
 	}
 
 	if det := s.rigRemoveComponentInstance(t.Context(), uid, lure.GUID, catHook,
@@ -846,7 +846,7 @@ func TestLureHookRemoveRecalculatesActiveOrdinal(t *testing.T) {
 		t.Fatal("卸活动钩失败")
 	}
 	if got := lureTestActiveOrdinal(t, s, lure.GUID); got != 0 {
-		t.Fatalf("卸活动钩后应收末位 0，实得 %d", got)
+		t.Fatalf("卸活动钩后应收末位 0, 实得 %d", got)
 	}
 }
 
@@ -875,7 +875,7 @@ func TestLureHookRejectsWhenFactoryRefundPrepFails(t *testing.T) {
 	}
 	factoryGUID := lureHookItemGUID(fields[idx].Val.Items, 0)
 	if lureOriginalFactorySlot(lure.GUID, factoryGUID) < 0 {
-		t.Fatalf("槽 0 应是原装出厂钩，实得 %s", factoryGUID)
+		t.Fatalf("槽 0 应是原装出厂钩, 实得 %s", factoryGUID)
 	}
 	// 槽 0 元素剥掉 NumericID 字段，模拟"识别为出厂钩但物化失败"。
 	elem := fields[idx].Val.Items[0]
@@ -897,7 +897,7 @@ func TestLureHookRejectsWhenFactoryRefundPrepFails(t *testing.T) {
 		t.Fatalf("退包准备失败必须拒绝拆钩: %+v", det)
 	}
 	if got := len(lureTestHookSlots(t, s, lure.GUID)); got != 1 {
-		t.Fatalf("被拒后数组不应变化，实得 %d 个元素", got)
+		t.Fatalf("被拒后数组不应变化, 实得 %d 个元素", got)
 	}
 
 	// 装到同槽（替换这颗退不出去的出厂钩）同样被拒，新钩留在背包。
@@ -910,7 +910,7 @@ func TestLureHookRejectsWhenFactoryRefundPrepFails(t *testing.T) {
 		t.Fatalf("退包准备失败必须拒绝换钩: %+v", res)
 	}
 	if got := lureTestHookSlots(t, s, lure.GUID); lureHookItemGUID(got, 0) != factoryGUID {
-		t.Fatalf("被拒后槽 0 应原样保留 %s，实得 %s", factoryGUID, lureHookItemGUID(got, 0))
+		t.Fatalf("被拒后槽 0 应原样保留 %s, 实得 %s", factoryGUID, lureHookItemGUID(got, 0))
 	}
 	if row2, err := s.DB.GetItemByGUID(t.Context(), hook.GUID); err != nil || row2 == nil || row2.Container != "backpack" {
 		t.Fatalf("被拒后新钩应留在背包: %+v %v", row2, err)
@@ -944,7 +944,7 @@ func TestLureHookMountCommitRejectsStalePlan(t *testing.T) {
 	// 预检：装 hook 到槽 1，替换出厂钩 factory1（快照记下要退包）。
 	plan := s.lureHookMountPrepare(t.Context(), uid, lure.GUID, hook.GUID, 1)
 	if plan == nil || plan.oldGUID != factory1 {
-		t.Fatalf("预检应锁定槽 1 出厂钩，实得 %+v", plan)
+		t.Fatalf("预检应锁定槽 1 出厂钩, 实得 %+v", plan)
 	}
 	// 交错：另一个请求先卸掉这颗出厂钩（退包 +1 已发生）。
 	if det := s.rigRemoveComponentInstance(t.Context(), uid, lure.GUID, catHook, factory1, 1); det == nil {
@@ -988,7 +988,7 @@ func TestLureHookRemoveCommitRejectsStalePlan(t *testing.T) {
 	// 预检：拆槽 0 出厂钩。
 	plan := s.lureHookRemovePrepare(t.Context(), uid, lure.GUID, factory0, 0)
 	if plan == nil || plan.removedGUID != factory0 {
-		t.Fatalf("预检应锁定槽 0，实得 %+v", plan)
+		t.Fatalf("预检应锁定槽 0, 实得 %+v", plan)
 	}
 	// 交错：另一个请求先拆掉这颗钩（退包 +1 已发生）。
 	if det := s.rigRemoveComponentInstance(t.Context(), uid, lure.GUID, catHook, factory0, 0); det == nil {
@@ -1006,7 +1006,7 @@ func TestLureHookRemoveCommitRejectsStalePlan(t *testing.T) {
 	}
 	got := lureTestHookSlots(t, s, lure.GUID)
 	if len(got) != 1 || lureHookItemGUID(got, 0) != factory1 {
-		t.Fatalf("陈旧提交被拒后剩余原装钩应原位保留，实得 %v", lureHookItemGUIDs(got))
+		t.Fatalf("陈旧提交被拒后剩余原装钩应原位保留, 实得 %v", lureHookItemGUIDs(got))
 	}
 }
 
@@ -1062,7 +1062,7 @@ func TestRepairLureHookSlotsAdjustsActiveOrdinal(t *testing.T) {
 		t.Fatal(err)
 	}
 	if fixed != 1 {
-		t.Fatalf("应清理 1 个拟饵，实得 %d", fixed)
+		t.Fatalf("应清理 1 个拟饵, 实得 %d", fixed)
 	}
 	after, err := s.DB.GetItemByGUID(t.Context(), lure.GUID)
 	if err != nil || after == nil {
@@ -1073,11 +1073,11 @@ func TestRepairLureHookSlotsAdjustsActiveOrdinal(t *testing.T) {
 		t.Fatal(err)
 	}
 	if n := len(afterFields[idx].Val.Items); n != 2 {
-		t.Fatalf("剥离后应剩 2 个元素，实得 %d", n)
+		t.Fatalf("剥离后应剩 2 个元素, 实得 %d", n)
 	}
 	if k := fieldIdxByCS(row.WireClass, "nkogmkobfng"); k >= 0 && k < len(afterFields) {
 		if got := int(u64Of(afterFields[k].Num)); got != 1 {
-			t.Fatalf("剥离垫底钩后活动钩应随迁到 1，实得 %d", got)
+			t.Fatalf("剥离垫底钩后活动钩应随迁到 1, 实得 %d", got)
 		}
 	}
 }

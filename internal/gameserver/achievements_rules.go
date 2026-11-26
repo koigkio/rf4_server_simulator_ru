@@ -27,7 +27,7 @@ type achievementEventKind uint8
 const (
 	evFishLanded   achievementEventKind = iota + 1 // 14/4 上鱼
 	evCast                                         // 14/2 抛投
-	evFishKept                                     // 14/5 入护（catch_log 已在 14/4 结算落库，入护只把 source 抬成 'keep'）
+	evFishKept                                     // 14/5 入护 (catch_log 已在 14/4 结算落库, 入护只把 source 抬成 'keep')
 	evCraftOK                                      // 9/1 制作成功
 	evBaitDug                                      // 9/3 挖饵成功
 	evFishReleased                                 // 14/6 放流
@@ -36,15 +36,15 @@ const (
 // achievementEvent 只携带判断需要的本次事件数据。
 type achievementEvent struct {
 	Kind          achievementEventKind
-	WeightG       int64   // 上鱼体重（克）
-	DistanceM     float64 // 本次实际抛投距离（米）
-	RigType       int64   // 本杆钓组类型（rigmeta.go:rigTypeNames）
+	WeightG       int64   // 上鱼体重 (克)
+	DistanceM     float64 // 本次实际抛投距离 (米)
+	RigType       int64   // 本杆钓组类型 (rigmeta.go:rigTypeNames)
 	Bait          string  // 钩上饵/拟饵的 item_id
-	DistinctBaits int64   // 累计用过的不同诱饵数（catch_log）
+	DistinctBaits int64   // 累计用过的不同诱饵数 (catch_log)
 	RecipeID      string  // 本次制作配方
 	BaitKey       string  // 本次挖到的饵 item_id
-	CookPoints    float64 // 烹饪熟练度（skill.skill_id=6，0..100）
-	Grade         int64   // 放流鱼档位（1..4，4=蓝冠=超级稀有）
+	CookPoints    float64 // 烹饪熟练度 (skill.skill_id=6, 0..100)
+	Grade         int64   // 放流鱼档位 (1..4, 4=蓝冠=超级稀有)
 }
 
 type achievementRule struct {
@@ -132,7 +132,7 @@ var achievementRules = []achievementRule{
 	{ID: 105, Event: evFishLanded, Check: rigIs(21)},     // Waggler 自重漂
 	{ID: 107, Event: evFishLanded, Check: rigIs(4)},      // 饵鱼浮钓
 	{ID: 109, Event: evFishLanded, Check: rigIs(19, 20)}, // Sbirolino
-	{ID: 110, Event: evFishLanded, Check: rigIs(30)},     // 浮漂发丝（鲤鱼）
+	{ID: 110, Event: evFishLanded, Check: rigIs(30)},     // 浮漂发丝 (鲤鱼)
 
 	// ---- 151-162 路亚 ----
 	{ID: 151, Event: evFishLanded, Check: baitPrefix("spoon", "spinner")},                          // 勺子/旋转饵
@@ -267,7 +267,7 @@ func (s *Server) evaluateAchievements(ctx *Ctx, ev achievementEvent) {
 	uid := ctx.Sess.Userid
 	states, err := s.DB.PlayerAchievementStates(s.dbCtx(), uid)
 	if err != nil {
-		ctx.Log.Error("成就状态读取失败", "uid", uid, "err", err)
+		ctx.Log.Error("Не удалось прочитать состояние достижений", "uid", uid, "err", err)
 		return
 	}
 	now := float64(time.Now().Unix())
@@ -286,7 +286,7 @@ func (s *Server) evaluateAchievements(ctx *Ctx, ev achievementEvent) {
 		// 一次 SQL 写两个状态，只有真正首次点亮才推 2/8，避免重复推送。
 		claimed, err := s.DB.UnlockAndClaimAchievement(s.dbCtx(), uid, r.ID, 1, now)
 		if err != nil {
-			ctx.Log.Error("成就解锁失败", "uid", uid, "id", r.ID, "err", err)
+			ctx.Log.Error("Не удалось разблокировать достижение", "uid", uid, "id", r.ID, "err", err)
 			continue
 		}
 		if claimed {

@@ -107,7 +107,7 @@ func (s *Server) RecoverStorePurchases(c context.Context) (int, error) {
 		if err == nil && current.FieldsJSON == row.FieldsJSON && current.Qty == row.Qty && current.Container == "backpack" && current.RigGUID == "" {
 			err = s.saveStorePurchaseTx(c, tx, r.uid, shop, r.item, uint64(-amount), gold, []*store.Item{current})
 		} else if err == nil {
-			err = errors.New("恢复期间商品发生变化")
+			err = errors.New("Товар изменился во время восстановления")
 		}
 		if err != nil {
 			tx.Rollback()
@@ -246,7 +246,7 @@ func (s *Server) storeReturnHasExtraRig(c context.Context, tx *sql.Tx, current, 
 // 与扣款、入库同事务保存完整批次，包含套盒的所有组成物品。
 func (s *Server) saveStorePurchaseTx(c context.Context, tx *sql.Tx, uid int64, storeID, itemID string, price uint64, gold bool, rows []*store.Item) error {
 	if price == 0 || price > math.MaxInt64 || len(rows) == 0 {
-		return errors.New("无效购买凭据")
+		return errors.New("Неверная квитанция покупки")
 	}
 	level := spawnLevelKey
 	if v, ok := s.levelByUID(uid); ok && v != "" {
@@ -297,19 +297,19 @@ func (s *Server) returnStorePurchase(ctx *Ctx) ([]byte, bool) {
 		if tx != nil {
 			_ = tx.Rollback()
 		}
-		ctx.Log.Warn("商店退货未完成", "err", err)
+		ctx.Log.Warn("Возврат в магазин не завершён", "err", err)
 		ctx.ReplyOperationResult(code)
 		return nil, true
 	}
 	fail := func(err error) ([]byte, bool) {
-		return failResult(err, 196) // 暂时无法提供服务；详细原因保留在服务端日志。
+		return failResult(err, 196) // 暂时无法提供服务; 详细原因保留在服务端日志.
 	}
 	if ctx.Tree == nil || len(ctx.Tree.Items) != 2 || ctx.Tree.Items[0] == nil || ctx.Tree.Items[1] == nil || ctx.Tree.Items[0].Kind != proto.KindStr || ctx.Tree.Items[1].Kind != proto.KindGuid {
-		return fail(errors.New("退货参数应为 store、guid"))
+		return fail(errors.New("Параметры возврата должны быть store,guid"))
 	}
 	storeID, guid := ctx.Tree.Items[0].StrOr(), ctx.Tree.Items[1].GuidHex()
 	if storeID == "" || !validRigGUID(guid) {
-		return fail(errors.New("无效退货参数"))
+		return fail(errors.New("Неверные параметры возврата"))
 	}
 	c, uid := ctx.Sess.pushCtx(), ctx.Sess.Userid
 	key, sha := requestReceiptKey(ctx)
@@ -330,7 +330,7 @@ func (s *Server) returnStorePurchase(ctx *Ctx) ([]byte, bool) {
 			return fail(err)
 		}
 		if r.RequestSHA != sha || r.ExpectResponse != ctx.ExpectResponse {
-			return fail(errors.New("退货回执冲突"))
+			return fail(errors.New("Конфликт квитанции возврата"))
 		}
 		return r.Body, true
 	} else if !errors.Is(err, sql.ErrNoRows) {
@@ -345,44 +345,44 @@ func (s *Server) returnStorePurchase(ctx *Ctx) ([]byte, bool) {
 		return fail(err)
 	}
 	if purchase.StoreID != storeID || purchase.Price == 0 || purchase.Price > math.MaxInt64 || len(purchase.Items) == 0 {
-		return fail(errors.New("原店或购买金额不符"))
+		return fail(errors.New("Магазин или сумма покупки не совпадают"))
 	}
 	boughtMinute := purchase.BoughtMinute
 	if boughtMinute <= 0 && purchase.Items[0] != nil && purchase.Items[0].CreatedTS > 0 {
 		boughtMinute = worldTotalGameMin(time.Unix(int64(purchase.Items[0].CreatedTS), 0))
 	}
 	if boughtMinute <= 0 || worldTotalGameMin(time.Now())-boughtMinute >= storeReturnWindowGameMin {
-		return failResult(errors.New("退货时限已过"), 149)
+		return failResult(errors.New("Срок возврата истёк"), 149)
 	}
 	guids := make([]string, 0, len(purchase.Items))
 	for _, original := range purchase.Items {
 		if original == nil || original.UID != uid {
-			return fail(errors.New("无效购买记录"))
+			return fail(errors.New("Неверная запись о покупке"))
 		}
 		row, err := getOwnedItemTx(c, tx, uid, original.GUID)
 		if err != nil {
 			return fail(err)
 		}
 		if row.RigGUID != "" {
-			return failResult(errors.New("商品仍有装配关系"), 151)
+			return failResult(errors.New("Товар ещё установлен в оснастку"), 151)
 		}
 		if row.Container != "backpack" {
-			return failResult(errors.New("商品不在背包"), 111)
+			return failResult(errors.New("Товара нет в инвентаре"), 111)
 		}
 		if row.ItemID != original.ItemID || row.Qty != original.Qty || row.Durability != original.Durability || row.Workmanship != original.Workmanship || !sameStoreItemFields(row, original) {
 			// 4.0.25034 原生150提示“非全新货”，普通异常会变成内部错误。
-			return failResult(errors.New("商品已使用或状态已改变"), 150)
+			return failResult(errors.New("Товар уже использован или его состояние изменилось"), 150)
 		}
 		def, err := itemDefByItemIDTx(c, tx, original.ItemID)
 		if err != nil || def == nil || !storeReturnCategoryAllowed(def.Category) || !storeReturnStateAllowed(original) {
-			return fail(errors.New("商品品类不支持退货"))
+			return fail(errors.New("Эту категорию товаров вернуть нельзя"))
 		}
 		extra, err := s.storeReturnHasExtraRig(c, tx, row, original)
 		if err != nil {
 			return fail(err)
 		}
 		if extra {
-			return failResult(errors.New("商品仍有装配关系"), 151)
+			return failResult(errors.New("Товар ещё установлен в оснастку"), 151)
 		}
 		guids = append(guids, row.GUID)
 	}
@@ -399,7 +399,7 @@ func (s *Server) returnStorePurchase(ctx *Ctx) ([]byte, bool) {
 	}
 	removed, err := removeItemsTx(c, tx, uid, guids)
 	if err != nil || removed != int64(len(guids)) {
-		return fail(fmt.Errorf("退货扣物失败: %v", err))
+		return fail(fmt.Errorf("Не удалось списать предмет при возврате: %v", err))
 	}
 	silver, gold := int64(purchase.Price), int64(0)
 	if purchase.Gold {

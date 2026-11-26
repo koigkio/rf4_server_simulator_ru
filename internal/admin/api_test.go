@@ -22,7 +22,7 @@ func testDB(t *testing.T) *store.DB {
 		t.Fatalf("打开测试 SQLite: %v", err)
 	}
 	if err := db.Migrate(); err != nil {
-		t.Fatalf("迁移失败: %v", err)
+		t.Fatalf("Ошибка миграции: %v", err)
 	}
 	t.Cleanup(func() { _ = db.Close() })
 	return db
@@ -261,7 +261,7 @@ func TestAdminAPI(t *testing.T) {
 
 	select {
 	case err := <-errCh:
-		t.Fatalf("服务异常退出: %v", err)
+		t.Fatalf("Сервис неожиданно завершился: %v", err)
 	default:
 	}
 }
@@ -318,18 +318,18 @@ func TestEventSwitchesMutuallyExclusive(t *testing.T) {
 	set("event_anniversary_enabled", "1")
 	set("event_newyear_enabled", "1")
 	if got := get("event_newyear_enabled"); got != "1" {
-		t.Fatalf("新年开关应为 1，实得 %q", got)
+		t.Fatalf("新年开关应为 1, 实得 %q", got)
 	}
 	if got := get("event_anniversary_enabled"); got != "0" {
-		t.Fatalf("开启新年后周年应自动关闭，实得 %q", got)
+		t.Fatalf("开启新年后周年应自动关闭, 实得 %q", got)
 	}
 
 	set("event_anniversary_enabled", "1")
 	if got := get("event_anniversary_enabled"); got != "1" {
-		t.Fatalf("周年开关应为 1，实得 %q", got)
+		t.Fatalf("周年开关应为 1, 实得 %q", got)
 	}
 	if got := get("event_newyear_enabled"); got != "0" {
-		t.Fatalf("开启周年后新年应自动关闭，实得 %q", got)
+		t.Fatalf("开启周年后新年应自动关闭, 实得 %q", got)
 	}
 
 	// 关闭自己不应影响另一个开关
@@ -337,22 +337,22 @@ func TestEventSwitchesMutuallyExclusive(t *testing.T) {
 	set("event_newyear_enabled", "1")
 	set("event_anniversary_enabled", "0")
 	if got := get("event_newyear_enabled"); got != "1" {
-		t.Fatalf("关闭周年不应动新年开关，实得 %q", got)
+		t.Fatalf("关闭周年不应动新年开关, 实得 %q", got)
 	}
 
 	// 普通玩法开关不受互斥影响，0/1 校验仍生效
 	set("happy_hour_enabled", "1")
 	if got := get("happy_hour_enabled"); got != "1" {
-		t.Fatalf("普通开关应为 1，实得 %q", got)
+		t.Fatalf("普通开关应为 1, 实得 %q", got)
 	}
 	if code := post("/api/tunables", token, `{"key":"event_newyear_enabled","value":"7"}`); code != 400 {
-		t.Fatalf("活动开关非法值应 400，实得 %d", code)
+		t.Fatalf("活动开关非法值应 400, 实得 %d", code)
 	}
 	if code := post("/api/tunables", token, `{"key":"event_branches","value":"8,21"}`); code != 400 {
-		t.Fatalf("非法分支配置应 400，实得 %d", code)
+		t.Fatalf("非法分支配置应 400, 实得 %d", code)
 	}
 	if code := post("/api/tunables", token, `{"key":"event_branches","value":"17,18"}`); code != 200 {
-		t.Fatalf("合法分支配置应 200，实得 %d", code)
+		t.Fatalf("合法分支配置应 200, 实得 %d", code)
 	}
 }
 
@@ -458,58 +458,58 @@ func TestSpawnModeEndpoint(t *testing.T) {
 	}
 
 	if got := mode(); got != "legacy" {
-		t.Fatalf("全新库三个开关全空应报 legacy，实得 %q", got)
+		t.Fatalf("全新库三个开关全空应报 legacy, 实得 %q", got)
 	}
 	if code, _ := call("POST", "/api/fish/spawn_mode", token, `{"mode":"nope"}`); code != 400 {
-		t.Fatalf("非法模式应 400，实得 %d", code)
+		t.Fatalf("非法模式应 400, 实得 %d", code)
 	}
 	if code, _ := call("POST", "/api/fish/spawn_mode", token, `{"mode":"two_stage"}`); code != 200 {
 		t.Fatalf("切换两档制应 200")
 	}
 	if got := get("grade_ratio_enabled"); got != "0" {
-		t.Fatalf("切两档制后档位比例应为 0，实得 %q", got)
+		t.Fatalf("切两档制后档位比例应为 0, 实得 %q", got)
 	}
 	if got := get("fish_hunt_enabled"); got != "0" {
-		t.Fatalf("切两档制后鱼猎应为 0，实得 %q", got)
+		t.Fatalf("切两档制后鱼猎应为 0, 实得 %q", got)
 	}
 	if got := get("two_stage_hunt_enabled"); got != "1" {
-		t.Fatalf("切两档制后两档开关应为 1，实得 %q", got)
+		t.Fatalf("切两档制后两档开关应为 1, 实得 %q", got)
 	}
 	if got := mode(); got != "two_stage" {
-		t.Fatalf("GET 应报 two_stage，实得 %q", got)
+		t.Fatalf("GET 应报 two_stage, 实得 %q", got)
 	}
 	if code, _ := call("POST", "/api/fish/spawn_mode", token, `{"mode":"grade_ratio"}`); code != 200 {
 		t.Fatalf("切档位比例应 200")
 	}
 	if got := get("grade_ratio_enabled"); got != "1" {
-		t.Fatalf("切档位比例后应为 1，实得 %q", got)
+		t.Fatalf("切档位比例后应为 1, 实得 %q", got)
 	}
 	if got := get("two_stage_hunt_enabled"); got != "0" {
-		t.Fatalf("切档位比例后两档开关应为 0，实得 %q", got)
+		t.Fatalf("切档位比例后两档开关应为 0, 实得 %q", got)
 	}
 	if got := mode(); got != "grade_ratio" {
-		t.Fatalf("GET 应报 grade_ratio，实得 %q", got)
+		t.Fatalf("GET 应报 grade_ratio, 实得 %q", got)
 	}
 
 	// 0/1 校验覆盖两个新开关键；两档制权重校验非负数字。
 	if code, _ := call("POST", "/api/tunables", token, `{"key":"fish_hunt_enabled","value":"7"}`); code != 400 {
-		t.Fatalf("fish_hunt_enabled 非法值应 400，实得 %d", code)
+		t.Fatalf("fish_hunt_enabled 非法值应 400, 实得 %d", code)
 	}
 	if code, _ := call("POST", "/api/tunables", token, `{"key":"two_stage_hunt_enabled","value":"x"}`); code != 400 {
-		t.Fatalf("two_stage_hunt_enabled 非法值应 400，实得 %d", code)
+		t.Fatalf("two_stage_hunt_enabled 非法值应 400, 实得 %d", code)
 	}
 	if code, _ := call("POST", "/api/tunables", token, `{"key":"two_stage_daily_below","value":"-1"}`); code != 400 {
-		t.Fatalf("两档制负权重应 400，实得 %d", code)
+		t.Fatalf("两档制负权重应 400, 实得 %d", code)
 	}
 	if code, _ := call("POST", "/api/tunables", token, `{"key":"two_stage_baited_trophy","value":"6"}`); code != 200 {
-		t.Fatalf("两档制合法权重应 200，实得 %d", code)
+		t.Fatalf("两档制合法权重应 200, 实得 %d", code)
 	}
 
 	// 饵效控速开关补 0/1 校验（value=2 曾经会被写库，而 tunableF==1 判定下等于关）。
 	if code, _ := call("POST", "/api/tunables", token, `{"key":"bite_pace_enabled","value":"2"}`); code != 400 {
-		t.Fatalf("bite_pace_enabled 非法值应 400，实得 %d", code)
+		t.Fatalf("bite_pace_enabled 非法值应 400, 实得 %d", code)
 	}
 	if code, _ := call("POST", "/api/tunables", token, `{"key":"bite_pace_enabled","value":"1"}`); code != 200 {
-		t.Fatalf("bite_pace_enabled 合法值应 200，实得 %d", code)
+		t.Fatalf("bite_pace_enabled 合法值应 200, 实得 %d", code)
 	}
 }

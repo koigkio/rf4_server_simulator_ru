@@ -43,7 +43,7 @@ func (sess *Session) updateHappyHour(now time.Time, closing bool) store.HappyHou
 	status, err := s.DB.AdvanceHappyHour(s.dbCtx(), sess.Userid, owner, now, fishing, !closing,
 		max(30*time.Second, 3*s.cfg.KeepaliveInterval()))
 	if err != nil {
-		s.log.Warn("欢乐时光状态未保存", "err", err)
+		s.log.Warn("Состояние счастливого часа не сохранено", "err", err)
 		return store.HappyHourStatus{}
 	}
 	sess.happyMu.Lock()

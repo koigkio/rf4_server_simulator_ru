@@ -49,11 +49,11 @@ func TestCraftedStackSingleSlotReusable(t *testing.T) {
 			// 挂载再卸载：数量回到 60，且背包仍只有一堆。
 			mounted := mount()
 			if rows, qty := backpackStacks(itemID); rows != 1 || qty != 59 {
-				t.Fatalf("挂载后背包 rows=%d qty=%d，期望 1/59", rows, qty)
+				t.Fatalf("挂载后背包 rows=%d qty=%d, 期望 1/59", rows, qty)
 			}
 			s.rigRemoveItemComponent(ctx, uid, rod, mounted)
 			if rows, qty := backpackStacks(itemID); rows != 1 || qty != 60 {
-				t.Fatalf("卸载后背包 rows=%d qty=%d，期望 1/60", rows, qty)
+				t.Fatalf("卸载后背包 rows=%d qty=%d, 期望 1/60", rows, qty)
 			}
 			if row, _ := db.GetItemByGUID(ctx, mounted); row != nil {
 				t.Fatalf("卸载后挂载子实例仍存在: %+v", row)
@@ -68,7 +68,7 @@ func TestCraftedStackSingleSlotReusable(t *testing.T) {
 				}
 				want := int64(59 - use)
 				if rows, qty := backpackStacks(itemID); rows != 1 || qty != want {
-					t.Fatalf("第 %d 次使用后背包 rows=%d qty=%d，期望 1/%d", use+1, rows, qty, want)
+					t.Fatalf("第 %d 次使用后背包 rows=%d qty=%d, 期望 1/%d", use+1, rows, qty, want)
 				}
 			}
 		})
@@ -125,7 +125,7 @@ func TestDugBaitStackMergesToSingleEntry(t *testing.T) {
 		t.Fatal(err)
 	}
 	if rows != 1 || total != 234 {
-		t.Fatalf("背包蚯蚓 rows=%d total=%d，期望 1/234", rows, total)
+		t.Fatalf("背包蚯蚓 rows=%d total=%d, 期望 1/234", rows, total)
 	}
 }
 
@@ -155,18 +155,18 @@ func TestPvaSplitRefundsToOriginStack(t *testing.T) {
 		t.Fatalf("挂载子实例缺失: %v", err)
 	}
 	if got := splitSourceGUID(mounted); got != second.GUID {
-		t.Fatalf("拆分来源=%s，期望 %s", got, second.GUID)
+		t.Fatalf("拆分来源=%s, 期望 %s", got, second.GUID)
 	}
 	if row, err := db.GetItemByGUID(ctx, second.GUID); err != nil || row == nil || row.Qty != 9 {
-		t.Fatalf("来源堆应剩 9，实得 %+v err=%v", row, err)
+		t.Fatalf("来源堆应剩 9, 实得 %+v err=%v", row, err)
 	}
 
 	s.rigRemoveItemComponent(ctx, uid, rod, res.MountedGUID)
 	if row, err := db.GetItemByGUID(ctx, second.GUID); err != nil || row == nil || row.Qty != 10 {
-		t.Fatalf("卸载后来源堆应回到 10，实得 %+v err=%v", row, err)
+		t.Fatalf("卸载后来源堆应回到 10, 实得 %+v err=%v", row, err)
 	}
 	if row, err := db.GetItemByGUID(ctx, first.GUID); err != nil || row == nil || row.Qty != 60 {
-		t.Fatalf("其他批次不应被并入，实得 %+v err=%v", row, err)
+		t.Fatalf("其他批次不应被并入, 实得 %+v err=%v", row, err)
 	}
 	if row, _ := db.GetItemByGUID(ctx, res.MountedGUID); row != nil {
 		t.Fatalf("卸载后挂载子实例仍存在: %+v", row)

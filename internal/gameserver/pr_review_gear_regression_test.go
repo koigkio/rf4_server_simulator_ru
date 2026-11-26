@@ -133,10 +133,10 @@ func TestFrictionWasherWornStateSurvivesSlip(t *testing.T) {
 		t.Fatalf("磨穿后再次打滑失败: %v", err)
 	}
 	if !out.FrictionWorn {
-		t.Fatal("摩擦片已磨穿，后续打滑必须仍报 FrictionWorn")
+		t.Fatal("摩擦片已磨穿, 后续打滑必须仍报 FrictionWorn")
 	}
 	if got := frictionDragFromFields(t, srv, ctx, storedFieldsOf(t, srv, ctx, reelGUID)); got != 0 {
-		t.Fatalf("磨穿后制动力被复活: %.4fkg（期望 0）", got)
+		t.Fatalf("磨穿后制动力被复活: %.4fkg (期望 0)", got)
 	}
 	perf, err := srv.syncReelPerformance(ctx, mustItem(t, db, reelGUID))
 	if err != nil || perf.BaseDragKg > 1e-9 || perf.LockedDragKg > 1e-9 {
@@ -170,7 +170,7 @@ func TestFrictionWearSurvivesItemTreeAndRestart(t *testing.T) {
 	// ItemToTree 下发给客户端的值必须就是落库磨损值，不能重算成定义值。
 	tree, err := srv.ItemToTree(ctx, row)
 	if err != nil {
-		t.Fatalf("ItemToTree 失败: %v", err)
+		t.Fatalf("ItemToTree Ошибка: %v", err)
 	}
 	if got := frictionDragFromFields(t, srv, ctx, tree.Fields); math.Abs(got-worn) > 1e-6 {
 		t.Fatalf("物品树把磨损刷回定义值: 下发=%.4f 落库=%.4f 额定=%.4f", got, worn, rated)
@@ -178,7 +178,7 @@ func TestFrictionWearSurvivesItemTreeAndRestart(t *testing.T) {
 
 	// 模拟服务重启：启动修复会把 ItemToTree 的结果写回数据库。
 	if err := srv.RepairItemPhysics(ctx); err != nil {
-		t.Fatalf("RepairItemPhysics 失败: %v", err)
+		t.Fatalf("RepairItemPhysics Ошибка: %v", err)
 	}
 	if got := frictionDragFromFields(t, srv, ctx, storedFieldsOf(t, srv, ctx, reelGUID)); math.Abs(got-worn) > 1e-6 {
 		t.Fatalf("启动修复把磨损写回满值: 现在=%.4f 打滑后=%.4f 额定=%.4f", got, worn, rated)
@@ -287,7 +287,7 @@ func TestLeadcoreBreakReportAcceptedOnRealRig(t *testing.T) {
 		t.Fatalf("铅芯前导上报被拒绝: %v", err)
 	}
 	if report.terminalCategory != 0 {
-		t.Fatalf("铅芯前导是承力件，不应走终端件直接采信: %+v", report)
+		t.Fatalf("铅芯前导是承力件, 不应走终端件直接采信: %+v", report)
 	}
 
 	// 端到端走一次 17/9，确认协议层不回 nativeFailure。
@@ -298,7 +298,7 @@ func TestLeadcoreBreakReportAcceptedOnRealRig(t *testing.T) {
 		t.Fatal("17/9 拒绝了真实装配的铅芯前导")
 	}
 	if _, _, derr := proto.DecodeValue(body, 0, srv.Table()); derr != nil {
-		t.Fatalf("17/9 响应无法解码: %v", derr)
+		t.Fatalf("17/9 Не удалось декодировать ответ: %v", derr)
 	}
 }
 

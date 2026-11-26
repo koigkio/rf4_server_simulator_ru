@@ -378,7 +378,7 @@ func (s *Server) ensureRodTip(ctx context.Context, row *store.Item) bool {
 	if tip == "" {
 		tips := s.rodDefTips(ctx, row.ItemID)
 		if len(tips) == 0 {
-			return false // 无尖梢的竿（手竿/路亚等）
+			return false // 无尖梢的竿 (手竿/路亚等)
 		}
 		tip = tips[0]
 	}

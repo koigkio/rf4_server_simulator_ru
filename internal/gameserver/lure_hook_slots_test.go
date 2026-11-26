@@ -105,7 +105,7 @@ func TestNoHookAttractantLurePurchaseVisible(t *testing.T) {
 			result := decodeTreeValue(t, s, body)
 			list := result.Fields[1].Val
 			if list == nil || list.Kind != proto.KindArgs || len(list.Items) != 1 || treeRootGUID(list.Items[0]) != guid {
-				t.Fatalf("购买响应缺少物品树，客户端将看不到入包: %+v", list)
+				t.Fatalf("购买响应缺少物品树, 客户端将看不到入包: %+v", list)
 			}
 			assertLureWireSlots(t, list.Items[0], nil)
 

@@ -127,7 +127,7 @@ func TestFishZoneAPI(t *testing.T) {
 		 "mode":"boost","boost":2,"keep_others":0,"enabled":true,
 		 "fish":[{"fish_key":"carp","weight":1,"enabled":true}]}`)
 	if code != 200 {
-		t.Fatalf("keep_others=0 是合法值，应保存: %d %v", code, out)
+		t.Fatalf("keep_others=0 是合法值, 应保存: %d %v", code, out)
 	}
 	code, out = call("GET", "/api/fish/zones", "")
 	raw, _ = json.Marshal(out["zones"])

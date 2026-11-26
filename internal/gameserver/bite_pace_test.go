@@ -66,27 +66,27 @@ func TestPaceStandardClampAndFloorCap(t *testing.T) {
 		t.Fatal(got)
 	}
 	if floor, capS := s.paceFloorCapFor(2, false, 1); floor != 6 || capS != 60 {
-		t.Fatalf("好饵底/浮区间应为 [6,60]，实得 [%g,%g]", floor, capS)
+		t.Fatalf("好饵底/浮区间应为 [6,60], 实得 [%g,%g]", floor, capS)
 	}
 	if floor, capS := s.paceFloorCapFor(1, false, 1); floor != 10 || capS != 60 {
-		t.Fatalf("中饵区间应为 [10,60]，实得 [%g,%g]", floor, capS)
+		t.Fatalf("中饵区间应为 [10,60], 实得 [%g,%g]", floor, capS)
 	}
 	if floor, capS := s.paceFloorCapFor(0, false, 1); floor != 20 || capS != 60 {
-		t.Fatalf("差饵区间应为 [20,60]，实得 [%g,%g]", floor, capS)
+		t.Fatalf("差饵区间应为 [20,60], 实得 [%g,%g]", floor, capS)
 	}
 	if floor, capS := s.paceFloorCapFor(2, true, 1); floor != 3 || capS != 30 {
-		t.Fatalf("海底钓窗应为 [3,30]，实得 [%g,%g]", floor, capS)
+		t.Fatalf("海底钓窗应为 [3,30], 实得 [%g,%g]", floor, capS)
 	}
 	if floor, capS := s.paceFloorCapFor(2, false, 0.38); floor != 3 || capS != 60 {
-		t.Fatalf("打窝压缩后好饵区间应为 [3,60]，实得 [%g,%g]", floor, capS)
+		t.Fatalf("打窝压缩后好饵区间应为 [3,60], 实得 [%g,%g]", floor, capS)
 	}
 	// 满窝好饵：样本上限 46.6×0.38=17.7，落在 3~18 秒目标带。
 	if got := s.paceStandardBiteDelay(46.6, 1, 1, 1.0, 2, 0.38, false, 1); got < 3 || got > 18 {
-		t.Fatalf("满窝好饵样本应落在 3~18 秒，实得 %g", got)
+		t.Fatalf("满窝好饵样本应落在 3~18 秒, 实得 %g", got)
 	}
 	// 样本下限 6.48×0.38=2.46 → 窝料地板 3s。
 	if got := s.paceStandardBiteDelay(6.48, 1, 1, 1.0, 2, 0.38, false, 1); got != 3 {
-		t.Fatalf("窝料地板应为 3s，实得 %g", got)
+		t.Fatalf("窝料地板应为 3s, 实得 %g", got)
 	}
 }
 
@@ -98,7 +98,7 @@ func TestPaceDelayUsesFactorSnapshot(t *testing.T) {
 	// 本杆快照 Factor=3（差饵档）：样本 7×3=21 落在差饵区间 [20,60] 内。
 	// 若误读当前 tunable（×10=70→cap 60）就会得 60。
 	if got := s.paceStandardBiteDelay(7, 1, 1, 3, 0, 1, false, 1); got != 21 {
-		t.Fatalf("重排应沿用本杆快照 ×3：实得 %g", got)
+		t.Fatalf("重排应沿用本杆快照 ×3: 实得 %g", got)
 	}
 }
 
@@ -107,15 +107,15 @@ func TestPaceDelayUsesFactorSnapshot(t *testing.T) {
 func TestPaceLureWindowForGoodTierCap(t *testing.T) {
 	s, _ := newDetachTestServer(t)
 	if lmin, lmax := s.paceLureWindowFor(2, 6); lmin != 1.5 || lmax != 6 {
-		t.Fatalf("好档默认窗应为 [1.5,6]，实得 [%g,%g]", lmin, lmax)
+		t.Fatalf("好档默认窗应为 [1.5,6], 实得 [%g,%g]", lmin, lmax)
 	}
 	setWeatherTestTunable(t, s, "pace_lure_max", "30")
 	if lmin, lmax := s.paceLureWindowFor(2, 30); lmin != 1.5 || lmax != 6 {
-		t.Fatalf("bite_delay_lure_max 也不得放大窗口，实得 [%g,%g]", lmin, lmax)
+		t.Fatalf("bite_delay_lure_max 也不得放大窗口, 实得 [%g,%g]", lmin, lmax)
 	}
 	setWeatherTestTunable(t, s, "pace_lure_max", "2.5")
 	if lmin, lmax := s.paceLureWindowFor(2, 6); lmin != 1.5 || lmax != 2.5 {
-		t.Fatalf("收窄应生效，实得 [%g,%g]", lmin, lmax)
+		t.Fatalf("收窄应生效, 实得 [%g,%g]", lmin, lmax)
 	}
 }
 
@@ -160,7 +160,7 @@ func TestPaceLegacyEquivalenceWhenDisabled(t *testing.T) {
 	for i := 0; i < 50; i++ {
 		got := s.biteDelayInWeather(st, fishingWeather{}, time.Now())
 		if got < 6-1e-9 || got > 20+1e-9 {
-			t.Fatalf("legacy 通道越界：got %g", got)
+			t.Fatalf("legacy 通道越界: got %g", got)
 		}
 	}
 }
@@ -174,14 +174,14 @@ func TestPaceDelayBoundsAndLureUnchanged(t *testing.T) {
 	for i := 0; i < 50; i++ {
 		got := s.biteDelayInWeather(bad, fishingWeather{}, now)
 		if got < 19.44-1e-9 || got > 60+1e-9 {
-			t.Fatalf("差饵单轮越界：got %g", got)
+			t.Fatalf("差饵单轮越界: got %g", got)
 		}
 		if got > 20 {
 			over20++
 		}
 	}
 	if over20 == 0 {
-		t.Fatal("50 次采样全部 ≤20s，pace 分支未生效")
+		t.Fatal("50 次采样全部 ≤20s, pace 分支未生效")
 	}
 	// 打窝压缩：全部 ≤17.71 且下限踩到 3s 地板（legacy 最低 6s）。
 	compressed := &FishState{RigType: 12, PaceKnown: true, PaceTier: 2, PaceFactor: 1, PaceGround: 0.38}
@@ -189,20 +189,20 @@ func TestPaceDelayBoundsAndLureUnchanged(t *testing.T) {
 	for i := 0; i < 200; i++ {
 		got := s.biteDelayInWeather(compressed, fishingWeather{}, now)
 		if got > 17.71+1e-9 {
-			t.Fatalf("满窝样本越界：got %g", got)
+			t.Fatalf("满窝样本越界: got %g", got)
 		}
 		if got < minGot {
 			minGot = got
 		}
 	}
 	if minGot > 3+1e-9 {
-		t.Fatalf("满窝下限应踩到 3s 地板，最小实得 %g", minGot)
+		t.Fatalf("满窝下限应踩到 3s 地板, 最小实得 %g", minGot)
 	}
 	// 海底钓（marineRigType 且非路亚族）：上限 30。
 	marine := &FishState{RigType: 55, PaceKnown: true, PaceTier: 2, PaceFactor: 1, PaceGround: 1}
 	for i := 0; i < 200; i++ {
 		if got := s.biteDelayInWeather(marine, fishingWeather{}, now); got > 30+1e-9 {
-			t.Fatalf("海底钓上限应为 30s，实得 %g", got)
+			t.Fatalf("海底钓上限应为 30s, 实得 %g", got)
 		}
 	}
 	// 路亚族 pace 模式按复合档位（饵分 × 当前动作）取窗
@@ -211,7 +211,7 @@ func TestPaceDelayBoundsAndLureUnchanged(t *testing.T) {
 	goodLure := &FishState{RigType: 5, PaceKnown: true, PaceScore: 1.0, LureType: "jerkbait", LureAction: "jerk", PaceGround: 1}
 	for i := 0; i < 50; i++ {
 		if got := s.biteDelayInWeather(goodLure, fishingWeather{}, now); got < 1.5-1e-9 || got > 6+1e-9 {
-			t.Fatalf("好档路亚窗口越界：got %g", got)
+			t.Fatalf("好档路亚窗口越界: got %g", got)
 		}
 	}
 	midLure := &FishState{RigType: 5, PaceKnown: true, PaceScore: 1.0, LureType: "jerkbait", LureAction: "steady", PaceGround: 1}
@@ -219,34 +219,34 @@ func TestPaceDelayBoundsAndLureUnchanged(t *testing.T) {
 	for i := 0; i < 50; i++ {
 		got := s.biteDelayInWeather(midLure, fishingWeather{}, now)
 		if got < 10-1e-9 || got > 60+1e-9 {
-			t.Fatalf("中档路亚窗口越界：got %g", got)
+			t.Fatalf("中档路亚窗口越界: got %g", got)
 		}
 		if got > 12 {
 			over12++
 		}
 	}
 	if over12 == 0 {
-		t.Fatal("中档 50 次全部 ≤12s，路亚窗口未按档位放大")
+		t.Fatal("中档 50 次全部 ≤12s, 路亚窗口未按档位放大")
 	}
 	badLure := &FishState{RigType: 5, PaceKnown: true, PaceScore: 0.3, LureType: "jerkbait", LureAction: "jerk", PaceGround: 1}
 	over22 := 0
 	for i := 0; i < 50; i++ {
 		got := s.biteDelayInWeather(badLure, fishingWeather{}, now)
 		if got < 20-1e-9 || got > 60+1e-9 {
-			t.Fatalf("差档路亚窗口越界：got %g", got)
+			t.Fatalf("差档路亚窗口越界: got %g", got)
 		}
 		if got > 22 {
 			over22++
 		}
 	}
 	if over22 == 0 {
-		t.Fatal("差档 50 次全部 ≤22s，路亚窗口未按档位放大")
+		t.Fatal("差档 50 次全部 ≤22s, 路亚窗口未按档位放大")
 	}
 	// bite_delay_lure_max 只封好档：压到 3 后好档 ≤3，中档仍可远超 3（绕过）。
 	setWeatherTestTunable(t, s, "bite_delay_lure_max", "3")
 	for i := 0; i < 50; i++ {
 		if got := s.biteDelayInWeather(goodLure, fishingWeather{}, now); got > 3+1e-9 {
-			t.Fatalf("好档未受 bite_delay_lure_max 封顶：got %g", got)
+			t.Fatalf("好档未受 bite_delay_lure_max 封顶: got %g", got)
 		}
 	}
 	capped := 0
@@ -256,7 +256,7 @@ func TestPaceDelayBoundsAndLureUnchanged(t *testing.T) {
 		}
 	}
 	if capped == 0 {
-		t.Fatal("中档被 bite_delay_lure_max 封顶（应绕过）")
+		t.Fatal("中档被 bite_delay_lure_max 封顶 (应绕过)")
 	}
 	setWeatherTestTunable(t, s, "bite_delay_lure_max", "6")
 	// pace 关闭回 legacy 逐位一致：仍是 1.5~6s 窗，×3 因子也不放大。
@@ -264,7 +264,7 @@ func TestPaceDelayBoundsAndLureUnchanged(t *testing.T) {
 	lureLegacy := &FishState{RigType: 5, PaceKnown: true, PaceTier: 0, PaceFactor: 3, PaceGround: 1, PaceLureProb: 0.02}
 	for i := 0; i < 50; i++ {
 		if got := s.biteDelayInWeather(lureLegacy, fishingWeather{}, now); got > 6+1e-9 {
-			t.Fatalf("pace 关闭时路亚窗口被放大：got %g", got)
+			t.Fatalf("pace 关闭时路亚窗口被放大: got %g", got)
 		}
 	}
 }
@@ -316,7 +316,7 @@ func TestBaitPaceScoreEvidence(t *testing.T) {
 	}
 	s.invalidateFishEcologyCache()
 	if got := s.baitPaceScore(ctx, base, "level_900_rules", []string{"rule_lure"}, 5); math.Abs(got-1.0) > 1e-9 {
-		t.Fatalf("lure 食性 2.0 应满分，实得 %g", got)
+		t.Fatalf("lure 食性 2.0 应满分, 实得 %g", got)
 	}
 }
 
@@ -326,22 +326,22 @@ func TestGroundbaitPaceFactorCompressesAndExemptsLure(t *testing.T) {
 	setWeatherTestTunable(t, s, "groundbait_enabled", "1")
 	const uid = int64(1000001)
 	if got := s.groundbaitPaceFactor(ctx, uid, "gb-test-loc", 300, 300, true, 7, 1); got != 1 {
-		t.Fatalf("无窝应中性，实得 %g", got)
+		t.Fatalf("无窝应中性, 实得 %g", got)
 	}
 	// 8 份满强度：S=1-e^(-2)≈0.865，gain 0.62 → ≈0.464。
 	s.groundbaitDeposit(ctx, uid, "gb-test-loc", 300, 300, true, 7, "feed_karp", 8, "feeder", "gb:p1", "")
 	full := s.groundbaitPaceFactor(ctx, uid, "gb-test-loc", 300, 300, true, 7, 1)
 	if full <= 0.40 || full >= 0.55 {
-		t.Fatalf("满窝压缩应落在 0.40~0.55，实得 %.3f", full)
+		t.Fatalf("满窝压缩应落在 0.40~0.55, 实得 %.3f", full)
 	}
 	// 路亚族豁免（与死窝闸门同口径）。
 	if got := s.groundbaitPaceFactor(ctx, uid, "gb-test-loc", 300, 300, true, 7, 5); got != 1 {
-		t.Fatalf("路亚族应豁免，实得 %g", got)
+		t.Fatalf("路亚族应豁免, 实得 %g", got)
 	}
 	// 死窝不加速：8+20=28 份，overdoseP=0 → 回 1。
 	s.groundbaitDeposit(ctx, uid, "gb-test-loc", 300, 300, true, 7, "feed_karp", 20, "feeder", "gb:p2", "")
 	if got := s.groundbaitPaceFactor(ctx, uid, "gb-test-loc", 300, 300, true, 7, 1); got != 1 {
-		t.Fatalf("死窝不应压缩，实得 %.3f", got)
+		t.Fatalf("死窝不应压缩, 实得 %.3f", got)
 	}
 }
 
@@ -383,7 +383,7 @@ func TestScheduleBiteStoresPace(t *testing.T) {
 	}
 	// 无饵（currentBaits 为空）→ 对口分中性 0.5 → mid 档。
 	if factor != 1.6 || prob != 0.5 {
-		t.Fatalf("中性 0.5 应落 mid 档（1.6/0.5），实得 (%g,%g)", factor, prob)
+		t.Fatalf("中性 0.5 应落 mid 档 (1.6/0.5), 实得 (%g,%g)", factor, prob)
 	}
 	_ = timer
 }
@@ -410,7 +410,7 @@ func TestEmptyRollReusesPaceFactors(t *testing.T) {
 	// 空轮重排复用差饵因子：延迟样本 ×3 → [19.44, 60]。
 	wait := time.Until(due).Seconds()
 	if wait < 19.4-1e-9 || wait > 60+1e-9 {
-		t.Fatalf("差饵空轮重排应落在 [19.44,60]s，实得 %.2fs", wait)
+		t.Fatalf("差饵空轮重排应落在 [19.44,60]s, 实得 %.2fs", wait)
 	}
 }
 
@@ -424,19 +424,19 @@ func TestMeanPaceStandardDelayMatchesClamp(t *testing.T) {
 	want := sum / float64(len(officialPushDelayEligible))
 	// 好饵无窝：所有样本都在 [6,60] 内 → 均值 = 样本均值。
 	if got := s.meanPaceStandardDelay(cfg, 1, 1, 1.0, 2, 1, false); math.Abs(got-want) > 1e-9 {
-		t.Fatalf("好饵均值应等于样本均值 %g，实得 %g", want, got)
+		t.Fatalf("好饵均值应等于样本均值 %g, 实得 %g", want, got)
 	}
 	// 满窝好饵：均值落在 3~20 秒带。
 	compressed := s.meanPaceStandardDelay(cfg, 1, 1, 1.0, 2, 0.38, false)
 	if compressed < 3 || compressed > 20 {
-		t.Fatalf("满窝均值应落在 3~20 秒带，实得 %g", compressed)
+		t.Fatalf("满窝均值应落在 3~20 秒带, 实得 %g", compressed)
 	}
 	if compressed >= want*0.5 {
-		t.Fatalf("满窝均值应明显压缩（<%.2f），实得 %g", want*0.5, compressed)
+		t.Fatalf("满窝均值应明显压缩 (<%.2f), 实得 %g", want*0.5, compressed)
 	}
 	// 海底钓：上限 30。
 	if got := s.meanPaceStandardDelay(cfg, 1, 1, 1.0, 2, 1, true); got > 30 {
-		t.Fatalf("海底钓均值应 ≤30，实得 %g", got)
+		t.Fatalf("海底钓均值应 ≤30, 实得 %g", got)
 	}
 }
 
@@ -446,7 +446,7 @@ func TestFishQueryPaceState(t *testing.T) {
 	st := &FishState{Loc: "level_900_rules", Bait: "rule_worm", RigType: 1}
 	p := s.fishQueryPaceState(t.Context(), base, st)
 	if !p.Known || p.Score != 1.0 || p.Factor != 1.0 || p.Prob != 1.0 || p.Ground != 1 {
-		t.Fatalf("对口饵 pace 状态不符：%+v", p)
+		t.Fatalf("对口饵 pace 状态不符: %+v", p)
 	}
 	// pace 开关关闭：中性。
 	if err := s.DB.TunableSet(t.Context(), "bite_pace_enabled", "0", "test"); err != nil {
@@ -457,7 +457,7 @@ func TestFishQueryPaceState(t *testing.T) {
 	s.tunMu.Unlock()
 	p = s.fishQueryPaceState(t.Context(), base, st)
 	if p.Known || p.Factor != 1 || p.Prob != 1 {
-		t.Fatalf("开关关闭应中性：%+v", p)
+		t.Fatalf("开关关闭应中性: %+v", p)
 	}
 }
 
@@ -615,24 +615,24 @@ func TestPaceLureProbFollowsAction(t *testing.T) {
 	s, _ := seedPaceTest(t)
 	st := &FishState{RigType: 5, PaceKnown: true, PaceScore: 1.0, LureType: "jerkbait", LureAction: "jerk"}
 	if got := s.rodPaceProb(st); got != 1.0 {
-		t.Fatalf("对口动作开口率应 1.0：got %g", got)
+		t.Fatalf("对口动作开口率应 1.0: got %g", got)
 	}
 	st.LureAction = "steady"
 	if got := s.rodPaceProb(st); got != 0.5 {
-		t.Fatalf("中性动作开口率应 0.5：got %g", got)
+		t.Fatalf("中性动作开口率应 0.5: got %g", got)
 	}
 	st.PaceScore = 0.3
 	if got := s.rodPaceProb(st); got != 0.12 {
-		t.Fatalf("差饵开口率应 0.12：got %g", got)
+		t.Fatalf("差饵开口率应 0.12: got %g", got)
 	}
 	st.PaceKnown = false
 	if got := s.rodPaceProb(st); got != 1 {
-		t.Fatalf("PaceKnown=false 应中性：got %g", got)
+		t.Fatalf("PaceKnown=false 应中性: got %g", got)
 	}
 	setWeatherTestTunable(t, s, "bite_pace_enabled", "0")
 	st.PaceKnown = true
 	if got := s.rodPaceProb(st); got != 1 {
-		t.Fatalf("热关闭后开口率应回 1：got %g", got)
+		t.Fatalf("热关闭后开口率应回 1: got %g", got)
 	}
 }
 
@@ -662,10 +662,10 @@ func TestPaceLureActionRearm(t *testing.T) {
 	tier := st.PaceTier
 	st.mu.Unlock()
 	if tier != 2 {
-		t.Fatalf("改善后档位应=2：got %d", tier)
+		t.Fatalf("改善后档位应=2: got %d", tier)
 	}
 	if wait < 1.4 || wait > 6.2 {
-		t.Fatalf("改善后应进 1.5~6s 短窗：got %.2fs", wait)
+		t.Fatalf("改善后应进 1.5~6s 短窗: got %.2fs", wait)
 	}
 
 	// 档位下降不重排。
@@ -732,13 +732,13 @@ func TestPaceLureFireRefreshAllowsLaterRearm(t *testing.T) {
 
 	// 定时器到点时，当前动作只到中档；开口率判定应同步把档位改为中档。
 	if got := s.rodPaceProb(st); got != .5 {
-		t.Fatalf("中档动作开口率应 0.5：got %g", got)
+		t.Fatalf("中档动作开口率应 0.5: got %g", got)
 	}
 	st.mu.Lock()
 	fireTier := st.PaceTier
 	st.mu.Unlock()
 	if fireTier != 1 {
-		t.Fatalf("fire 后档位应刷新为中档：got %d", fireTier)
+		t.Fatalf("fire 后档位应刷新为中档: got %d", fireTier)
 	}
 
 	// 随后做出对口动作，应按升档重排进好档短窗；旧实现仍拿初始好档比较会漏掉。
@@ -753,10 +753,10 @@ func TestPaceLureFireRefreshAllowsLaterRearm(t *testing.T) {
 	st.mu.Unlock()
 	stopWeatherDamageTimer(st)
 	if tier != 2 {
-		t.Fatalf("动作改善后档位应=2：got %d", tier)
+		t.Fatalf("动作改善后档位应=2: got %d", tier)
 	}
 	if wait < 1.4 || wait > 6.2 {
-		t.Fatalf("动作改善后应重排进 1.5~6s 短窗：got %.2fs", wait)
+		t.Fatalf("动作改善后应重排进 1.5~6s 短窗: got %.2fs", wait)
 	}
 }
 
@@ -777,16 +777,16 @@ func TestLureCoreForBaitsSkipsAttraction(t *testing.T) {
 	ctx := t.Context()
 	dive, typ := s.lureCoreForBaits(ctx, []string{"pace_bead", "pace_pilker"})
 	if typ != "pilker" || math.Abs(dive-0.76) > 1e-9 {
-		t.Fatalf("主导拟饵应跳过吸引成分取铁板：got (%g,%q)", dive, typ)
+		t.Fatalf("主导拟饵应跳过吸引成分取铁板: got (%g,%q)", dive, typ)
 	}
 	if got := s.lureTypeForBaits(ctx, []string{"pace_bead"}); got != "" {
-		t.Fatalf("只有吸引成分时不应有主导拟饵：got %q", got)
+		t.Fatalf("只有吸引成分时不应有主导拟饵: got %q", got)
 	}
 	// 判鱼 runtime 与 pace 同源：彩珠不得抢主导拟饵。
 	c := fishRollContext{baits: []string{"pace_bead", "pace_pilker"}, rigType: 50}
 	s.prepareFishRollRuntime(ctx, &c, "rules-test")
 	if !c.runtime.lureKnown || c.runtime.lure.Type != "pilker" {
-		t.Fatalf("判鱼 runtime 主导拟饵应为 pilker：got %+v", c.runtime.lure)
+		t.Fatalf("判鱼 runtime 主导拟饵应为 pilker: got %+v", c.runtime.lure)
 	}
 }
 
@@ -810,11 +810,11 @@ func TestPaceLureGroupsUseBestHook(t *testing.T) {
 			{hook: "pilker-hook", score: 1.0, lureType: "pilker"},
 		}}
 	if got := s.rodPaceProb(st); got != 1.0 {
-		t.Fatalf("铁板 vertical_dive 应为好档开口率 1.0：got %g", got)
+		t.Fatalf("铁板 vertical_dive 应为好档开口率 1.0: got %g", got)
 	}
 	st.LureAction = "little_jerk"
 	if got := s.rodPaceProb(st); got != 0.5 {
-		t.Fatalf("铁板 little_jerk 应为中档 0.5：got %g", got)
+		t.Fatalf("铁板 little_jerk 应为中档 0.5: got %g", got)
 	}
 	// fire 路径：测试名册对铁板无证据（0.30），把好档阈值压到 0 以固定命中。
 	setWeatherTestTunable(t, s, "pace_score_good", "0")

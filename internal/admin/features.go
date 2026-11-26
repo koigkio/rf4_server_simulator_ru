@@ -37,22 +37,22 @@ const catalogKindExpr = `COALESCE(NULLIF(c.kind,''),NULLIF(d.kind,''),'')`
 func catalogGroupFor(kind string, category int64) (key, name string, order int) {
 	switch {
 	case category == 6 || kind == "reel":
-		return "reel", "完整渔轮", 10
+		return "reel", "Полные катушки", 10
 	case category == 27 || kind == "bait" || kind == "bait_boil":
 		return "bait", "饵料", 20
 	case category == 26:
-		return "food", "食物与饮料", 30
+		return "food", "Еда и напитки", 30
 	case kind == "rod" || kind == "rod_casting" || kind == "rod_match" ||
 		kind == "rod_spinning" || kind == "rod_telescopic" || kind == "feeder":
-		return "rod", "鱼竿", 40
+		return "rod", "Удилища", 40
 	case strings.HasPrefix(kind, "lure_"):
 		return "lure", "拟饵", 50
 	case kind == "float":
-		return "float", "浮漂", 60
+		return "float", "Поплавки", 60
 	case kind == "container":
-		return "container", "套装与容器", 70
+		return "container", "Наборы и ёмкости", 70
 	default:
-		return "other", "其他商品", 100
+		return "other", "Прочие товары", 100
 	}
 }
 
@@ -103,7 +103,7 @@ func (s *Server) handleCatalogGroups(w http.ResponseWriter, r *http.Request) {
 	if group := strings.TrimSpace(r.URL.Query().Get("group")); group != "" {
 		where, ok := catalogGroupCondition(group)
 		if !ok {
-			httpError(w, 400, "未知商品分类")
+			httpError(w, 400, "Неизвестная категория товаров")
 			return
 		}
 		conditions = append(conditions, where)
@@ -160,7 +160,7 @@ func (s *Server) handleCatalogItems(w http.ResponseWriter, r *http.Request) {
 	if group := strings.TrimSpace(r.URL.Query().Get("group")); group != "" {
 		where, ok := catalogGroupCondition(group)
 		if !ok {
-			httpError(w, 400, "未知商品分类")
+			httpError(w, 400, "Неизвестная категория товаров")
 			return
 		}
 		conditions = append(conditions, where)
@@ -228,7 +228,7 @@ func (s *Server) handleStoreItemUpdate(w http.ResponseWriter, r *http.Request) {
 		Stock   int64  `json:"stock"`
 	}
 	if err := readJSON(r, &req); err != nil || req.StoreID == "" || req.ItemID == "" {
-		httpError(w, 400, "参数错误")
+		httpError(w, 400, "Неверные параметры")
 		return
 	}
 	if err := s.db.SetAdminShopOverride(r.Context(), req.StoreID, req.ItemID,
@@ -247,7 +247,7 @@ func (s *Server) handleStoreItemReset(w http.ResponseWriter, r *http.Request) {
 		ItemID  string `json:"item_id"`
 	}
 	if err := readJSON(r, &req); err != nil || req.StoreID == "" || req.ItemID == "" {
-		httpError(w, 400, "参数错误")
+		httpError(w, 400, "Неверные параметры")
 		return
 	}
 	if err := s.db.ResetAdminShopOverride(r.Context(), req.StoreID, req.ItemID); err != nil {
@@ -311,7 +311,7 @@ func (s *Server) handleFishSeaNow(w http.ResponseWriter, r *http.Request) {
 			`SELECT loc, ts FROM catch_log WHERE loc LIKE 'loc12_%' ORDER BY ts DESC LIMIT 1`).Scan(&loc, &ts)
 	}
 	if err != nil {
-		httpError(w, 404, "没有进行中的海钓，也没有海钓记录")
+		httpError(w, 404, "Нет ни текущей морской ловли, ни её записей")
 		return
 	}
 	zone := 0
@@ -321,7 +321,7 @@ func (s *Server) handleFishSeaNow(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	if zone <= 0 {
-		httpError(w, 500, "区号解析失败: "+loc)
+		httpError(w, 500, "Не удалось разобрать номер зоны: "+loc)
 		return
 	}
 	writeJSON(w, map[string]any{"zone": zone, "loc": loc, "ts": ts, "live": live})
@@ -338,7 +338,7 @@ func (s *Server) handleFishSeaZoneLatest(w http.ResponseWriter, r *http.Request)
 		`SELECT loc, COALESCE(name_zh,fish_key), ts FROM catch_log
 		 WHERE loc LIKE 'loc12_%' ORDER BY ts DESC LIMIT 1`).Scan(&loc, &fish, &ts)
 	if err != nil {
-		httpError(w, 404, "还没有海钓记录——去钓一条鱼再回来点")
+		httpError(w, 404, "Записей морской ловли ещё нет — поймайте рыбу и вернитесь")
 		return
 	}
 	zone := 0
@@ -348,7 +348,7 @@ func (s *Server) handleFishSeaZoneLatest(w http.ResponseWriter, r *http.Request)
 		}
 	}
 	if zone <= 0 {
-		httpError(w, 500, "区号解析失败: "+loc)
+		httpError(w, 500, "Не удалось разобрать номер зоны: "+loc)
 		return
 	}
 	writeJSON(w, map[string]any{"zone": zone, "loc": loc, "fish": fish, "ts": ts})
@@ -412,7 +412,7 @@ func (s *Server) handleFishAreas(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleFishConfig(w http.ResponseWriter, r *http.Request) {
 	loc := strings.TrimSpace(r.URL.Query().Get("loc"))
 	if loc == "" {
-		httpError(w, 400, "缺少 loc")
+		httpError(w, 400, "Отсутствует loc")
 		return
 	}
 	cfg, err := s.db.GetAdminFishConfig(r.Context(), loc)
@@ -426,7 +426,7 @@ func (s *Server) handleFishConfig(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleFishConfigSave(w http.ResponseWriter, r *http.Request) {
 	var req store.FishConfigSave
 	if err := readJSON(r, &req); err != nil || strings.TrimSpace(req.Area) == "" {
-		httpError(w, 400, "参数错误")
+		httpError(w, 400, "Неверные параметры")
 		return
 	}
 	if err := s.db.SaveAdminFishConfig(r.Context(), req, adminOf(r)); err != nil {
@@ -446,7 +446,7 @@ func (s *Server) handleFishConfigReset(w http.ResponseWriter, r *http.Request) {
 		Area string `json:"area"`
 	}
 	if err := readJSON(r, &req); err != nil || strings.TrimSpace(req.Area) == "" {
-		httpError(w, 400, "参数错误")
+		httpError(w, 400, "Неверные параметры")
 		return
 	}
 	if err := s.db.ResetAdminFishConfig(r.Context(), req.Area); err != nil {
@@ -496,7 +496,7 @@ func (s *Server) handlePlayerSkillUpdate(w http.ResponseWriter, r *http.Request)
 		Points  float64 `json:"points"`
 	}
 	if err := readJSON(r, &req); err != nil || req.UID == 0 || req.SkillID == 0 {
-		httpError(w, 400, "参数错误")
+		httpError(w, 400, "Неверные параметры")
 		return
 	}
 	if err := s.db.SetPlayerSkillPointsAdmin(r.Context(), req.UID, req.SkillID, req.Points); err != nil {
@@ -520,7 +520,7 @@ func (s *Server) handlePlayerSkillPoints(w http.ResponseWriter, r *http.Request)
 		Points int64 `json:"points"`
 	}
 	if err := readJSON(r, &req); err != nil || req.UID == 0 || req.Points < 0 {
-		httpError(w, 400, "参数错误")
+		httpError(w, 400, "Неверные параметры")
 		return
 	}
 	if req.Points > 1000000 {
@@ -547,7 +547,7 @@ func (s *Server) handlePlayerItemDelete(w http.ResponseWriter, r *http.Request) 
 		GUIDs []string `json:"guids"`
 	}
 	if err := readJSON(r, &req); err != nil || req.UID == 0 || len(req.GUIDs) == 0 {
-		httpError(w, 400, "参数错误")
+		httpError(w, 400, "Неверные параметры")
 		return
 	}
 	_ = s.db.QueuePush(r.Context(), mustJSON(map[string]any{
@@ -568,7 +568,7 @@ func (s *Server) handlePlayerMailDelete(w http.ResponseWriter, r *http.Request) 
 		IDs []int64 `json:"ids"`
 	}
 	if err := readJSON(r, &req); err != nil || req.UID == 0 || len(req.IDs) == 0 {
-		httpError(w, 400, "参数错误")
+		httpError(w, 400, "Неверные параметры")
 		return
 	}
 	ids := make([]string, 0, len(req.IDs))
@@ -580,7 +580,7 @@ func (s *Server) handlePlayerMailDelete(w http.ResponseWriter, r *http.Request) 
 		}
 	}
 	if len(ids) == 0 {
-		httpError(w, 400, "参数错误")
+		httpError(w, 400, "Неверные параметры")
 		return
 	}
 	_ = s.db.QueuePush(r.Context(), mustJSON(map[string]any{
@@ -604,7 +604,7 @@ func (s *Server) handlePlayerKeepnetAdd(w http.ResponseWriter, r *http.Request) 
 		KeepLevel string  `json:"keep_level"`
 	}
 	if err := readJSON(r, &req); err != nil || req.UID == 0 || strings.TrimSpace(req.Species) == "" || req.WeightG <= 0 {
-		httpError(w, 400, "参数错误：需要 uid、鱼种和正数重量")
+		httpError(w, 400, "Неверные параметры: нужны uid, вид рыбы и положительный вес")
 		return
 	}
 	if req.Cat < 1 || req.Cat > 4 {
@@ -629,7 +629,7 @@ func (s *Server) handlePlayerKeepnetDelete(w http.ResponseWriter, r *http.Reques
 		GUIDs []string `json:"guids"`
 	}
 	if err := readJSON(r, &req); err != nil || req.UID == 0 || len(req.GUIDs) == 0 {
-		httpError(w, 400, "参数错误")
+		httpError(w, 400, "Неверные параметры")
 		return
 	}
 	_ = s.db.QueuePush(r.Context(), mustJSON(map[string]any{
@@ -647,7 +647,7 @@ func (s *Server) handleMailSend(w http.ResponseWriter, r *http.Request) {
 		Items []store.MailItem `json:"items"`
 	}
 	if err := readJSON(r, &req); err != nil || req.UID == 0 || (strings.TrimSpace(req.Text) == "" && len(req.Items) == 0) {
-		httpError(w, 400, "参数错误：需要 uid、正文或附件")
+		httpError(w, 400, "Неверные параметры: нужны uid, текст или вложения")
 		return
 	}
 	for i := range req.Items {
@@ -667,7 +667,7 @@ func (s *Server) handleMailSend(w http.ResponseWriter, r *http.Request) {
 	if err := s.db.QueuePush(r.Context(), mustJSON(map[string]any{
 		"op": "send_mail", "uid": req.UID, "text": req.Text, "items": req.Items,
 	})); err != nil {
-		httpError(w, 500, "写入发送队列失败: "+err.Error())
+		httpError(w, 500, "Не удалось записать в очередь отправки: "+err.Error())
 		return
 	}
 	detail, _ := json.Marshal(req)

@@ -58,7 +58,7 @@ func TableOwnership() map[string]string {
 	} {
 		for _, name := range names.tables {
 			if prev, ok := out[name]; ok {
-				panic(fmt.Sprintf("table %s 同时登记为 %s 和 %s", name, prev, names.kind))
+				panic(fmt.Sprintf("table %s зарегистрирована одновременно как %s и %s", name, prev, names.kind))
 			}
 			out[name] = names.kind
 		}
@@ -70,29 +70,29 @@ func TableOwnership() map[string]string {
 // 新增表必须显式登记，避免 split/backup 工具静默漏表。
 func ValidateTableOwnership(ctx context.Context, db *DB) error {
 	if db == nil {
-		return fmt.Errorf("数据库未连接")
+		return fmt.Errorf("База данных не подключена")
 	}
 	want := TableOwnership()
 	rows, err := db.SQL.QueryContext(ctx, `
 		SELECT name FROM sqlite_master
 		WHERE type='table' AND name NOT LIKE 'sqlite_%'`)
 	if err != nil {
-		return fmt.Errorf("列出用户表: %w", err)
+		return fmt.Errorf("Список пользовательских таблиц: %w", err)
 	}
 	defer rows.Close()
 	have := make(map[string]bool, len(want))
 	for rows.Next() {
 		var name string
 		if err := rows.Scan(&name); err != nil {
-			return fmt.Errorf("读取表名: %w", err)
+			return fmt.Errorf("Чтение имени таблицы: %w", err)
 		}
 		have[name] = true
 		if _, ok := want[name]; !ok {
-			return fmt.Errorf("发现未登记归属的表 %q", name)
+			return fmt.Errorf("Найдены таблицы без зарегистрированной принадлежности %q", name)
 		}
 	}
 	if err := rows.Err(); err != nil {
-		return fmt.Errorf("遍历用户表: %w", err)
+		return fmt.Errorf("Обход пользовательских таблиц: %w", err)
 	}
 	missing := make([]string, 0)
 	for name := range want {
@@ -102,7 +102,7 @@ func ValidateTableOwnership(ctx context.Context, db *DB) error {
 	}
 	if len(missing) > 0 {
 		sort.Strings(missing)
-		return fmt.Errorf("缺少归属表 %v", missing)
+		return fmt.Errorf("Нет таблицы принадлежности %v", missing)
 	}
 	return nil
 }
@@ -111,25 +111,25 @@ func ValidateTableOwnership(ctx context.Context, db *DB) error {
 // 任一物品或快捷栏失败都会整体回滚，不会留下半个背包。
 func (d *DB) SeedStarterBundle(ctx context.Context, uid int64, items []*Item, shortcuts map[int64]string) (bool, error) {
 	if len(items) == 0 {
-		return false, fmt.Errorf("starter 物品为空")
+		return false, fmt.Errorf("starter Предмет пуст")
 	}
 	seen := make(map[string]bool, len(items))
 	for _, it := range items {
 		if it == nil {
-			return false, fmt.Errorf("starter 含空物品")
+			return false, fmt.Errorf("starter Содержит пустой предмет")
 		}
 		if it.UID != uid {
-			return false, fmt.Errorf("starter 物品 %s uid=%d，期望 %d", it.GUID, it.UID, uid)
+			return false, fmt.Errorf("starter Предмет %s uid=%d, ожидалось %d", it.GUID, it.UID, uid)
 		}
 		if it.GUID == "" || seen[it.GUID] {
-			return false, fmt.Errorf("starter 物品 guid 为空或重复: %q", it.GUID)
+			return false, fmt.Errorf("starter guid предмета пустой или повторяется: %q", it.GUID)
 		}
 		seen[it.GUID] = true
 	}
 	slots := make([]int64, 0, len(shortcuts))
 	for slot, guid := range shortcuts {
 		if !seen[guid] {
-			return false, fmt.Errorf("快捷栏槽%d 指向非 starter 物品 %s", slot, guid)
+			return false, fmt.Errorf("Слот быстрого доступа %d указывает на предмет не из starter %s", slot, guid)
 		}
 		slots = append(slots, slot)
 	}
@@ -137,7 +137,7 @@ func (d *DB) SeedStarterBundle(ctx context.Context, uid int64, items []*Item, sh
 
 	conn, err := d.SQL.Conn(ctx)
 	if err != nil {
-		return false, fmt.Errorf("获取 starter 事务连接: %w", err)
+		return false, fmt.Errorf("Получение соединения транзакции starter: %w", err)
 	}
 	defer conn.Close()
 	inTx := false
@@ -148,7 +148,7 @@ func (d *DB) SeedStarterBundle(ctx context.Context, uid int64, items []*Item, sh
 		}
 	}()
 	if _, err := conn.ExecContext(ctx, `BEGIN IMMEDIATE`); err != nil {
-		return false, fmt.Errorf("开始 starter 事务: %w", err)
+		return false, fmt.Errorf("Начало транзакции starter: %w", err)
 	}
 	inTx = true
 
@@ -156,7 +156,7 @@ func (d *DB) SeedStarterBundle(ctx context.Context, uid int64, items []*Item, sh
 	if err := conn.QueryRowContext(ctx, `
 		SELECT COUNT(*) FROM item
 		WHERE uid=? AND container IN ('backpack','rig','keepnet')`, uid).Scan(&n); err != nil {
-		return false, fmt.Errorf("检查 starter 是否已播种: %w", err)
+		return false, fmt.Errorf("Проверка, заполнен ли starter: %w", err)
 	}
 	if n > 0 {
 		return false, nil
@@ -169,7 +169,7 @@ func (d *DB) SeedStarterBundle(ctx context.Context, uid int64, items []*Item, sh
 			it.GUID, it.UID, nullIfEmpty(it.ItemID), it.NumericID, it.WireClass, it.TypeID,
 			it.Container, it.Slot, nullIfEmpty(it.RigGUID), it.Qty, it.BuyPrice, it.FieldsJSON,
 			it.CreatedTS, it.Durability, it.Workmanship); err != nil {
-			return false, fmt.Errorf("写入 starter 物品 %s: %w", it.GUID, err)
+			return false, fmt.Errorf("Запись предметов starter %s: %w", it.GUID, err)
 		}
 	}
 	for _, slot := range slots {
@@ -178,11 +178,11 @@ func (d *DB) SeedStarterBundle(ctx context.Context, uid int64, items []*Item, sh
 			INSERT INTO container_slot(uid, container, slot, guid) VALUES(?,0,?,?)
 			ON CONFLICT(uid, container, slot) DO UPDATE SET guid=excluded.guid`,
 			uid, slot, guid); err != nil {
-			return false, fmt.Errorf("写入 starter 快捷栏槽%d: %w", slot, err)
+			return false, fmt.Errorf("Запись слотов быстрого доступа starter%d: %w", slot, err)
 		}
 	}
 	if _, err := conn.ExecContext(ctx, `COMMIT`); err != nil {
-		return false, fmt.Errorf("提交 starter 事务: %w", err)
+		return false, fmt.Errorf("Фиксация транзакции starter: %w", err)
 	}
 	committed = true
 	return true, nil

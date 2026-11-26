@@ -33,7 +33,7 @@ func TestTackleAidGrantsSpareSets(t *testing.T) {
 	}
 	want := len(spareFloatTackle) + len(spareSpinTackle)
 	if total != want {
-		t.Fatalf("备用渔具物品数=%d，期望 %d", total, want)
+		t.Fatalf("备用渔具物品数=%d, 期望 %d", total, want)
 	}
 	// 同一天再领一次：不应再发任何物品。
 	if _, ok := hTackleAid(&Ctx{Sess: sess, Main: 3, Sub: 14, Log: logging.Discard()}); !ok {
@@ -45,9 +45,9 @@ func TestTackleAidGrantsSpareSets(t *testing.T) {
 		t.Fatal(err)
 	}
 	if after != want {
-		t.Fatalf("同一天重复领取又发了 %d 件（应为 0）", after-want)
+		t.Fatalf("同一天重复领取又发了 %d 件 (应为 0)", after-want)
 	}
 	if total != distinct {
-		t.Fatalf("槽位有重复：物品 %d 件，不同槽位 %d 个", total, distinct)
+		t.Fatalf("槽位有重复: 物品 %d 件, 不同槽位 %d 个", total, distinct)
 	}
 }

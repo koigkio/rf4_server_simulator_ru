@@ -97,7 +97,7 @@ func (s *Server) grantTackleAid(ctx context.Context, c *Ctx, uid int64, items []
 	if err := s.DB.SQL.QueryRowContext(ctx,
 		`SELECT COALESCE(MAX(slot),-1)+1 FROM item WHERE uid=? AND container='backpack'`,
 		uid).Scan(&slot); err != nil {
-		c.Log.Warn("备用渔具取空槽失败", "err", err)
+		c.Log.Warn("Запасные снасти: не удалось найти пустой слот", "err", err)
 		return 0
 	}
 	granted := 0
@@ -108,12 +108,12 @@ func (s *Server) grantTackleAid(ctx context.Context, c *Ctx, uid int64, items []
 		}
 		row, gerr := s.CreateItem(ctx, uid, it.ItemID, "backpack", qty)
 		if gerr != nil || row == nil {
-			c.Log.Warn("备用渔具发放失败", "item", it.ItemID, "err", gerr)
+			c.Log.Warn("Не удалось выдать запасные снасти", "item", it.ItemID, "err", gerr)
 			continue
 		}
 		if _, serr := s.DB.SQL.ExecContext(ctx,
 			`UPDATE item SET slot=? WHERE guid=?`, slot, row.GUID); serr != nil {
-			c.Log.Warn("备用渔具槽位设置失败", "item", it.ItemID, "slot", slot, "err", serr)
+			c.Log.Warn("Запасные снасти: не удалось задать слот", "item", it.ItemID, "slot", slot, "err", serr)
 		}
 		slot++
 		granted++
@@ -135,16 +135,16 @@ func hTackleAid(ctx *Ctx) ([]byte, bool) {
 		return []byte{0x00}, true
 	}
 	kind := "float"
-	name := "浮子渔具"
+	name := "Поплавочная снасть"
 	if ctx.Sub == 15 {
 		kind = "spin"
-		name = "纺车竿渔具"
+		name = "Спиннинговая снасть"
 	}
 	cctx := ctx.Sess.pushCtx()
 	place := srv.currentLevel(ctx.Sess.Userid)
 	items, ok := srv.tackleAidItemsFor(cctx, place, kind)
 	if !ok || len(items) == 0 {
-		ctx.Log.Info("备用渔具未配置", "place", place, "kind", kind)
+		ctx.Log.Info("Запасные снасти не настроены", "place", place, "kind", kind)
 		return []byte{0x00}, true
 	}
 	// 游戏内每天只能领一次（浮子/纺车各一次）。
@@ -155,7 +155,7 @@ func hTackleAid(ctx *Ctx) ([]byte, bool) {
 	if err := srv.DB.SQL.QueryRowContext(cctx,
 		`SELECT v FROM kv WHERE k=?`, dayKey).Scan(&lastUnix); err == nil && lastUnix > 0 {
 		if elapsed := time.Since(time.Unix(lastUnix, 0)); elapsed < tackleAidCooldown {
-			ctx.Log.Info("备用渔具本游戏日已领取", "place", place, "kind", kind,
+			ctx.Log.Info("Запасные снасти уже получены в этот игровой день", "place", place, "kind", kind,
 				"elapsed_min", int(elapsed.Minutes()), "cooldown_min", int(tackleAidCooldown.Minutes()))
 			// 回 false：客户端据此提示"已领取"而不是"领取成功"。
 			return []byte{0x0F}, true
@@ -167,7 +167,7 @@ func hTackleAid(ctx *Ctx) ([]byte, bool) {
 			`INSERT INTO kv(k, v) VALUES(?, ?) ON CONFLICT(k) DO UPDATE SET v=excluded.v`,
 			dayKey, strconv.FormatInt(time.Now().Unix(), 10))
 	}
-	ctx.Log.Info("备用渔具已发放", "place", place, "kind", name, "granted", granted,
+	ctx.Log.Info("Запасные снасти выданы", "place", place, "kind", name, "granted", granted,
 		"total", len(items))
 	return []byte{0x00}, true
 }

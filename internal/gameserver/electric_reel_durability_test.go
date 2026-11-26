@@ -96,7 +96,7 @@ func TestElectricReelLockedDragUsesLiveBrakeAndMotor(t *testing.T) {
 	}
 	want := srv.electricLockedMultiplier() * math.Min(mechanical, motor)
 	if math.Abs(perf.LockedDragKg-want) > 1e-6 {
-		t.Fatalf("电轮锁轮值 %.6f，期望 3×min(机械 %.6f, 电机 %.6f)=%.6f",
+		t.Fatalf("电轮锁轮值 %.6f, 期望 3×min(机械 %.6f, 电机 %.6f)=%.6f",
 			perf.LockedDragKg, mechanical, motor, want)
 	}
 }
@@ -119,7 +119,7 @@ func TestElectricReelLockedDragTracksPartChangesWithoutCompounding(t *testing.T)
 			t.Fatalf("第 %d 次重复同步失败: %v", i+2, serr)
 		}
 		if math.Abs(again.LockedDragKg-first.LockedDragKg) > 1e-9 {
-			t.Fatalf("重复同步发生复利：%.6f -> %.6f", first.LockedDragKg, again.LockedDragKg)
+			t.Fatalf("重复同步发生复利: %.6f -> %.6f", first.LockedDragKg, again.LockedDragKg)
 		}
 	}
 
@@ -129,7 +129,7 @@ func TestElectricReelLockedDragTracksPartChangesWithoutCompounding(t *testing.T)
 		t.Fatalf("换电机后同步失败: %v", err)
 	}
 	if upgraded.LockedDragKg <= first.LockedDragKg+1e-6 {
-		t.Fatalf("换更强电机后锁轮值应上升：%.6f -> %.6f",
+		t.Fatalf("换更强电机后锁轮值应上升: %.6f -> %.6f",
 			first.LockedDragKg, upgraded.LockedDragKg)
 	}
 
@@ -146,7 +146,7 @@ func TestElectricReelLockedDragTracksPartChangesWithoutCompounding(t *testing.T)
 		t.Fatalf("高制动同步失败: %v", err)
 	}
 	if math.Abs(highBrake.LockedDragKg-lowBrake.LockedDragKg) > 1e-9 {
-		t.Fatalf("摩擦片数值不应影响锁轮承力：%.6f -> %.6f",
+		t.Fatalf("摩擦片数值不应影响锁轮承力: %.6f -> %.6f",
 			lowBrake.LockedDragKg, highBrake.LockedDragKg)
 	}
 }
@@ -170,13 +170,13 @@ func TestElectricReelMotorExcludedFromBodyAggregation(t *testing.T) {
 	setReelChildDurability(motor, 0.2)
 	after, ok := srv.reelBodyDurabilityInFields(ctx, row, fields)
 	if !ok || math.Abs(after-before) > 1e-9 {
-		t.Fatalf("电机停扣后不应影响本体聚合：%.6f -> %.6f", before, after)
+		t.Fatalf("电机停扣后不应影响本体聚合: %.6f -> %.6f", before, after)
 	}
 
 	setReelChildDurability(motor, 0)
 	zero, ok := srv.reelBodyDurabilityInFields(ctx, row, fields)
 	if !ok || zero <= 0 {
-		t.Fatalf("电机归零不能直接把整轮判死，实得 %.6f", zero)
+		t.Fatalf("电机归零不能直接把整轮判死, 实得 %.6f", zero)
 	}
 	_, bearingQuality, bearingDurability := srv.reelPartStateFromRow(ctx, row, reelPartCatBearing)
 	_, gearQuality, gearDurability := srv.reelPartStateFromRow(ctx, row, reelPartCatGear)
@@ -186,7 +186,7 @@ func TestElectricReelMotorExcludedFromBodyAggregation(t *testing.T) {
 		reelBearingFactor(bearingQuality, bearingDurability),
 		reelGearFactor(gearQuality, gearDurability))
 	if math.Abs(locked-mechanical) > 1e-9 {
-		t.Fatalf("电机归零后应退回机械锁轮：%.6f vs %.6f", locked, mechanical)
+		t.Fatalf("电机归零后应退回机械锁轮: %.6f vs %.6f", locked, mechanical)
 	}
 }
 
@@ -204,10 +204,10 @@ func TestElectricReelMotorNotWornByStress(t *testing.T) {
 	// 受力磨损只进矩阵内的轮件（油/齿轮/轴承/线杯）；电机不在矩阵，任何受力都不磨。
 	worn := srv.wearReelPartsInFields(ctx, fields, reelPartCounts{StressSecs: 600})
 	if _, hasMotor := worn["rengine_2"]; hasMotor {
-		t.Fatal("电机磨损已停扣，不应出现在磨损表")
+		t.Fatal("电机磨损已停扣, 不应出现在磨损表")
 	}
 	if motorAfter := reelChildDurability(motor); motorAfter != motorBefore {
-		t.Fatalf("电机耐久不应变化：%.6f -> %.6f", motorBefore, motorAfter)
+		t.Fatalf("电机耐久不应变化: %.6f -> %.6f", motorBefore, motorAfter)
 	}
 	if len(worn) == 0 {
 		t.Fatal("受力磨损应仍作用于矩阵内轮件")
@@ -225,6 +225,6 @@ func TestNormalReelLockedDragDoesNotGetElectricMultiplier(t *testing.T) {
 	mechanical := electricMechanicalLockForTest(t, srv, ctx, row)
 	locked := srv.reelLockedDragFromRow(ctx, row)
 	if math.Abs(locked-mechanical) > 1e-9 {
-		t.Fatalf("普通轮不应吃电轮倍率：锁轮 %.6f 机械 %.6f", locked, mechanical)
+		t.Fatalf("普通轮不应吃电轮倍率: 锁轮 %.6f 机械 %.6f", locked, mechanical)
 	}
 }

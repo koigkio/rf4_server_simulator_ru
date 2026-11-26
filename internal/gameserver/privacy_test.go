@@ -16,7 +16,7 @@ func TestNoPlayerSnapshotAssets(t *testing.T) {
 		"assets/player_snapshot.json",
 	} {
 		if _, err := os.Stat(name); err == nil {
-			t.Errorf("%s 不应存在：该文件可能包含回放或玩家实例数据", name)
+			t.Errorf("%s 不应存在: 该文件可能包含回放或玩家实例数据", name)
 		} else if !os.IsNotExist(err) {
 			t.Errorf("检查 %s: %v", name, err)
 		}
@@ -36,17 +36,17 @@ func TestStarterManifestIsMinimal(t *testing.T) {
 		} `json:"shortcuts"`
 	}
 	if err := json.Unmarshal(starterItemsJSON, &doc); err != nil {
-		t.Fatalf("starter_items.json 解析: %v", err)
+		t.Fatalf("starter_items.json Разбор: %v", err)
 	}
 	if len(doc.Items) == 0 {
-		t.Fatal("starter 物品为空")
+		t.Fatal("starter Предмет пуст")
 	}
 	for i, item := range doc.Items {
 		if item.ItemID == "" {
-			t.Errorf("starter[%d] 缺少 item_id", i)
+			t.Errorf("starter[%d] Отсутствует item_id", i)
 		}
 		if item.Qty < 0 {
-			t.Errorf("starter[%d] 数量非法: %d", i, item.Qty)
+			t.Errorf("starter[%d] Недопустимое количество: %d", i, item.Qty)
 		}
 	}
 	for _, sc := range doc.Shortcuts {

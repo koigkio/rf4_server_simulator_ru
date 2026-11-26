@@ -61,18 +61,18 @@ func TestFishTrophies323OnlyListsTrophyAndBlue(t *testing.T) {
 	}
 
 	if _, ok := got["level_003_lake"]; ok {
-		t.Fatalf("只有合格鱼的水域不应出现：%v", got)
+		t.Fatalf("只有合格鱼的水域不应出现: %v", got)
 	}
 	if _, ok := got["level_001_lake"]["perch"]; ok {
-		t.Fatalf("grade 2 的 perch 不应入列：%v", got)
+		t.Fatalf("grade 2 的 perch 不应入列: %v", got)
 	}
 	if w := got["level_001_lake"]["ruffe"]; w != 300 {
-		t.Fatalf("上星鱼应取最重一条 300g，得到 %d：%v", w, got)
+		t.Fatalf("上星鱼应取最重一条 300g, 得到 %d: %v", w, got)
 	}
 	if w := got["level_002_river"]["pike"]; w != 8000 {
-		t.Fatalf("蓝冠鱼应取最重一条 8000g，得到 %d：%v", w, got)
+		t.Fatalf("蓝冠鱼应取最重一条 8000g, 得到 %d: %v", w, got)
 	}
 	if len(got["level_001_lake"]) != 1 || len(got["level_002_river"]) != 1 {
-		t.Fatalf("每水域只应剩奖杯鱼：%v", got)
+		t.Fatalf("每水域只应剩奖杯鱼: %v", got)
 	}
 }

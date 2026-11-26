@@ -82,7 +82,7 @@ func TestQueuedOldPendingTimerCannotPushNewCastFish(t *testing.T) {
 	oldTimer := st.pendingTimer
 	st.mu.Unlock()
 	if oldTimer == nil {
-		t.Fatal("重推timer未保存，无法取消")
+		t.Fatal("重推timer未保存, 无法取消")
 	}
 	srv.mu.Lock()
 	started, done := make(chan struct{}), make(chan struct{})

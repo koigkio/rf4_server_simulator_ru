@@ -49,7 +49,7 @@ func registerWorldHandlers(d *Dispatch) {
 	d.Register(25, 2, hWorldSnapshot)
 	d.Register(25, 4, hWorldSnapshot)
 	d.Register(25, 5, hWorldSnapshot)
-	d.Register(25, 6, hU64Zero) // 船只/加油配置 → long 0（回 800 快照是自造形状错误）
+	d.Register(25, 6, hU64Zero) // 船只/加油配置 → long 0 (回 800 快照是自造形状错误)
 	// 29/x 赛事结果：返回 null。
 	for _, sub := range []uint8{1, 2, 3, 4, 5} {
 		d.Register(29, sub, hWorldNull)
@@ -98,8 +98,8 @@ func hItemMove(ctx *Ctx) ([]byte, bool) {
 	}
 	tx, err := beginEconomyTx(cctx, srv.DB)
 	if err != nil {
-		ctx.Log.Warn("4/6 开启移动事务失败", "err", err)
-		ctx.ReplyFailure("System.IO.IOException", "物品未能移动，请重试")
+		ctx.Log.Warn("4/6 Не удалось начать транзакцию перемещения", "err", err)
+		ctx.ReplyFailure("System.IO.IOException", "Предмет не перемещён, попробуйте ещё раз")
 		return nil, true
 	}
 	defer tx.Rollback()
@@ -110,8 +110,8 @@ func hItemMove(ctx *Ctx) ([]byte, bool) {
 	if dst == "house" {
 		if err := tx.QueryRowContext(cctx,
 			`SELECT COUNT(*) FROM item WHERE uid=? AND container='house'`, ctx.Sess.Userid).Scan(&houseUsed); err != nil {
-			ctx.Log.Warn("4/6 读取房屋容量失败", "err", err)
-			ctx.ReplyFailure("System.IO.IOException", "房屋仓库容量读取失败，请重试")
+			ctx.Log.Warn("4/6 Не удалось прочитать вместимость дома", "err", err)
+			ctx.ReplyFailure("System.IO.IOException", "Не удалось прочитать вместимость склада дома, попробуйте ещё раз")
 			return nil, true
 		}
 	}
@@ -125,8 +125,8 @@ func hItemMove(ctx *Ctx) ([]byte, bool) {
 			continue
 		}
 		if err != nil {
-			ctx.Log.Warn("4/6 读取待移动物品失败", "guid", shortGUID(g), "err", err)
-			ctx.ReplyFailure("System.IO.IOException", "物品未能移动，请重试")
+			ctx.Log.Warn("4/6 Не удалось прочитать перемещаемый предмет", "guid", shortGUID(g), "err", err)
+			ctx.ReplyFailure("System.IO.IOException", "Предмет не перемещён, попробуйте ещё раз")
 			return nil, true
 		}
 		if row == nil || row.UID != ctx.Sess.Userid {
@@ -139,21 +139,21 @@ func hItemMove(ctx *Ctx) ([]byte, bool) {
 		pending = append(pending, row)
 	}
 	if dst == "house" && houseUsed+houseAdded > houseCap {
-		ctx.Log.Info("4/6 房屋仓库已满", "used", houseUsed, "add", houseAdded, "cap", houseCap)
-		ctx.ReplyFailure("System.IO.IOException", "房屋仓库已满，无法继续存放")
+		ctx.Log.Info("4/6 Склад дома полон", "used", houseUsed, "add", houseAdded, "cap", houseCap)
+		ctx.ReplyFailure("System.IO.IOException", "Склад дома полон, хранить больше нельзя")
 		return nil, true
 	}
 	for _, row := range pending {
 		if _, err := tx.ExecContext(cctx,
 			`UPDATE item SET container=? WHERE guid=? AND uid=?`, dst, row.GUID, ctx.Sess.Userid); err != nil {
-			ctx.Log.Warn("4/6 更新物品容器失败", "guid", shortGUID(row.GUID), "err", err)
-			ctx.ReplyFailure("System.IO.IOException", "物品未能移动，请重试")
+			ctx.Log.Warn("4/6 Не удалось обновить контейнер предмета", "guid", shortGUID(row.GUID), "err", err)
+			ctx.ReplyFailure("System.IO.IOException", "Предмет не перемещён, попробуйте ещё раз")
 			return nil, true
 		}
 	}
 	if err := tx.Commit(); err != nil {
-		ctx.Log.Warn("4/6 提交移动事务失败", "err", err)
-		ctx.ReplyFailure("System.IO.IOException", "物品未能移动，请重试")
+		ctx.Log.Warn("4/6 Не удалось зафиксировать транзакцию перемещения", "err", err)
+		ctx.ReplyFailure("System.IO.IOException", "Предмет не перемещён, попробуйте ещё раз")
 		return nil, true
 	}
 
@@ -178,8 +178,8 @@ func hItemRemove(ctx *Ctx) ([]byte, bool) {
 	guids := deepGUIDs(ctx.Tree)
 	removed, fish, err := srv.removeItemsAndRepairRigs(ctx.Sess.pushCtx(), ctx.Sess.Userid, guids)
 	if err != nil {
-		ctx.Log.Warn("物品移除失败", "err", err)
-		ctx.ReplyFailure("System.IO.IOException", "物品未能移除，请重试")
+		ctx.Log.Warn("Не удалось удалить предмет", "err", err)
+		ctx.ReplyFailure("System.IO.IOException", "Предмет не удалён, попробуйте ещё раз")
 		return nil, true
 	}
 	if len(fish) > 0 {
@@ -287,14 +287,14 @@ func hPlaceBuyoutTx(ctx *Ctx) ([]byte, bool) {
 
 	tx, err := beginEconomyTx(cctx, srv.DB)
 	if err != nil {
-		ctx.Log.Warn("3/37 开启事务失败", "err", err)
+		ctx.Log.Warn("3/37 Не удалось начать транзакцию", "err", err)
 		return nil, false
 	}
 	defer func() { _ = tx.Rollback() }()
 	var owned int
 	if err := tx.QueryRowContext(cctx, `SELECT COUNT(*) FROM place_access WHERE uid=? AND place=? AND kind='buyout'`,
 		uid, place).Scan(&owned); err != nil {
-		ctx.Log.Warn("3/37 查询已拥有地点失败", "place", place, "err", err)
+		ctx.Log.Warn("3/37 Не удалось запросить имеющиеся локации", "place", place, "err", err)
 		return nil, false
 	}
 	validPrice := tier > 0 && price == tier
@@ -302,28 +302,28 @@ func hPlaceBuyoutTx(ctx *Ctx) ([]byte, bool) {
 		walletErr := applyWalletTx(cctx, tx, uid, 0, -tier, "buy", place, "", "place_buyout")
 		if walletErr != nil {
 			if !errors.Is(walletErr, errInsufficientFunds) {
-				ctx.Log.Warn("3/37 金币扣款失败", "place", place, "tier", packet, "err", walletErr)
+				ctx.Log.Warn("3/37 Не удалось списать золото", "place", place, "tier", packet, "err", walletErr)
 				return nil, false
 			}
-			ctx.Log.Info("3/37 金币余额不足，不扣款", "place", place, "tier", packet)
+			ctx.Log.Info("3/37 Недостаточно золота, оплата не списана", "place", place, "tier", packet)
 		} else {
 			if _, err := tx.ExecContext(cctx, `
 				INSERT INTO place_access(uid, place, kind, ts) VALUES(?,?, 'buyout', ?)
 				ON CONFLICT(uid, place, kind) DO NOTHING`, uid, place, float64(time.Now().Unix())); err != nil {
-				ctx.Log.Warn("3/37 授予地点失败", "place", place, "err", err)
+				ctx.Log.Warn("3/37 Не удалось выдать локацию", "place", place, "err", err)
 				return nil, false
 			}
-			ctx.Log.Info("3/37 金币买断地图", "place", place, "tier", packet,
+			ctx.Log.Info("3/37 Покупка карты за золото", "place", place, "tier", packet,
 				"gold", -tier, "gold_yuan", float64(tier)/100.0)
 		}
 		bundleGrant = true
 	} else if owned == 0 {
 		tiers, _ := placeBuyoutTiers[place]
-		ctx.Log.Info("3/37 价格与静态表不符或未授权，不扣款", "place", place,
+		ctx.Log.Info("3/37 Цена не совпадает со статической таблицей или покупка не разрешена, оплата не списана", "place", place,
 			"packet", packet, "price", price, "tiers", tiers)
 	}
 	if err := tx.Commit(); err != nil {
-		ctx.Log.Warn("3/37 事务提交失败", "err", err)
+		ctx.Log.Warn("3/37 Не удалось зафиксировать транзакцию", "err", err)
 		return nil, false
 	}
 	if bundleGrant {
@@ -331,7 +331,7 @@ func hPlaceBuyoutTx(ctx *Ctx) ([]byte, bool) {
 	}
 	p, err := srv.BuildProfile307W(cctx, uid, worldTotalGameMin(time.Now()))
 	if err != nil {
-		ctx.Log.Warn("3/37 档案构造失败", "err", err)
+		ctx.Log.Warn("3/37 Ошибка создания профиля", "err", err)
 		return nil, false
 	}
 	body, err := proto.EncodeValue(p, ctx.Sess.Table())
@@ -361,14 +361,14 @@ func hBuyHouseTx(ctx *Ctx) ([]byte, bool) {
 	strs := treeStrs(ctx.Tree)
 	ints := treeInts(ctx.Tree)
 	if len(strs) < 1 || len(ints) < 1 {
-		ctx.Log.Warn("3/33 参数无效", "strs", strs, "ints", ints)
-		ctx.ReplyFailure("System.InvalidOperationException", "房屋购买参数无效")
+		ctx.Log.Warn("3/33 Неверные параметры", "strs", strs, "ints", ints)
+		ctx.ReplyFailure("System.InvalidOperationException", "Неверные параметры покупки дома")
 		return nil, true
 	}
 	itemID, price := strs[0], ints[0]
 	if !strings.HasSuffix(itemID, "_house") {
-		ctx.Log.Warn("3/33 非房屋商品，拒绝", "item", itemID)
-		ctx.ReplyFailure("System.InvalidOperationException", "商品不是房屋")
+		ctx.Log.Warn("3/33 Не товар-дом, отклонено", "item", itemID)
+		ctx.ReplyFailure("System.InvalidOperationException", "Товар не является домом")
 		return nil, true
 	}
 	// 价格与 22/5 面板一致才结算；面板是客户端唯一的价格来源。
@@ -380,9 +380,9 @@ func hBuyHouseTx(ctx *Ctx) ([]byte, bool) {
 		}
 	}
 	if tier == 0 || price != tier {
-		ctx.Log.Info("3/33 价格与面板不符或未上架，不扣款", "item", itemID,
+		ctx.Log.Info("3/33 Цена не совпадает с панелью или товар не выставлен, оплата не списана", "item", itemID,
 			"price", price, "tier", tier)
-		ctx.ReplyFailure("System.InvalidOperationException", "房屋价格已变化，请重新打开购买界面")
+		ctx.ReplyFailure("System.InvalidOperationException", "Цена дома изменилась, откройте окно покупки заново")
 		return nil, true
 	}
 
@@ -391,7 +391,7 @@ func hBuyHouseTx(ctx *Ctx) ([]byte, bool) {
 	// 档案 307 的 f20 下发（见 profilebuild.go）。
 	tx, err := beginEconomyTx(cctx, srv.DB)
 	if err != nil {
-		ctx.Log.Warn("3/33 开启事务失败", "err", err)
+		ctx.Log.Warn("3/33 Не удалось начать транзакцию", "err", err)
 		return nil, false
 	}
 	defer func() { _ = tx.Rollback() }()
@@ -399,22 +399,22 @@ func hBuyHouseTx(ctx *Ctx) ([]byte, bool) {
 	if err := tx.QueryRowContext(cctx,
 		`SELECT COUNT(*) FROM place_access WHERE uid=? AND place=? AND kind='house'`,
 		uid, itemID).Scan(&owned); err != nil {
-		ctx.Log.Warn("3/33 查询已拥有房屋失败", "item", itemID, "err", err)
+		ctx.Log.Warn("3/33 Не удалось запросить имеющиеся дома", "item", itemID, "err", err)
 		return nil, false
 	}
 	if owned > 0 {
-		ctx.Log.Info("3/33 已拥有该房屋，不重复扣款", "item", itemID)
-		ctx.ReplyFailure("System.InvalidOperationException", "已拥有该房屋")
+		ctx.Log.Info("3/33 Этот дом уже куплен, повторно не списываем", "item", itemID)
+		ctx.ReplyFailure("System.InvalidOperationException", "Этот дом уже куплен")
 		return nil, true
 	}
 	if walletErr := applyWalletTx(cctx, tx, uid, -int64(price), 0,
 		"buy", itemID, "", "house_purchase"); walletErr != nil {
 		if !errors.Is(walletErr, errInsufficientFunds) {
-			ctx.Log.Warn("3/33 银币扣款失败", "item", itemID, "err", walletErr)
+			ctx.Log.Warn("3/33 Не удалось списать серебро", "item", itemID, "err", walletErr)
 			return nil, false
 		}
-		ctx.Log.Info("3/33 银币余额不足，不扣款", "item", itemID, "price", price)
-		ctx.ReplyFailure("System.InvalidOperationException", "余额不足，未购买房屋")
+		ctx.Log.Info("3/33 Недостаточно серебра, оплата не списана", "item", itemID, "price", price)
+		ctx.ReplyFailure("System.InvalidOperationException", "Недостаточно средств, дом не куплен")
 		return nil, true
 	}
 	// 所有权进档案 f20 拥有列表（与 3/37 地点买断写 place_access 同模式），
@@ -423,18 +423,18 @@ func hBuyHouseTx(ctx *Ctx) ([]byte, bool) {
 		INSERT INTO place_access(uid, place, kind, ts) VALUES(?,?, 'house', ?)
 		ON CONFLICT (uid, place, kind) DO NOTHING`,
 		uid, itemID, float64(time.Now().Unix())); err != nil {
-		ctx.Log.Warn("3/33 记录房屋所有权失败", "item", itemID, "err", err)
+		ctx.Log.Warn("3/33 Не удалось записать владение домом", "item", itemID, "err", err)
 		return nil, false
 	}
 	if err := tx.Commit(); err != nil {
-		ctx.Log.Warn("3/33 事务提交失败", "item", itemID, "err", err)
+		ctx.Log.Warn("3/33 Не удалось зафиксировать транзакцию", "item", itemID, "err", err)
 		return nil, false
 	}
-	ctx.Log.Info("3/33 购买房屋", "item", itemID, "silver", -int64(price))
+	ctx.Log.Info("3/33 Покупка дома", "item", itemID, "silver", -int64(price))
 
 	p, err := srv.BuildProfile307W(cctx, uid, worldTotalGameMin(time.Now()))
 	if err != nil {
-		ctx.Log.Warn("3/33 档案构造失败", "err", err)
+		ctx.Log.Warn("3/33 Ошибка создания профиля", "err", err)
 		return nil, false
 	}
 	body, err := proto.EncodeValue(p, ctx.Sess.Table())
@@ -486,16 +486,16 @@ const tripMaxPurchases = 3
 
 // placeTripPrice 一个地点钓鱼游的双币种价格。
 type placeTripPrice struct {
-	Silver int64 // 单位：分（29800 = 298.00 银）
-	Gold   int64 // 单位：金币百分位（45 = 0.45 金）
+	Silver int64 // 单位: 分 (29800 = 298.00 银)
+	Gold   int64 // 单位: 金币百分位 (45 = 0.45 金)
 }
 
 // placeTripPrices 钓鱼游票价表。票价由客户端本地静态数据决定（地图 dob
 // 不含票价），服务端按实抓价整段校验；Silver/Gold 为 0 表示该币种价格未
 // 实抓，该币种购票一律拒绝（不回落客户端报价，审查 P1），实抓后补录。
 var placeTripPrices = map[string]placeTripPrice{
-	"level_018_moskitnoe": {Silver: 29800, Gold: 45},  // 铜湖 298 银（2026-11-05 实抓）/ 0.45 金（面板价读数，金币报文未实抓，待实抓校准）
-	"level_012_north_sea": {Silver: 139500, Gold: 95}, // 挪威海 1395 银（2026-11-05）/ 0.95 金（2026-11-11 23:52 实抓 gold=true price=95）
+	"level_018_moskitnoe": {Silver: 29800, Gold: 45},  // 铜湖 298 银 (2026-11-05 实抓)/ 0.45 金 (面板价读数, 金币报文未实抓, 待实抓校准)
+	"level_012_north_sea": {Silver: 139500, Gold: 95}, // 挪威海 1395 银 (2026-11-05)/ 0.95 金 (2026-11-11 23:52 实抓 gold=true price=95)
 }
 
 // parsePlaceTripArgs 解析 3/38 请求 [地图 key, bool, 价格]。
@@ -544,8 +544,8 @@ func hPlaceTripTx(ctx *Ctx) ([]byte, bool) {
 	place, gold, price := parsePlaceTripArgs(ctx.Tree)
 	durSec := srv.currentTripDurationSec(ctx.Sess.pushCtx())
 	if !validLevelKey(place) || price <= 0 {
-		ctx.Log.Warn("3/38 参数无效", "place", place, "gold", gold, "price", price)
-		ctx.ReplyFailure("System.InvalidOperationException", "钓鱼游购买参数无效")
+		ctx.Log.Warn("3/38 Неверные параметры", "place", place, "gold", gold, "price", price)
+		ctx.ReplyFailure("System.InvalidOperationException", "Неверные параметры покупки путёвки")
 		return nil, true
 	}
 	// 票价必须整段走固定票价表，不能回落客户端报价：购票面板价格由客户端
@@ -554,9 +554,9 @@ func hPlaceTripTx(ctx *Ctx) ([]byte, bool) {
 	// 未实抓币种（金币价缺失）一律拒绝购买。
 	tier, ok := placeTripPrices[place]
 	if !ok {
-		ctx.Log.Info("3/38 未收录的钓鱼游地点，拒绝购买", "place", place,
+		ctx.Log.Info("3/38 Неизвестная локация путёвки, покупка отклонена", "place", place,
 			"gold", gold, "price", price)
-		ctx.ReplyFailure("System.InvalidOperationException", "该地点暂不支持购买钓鱼游")
+		ctx.ReplyFailure("System.InvalidOperationException", "Для этой локации путёвки пока не продаются")
 		return nil, true
 	}
 	want := tier.Silver
@@ -564,22 +564,22 @@ func hPlaceTripTx(ctx *Ctx) ([]byte, bool) {
 		want = tier.Gold
 	}
 	if want <= 0 {
-		ctx.Log.Info("3/38 该币种票价未收录，拒绝购买", "place", place,
+		ctx.Log.Info("3/38 Цена путёвки в этой валюте неизвестна, покупка отклонена", "place", place,
 			"gold", gold, "price", price)
-		ctx.ReplyFailure("System.InvalidOperationException", "该支付方式暂未开放")
+		ctx.ReplyFailure("System.InvalidOperationException", "Этот способ оплаты пока недоступен")
 		return nil, true
 	}
 	if price != want {
-		ctx.Log.Info("3/38 票价与实抓价格不符，不扣款", "place", place,
+		ctx.Log.Info("3/38 Цена путёвки не совпадает с фактической, оплата не списана", "place", place,
 			"gold", gold, "price", price, "want", want)
-		ctx.ReplyFailure("System.InvalidOperationException", "钓鱼游价格已变化，请重新打开购买界面")
+		ctx.ReplyFailure("System.InvalidOperationException", "Цена путёвки изменилась, откройте окно покупки заново")
 		return nil, true
 	}
 
 	cctx := ctx.Sess.pushCtx()
 	tx, err := beginEconomyTx(cctx, srv.DB)
 	if err != nil {
-		ctx.Log.Warn("3/38 开启事务失败", "err", err)
+		ctx.Log.Warn("3/38 Не удалось начать транзакцию", "err", err)
 		return nil, false
 	}
 	defer func() { _ = tx.Rollback() }()
@@ -589,12 +589,12 @@ func hPlaceTripTx(ctx *Ctx) ([]byte, bool) {
 		`SELECT purchases, remaining_sec FROM trip_state WHERE uid=? AND place=?`,
 		uid, place).Scan(&purchases, &remaining)
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
-		ctx.Log.Warn("3/38 读取钓鱼游状态失败", "place", place, "err", err)
+		ctx.Log.Warn("3/38 Не удалось прочитать состояние путёвки", "place", place, "err", err)
 		return nil, false
 	}
 	if purchases >= tripMaxPurchases {
-		ctx.Log.Info("3/38 购买次数已达上限", "place", place, "purchases", purchases)
-		ctx.ReplyFailure("System.InvalidOperationException", "该钓鱼游购买次数已达上限")
+		ctx.Log.Info("3/38 Достигнут предел покупок", "place", place, "purchases", purchases)
+		ctx.ReplyFailure("System.InvalidOperationException", "Достигнут предел покупок этой путёвки")
 		return nil, true
 	}
 	if gold {
@@ -623,7 +623,7 @@ func hPlaceTripTx(ctx *Ctx) ([]byte, bool) {
 			purchases=purchases+1,
 			updated_ts=excluded.updated_ts`,
 		uid, place, float64(durSec), nowF, 1, nowF); err != nil {
-		ctx.Log.Warn("3/38 写入钓鱼游状态失败", "place", place, "err", err)
+		ctx.Log.Warn("3/38 Не удалось записать состояние путёвки", "place", place, "err", err)
 		return nil, false
 	}
 	// 访问记录进 place_access(kind='trip')：服务端判资格（tripLevelLocked）、
@@ -633,14 +633,14 @@ func hPlaceTripTx(ctx *Ctx) ([]byte, bool) {
 		INSERT INTO place_access(uid, place, kind, ts) VALUES(?,?, 'trip', ?)
 		ON CONFLICT (uid, place, kind) DO NOTHING`,
 		uid, place, nowF); err != nil {
-		ctx.Log.Warn("3/38 记录钓鱼游访问失败", "place", place, "err", err)
+		ctx.Log.Warn("3/38 Не удалось записать посещение по путёвке", "place", place, "err", err)
 		return nil, false
 	}
 	if err := tx.Commit(); err != nil {
-		ctx.Log.Warn("3/38 事务提交失败", "place", place, "err", err)
+		ctx.Log.Warn("3/38 Не удалось зафиксировать транзакцию", "place", place, "err", err)
 		return nil, false
 	}
-	ctx.Log.Info("3/38 购买钓鱼游", "place", place, "gold", gold, "price", price,
+	ctx.Log.Info("3/38 Покупка путёвки", "place", place, "gold", gold, "price", price,
 		"purchases", purchases+1, "remaining_sec", remaining+float64(durSec))
 
 	// 装备包不在购票时发放：官方生命周期（用户 2026-11-05 口头修正）为
@@ -648,7 +648,7 @@ func hPlaceTripTx(ctx *Ctx) ([]byte, bool) {
 
 	p, err := srv.BuildProfile307W(cctx, uid, worldTotalGameMin(time.Now()))
 	if err != nil {
-		ctx.Log.Warn("3/38 档案构造失败", "err", err)
+		ctx.Log.Warn("3/38 Ошибка создания профиля", "err", err)
 		return nil, false
 	}
 	body, err := proto.EncodeValue(p, ctx.Sess.Table())
@@ -662,10 +662,10 @@ func hPlaceTripTx(ctx *Ctx) ([]byte, bool) {
 // tripWalletFail 钓鱼游扣款的失败分流：余额不足回业务失败，其余交兜底链。
 func tripWalletFail(ctx *Ctx, place string, price int64, walletErr error) ([]byte, bool) {
 	if !errors.Is(walletErr, errInsufficientFunds) {
-		ctx.Log.Warn("3/38 扣款失败", "place", place, "price", price, "err", walletErr)
+		ctx.Log.Warn("3/38 Не удалось списать оплату", "place", place, "price", price, "err", walletErr)
 		return nil, false
 	}
-	ctx.Log.Info("3/38 余额不足，不扣款", "place", place, "price", price)
-	ctx.ReplyFailure("System.InvalidOperationException", "余额不足，未购买钓鱼游")
+	ctx.Log.Info("3/38 Недостаточно средств, оплата не списана", "place", place, "price", price)
+	ctx.ReplyFailure("System.InvalidOperationException", "Недостаточно средств, путёвка не куплена")
 	return nil, true
 }

@@ -99,11 +99,11 @@ func TestTradingCardLaminate(t *testing.T) {
 		t.Fatalf("f3 应带卡册 + 奖座 GUID: %+v", f3)
 	}
 	if got := f3.Items[0].GuidHex(); got != deckGUID {
-		t.Fatalf("f3 首元素应为卡册 GUID %s，实得 %s", deckGUID, got)
+		t.Fatalf("f3 首元素应为卡册 GUID %s, 实得 %s", deckGUID, got)
 	}
 	// 塑封奖励含 1 个免费技能点（kv skill_bonus 偏移 +1）。
 	if bonus, _, _ := db.KVGet(c, fmt.Sprintf("skill_bonus:%d", 7)); bonus != "1" {
-		t.Fatalf("塑封应加 1 个免费技能点，实得 skill_bonus=%q", bonus)
+		t.Fatalf("塑封应加 1 个免费技能点, 实得 skill_bonus=%q", bonus)
 	}
 	// f1 时间戳 = FILETIME（约 1.3e17 量级；.NET Ticks 是 6.4e17 量级，
 	// 发错单位客户端 FromFileTime 会渲染成 +1600 年）
@@ -135,7 +135,7 @@ func TestTradingCardLaminate(t *testing.T) {
 	}
 	// 解封重塑不会重复加点：技能点按卡册实例打标记。
 	if bonus, _, _ := db.KVGet(c, fmt.Sprintf("skill_bonus:%d", 7)); bonus != "1" {
-		t.Fatalf("重复塑封不得重复加技能点，实得 skill_bonus=%q", bonus)
+		t.Fatalf("重复塑封不得重复加技能点, 实得 skill_bonus=%q", bonus)
 	}
 }
 
@@ -169,16 +169,16 @@ func TestEnsureDeckLaminatePointsBackfillsSealedDeck(t *testing.T) {
 		t.Fatal(err)
 	}
 	if n := s.ensureDeckLaminatePoints(c, 7); n != 1 {
-		t.Fatalf("登录补发应为 1 本卡册，实得 %d", n)
+		t.Fatalf("登录补发应为 1 本卡册, 实得 %d", n)
 	}
 	if bonus, _, _ := db.KVGet(c, "skill_bonus:7"); bonus != "1" {
-		t.Fatalf("补发后 skill_bonus 应为 1，实得 %q", bonus)
+		t.Fatalf("补发后 skill_bonus 应为 1, 实得 %q", bonus)
 	}
 	if n := s.ensureDeckLaminatePoints(c, 7); n != 0 {
-		t.Fatalf("补发必须幂等，第二次实得 %d", n)
+		t.Fatalf("补发必须幂等, 第二次实得 %d", n)
 	}
 	if bonus, _, _ := db.KVGet(c, "skill_bonus:7"); bonus != "1" {
-		t.Fatalf("重复补发不得重复加点，实得 skill_bonus=%q", bonus)
+		t.Fatalf("重复补发不得重复加点, 实得 skill_bonus=%q", bonus)
 	}
 }
 
@@ -401,16 +401,16 @@ func TestTradingCardLaminateRejectsUnbuildableDeckTree(t *testing.T) {
 		t.Fatal(err)
 	}
 	if fieldsJSON != "{" {
-		t.Fatalf("卡册树构造失败时不应改写卡册字段，实得 %q", fieldsJSON)
+		t.Fatalf("卡册树构造失败时不应改写卡册字段, 实得 %q", fieldsJSON)
 	}
 	if bonus, _, _ := db.KVGet(c, "skill_bonus:7"); bonus != "" {
-		t.Fatalf("卡册树构造失败时不应加技能点，实得 %q", bonus)
+		t.Fatalf("卡册树构造失败时不应加技能点, 实得 %q", bonus)
 	}
 	if _, _, err := db.KVGet(c, deckLaminatePointKey(deckGUID)); err == nil {
 		t.Fatal("卡册树构造失败时不应写塑封技能点幂等标记")
 	}
 	if n := countRows(t, db, 7, "statuette_test"); n != 0 {
-		t.Fatalf("卡册树构造失败时不应发奖座，实得 %d 尊", n)
+		t.Fatalf("卡册树构造失败时不应发奖座, 实得 %d 尊", n)
 	}
 }
 
@@ -436,7 +436,7 @@ func TestBuildSealedDeckTreeRequiresDeck(t *testing.T) {
 		t.Fatal(err)
 	}
 	if _, err := s.buildSealedDeckTree(c, 7, deckGUID, 1); err == nil {
-		t.Fatal("fields_json 损坏时 buildSealedDeckTree 必须返回 error（不得降级为 nil）")
+		t.Fatal("fields_json 损坏时 buildSealedDeckTree 必须返回 error (不得降级为 nil)")
 	}
 	// 字段被清空（只有 f0 都没有）→ error，不能让事务里按 fields[1] 取密封位。
 	if _, err := db.SQL.Exec(`UPDATE item SET fields_json='[]' WHERE guid=?`, deckGUID); err != nil {

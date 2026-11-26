@@ -51,14 +51,14 @@ func (d *Dispatch) responseContract(main, sub uint8) (ResponseContractRule, bool
 // 被当作普通回包静默放行。
 func (d *Dispatch) checkRegisteredResponse(main, sub uint8, body []byte, table *proto.OpsTable) string {
 	if len(body) == 0 {
-		return "响应 body 为空"
+		return "Пустое тело ответа"
 	}
 	v, n, err := proto.DecodeValue(body, 0, table)
 	if err != nil {
-		return fmt.Sprintf("响应无法解码: %v", err)
+		return fmt.Sprintf("Не удалось декодировать ответ: %v", err)
 	}
 	if n != len(body) {
-		return fmt.Sprintf("响应尾部有 %d 字节未消费", len(body)-n)
+		return fmt.Sprintf("В конце ответа осталось %d непрочитанных байт", len(body)-n)
 	}
 	if rule, ok := d.responseContract(main, sub); ok {
 		return checkResponseRule(rule, v)
@@ -74,7 +74,7 @@ func (d *Dispatch) checkRegisteredResponse(main, sub uint8, body []byte, table *
 	}
 	if kind == "null" {
 		if v.Kind != proto.KindNull {
-			return fmt.Sprintf("合同要求 null, 实得 %s", kindName(v))
+			return fmt.Sprintf("Контракт требует null, получено %s", kindName(v))
 		}
 		return ""
 	}
@@ -91,7 +91,7 @@ func (d *Dispatch) checkRegisteredResponse(main, sub uint8, body []byte, table *
 			return ""
 		}
 		if !containsContractTypeID(entry.Resp.TypeIDs, v.TypeID) {
-			return fmt.Sprintf("合同 type_id 白名单 %v, 实得 %d(%s)", entry.Resp.TypeIDs, v.TypeID, v.Class)
+			return fmt.Sprintf("Белый список type_id контракта %v, получено %d(%s)", entry.Resp.TypeIDs, v.TypeID, v.Class)
 		}
 		return ""
 	}
@@ -108,52 +108,52 @@ func (d *Dispatch) checkRegisteredResponse(main, sub uint8, body []byte, table *
 		return ""
 	}
 	if v.Kind != proto.KindObj {
-		return fmt.Sprintf("合同类白名单 %v 要求 obj, 实得 %s", wireClasses, kindName(v))
+		return fmt.Sprintf("Белый список классов контракта %v требует obj, получено %s", wireClasses, kindName(v))
 	}
 	if !containsString(wireClasses, v.Class) {
-		return fmt.Sprintf("合同类白名单 %v, 实得 %s(%d)", wireClasses, v.Class, v.TypeID)
+		return fmt.Sprintf("Белый список классов контракта %v, получено %s(%d)", wireClasses, v.Class, v.TypeID)
 	}
 	return ""
 }
 
 func checkResponseRule(rule ResponseContractRule, v *proto.Value) string {
 	if rule.Kind != "" && v.Kind != rule.Kind {
-		return fmt.Sprintf("白名单要求 %s, 实得 %s", rule.Kind, kindName(v))
+		return fmt.Sprintf("Белый список требует %s, получено %s", rule.Kind, kindName(v))
 	}
 	if len(rule.TypeIDs) > 0 {
 		if v.Kind != proto.KindObj {
-			return fmt.Sprintf("type_id 白名单 %v 要求 obj, 实得 %s", rule.TypeIDs, kindName(v))
+			return fmt.Sprintf("type_id Белый список %v требует obj, получено %s", rule.TypeIDs, kindName(v))
 		}
 		if !containsU32(rule.TypeIDs, v.TypeID) {
-			return fmt.Sprintf("type_id 白名单 %v, 实得 %d", rule.TypeIDs, v.TypeID)
+			return fmt.Sprintf("type_id Белый список %v, получено %d", rule.TypeIDs, v.TypeID)
 		}
 	}
 	if len(rule.Classes) > 0 {
 		if v.Kind != proto.KindObj {
-			return fmt.Sprintf("wire class 白名单 %v 要求 obj, 实得 %s", rule.Classes, kindName(v))
+			return fmt.Sprintf("wire class Белый список %v требует obj, получено %s", rule.Classes, kindName(v))
 		}
 		if !containsString(rule.Classes, v.Class) {
-			return fmt.Sprintf("wire class 白名单 %v, 实得 %s", rule.Classes, v.Class)
+			return fmt.Sprintf("wire class Белый список %v, получено %s", rule.Classes, v.Class)
 		}
 	}
 	if rule.Kind == proto.KindArgs || rule.ArgCode != "" || rule.ArgItemsAreItems || len(rule.ArgItemTypeIDs) > 0 {
 		if v.Kind != proto.KindArgs {
-			return fmt.Sprintf("args 合同要求 args, 实得 %s", kindName(v))
+			return fmt.Sprintf("args Контракт требует args, получено %s", kindName(v))
 		}
 		if rule.ArgCode != "" && v.ArgCodeStr() != rule.ArgCode {
-			return fmt.Sprintf("args code=%q, 期望 %q", v.ArgCodeStr(), rule.ArgCode)
+			return fmt.Sprintf("args code=%q, Ожидалось %q", v.ArgCodeStr(), rule.ArgCode)
 		}
 		for i, it := range v.Items {
 			if rule.ArgItemsAreItems || len(rule.ArgItemTypeIDs) > 0 {
 				if it == nil || it.Kind != proto.KindObj {
-					return fmt.Sprintf("args[%d] 应为物品 obj, 实得 %s", i, kindName(it))
+					return fmt.Sprintf("args[%d] ожидается предмет obj, получено %s", i, kindName(it))
 				}
 				if len(rule.ArgItemTypeIDs) > 0 {
 					if !containsU32(rule.ArgItemTypeIDs, it.TypeID) {
-						return fmt.Sprintf("args[%d] type_id=%d 不在白名单 %v", i, it.TypeID, rule.ArgItemTypeIDs)
+						return fmt.Sprintf("args[%d] type_id=%d нет в белом списке %v", i, it.TypeID, rule.ArgItemTypeIDs)
 					}
 				} else if it.TypeID < 100 || it.TypeID > 199 {
-					return fmt.Sprintf("args[%d] 物品 type_id=%d 不在 100..199", i, it.TypeID)
+					return fmt.Sprintf("args[%d] Предмет type_id=%d нет в 100..199", i, it.TypeID)
 				}
 				continue
 			}
